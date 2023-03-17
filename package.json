@@ -1,0 +1,59 @@
+{
+  "name": "helia-service-worker-gateway",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Bundle Helia with Webpack",
+  "keywords": [],
+  "license": "MIT",
+  "scripts": {
+    "clean": "rimraf ./dist",
+    "build": "webpack --env production",
+    "serve": "webpack serve --mode=development",
+    "start": "npm run serve",
+    "test": "npm run build && playwright test tests"
+  },
+  "browserslist": [
+    "last 1 Chrome version"
+  ],
+  "dependencies": {
+    "@chainsafe/libp2p-noise": "^11.0.0",
+    "@chainsafe/libp2p-yamux": "^3.0.5",
+    "@helia/unixfs": "^1.0.2",
+    "@libp2p/bootstrap": "^6.0.0",
+    "@libp2p/delegated-content-routing": "^4.0.1",
+    "@libp2p/delegated-peer-routing": "^4.0.1",
+    "@libp2p/websockets": "^5.0.3",
+    "@libp2p/webtransport": "^1.0.7",
+    "aegir": "^38.1.7",
+    "blockstore-core": "^3.0.0",
+    "datastore-core": "^8.0.4",
+    "helia": "next",
+    "kubo-rpc-client": "^3.0.1",
+    "libp2p": "^0.42.2",
+    "multiformats": "^11.0.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "typescript": "^5.0.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.13.10",
+    "@babel/preset-env": "^7.13.12",
+    "@babel/preset-react": "^7.12.13",
+    "@playwright/test": "^1.12.3",
+    "@types/react": "^18.0.28",
+    "babel-loader": "^9.1.2",
+    "copy-webpack-plugin": "^11.0.0",
+    "css-loader": "^6.2.0",
+    "html-webpack-plugin": "^5.3.2",
+    "node-polyfill-webpack-plugin": "^2.0.1",
+    "playwright": "^1.12.3",
+    "rimraf": "^4.1.2",
+    "style-loader": "^3.1.0",
+    "test-util-ipfs-example": "^1.0.2",
+    "webpack": "^5.45.1",
+    "webpack-cli": "^5.0.1",
+    "webpack-dev-server": "^4.6.0",
+    "webpack-merge": "^5.8.0"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "extends": "../../aegir/src/config/tsconfig.aegir.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "allowJs": true,
+    "types": [
+      // "helia",
+      // "@helia/unixfs"
+    ]
+  },
+  "include": [
+    "src",
+    "test",
+    "types/custom.d.ts"
+  ]
+}
