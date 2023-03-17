@@ -94,7 +94,10 @@ const dev = {
     port: 3000
   },
 
-  plugins: []
+  plugins: [
+    // Only update what has changed on hot reload
+    new webpack.HotModuleReplacementPlugin()
+  ]
 }
 
 /**
