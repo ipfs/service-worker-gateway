@@ -1,16 +1,23 @@
 {
-  "extends": "../../aegir/src/config/tsconfig.aegir.json",
+  "extends": "./node_modules/aegir/src/config/tsconfig.aegir.json",
   "compilerOptions": {
     "outDir": "dist",
     "allowJs": true,
-    "types": [
-      // "helia",
-      // "@helia/unixfs"
-    ]
+    "noImplicitAny": false, // todo: update
+    "module": "ES6",
+    "target": "ES6",
+    "jsx": "react-jsx",
+    // "moduleResolution": "nodenext",
+    "moduleResolution": "bundler",
+
+    "ignoreDeprecations": "5.0", // needed due to deprecated usage in tsconfig.aegir.json
+    // "moduleSuffixes": [".js", ".jsx", ".ts", ".tsx"]
+    "allowImportingTsExtensions": true,
+    "emitDeclarationOnly": true,
   },
   "include": [
     "src",
     "test",
-    "types/custom.d.ts"
+    "types/svg.d.ts"
   ]
 }

@@ -26,6 +26,9 @@ const paths = {
   public: path.resolve(__dirname, './public')
 }
 
+/**
+ * @type {import('webpack').Configuration}
+ */
 const prod = {
   mode: 'production',
   devtool: false,
@@ -43,6 +46,9 @@ const prod = {
   target: 'browserslist'
 }
 
+/**
+ * @type {import('webpack').Configuration}
+ */
 const dev = {
   // Set the mode to development or production
   mode: 'development',
@@ -63,19 +69,20 @@ const dev = {
     static: paths.build,
     open: true,
     compress: true,
+    // Only update what has changed on hot reload
     hot: true,
     port: 3000
   },
 
-  plugins: [
-    // Only update what has changed on hot reload
-    new webpack.HotModuleReplacementPlugin()
-  ]
+  plugins: []
 }
 
+/**
+ * @type {import('webpack').Configuration}
+ */
 const common = {
 // Where webpack looks to start building the bundle
-  entry: [paths.src + '/index.js'],
+  entry: [paths.src + '/index.tsx'],
 
   // Customize the webpack build process
   plugins: [
@@ -120,12 +127,13 @@ const common = {
     rules: [
       // JavaScript: Use Babel to transpile JavaScript files
       {
-        test: /\.js$/,
+        test: /\.[jt]sx?$/,
         exclude: /node_modules/,
         use: {
           loader: 'babel-loader',
           options: {
             presets: [
+              "@babel/preset-typescript",
               [
                 '@babel/preset-env',
                 {
@@ -152,14 +160,20 @@ const common = {
 
   resolve: {
     modules: [paths.src, 'node_modules'],
-    extensions: ['.js', '.jsx', '.json'],
-    alias: {
-      '@': paths.src
-    }
+    extensions: ['.js', '.jsx', '.json', '.ts', '.tsx'],
+    // alias: {
+    //   '@': paths.src
+    // }
   },
 
   // fix: https://github.com/webpack/webpack-dev-server/issues/2758
-  target: 'web'
+  target: 'web',
+
+  devtool: 'source-map',
+  stats: {
+    errorDetails: true,
+    children: true
+  },
 }
 
 export default (cmd) => {

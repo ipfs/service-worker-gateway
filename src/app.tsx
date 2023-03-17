@@ -1,25 +1,36 @@
-// @ts-check
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
+import type { Helia } from '@helia/interface'
+import { AddOptions, unixfs } from '@helia/unixfs'
+
+import { getHelia } from './get-helia.ts'
 import ipfsLogo from './ipfs-logo.svg'
-import { getHelia } from './get-helia.js'
-import { unixfs } from '@helia/unixfs'
+
+enum COLORS {
+  default = '#fff',
+  active = '#357edd',
+  success = '#0cb892',
+  error = '#ea5037'
+}
+
+interface OutputLine {
+  content: string
+  color: COLORS
+  id: string
+}
 
 function App() {
-  const [output, setOutput] = useState([]);
-  const [helia, setHelia] = useState(null);
+  const [output, setOutput] = useState<OutputLine[]>([]);
+  const [helia, setHelia] = useState<Helia | null>(null);
   const [fileContent, setFileContent] = useState('');
   const [fileName, setFileName] = useState('');
 
-  const terminalEl = useRef(null);
+  const terminalEl = useRef<HTMLDivElement>(null);
 
-  const COLORS = {
-    active: '#357edd',
-    success: '#0cb892',
-    error: '#ea5037'
-  }
 
-  const showStatus = (text, color, id) => {
-    setOutput((prev) => {
+
+
+  const showStatus = (text: OutputLine['content'], color: OutputLine['color'] = COLORS.default, id: OutputLine['id'] = '') => {
+    setOutput((prev: OutputLine[]) => {
       return [...prev,
         {
         'content': text,
@@ -29,11 +40,11 @@ function App() {
       ]
     })
 
-    terminalEl.current.scroll({ top: terminal.scrollHeight, behavior: 'smooth' })
+    terminalEl.current?.scroll?.({ top: terminalEl.current?.scrollHeight, behavior: 'smooth' })
   }
 
   const store = async (name, content) => {
-    let node = helia;
+    let node: Helia | null = helia;
 
     if (!helia) {
       showStatus('Creating Helia node...', COLORS.active)
@@ -43,9 +54,13 @@ function App() {
       setHelia(node)
     }
 
+    if (node == null) {
+      throw new Error('Helia node is not available')
+    }
+
     const peerId = node.libp2p.peerId
     console.log(peerId)
-    showStatus(`Connecting to ${peerId}...`, COLORS.active, peerId)
+    showStatus(`Connecting to ${peerId}...`, COLORS.active, peerId.toString())
 
     const encoder = new TextEncoder()
 
@@ -57,9 +72,9 @@ function App() {
     const fs = unixfs(node)
 
     showStatus(`Adding file ${fileToAdd.path}...`, COLORS.active)
-    const cid = await fs.addFile(fileToAdd, node.blockstore)
+    const cid = await fs.addFile(fileToAdd, node.blockstore as Partial<AddOptions>)
 
-    showStatus(`Added to ${cid}`, COLORS.success, cid)
+    showStatus(`Added to ${cid}`, COLORS.success, cid.toString())
     showStatus('Reading file...', COLORS.active)
     const decoder = new TextDecoder()
     let text = ''
@@ -88,7 +103,7 @@ function App() {
 
       await store(fileName, fileContent)
     } catch (err) {
-      showStatus(err.message, COLORS.error)
+      showStatus((err as Error).message, COLORS.error)
     }
   }
 

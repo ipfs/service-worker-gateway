@@ -13,6 +13,7 @@
     "start": "npm run serve",
     "test": "npm run build && playwright test tests"
   },
+  "browser": "./dist/src/index.js",
   "browserslist": [
     "last 1 Chrome version"
   ],
@@ -25,7 +26,6 @@
     "@libp2p/delegated-peer-routing": "^4.0.1",
     "@libp2p/websockets": "^5.0.3",
     "@libp2p/webtransport": "^1.0.7",
-    "aegir": "^38.1.7",
     "blockstore-core": "^3.0.0",
     "datastore-core": "^8.0.4",
     "helia": "next",
@@ -40,8 +40,11 @@
     "@babel/core": "^7.13.10",
     "@babel/preset-env": "^7.13.12",
     "@babel/preset-react": "^7.12.13",
+    "@babel/preset-typescript": "^7.21.0",
     "@playwright/test": "^1.12.3",
     "@types/react": "^18.0.28",
+    "aegir": "^38.1.7",
+    "babel-cli": "^6.26.0",
     "babel-loader": "^9.1.2",
     "copy-webpack-plugin": "^11.0.0",
     "css-loader": "^6.2.0",
