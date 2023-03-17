@@ -6,7 +6,7 @@
     "noImplicitAny": false, // todo: update
     "module": "ES6",
     "target": "ES6",
-    "jsx": "react-jsx",
+    "jsx": "react",
     // "moduleResolution": "nodenext",
     "moduleResolution": "bundler",
 

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import type { Helia } from '@helia/interface'
 import { AddOptions, unixfs } from '@helia/unixfs'
 

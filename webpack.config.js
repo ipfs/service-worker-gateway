@@ -43,7 +43,27 @@ const prod = {
     maxAssetSize: 512000
   },
   // fix: https://github.com/webpack/webpack-dev-server/issues/2758
-  target: 'browserslist'
+  target: 'browserslist',
+  plugins: [
+    {
+      apply (compiler) {
+        // allows users to load HTML page via filesystem in browser.
+        compiler.hooks.compilation.tap('usePageRelativeLinks', (compilation) => {
+
+          HtmlWebpackPlugin.getHooks(compilation).alterAssetTags.tapAsync('usePageRelativeLinks', (data, cb) => {
+            // Manipulate the content
+            data.assetTags.scripts = data.assetTags.scripts.map((script) => {
+              script.attributes.src = script.attributes.src.replace(/^\//, '')
+              return script
+            })
+
+            // Tell webpack to move on
+            cb(null, data)
+          })
+        })
+      }
+    }
+  ]
 }
 
 /**
