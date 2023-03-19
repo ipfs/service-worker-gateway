@@ -126,7 +126,7 @@ function App() {
     }
 
     showStatus(`\u2514\u2500 CID: ${cid}`)
-    showStatus(`Preview: https://ipfs.io/ipfs/${cid}`, COLORS.success)
+    showStatus(`${text}`, COLORS.success)
   }
 
   const handleSubmit = async (e) => {

@@ -11,6 +11,7 @@ import { MemoryDatastore } from 'datastore-core'
 import { delegatedPeerRouting } from "@libp2p/delegated-peer-routing";
 import { delegatedContentRouting } from "@libp2p/delegated-content-routing";
 import { create as kuboClient } from "kubo-rpc-client";
+import { ipniRouting } from './ipni-routing'
 
 export async function getHelia (): Promise<Helia> {
   // the blockstore is where we store the blocks that make up files
@@ -40,7 +41,7 @@ export async function getHelia (): Promise<Helia> {
       yamux()
     ],
     peerRouters: [delegatedPeerRouting(delegatedClient)],
-    contentRouters: [delegatedContentRouting(delegatedClient)],
+    contentRouters: [ipniRouting("https", "cid.contact", "443")],//delegatedContentRouting(delegatedClient)],
     /**
        * @see https://github.com/libp2p/js-libp2p/blob/master/doc/CONFIGURATION.md#configuring-dialing
        */
@@ -52,24 +53,31 @@ export async function getHelia (): Promise<Helia> {
      */
     connectionManager: {
       // Auto connect to discovered peers (limited by ConnectionManager minConnections)
-      autoDial: true,
-      // maxConnections: 10,
-      // minConnections: 0,
-      // pollInterval: 2000,
+       maxConnections: Infinity,
+       minConnections: 0,
+       pollInterval: 2000,
     },
     /**
      * @see https://github.com/libp2p/js-libp2p/blob/master/doc/CONFIGURATION.md#configuring-peerstore
      */
-    // peerStore: {
-    //   // persistence: true,
+    peerStore: {
+       persistence: false,
     //   /**
     //    * The threshold number represents the maximum number of "dirty peers" allowed in the PeerStore, i.e. peers that
     //    * are not updated in the datastore. In this context, browser nodes should use a threshold of 1, since they
     //    * might not "stop" properly in several scenarios and the PeerStore might end up with unflushed records when the
     //    * window is closed.
     //    */
-    //   threshold: 1,
-    // },
+       threshold: 1,
+     },
+
+    peerRouting: { // Peer routing configuration
+      refreshManager: { // Refresh known and connected closest peers
+        enabled: false, // Should find the closest peers.
+        interval: 6e5, // Interval for getting the new for closest peers of 10min
+        bootDelay: 10e3 // Delay for the initial query for closest peers
+      }
+    }
   })
 
   // create a Helia node
