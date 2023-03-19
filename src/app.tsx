@@ -1,11 +1,13 @@
 import React, { useState, useRef } from 'react';
 import type { Helia } from '@helia/interface'
-import { AddOptions, unixfs } from '@helia/unixfs'
+import { unixfs } from '@helia/unixfs'
 import { CID } from 'multiformats/cid'
 
 import { getHelia } from './get-helia.ts'
-import ipfsLogo from './ipfs-logo.svg'
-import Form from './form';
+import Form from './components/Form.tsx';
+import TerminalOutput from './components/TerminalOutput.tsx';
+import Header from './components/Header.tsx';
+import { mergeUint8Arrays } from './lib';
 
 enum COLORS {
   default = '#fff',
@@ -23,13 +25,9 @@ interface OutputLine {
 function App() {
   const [output, setOutput] = useState<OutputLine[]>([]);
   const [helia, setHelia] = useState<Helia | null>(null);
-  const [fileCid, setFileCid] = useState('');
-
+  const [fileCid, setFileCid] = useState('QmXuk2793cGXBkPQ2FCEBZVe5KsKDnBi2QyhbEZwxXZb5Y');
 
   const terminalEl = useRef<HTMLDivElement>(null);
-
-
-
 
   const showStatus = (text: OutputLine['content'], color: OutputLine['color'] = COLORS.default, id: OutputLine['id'] = '') => {
     setOutput((prev: OutputLine[]) => {
@@ -45,52 +43,6 @@ function App() {
     terminalEl.current?.scroll?.({ top: terminalEl.current?.scrollHeight, behavior: 'smooth' })
   }
 
-  // const store = async (name, content) => {
-  //   let node: Helia | null = helia;
-
-  //   if (!helia) {
-  //     showStatus('Creating Helia node...', COLORS.active)
-
-  //     node = await getHelia()
-
-  //     setHelia(node)
-  //   }
-
-  //   if (node == null) {
-  //     throw new Error('Helia node is not available')
-  //   }
-
-  //   const peerId = node.libp2p.peerId
-  //   console.log(peerId)
-  //   showStatus(`My ID is ${peerId}`, COLORS.active, peerId.toString())
-
-  //   const encoder = new TextEncoder()
-
-  //   // const fileToAdd = {
-  //   //   path: `${name}`,
-  //   //   content: encoder.encode(content)
-  //   // }
-
-  //   const fs = unixfs(node)
-
-  //   showStatus(`Adding file ${fileToAdd.path}...`, COLORS.active)
-  //   const cid = await fs.addFile(fileToAdd, node.blockstore as Partial<AddOptions>)
-
-  //   showStatus(`Added to ${cid}`, COLORS.success, cid.toString())
-  //   showStatus('Reading file...', COLORS.active)
-  //   const decoder = new TextDecoder()
-  //   let text = ''
-
-  //   for await (const chunk of fs.cat(cid)) {
-  //     text += decoder.decode(chunk, {
-  //       stream: true
-  //     })
-  //   }
-
-  //   showStatus(`\u2514\u2500 ${name} ${text}`)
-  //   showStatus(`Preview: https://ipfs.io/ipfs/${cid}`, COLORS.success)
-  // }
-
   const getFile = async (fileCid) => {
     let node = helia;
 
@@ -101,12 +53,16 @@ function App() {
 
       globalThis.helia = node
       setHelia(node)
+        node.libp2p.addEventListener('peer:discovery', (evt) => {
+          console.log(`Discovered peer ${evt.detail.id.toString()}`)
+        })
+        node.libp2p.addEventListener('peer:connect', (evt) => {
+          console.log(`Connected to peer ${evt.detail.remotePeer.toString()}`)
+        })
+        node.libp2p.addEventListener('peer:disconnect', (evt) => {
+          console.log(`Disconnected from peer ${evt.detail.remotePeer.toString()}`)
+        })
     }
-
-    // if (node == null) {
-    //   throw new Error('Helia node is not available')
-    // }
-
 
     const peerId = node.libp2p.peerId
     console.log(peerId)
@@ -114,19 +70,24 @@ function App() {
 
     const fs = unixfs(node)
     const cid = CID.parse(fileCid)
+    console.log(`cid: `, cid);
 
-    showStatus(`Reading UnixFS text file ${cid}...`, COLORS.active)
+    showStatus(`Reading UnixFS file ${cid}...`, COLORS.active)
     const decoder = new TextDecoder()
-    let text = ''
+    const decodedTextChunks: string[] = []
+    let encodedChunks: Uint8Array = new Uint8Array()
 
     for await (const chunk of fs.cat(cid)) {
-      text += decoder.decode(chunk, {
+      encodedChunks = mergeUint8Arrays(encodedChunks, chunk)
+      console.log(`encodedChunks: `, encodedChunks);
+      const decodedData = decoder.decode(chunk, {
         stream: true
       })
+      showStatus('Received Chunk: ' + decodedData, COLORS.active)
+      decodedTextChunks.push(decodedData)
     }
-
-    showStatus(`\u2514\u2500 CID: ${cid}`)
-    showStatus(`Preview: https://ipfs.io/ipfs/${cid}`, COLORS.success)
+    console.log(`Final encodedChunks: `, encodedChunks);
+    showStatus(`Final data: ${decodedTextChunks.join('')}`, COLORS.success)
   }
 
   const handleSubmit = async (e) => {
@@ -145,31 +106,16 @@ function App() {
 
   return (
     <>
-      <header className='flex items-center pa3 bg-navy bb bw3 b--aqua'>
-        <a href='https://ipfs.io' title='home'>
-          <img alt='IPFS logo' src={ipfsLogo} style={{ height: 50 }} className='v-top' />
-        </a>
-      </header>
-
+      <Header />
       <main className="pa4-l bg-snow mw7 mv5 center pa4">
-        <h1 className="pa0 f2 ma0 mb4 aqua tc">Fetch content from IPFS using Helia</h1>
+        <h1 className="pa0 f2 ma0 mb4 aqua tc">Fetch unixFs file content from IPFS using Helia</h1>
         <Form handleSubmit={handleSubmit} fileCid={fileCid} setFileCid={setFileCid} />
 
         <h3>Output</h3>
 
         <div className="window">
           <div className="header"></div>
-          <div id="terminal" className="terminal" ref={terminalEl}>
-            { output.length > 0 &&
-              <div id="output">
-                { output.map((log, index) =>
-                  <p key={index} style={{'color': log.color}} id={log.id}>
-                    {log.content}
-                  </p>)
-                }
-              </div>
-            }
-          </div>
+          <TerminalOutput terminalRef={terminalEl} output={output} />
         </div>
       </main>
     </>
