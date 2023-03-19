@@ -1,15 +1,13 @@
 import { logger } from '@libp2p/logger'
-import drain from 'it-drain'
 import PQueue from 'p-queue'
 import defer from 'p-defer'
 import errCode from 'err-code'
 import anySignal from 'any-signal'
-import type { AbortOptions } from 'ipfs-core-types/src/utils'
+import type { AbortOptions } from '@libp2p/interfaces'
 import type { ContentRouting } from '@libp2p/interface-content-routing'
-import { PeerInfo } from '@libp2p/interface-peer-info'
+import type { PeerInfo } from '@libp2p/interface-peer-info'
 import type { Startable } from '@libp2p/interfaces/startable'
 import type { CID } from 'multiformats/cid'
-import { PeerId } from '@libp2p/interface-peer-id'
 import HTTP from 'ipfs-utils/src/http.js'
 import { peerIdFromString } from '@libp2p/peer-id'
 import { multiaddr } from '@multiformats/multiaddr'
@@ -18,7 +16,6 @@ const log = logger('libp2p:delegated-content-routing')
 
 const DEFAULT_TIMEOUT = 30e3 // 30 second default
 const CONCURRENT_HTTP_REQUESTS = 4
-const CONCURRENT_HTTP_REFS_REQUESTS = 2
 
 export interface HTTPClientExtraOptions {
   headers?: Record<string, string>
@@ -74,8 +71,10 @@ class IpniRouting implements ContentRouting, Startable {
    */
   async * findProviders (key: CID, options: HTTPClientExtraOptions & AbortOptions = {}): AsyncIterable<PeerInfo> {
     log('findProviders starts: %c', key)
-    options.timeout = options.timeout ?? DEFAULT_TIMEOUT
     options.signal = anySignal([this.abortController.signal].concat((options.signal != null) ? [options.signal] : []))
+    setTimeout(() => {
+      this.abortController.abort("findProviders timed out")
+    }, DEFAULT_TIMEOUT);
 
     const onStart = defer()
     const onFinish = defer()
@@ -89,10 +88,8 @@ class IpniRouting implements ContentRouting, Startable {
       await onStart.promise
 
       const resource = `${this.clientUrl}cid/${key.toString()}?cascade=ipfs-dht`
-      //const myHeaders = new Headers();
-      //myHeaders.append("Accept", "application/x-ndjson");
-      const myHeaders = { headers : { "Accept" : "application/x-ndjson"}}
-      const a = await HTTP.get(resource, myHeaders)
+      const getOptions = { headers : { "Accept" : "application/x-ndjson"}, signal : this.abortController.signal}
+      const a = await HTTP.get(resource, getOptions)
       const b = a.ndjson()
       for await (const event of b) {
         if (event.Metadata != "gBI=") {
