@@ -75,7 +75,7 @@ _For more examples, please refer to the [Documentation](#documentation)_
 - [Tutorials](https://proto.school)
 - [More examples](https://github.com/ipfs-examples/helia-examples)
 - [API - Helia](https://ipfs.github.io/helia/modules/helia.html)
-- [API - @helia/unixfs](https://ipfs.github.io/helia-unixfs/modules/helia.html)
+- [API - @helia/unixfs](https://ipfs.github.io/helia-unixfs/modules/_helia_unixfs.html)
 
 ## Contributing
 
