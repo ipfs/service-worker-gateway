@@ -64,7 +64,7 @@ In this example, you will find a boilerplate you can use to guide yourself into 
 
 You should see the following:
 
-![](./img/1.png)
+![](./img/window+sw-working.png)
 
 _For more examples, please refer to the [Documentation](#documentation)_
 
