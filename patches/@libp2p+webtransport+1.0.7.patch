@@ -1,0 +1,40 @@
+diff --git a/node_modules/@libp2p/webtransport/dist/src/index.js b/node_modules/@libp2p/webtransport/dist/src/index.js
+index 5043a2b..e838229 100644
+--- a/node_modules/@libp2p/webtransport/dist/src/index.js
++++ b/node_modules/@libp2p/webtransport/dist/src/index.js
+@@ -255,7 +255,14 @@ class WebTransport {
+         if (certhashes.length === 0) {
+             throw new Error('Expected multiaddr to contain certhashes');
+         }
+-        const wt = new window.WebTransport(`${url}/.well-known/libp2p-webtransport?type=noise`, {
++        const webTransportUrl = `${url}/.well-known/libp2p-webtransport?type=noise`
++        try {
++          new URL(webTransportUrl)
++        } catch (e) {
++          log.error(`Invalid URL '${webTransportUrl}' when trying to dial WebTransport Multiaddr '${ma.toString()}'`)
++          throw new Error('Invalid WebTransport Multiaddr, expected a valid URL')
++        }
++        const wt = new globalThis.WebTransport(`${url}/.well-known/libp2p-webtransport?type=noise`, {
+             serverCertificateHashes: certhashes.map(certhash => ({
+                 algorithm: 'sha-256',
+                 value: certhash.digest
+diff --git a/node_modules/@libp2p/webtransport/src/index.ts b/node_modules/@libp2p/webtransport/src/index.ts
+index fbe0def..c498f4a 100644
+--- a/node_modules/@libp2p/webtransport/src/index.ts
++++ b/node_modules/@libp2p/webtransport/src/index.ts
+@@ -32,6 +32,7 @@ function inertDuplex (): Duplex<any, any, any> {
+       [Symbol.asyncIterator] () {
+         return {
+           async next () {
++            log('calling next on inertDuplex')
+             // This will never resolve
+             return await new Promise(() => { })
+           }
+@@ -39,6 +40,7 @@ function inertDuplex (): Duplex<any, any, any> {
+       }
+     },
+     sink: async (source: Source<any>) => {
++      log('calling sink on inertDuplex')
+       // This will never resolve
+       return await new Promise(() => { })
+     }

@@ -4,9 +4,10 @@
     "outDir": "dist",
     "allowJs": true,
     "noImplicitAny": false, // todo: update
-    "module": "ES6",
-    "target": "ES6",
+    "module": "es2022",
+    "target": "es2022",
     "jsx": "react",
+    "lib": ["WebWorker", "ES6", "DOM"],
     // "moduleResolution": "nodenext",
     "moduleResolution": "bundler",
 

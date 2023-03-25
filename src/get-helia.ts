@@ -1,78 +1,54 @@
-import { HeliaInit, createHelia } from 'helia'
+import { type HeliaInit, createHelia } from 'helia'
 import type { Helia } from '@helia/interface'
-import { createLibp2p } from 'libp2p'
-import { noise } from '@chainsafe/libp2p-noise'
-import { yamux } from '@chainsafe/libp2p-yamux'
-import { webSockets } from '@libp2p/websockets'
-import { webTransport } from '@libp2p/webtransport'
-// import { bootstrap } from '@libp2p/bootstrap'
 import { MemoryBlockstore } from 'blockstore-core'
+import { LevelDatastore } from 'datastore-level'
 import { MemoryDatastore } from 'datastore-core'
-import { delegatedPeerRouting } from "@libp2p/delegated-peer-routing";
-import { delegatedContentRouting } from "@libp2p/delegated-content-routing";
-import { create as kuboClient } from "kubo-rpc-client";
-import { ipniRouting } from './ipni-routing'
 
-export async function getHelia (): Promise<Helia> {
+import type { LibP2pComponents, Libp2pConfigTypes } from './types.ts'
+import { getLibp2p } from './getLibp2p.ts'
+
+interface GetHeliaOptions {
+  usePersistentDatastore?: boolean
+  libp2pConfigType: Libp2pConfigTypes
+}
+const defaultOptions: GetHeliaOptions = {
+  usePersistentDatastore: false,
+  libp2pConfigType: 'ipni'
+}
+
+export async function getHelia ({ usePersistentDatastore, libp2pConfigType }: GetHeliaOptions = defaultOptions): Promise<Helia> {
   // the blockstore is where we store the blocks that make up files
   const blockstore: HeliaInit['blockstore'] = new MemoryBlockstore() as unknown as HeliaInit['blockstore']
 
   // application-specific data lives in the datastore
-  const datastore: HeliaInit['datastore'] = new MemoryDatastore() as unknown as HeliaInit['datastore']
+  let datastore: LibP2pComponents['datastore']
 
-  // default is to use ipfs.io
-  const delegatedClient = kuboClient({
-    // use default api settings
-    protocol: "https",
-    port: 443,
-    host: "node3.delegate.ipfs.io",
-  })
+  if (usePersistentDatastore === true) {
+    // use the below datastore if you want to persist your peerId and other data.
+    datastore = new LevelDatastore('helia-level-datastore') as unknown as LibP2pComponents['datastore']
+    await datastore.open()
+  } else {
+    datastore = new MemoryDatastore()
+  }
 
   // libp2p is the networking layer that underpins Helia
-  const libp2p = await createLibp2p({
-    datastore: datastore as unknown as MemoryDatastore,
-    transports: [
-      webSockets(), webTransport()
-    ],
-    connectionEncryption: [
-      noise()
-    ],
-    streamMuxers: [
-      yamux()
-    ],
-    peerRouters: [delegatedPeerRouting(delegatedClient)],
-    contentRouters: [ipniRouting("https", "cid.contact", "443")],//delegatedContentRouting(delegatedClient)],
-    /**
-       * @see https://github.com/libp2p/js-libp2p/blob/master/doc/CONFIGURATION.md#configuring-dialing
-       */
-    // dialer: {
-    //   dialTimeout: 120000,
-    // },
-    /**
-     * @see https://github.com/libp2p/js-libp2p/blob/master/doc/CONFIGURATION.md#configuring-connection-manager
-     */
-    connectionManager: {
-      // Auto connect to discovered peers (limited by ConnectionManager minConnections)
-       maxConnections: Infinity,
-       minConnections: 0,
-       pollInterval: 2000,
-    },
-    /**
-     * @see https://github.com/libp2p/js-libp2p/blob/master/doc/CONFIGURATION.md#configuring-peerstore
-     */
+  const libp2p = await getLibp2p({ datastore, type: libp2pConfigType })
 
-    peerRouting: { // Peer routing configuration
-      refreshManager: { // Refresh known and connected closest peers
-        enabled: false, // Should find the closest peers.
-        interval: 6e5, // Interval for getting the new for closest peers of 10min
-        bootDelay: 10e3 // Delay for the initial query for closest peers
-      }
-    }
+  libp2p.addEventListener('peer:discovery', (evt) => {
+    console.log(`Discovered peer ${evt.detail.id.toString()}`)
   })
+
+  libp2p.addEventListener('peer:connect', (evt) => {
+    console.log(`Connected to ${evt.detail.remotePeer.toString()}`)
+  })
+  libp2p.addEventListener('peer:disconnect', (evt) => {
+    console.log(`Disconnected from ${evt.detail.remotePeer.toString()}`)
+  })
+  console.log('peerId: ', libp2p.peerId.toString())
 
   // create a Helia node
   return await createHelia({
-    datastore,
+    datastore: datastore as unknown as HeliaInit['datastore'],
     blockstore,
     libp2p
   })

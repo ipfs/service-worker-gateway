@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url'
 import CopyWebpackPlugin from 'copy-webpack-plugin'
 import NodePolyfillPlugin from 'node-polyfill-webpack-plugin'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
+// import {GenerateSW} from 'workbox-webpack-plugin';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -49,7 +50,6 @@ const prod = {
       apply (compiler) {
         // allows users to load HTML page via filesystem in browser.
         compiler.hooks.compilation.tap('usePageRelativeLinks', (compilation) => {
-
           HtmlWebpackPlugin.getHooks(compilation).alterAssetTags.tapAsync('usePageRelativeLinks', (data, cb) => {
             // Manipulate the content
             data.assetTags.scripts = data.assetTags.scripts.map((script) => {
@@ -92,6 +92,7 @@ const dev = {
     // Only update what has changed on hot reload
     hot: true,
     port: 3000
+
   },
 
   plugins: [
@@ -142,6 +143,9 @@ const common = {
       template: paths.public + '/index.html', // template file
       filename: 'index.html', // output file,
       minify: false
+    }),
+    new webpack.DefinePlugin({
+      window: 'globalThis' // attempt to naively replace all "window" keywords with "globalThis"
     })
   ],
 
@@ -156,7 +160,7 @@ const common = {
           loader: 'babel-loader',
           options: {
             presets: [
-              "@babel/preset-typescript",
+              '@babel/preset-typescript',
               [
                 '@babel/preset-env',
                 {
@@ -177,13 +181,13 @@ const common = {
       // Fonts and SVGs: Inline files
       { test: /\.(woff(2)?|eot|ttf|otf|svg|)$/, type: 'asset/inline' },
 
-      { test: /\.(css)$/, use: ['style-loader','css-loader'] }
+      { test: /\.(css)$/, use: ['style-loader', 'css-loader'] }
     ]
   },
 
   resolve: {
     modules: [paths.src, 'node_modules'],
-    extensions: ['.js', '.jsx', '.json', '.ts', '.tsx'],
+    extensions: ['.js', '.jsx', '.json', '.ts', '.tsx']
     // alias: {
     //   '@': paths.src
     // }
@@ -197,6 +201,9 @@ const common = {
     errorDetails: true,
     children: true
   },
+  experiments: {
+    topLevelAwait: true
+  }
 }
 
 export default (cmd) => {

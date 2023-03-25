@@ -11,7 +11,7 @@ form {
   flex-direction: column;
   background: #222;
   color: #fff;
-  height: 400px;
+  height: 47vh; /** Trying not to end up with scrollbars on the browser window's viewport */
 }
 
 .window .header {
@@ -39,4 +39,5 @@ form {
   font-size: 16px;
   overflow: auto;
   flex: 1;
+  word-break: break-word;
 }
