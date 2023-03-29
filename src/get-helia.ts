@@ -26,9 +26,9 @@ export async function getHelia ({ usePersistentDatastore, libp2pConfigType }: Ge
   if (usePersistentDatastore === true) {
     // use the below datastore if you want to persist your peerId and other data.
     datastore = new LevelDatastore('helia-level-datastore') as unknown as LibP2pComponents['datastore']
-    await datastore.open()
+    await (datastore as unknown as LevelDatastore).open()
   } else {
-    datastore = new MemoryDatastore()
+    datastore = new MemoryDatastore() as unknown as LibP2pComponents['datastore']
   }
 
   // libp2p is the networking layer that underpins Helia

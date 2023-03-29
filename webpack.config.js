@@ -36,7 +36,7 @@ const prod = {
   output: {
     path: paths.build,
     publicPath: '/',
-    filename: '[name].[contenthash].bundle.js'
+    filename: '[name].js'
   },
   performance: {
     hints: false,
@@ -106,7 +106,10 @@ const dev = {
  */
 const common = {
 // Where webpack looks to start building the bundle
-  entry: [paths.src + '/index.tsx'],
+  entry: {
+    main: paths.src + '/index.tsx',
+    sw: paths.src + '/sw.ts'
+  },
 
   // Customize the webpack build process
   plugins: [
@@ -144,6 +147,7 @@ const common = {
       filename: 'index.html', // output file,
       minify: false
     }),
+
     new webpack.DefinePlugin({
       window: 'globalThis' // attempt to naively replace all "window" keywords with "globalThis"
     })

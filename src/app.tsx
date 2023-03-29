@@ -111,6 +111,9 @@ function App (): JSX.Element {
           configType={configType}
           setConfigType={setConfigType}
         />
+        <a href={`/ipfs/${fileCid}`} target="_blank">
+          <button className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Test Gateway Fallback</button>
+        </a>
 
         <h3>Output</h3>
 

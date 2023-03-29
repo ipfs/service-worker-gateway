@@ -22,7 +22,12 @@ root.render(
     <App />
   </React.StrictMode>
 )
-const sw = await navigator.serviceWorker.register(new URL('sw/index.ts', import.meta.url))
+
+// const swURL = new URL('sw.ts', import.meta.url)
+// console.log('swURL: ', swURL)
+// const sw = await navigator.serviceWorker.register(swURL)
+
+const sw = await navigator.serviceWorker.register(new URL('sw.ts', import.meta.url))
 console.log('sw: ', sw)
 
 // always update the service worker

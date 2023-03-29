@@ -1,0 +1,16 @@
+diff --git a/node_modules/@libp2p/bootstrap/dist/src/index.js b/node_modules/@libp2p/bootstrap/dist/src/index.js
+index 1386e3c..5effba4 100644
+--- a/node_modules/@libp2p/bootstrap/dist/src/index.js
++++ b/node_modules/@libp2p/bootstrap/dist/src/index.js
+@@ -22,8 +22,9 @@ class Bootstrap extends EventEmitter {
+         this.timeout = options.timeout ?? DEFAULT_BOOTSTRAP_DISCOVERY_TIMEOUT;
+         this.list = [];
+         for (const candidate of options.list) {
+-            if (!P2P.matches(candidate)) {
+-                log.error('Invalid multiaddr');
++            // @see https://github.com/multiformats/js-mafmt/issues/147
++            if (!P2P.matches(candidate) && !candidate.toString().includes('webtransport')) {
++                log.error('Invalid multiaddr', candidate);
+                 continue;
+             }
+             const ma = multiaddr(candidate);
