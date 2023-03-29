@@ -29,6 +29,17 @@ function isSvgText (bytes: Uint8Array): boolean {
   return svgText.startsWith('<svg')
 }
 
+/**
+ * TODO: support video files (v0=playable, v1=seekable and navigable)
+ * TODO: support audio files
+ *
+ * @param param0
+ *
+ * For inspiration
+ * @see https://github.com/ipfs/js-ipfs/blob/master/packages/ipfs-http-response/src/utils/content-type.js
+ * @see https://github.com/RangerMauve/js-ipfs-fetch
+ * @returns
+ */
 async function getContentType ({ cid, bytes }): Promise<string> {
   // const fileType = magicBytesFiletype(bytes)
   // console.log('magicBytesFiletype(bytes): ', magicBytesFiletype(bytes))
@@ -61,6 +72,14 @@ self.addEventListener('install', event => {
   console.log('sw install')
 })
 
+/**
+ * TODO: implement as much of the gateway spec as possible.
+ * TODO: why we would be better than ipfs.io/other-gateway
+ * TODO: have error handling that renders 404/500/other if the request is bad.
+ *
+ * @param event
+ * @returns
+ */
 const fetchHandler = async (event: FetchEvent): Promise<Response> => {
   const urlString = event.request.url
   const url = new URL(urlString)
@@ -71,9 +90,8 @@ const fetchHandler = async (event: FetchEvent): Promise<Response> => {
   console.log('scheme: ', scheme)
   const cidString = pathParts[2]
   console.log('cidString: ', cidString)
-  // TODO: fix issues with ipni routing
   // only works if I add my own bootstrap node for now.
-  const helia = await getHelia({ libp2pConfigType: 'dht' })
+  const helia = await getHelia({ libp2pConfigType: 'ipni' })
 
   const fs = unixfs(helia)
   const cid = CID.parse(cidString)

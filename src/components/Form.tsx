@@ -38,7 +38,7 @@ export default ({ handleSubmit, fileCid, setFileCid, localMultiaddr, setLocalMul
       id='add-submit'
       type='submit'
     >
-      Fetch
+      Fetch in page
     </button>
   </form>
 )
