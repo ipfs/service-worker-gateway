@@ -69,7 +69,10 @@ function mergeUint8Arrays (a: Uint8Array, b: Uint8Array): Uint8Array {
 }
 
 self.addEventListener('install', event => {
-  console.log('sw install')
+  console.log('sw installing')
+})
+self.addEventListener('activate', event => {
+  console.log('sw activating')
 })
 
 /**
@@ -120,8 +123,6 @@ const fetchHandler = async (event: FetchEvent): Promise<Response> => {
 }
 
 self.addEventListener('fetch', event => {
-  // event.waitUntil(new Promise(resolve => setTimeout(resolve, 1000)))
-  console.log('sw fetch')
   const request = event.request
   // console.log('request: ', request)
   const urlString = request.url
@@ -189,9 +190,3 @@ channel.onmessagefrom('WINDOW', async (event: MessageEvent<ChannelMessage<'WINDO
       break
   }
 })
-
-self.onactivate = async (event) => {
-  console.log('sw onactivate')
-}
-
-console.log('Service Worker Loaded')
