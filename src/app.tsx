@@ -9,6 +9,8 @@ import TerminalOutput from './components/TerminalOutput.tsx'
 import type { OutputLine } from './components/types.ts'
 import Header from './components/Header.tsx'
 import type { Libp2pConfigTypes } from './types.ts'
+import Video from './components/Video.tsx'
+import CidRenderer from './components/CidRenderer'
 
 const channel = new HeliaServiceWorkerCommsChannel('WINDOW')
 
@@ -99,7 +101,7 @@ function App (): JSX.Element {
       <Header />
 
       <main className='pa4-l bg-snow mw7 mv5 center pa4'>
-        <h1 className='pa0 f2 ma0 mb4 aqua tc'>Fetch content from IPFS using Helia</h1>
+        <h1 className='pa0 f2 ma0 mb4 aqua tc'>Fetch content from IPFS using Helia in a SW</h1>
         <Form
           handleSubmit={handleSubmit}
           fileCid={fileCid}
@@ -111,16 +113,22 @@ function App (): JSX.Element {
           configType={configType}
           setConfigType={setConfigType}
         />
-        <a href={`/ipfs/${fileCid}`} target="_blank">
+        {/* <a href={`/ipfs/${fileCid}`} target="_blank">
           <button className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Test Gateway Fallback</button>
-        </a>
+        </a> */}
 
-        <h3>Output</h3>
+        {/* <h3>Output</h3>
 
         <div className='window'>
           <div className='header' />
           <TerminalOutput output={output} terminalRef={terminalRef} />
+        </div> */}
+        <div className="bg-snow mw7 mv5 center w-100">
+          <CidRenderer cid={fileCid} />
         </div>
+        {/* <div className="pa4-l bg-snow mw7 mv5 center pa4">
+          <Video cid={fileCid} />
+        </div> */}
       </main>
     </>
   )
