@@ -22,6 +22,23 @@ import { CID } from 'multiformats/cid'
  *
  */
 
+function contentRender ({ blob, contentType, text }): JSX.Element {
+  if (contentType?.startsWith('video/') && blob != null) {
+    return (
+      <video controls autoPlay loop className="center" width="100%">
+        <source src={URL.createObjectURL(blob)} type={contentType} />
+      </video>
+    )
+  }
+  if (contentType?.startsWith('image/') && blob != null) {
+    return <img src={URL.createObjectURL(blob)} />
+  }
+  if (contentType?.startsWith('text/') && blob != null) {
+    return <pre>{text}</pre>
+  }
+  return <span>Not a supported content-type of <pre>{contentType}</pre></span>
+}
+
 export default function CidRenderer ({ cid }: { cid: string }): JSX.Element {
   // const [isVideo, setIsVideo] = React.useState(false)
   // const [isImage, setIsImage] = React.useState(false)
@@ -88,23 +105,12 @@ export default function CidRenderer ({ cid }: { cid: string }): JSX.Element {
     return <span>Loading...</span>
   }
 
-  if (contentType?.startsWith('video/') && blob != null) {
-    return (
-      <video controls autoPlay loop className="center" width="100%">
-        <source src={URL.createObjectURL(blob)} type={contentType} />
-      </video>
-    )
-  }
-  if (contentType?.startsWith('image/') && blob != null) {
-    return <img src={URL.createObjectURL(blob)} />
-  }
-  if (contentType?.startsWith('text/') && blob != null) {
-    return <pre>{text}</pre>
-  }
-  return <span>Not a supported content-type of <pre>{contentType}</pre></span>
-  // return (
-  //   <video controls autoPlay loop className="center">
-  //     <source src={`/ipfs/${cid}`} type="video/mp4" />
-  //   </video>
-  // )
+  return (
+    <div>
+      {contentRender({ blob, contentType, text })}
+      <a className="pt3 db" href={`/ipfs/${cid}`} target="_blank">
+        <button className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load directly / download</button>
+      </a>
+    </div>
+  )
 }

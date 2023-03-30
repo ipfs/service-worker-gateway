@@ -1,21 +1,19 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 
 import Form from './components/Form.tsx'
 import { ChannelActions, COLORS } from './lib/common.ts'
 import { getHelia } from './get-helia.ts'
 import { connectAndGetFile } from './lib/connectAndGetFile.ts'
 import { HeliaServiceWorkerCommsChannel } from './lib/channel.ts'
-import TerminalOutput from './components/TerminalOutput.tsx'
 import type { OutputLine } from './components/types.ts'
 import Header from './components/Header.tsx'
 import type { Libp2pConfigTypes } from './types.ts'
-import Video from './components/Video.tsx'
 import CidRenderer from './components/CidRenderer'
 
 const channel = new HeliaServiceWorkerCommsChannel('WINDOW')
 
 function App (): JSX.Element {
-  const [output, setOutput] = useState<OutputLine[]>([])
+  const [, setOutput] = useState<OutputLine[]>([])
   const [fileCid, setFileCid] = useState(localStorage.getItem('helia-service-worker-gateway.forms.fileCid') ?? '')
   const [localMultiaddr, setLocalMultiaddr] = useState(localStorage.getItem('helia-service-worker-gateway.forms.localMultiaddr') ?? '')
   const [useServiceWorker, setUseServiceWorker] = useState(localStorage.getItem('helia-service-worker-gateway.forms.useServiceWorker') === 'true' ?? false)
@@ -31,7 +29,7 @@ function App (): JSX.Element {
     localStorage.setItem('helia-service-worker-gateway.forms.useServiceWorker', useServiceWorker.toString())
   }, [useServiceWorker])
 
-  const terminalRef = useRef<HTMLDivElement>(null)
+  // const terminalRef = useRef<HTMLDivElement>(null)
 
   const showStatus = (text: OutputLine['content'], color: OutputLine['color'] = COLORS.default, id: OutputLine['id'] = ''): void => {
     setOutput((prev: OutputLine[]) => {
@@ -113,9 +111,6 @@ function App (): JSX.Element {
           configType={configType}
           setConfigType={setConfigType}
         />
-        {/* <a href={`/ipfs/${fileCid}`} target="_blank">
-          <button className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Test Gateway Fallback</button>
-        </a> */}
 
         {/* <h3>Output</h3>
 
@@ -123,7 +118,7 @@ function App (): JSX.Element {
           <div className='header' />
           <TerminalOutput output={output} terminalRef={terminalRef} />
         </div> */}
-        <div className="bg-snow mw7 mv5 center w-100">
+        <div className="bg-snow mw7 center w-100">
           <CidRenderer cid={fileCid} />
         </div>
         {/* <div className="pa4-l bg-snow mw7 mv5 center pa4">

@@ -1,5 +1,5 @@
 import React from 'react'
-import Libp2pConfigTypes from './Libp2pConfigTypes'
+// import Libp2pConfigTypes from './Libp2pConfigTypes'
 
 export default ({ handleSubmit, fileCid, setFileCid, localMultiaddr, setLocalMultiaddr, useServiceWorker, setUseServiceWorker, configType, setConfigType }): JSX.Element => (
   <form id='add-file' onSubmit={handleSubmit}>

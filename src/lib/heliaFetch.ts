@@ -3,18 +3,9 @@ import { unixfs } from '@helia/unixfs'
 import { CID } from 'multiformats/cid'
 import FileType from 'file-type/core'
 
-// import { getHelia } from '../get-helia.ts'
-
 export interface HeliaFetchOptions {
   path: string
   helia: Helia
-}
-
-function mergeUint8Arrays (a: Uint8Array, b: Uint8Array): Uint8Array {
-  const c = new Uint8Array(a.length + b.length)
-  c.set(a, 0)
-  c.set(b, a.length)
-  return c
 }
 
 /**
