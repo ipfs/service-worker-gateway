@@ -84,7 +84,7 @@ const response = await fetch('https://ipfs.io/ipfs/bafkreiezuss4xkt5gu256vjccx7v
 ### Example fetch request directly to IPFS network using helia
 
 ```js
-import { heliaFetch } from 'ipfs-shipyard/helia-fetch`
+import { heliaFetch } from 'ipfs-shipyard/helia-fetch'
 
 /**
  * A function that returns a helia instance
