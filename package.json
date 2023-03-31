@@ -62,6 +62,7 @@
     "aegir": "^38.1.8",
     "babel-cli": "^6.26.0",
     "babel-loader": "^9.1.2",
+    "compression-webpack-plugin": "^10.0.0",
     "copy-webpack-plugin": "^11.0.0",
     "css-loader": "^6.7.3",
     "dexie": "^3.2.3",
