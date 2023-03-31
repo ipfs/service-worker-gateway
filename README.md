@@ -60,11 +60,13 @@ Now open your browser at `http://localhost:3000`
 
 ## Usage
 
-In this example, you will find a boilerplate you can use to guide yourself into bundling helia with webpack, so that you can use it in your own web app!
+In this example, you will find an example of using helia inside a service worker, that will intercept ipfs path requests (e.g. `/ipfs/*`) and return a `Response` object. This can be used to obtain verified IPFS content instead of using a public IPFS gateway, using helia. 
 
-You should see the following:
+Below is a simple demo of using the demo after running `npm start` and ensuring a local node which has ran `ipfs dht provide <cid>` is bootstrapped in the libp2p config.
 
-![](./img/window+sw-working.png)
+
+https://user-images.githubusercontent.com/1173416/229187510-f446c478-908f-434b-a429-8351ee9d1ba0.mp4
+
 
 _For more examples, please refer to the [Documentation](#documentation)_
 
