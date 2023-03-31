@@ -32,7 +32,11 @@ export async function getLibp2p ({ datastore, type }: GetLibP2pOptions): Promise
     ],
     streamMuxers: [
       yamux(),
-      mplex() // required to prevent `libp2p:dialer:error dial to /dns4/elastic.dag.house/tcp/443/wss/p2p/QmQzqxhK82kAmKvARFZSkUVS6fo9sySaiogAnx5EnZ6ZmC failed +0ms Error: protocol selection failed`
+      /**
+       * required to prevent `libp2p:dialer:error dial to /dns4/elastic.dag.house/tcp/443/wss/p2p/QmQzqxhK82kAmKvARFZSkUVS6fo9sySaiogAnx5EnZ6ZmC failed +0ms Error: protocol selection failed`
+       * @todo remove when https://github.com/elastic-ipfs/elastic-ipfs/issues/25 is resolved
+       */
+      mplex()
     ],
     ...typeFnMap[type]()
   })
