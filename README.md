@@ -60,12 +60,49 @@ Now open your browser at `http://localhost:3000`
 
 ## Usage
 
-In this example, you will find an example of using helia inside a service worker, that will intercept ipfs path requests (e.g. `/ipfs/*`) and return a `Response` object. This can be used to obtain verified IPFS content instead of using a public IPFS gateway, using helia. 
+In this example, you will find an example of using helia inside a service worker, that will intercept ipfs path requests (e.g. `/ipfs/*`) and return a `Response` object. This can be used to obtain verified IPFS content instead of using a public IPFS gateway, using helia.
 
 Below is a simple demo of using the demo after running `npm start` and ensuring a local node which has ran `ipfs dht provide <cid>` is bootstrapped in the libp2p config.
 
 
 https://user-images.githubusercontent.com/1173416/229187510-f446c478-908f-434b-a429-8351ee9d1ba0.mp4
+
+This demo uses `heliaFetch` from a service worker, but you can also call this method from the main thread instead of `fetch` for IPFS content. 
+
+### Example fetch request to ipfs.io gateway
+
+```js
+// fetch content from ipfs.io gateway (centralized web2.5 gateway for IFPS content)
+const response = await fetch('https://ipfs.io/ipfs/bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq') 
+
+// You can see examples of the below usage in src/components/CidRenderer.tsx
+// <img src={URL.createObjectURL(await response.blob())} />
+// <video controls autoPlay loop className="center" width="100%"><source src={URL.createObjectURL(await response.blob())} type={contentType} /></video>
+// <span>{await res.text()}</span>
+```
+
+### Example fetch request directly to IPFS network using helia
+
+```js
+import { heliaFetch } from 'ipfs-shipyard/helia-fetch`
+
+/**
+ * A function that returns a helia instance
+ * @see https://github.com/ipfs-examples/helia-examples/blob/main/examples/helia-webpack/src/get-helia.js
+ */
+import { getHelia } from './lib/getHelia'
+
+
+// fetch content from IPFS directly using helia
+const response = await heliaFetch({ path: '/ipfs/bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq', helia: getHelia() }) 
+
+// You can see examples of the below usage in src/components/CidRenderer.tsx
+// <img src={URL.createObjectURL(await response.blob())} />
+// <video controls autoPlay loop className="center" width="100%"><source src={URL.createObjectURL(await response.blob())} type={contentType} /></video>
+// <span>{await res.text()}</span>
+
+```
+
 
 
 _For more examples, please refer to the [Documentation](#documentation)_
