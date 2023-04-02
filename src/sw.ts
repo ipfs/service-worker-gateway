@@ -7,12 +7,7 @@ import { connectAndGetFile } from './lib/connectAndGetFile.ts'
 import { type ChannelMessage, HeliaServiceWorkerCommsChannel } from './lib/channel.ts'
 import type { Libp2pConfigTypes } from './types.ts'
 import { heliaFetch } from './lib/heliaFetch.ts'
-
-// localStorage.setItem doesn't work in service workers
-// import debug from 'debug'
-// debug.enable('libp2p:websockets,libp2p:webtransport,libp2p:kad-dht,libp2p:dialer*,libp2p:connection-manager')
-// debug.enable('libp2p:*:error')
-// debug.enable('libp2p:*:error,libp2p:dialer*,libp2p:webtransport,-*:trace')
+import AbortAbort from 'abortabort'
 
 declare let self: ServiceWorkerGlobalScope
 
@@ -21,24 +16,46 @@ void self?.skipWaiting?.()
 
 const channel = new HeliaServiceWorkerCommsChannel('SW')
 
+let helia: Helia
 self.addEventListener('install', event => {
+  if (helia != null) {
+    void (async () => {
+      console.log('stopping existing helia instance now')
+      await helia.stop()
+    })()
+  }
   console.log('sw installing')
 })
 self.addEventListener('activate', event => {
   console.log('sw activating')
+  void (async () => {
+    helia = await getHelia({ libp2pConfigType: 'dht', usePersistentDatastore: true })
+  })()
 })
 
-let helia: Helia
 const fetchHandler = async (url: URL): Promise<Response> => {
   if (helia == null) {
-    helia = await getHelia({ libp2pConfigType: 'dht', usePersistentDatastore: false })
+    helia = await getHelia({ libp2pConfigType: 'dht', usePersistentDatastore: true })
   } else {
     // await helia.start()
   }
-  const response = await heliaFetch({ path: url.pathname, helia })
-  // await helia.stop()
+  // 2 second timeout - for debugging
+  // const abortController = new AbortAbort({ timeout: 2 * 1000 })
+  // 2 minute timeout
+  const abortController = new AbortAbort({ timeout: 2 * 60 * 1000 })
+  try {
+    const response = await heliaFetch({ path: url.pathname, helia, signal: abortController.signal })
+    return response
+  } catch (err: unknown) {
+    console.error('fetchHandler error: ', err)
+    const errorMessage = err instanceof Error ? err.message : JSON.stringify(err)
 
-  return response
+    if (errorMessage.includes('aborted')) {
+      return new Response('heliaFetch error aborted due to timeout: ' + errorMessage, { status: 408 })
+    }
+    return new Response('heliaFetch error: ' + errorMessage, { status: 500 })
+  }
+  // await helia.stop()
 }
 
 self.addEventListener('fetch', event => {
@@ -46,7 +63,7 @@ self.addEventListener('fetch', event => {
   // console.log('request: ', request)
   const urlString = request.url
   const url = new URL(urlString)
-  // console.log('urlString: ', urlString)
+  console.log('urlString: ', urlString)
   // the urls to intercept and handle ourselves should match /ipfs/ or /ipns/
   const urlInterceptRegex = [/\/ipfs\//, /\/ipns\//]
   if (urlInterceptRegex.some(regex => regex.test(url.pathname))) {

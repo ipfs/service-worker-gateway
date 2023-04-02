@@ -9,6 +9,7 @@ import type { OutputLine } from './components/types.ts'
 import Header from './components/Header.tsx'
 import type { Libp2pConfigTypes } from './types.ts'
 import CidRenderer from './components/CidRenderer'
+import { peerIdFromString, peerIdFromPeerId } from '@libp2p/peer-id'
 
 const channel = new HeliaServiceWorkerCommsChannel('WINDOW')
 
@@ -18,6 +19,18 @@ function App (): JSX.Element {
   const [localMultiaddr, setLocalMultiaddr] = useState(localStorage.getItem('helia-service-worker-gateway.forms.localMultiaddr') ?? '')
   const [useServiceWorker, setUseServiceWorker] = useState(localStorage.getItem('helia-service-worker-gateway.forms.useServiceWorker') === 'true' ?? false)
   const [configType, setConfigType] = useState<Libp2pConfigTypes>('ipni')
+
+  useEffect(() => {
+    const doIt = async (): Promise<void> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).peerIdFromString = peerIdFromString
+      const helia = await getHelia({ libp2pConfigType: 'dht', usePersistentDatastore: true });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).helia = helia
+    }
+
+    // void doIt()
+  }, [])
 
   useEffect(() => {
     localStorage.setItem('helia-service-worker-gateway.forms.fileCid', fileCid)

@@ -6,6 +6,7 @@ import FileType from 'file-type/core'
 export interface HeliaFetchOptions {
   path: string
   helia: Helia
+  signal?: AbortSignal
 }
 
 /**
@@ -72,7 +73,7 @@ async function getContentType ({ cid, bytes }: { cid?: unknown, bytes: Uint8Arra
  * @param event
  * @returns
  */
-export async function heliaFetch ({ path, helia }: HeliaFetchOptions): Promise<Response> {
+export async function heliaFetch ({ path, helia, signal }: HeliaFetchOptions): Promise<Response> {
   const pathParts = path.split('/')
   // console.log('pathParts: ', pathParts)
   // const scheme = pathParts[1]
@@ -84,7 +85,7 @@ export async function heliaFetch ({ path, helia }: HeliaFetchOptions): Promise<R
   const fs = unixfs(helia)
   const cid = CID.parse(cidString)
 
-  const asyncIt = fs.cat(cid)
+  const asyncIt = fs.cat(cid, { signal })
 
   const iter = asyncIt[Symbol.asyncIterator]()
 
