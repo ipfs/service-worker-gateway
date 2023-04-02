@@ -28,7 +28,7 @@ index 912c429..5cfaa0a 100644
 \ No newline at end of file
 +{"version":3,"file":"auto-dialler.d.ts","sourceRoot":"","sources":["../../../src/connection-manager/auto-dialler.ts"],"names":[],"mappings":"AAIA,OAAO,KAAK,EAAE,SAAS,EAAE,MAAM,8BAA8B,CAAA;AAC7D,OAAO,KAAK,EAAE,MAAM,EAAE,MAAM,2BAA2B,CAAA;AACvD,OAAO,KAAK,EAAE,iBAAiB,EAAE,MAAM,sCAAsC,CAAA;AAC7E,OAAO,KAAK,EAAE,SAAS,EAAE,MAAM,8BAA8B,CAAA;AAE7D,OAAO,KAAK,EAAE,UAAU,EAAE,MAAM,8BAA8B,CAAA;AAI9D,MAAM,WAAW,eAAe;IAC9B;;OAEG;IACH,cAAc,CAAC,EAAE,MAAM,CAAA;IAEvB;;OAEG;IACH,gBAAgB,CAAC,EAAE,MAAM,CAAA;CAC1B;AAED,MAAM,WAAW,qBAAqB;IACpC,MAAM,EAAE,MAAM,CAAA;IACd,iBAAiB,EAAE,iBAAiB,CAAA;IACpC,SAAS,EAAE,SAAS,CAAA;CACrB;AAOD,qBAAa,WAAY,YAAW,SAAS;IAC3C,OAAO,CAAC,QAAQ,CAAC,UAAU,CAAuB;IAClD,OAAO,CAAC,QAAQ,CAAC,OAAO,CAA2B;IACnD,OAAO,CAAC,OAAO,CAAS;IACxB,OAAO,CAAC,eAAe,CAAC,CAAqB;IAC7C,OAAO,CAAC,QAAQ,CAAC,eAAe,CAAC,CAAY;IAC7C,aAAa,EAAE,GAAG,CAAC,MAAM,EAAE,OAAO,CAAC,UAAU,CAAC,CAAC,CAAA;IAE/C;;;;OAIG;gBACU,UAAU,EAAE,qBAAqB,EAAE,IAAI,EAAE,eAAe;IAWrE,SAAS,IAAK,OAAO;IAIrB;;OAEG;IACG,KAAK,IAAK,OAAO,CAAC,IAAI,CAAC;IAU7B;;OAEG;IACG,IAAI,IAAK,OAAO,CAAC,IAAI,CAAC;IAYtB,SAAS,IAAK,OAAO,CAAC,IAAI,CAAC;CA6FlC"}
 diff --git a/node_modules/libp2p/dist/src/connection-manager/auto-dialler.js b/node_modules/libp2p/dist/src/connection-manager/auto-dialler.js
-index ce1cc32..f49c0fb 100644
+index ce1cc32..0f145fe 100644
 --- a/node_modules/libp2p/dist/src/connection-manager/auto-dialler.js
 +++ b/node_modules/libp2p/dist/src/connection-manager/auto-dialler.js
 @@ -2,6 +2,7 @@ import { logger } from '@libp2p/logger';
@@ -39,17 +39,18 @@ index ce1cc32..f49c0fb 100644
  const log = logger('libp2p:connection-manager:auto-dialler');
  const defaultOptions = {
      minConnections: 0,
-@@ -18,6 +19,9 @@ export class AutoDialler {
+@@ -18,6 +19,10 @@ export class AutoDialler {
          this.options = mergeOptions.call({ ignoreUndefined: true }, defaultOptions, init);
          this.running = false;
          this._autoDial = this._autoDial.bind(this);
 +        this.abortController = new AbortAbort();
 +        this.connectionMap = new Map();
 +        this.peerQualityMap = new Map();
++        this.badPeerMap = new Set();
          log('options: %j', this.options);
      }
      isStarted() {
-@@ -29,7 +33,7 @@ export class AutoDialler {
+@@ -29,7 +34,7 @@ export class AutoDialler {
      async start() {
          this.running = true;
          void this._autoDial().catch(err => {
@@ -58,7 +59,7 @@ index ce1cc32..f49c0fb 100644
          });
          log('started');
      }
-@@ -38,6 +42,8 @@ export class AutoDialler {
+@@ -38,6 +43,8 @@ export class AutoDialler {
       */
      async stop() {
          this.running = false;
@@ -67,7 +68,7 @@ index ce1cc32..f49c0fb 100644
          if (this.autoDialTimeout != null) {
              this.autoDialTimeout.clear();
          }
-@@ -47,6 +53,8 @@ export class AutoDialler {
+@@ -47,6 +54,8 @@ export class AutoDialler {
          if (this.autoDialTimeout != null) {
              this.autoDialTimeout.clear();
          }
@@ -76,8 +77,14 @@ index ce1cc32..f49c0fb 100644
          const minConnections = this.options.minConnections;
          // Already has enough connections
          if (this.components.connectionManager.getConnections().length >= minConnections) {
-@@ -66,7 +74,12 @@ export class AutoDialler {
+@@ -64,9 +73,18 @@ export class AutoDialler {
+             if (peer.addresses.length === 0) {
+                 return false;
              }
++            // do not dial peers that are bad
++            if (this.badPeerMap.has(peer.id.toString())) {
++                return false;
++            }
              return true;
          });
 -        // shuffle the peers
@@ -90,7 +97,7 @@ index ce1cc32..f49c0fb 100644
          peers = peers.sort(() => Math.random() > 0.5 ? 1 : -1);
          peers = peers.sort((a, b) => {
              // dial peers with the most protocols first
-@@ -85,14 +98,46 @@ export class AutoDialler {
+@@ -85,14 +103,47 @@ export class AutoDialler {
                  return;
              }
              const peer = peers[i];
@@ -105,6 +112,7 @@ index ce1cc32..f49c0fb 100644
 +            } else if (peerQuality.attempts > 10 && peerQuality.success / peerQuality.attempts <= 0.5 ) {
 +              // We have tried to connect to this peer too many times
 +              log.warn(`peer ${peerIdString} has failed to connect too many times (${peerQuality.success}/${peerQuality.attempts}), skipping`)
++              this.badPeerMap.add(peerIdString);
 +              continue;
 +            } else {
 +              log('peer %s has %d/%d successful dial attempts', peerIdString, peerQuality.success, peerQuality.attempts)
