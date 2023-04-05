@@ -69,7 +69,7 @@ function getEntryItemHtml (entry: UnixFSEntry, path): string {
   const link = `${path}${path.endsWith('/') ? '' : '/'}${entry.name}`
   return `<tr>
   <td><div class="ipfs-icon ipfs-_blank">&nbsp;</div></td>
-  <td><a href="${link}">${entry.name}</a></td>
+  <td><a href="/${link}">${entry.name}</a></td>
   <td>${entry.size}</td>
 </tr>`
 }
@@ -84,8 +84,9 @@ function getEntryItemHtml (entry: UnixFSEntry, path): string {
 
 function getIndexListingResponse (path: string, entries: UnixFSEntry[]): Response {
   const style = dirListStyle // todo: add styles from https://github.com/ipfs/js-ipfs/blob/master/packages/ipfs-http-response/src/dir-view/style.js
-  const parentHref = 'TODO: parentHref'
+  const parentHref = path.split('/').slice(0, -1).join('/') || '/'
 
+  // todo: use the latest directory listing template from https://github.com/ipfs/boxo/blob/main/gateway/assets/src/directory-index.html
   const body = '' +
 `<!DOCTYPE html>
 <html>
@@ -113,11 +114,11 @@ function getIndexListingResponse (path: string, entries: UnixFSEntry[]): Respons
               <div class="ipfs-icon ipfs-_blank">&nbsp;</div>
             </td>
             <td class="padding">
-              <a href="${parentHref}">..</a>
+              <a href="/helia-sw/${parentHref}">..</a>
             </td>
             <td></td>
           </tr>
-          ${entries.map((entry) => getEntryItemHtml(entry, path)).join('')}
+          ${entries.map((entry) => getEntryItemHtml(entry, `helia-sw/${path}`)).join('')}
         </tbody>
       </table>
     </div>
@@ -128,6 +129,7 @@ function getIndexListingResponse (path: string, entries: UnixFSEntry[]): Respons
   return new Response(body, {
     status: 200,
     headers: {
+      'Cache-Control': 'public, max-age=29030400, immutable', // same as ipfs.io gateway
       'Content-Type': 'text/html; charset=utf-8'
     }
   })
@@ -149,12 +151,11 @@ export async function getDirectoryResponse ({ cid, fs, helia, signal, headers, p
     try {
       for await (const entry of fs.ls(cid, { signal, path })) {
         entries.push(entry)
-        // console.log(`fs.ls entry for ${cid}/${path}: `, entry)
       }
     } catch (e) {
       console.error('fs.ls error: ', e)
     }
 
-    return getIndexListingResponse(path, entries)
+    return getIndexListingResponse(`${cid}/${path}`, entries)
   }
 }
