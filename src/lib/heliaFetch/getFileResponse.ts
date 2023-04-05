@@ -49,7 +49,7 @@ export async function getFileResponse ({ cid, path, fs, helia, signal, headers }
   // we have to get the first chunk before responding or else the response has the incorrect content type
   const firstChunk = await next()
 
-  const fileType: string = await getContentType({ bytes: firstChunk.value })
+  const fileType: string = await getContentType({ path, bytes: firstChunk.value })
   // if (typeof chunkFileType !== 'undefined') {
   //   fileType = handleVideoMimeTypes(chunkFileType.mime)
   // }

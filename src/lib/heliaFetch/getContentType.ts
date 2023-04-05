@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/strict-boolean-expressions */
 import FileType from 'file-type/core'
+import mime from 'mime-types'
 
 function isSvgText (bytes: Uint8Array): boolean {
   const svgText = new TextDecoder().decode(bytes.slice(0, 4))
@@ -29,7 +31,7 @@ function handleVideoMimeTypes (videoMimeType: string): string {
  * @see https://github.com/RangerMauve/js-ipfs-fetch
  * @returns
  */
-export async function getContentType ({ cid, bytes }: { cid?: unknown, bytes: Uint8Array }): Promise<string> {
+export async function getContentType ({ path, cid, bytes }: { path?: string, cid?: unknown, bytes: Uint8Array }): Promise<string> {
   // const fileType = magicBytesFiletype(bytes)
   // console.log('magicBytesFiletype(bytes): ', magicBytesFiletype(bytes))
   const fileTypeDep = await FileType.fromBuffer(bytes)
@@ -40,6 +42,10 @@ export async function getContentType ({ cid, bytes }: { cid?: unknown, bytes: Ui
 
   if (isSvgText(bytes)) {
     return 'image/svg+xml'
+  }
+
+  if (mime.lookup(path)) {
+    return mime.lookup(path)
   }
 
   return 'text/plain'
