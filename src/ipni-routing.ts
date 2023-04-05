@@ -65,7 +65,7 @@ class IpniRouting extends CustomRouting<IpniResponseItem> {
           continue
         }
 
-        console.log('found providers: ', event)
+        log('found providers: ', event)
         yield this.mapEvent(event)
       }
     } catch (err) {

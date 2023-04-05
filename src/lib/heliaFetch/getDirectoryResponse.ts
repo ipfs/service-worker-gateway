@@ -84,11 +84,7 @@ function getEntryItemHtml (entry: UnixFSEntry): string {
 function getIndexListingResponse (path: string, entries: UnixFSEntry[]): Response {
   const style = dirListStyle // todo: add styles from https://github.com/ipfs/js-ipfs/blob/master/packages/ipfs-http-response/src/dir-view/style.js
   const parentHref = 'TODO: parentHref'
-  // const links = entries.map((entry: any) => ({
-  //   name: link.Name,
-  //   size: filesize(link.Tsize),
-  //   link: `${path}${path.endsWith('/') ? '' : '/'}${link.Name}`
-  // }))
+
   const body = '' +
 `<!DOCTYPE html>
 <html>
@@ -144,12 +140,8 @@ export async function getDirectoryResponse ({ cid, fs, helia, signal, headers, p
     const response = await getFileResponse({ cid: indexFile.cid, path, fs, helia, signal, headers })
     response.headers.set('Content-Type', 'text/html; charset=utf-8')
     const bodyText = await response.text()
-    const baseUrlForIpfsSite = `/ipfs/${cid.toString()}/` + (path ? `${path}/` : '')
-    // make relative links work properly.  This is a hack, but it works.
-    const newBodyText = bodyText.replace(/<head>/, `<head><base href="${baseUrlForIpfsSite}">`)
-      .replace(/src="\/([^"]+)"/g, `src="${baseUrlForIpfsSite}/$1"`)
 
-    return new Response(newBodyText, response)
+    return new Response(bodyText, response)
   } catch (err) {
     // console.error('getDirectoryResponse Error finding index file', err)
     const entries: UnixFSEntry[] = []

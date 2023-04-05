@@ -68,7 +68,7 @@ export class CustomRouting<T extends CustomRoutingEventType> implements ContentR
   }
 
   mapEvent (event: T): PeerInfo {
-    console.log('event: ', event)
+    // console.log('event: ', event)
     const peer = peerIdFromString(this.getPeerIdFromEvent(event))
     const ma: Multiaddr[] = []
     for (const strAddr of this.getMultiaddrsFromEvent(event)) {

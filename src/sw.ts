@@ -8,6 +8,7 @@ import { type ChannelMessage, HeliaServiceWorkerCommsChannel } from './lib/chann
 import type { Libp2pConfigTypes } from './types.ts'
 import { heliaFetch } from './lib/heliaFetch.ts'
 import AbortAbort from 'abortabort'
+import { CID } from 'multiformats/cid'
 
 declare let self: ServiceWorkerGlobalScope
 
@@ -70,14 +71,61 @@ const fetchHandler = async ({ url, request }: { url: URL, request: Request }): P
 
 self.addEventListener('fetch', event => {
   const request = event.request
-  // console.log('request: ', request)
+  console.log('request: ', request)
   const urlString = request.url
   const url = new URL(urlString)
   // console.log('urlString: ', urlString)
   // the urls to intercept and handle ourselves should match /ipfs/ or /ipns/
   const urlInterceptRegex = [/\/ipfs\//, /\/ipns\//]
+
+  const referredFromSameOrigin = request.referrer.startsWith(self.location.origin)
+  // if the request is not for the same origin, then we should not intercept it
+  if (!referredFromSameOrigin) {
+    return
+  }
+
+  console.log('self.location.origin: ', self.location.origin)
+  console.log('intercepting request to ', urlString)
+  console.log('referred from ', request.referrer)
+
+  const referredUrlIsPreviouslyIntercepted = request.referrer.includes('/ipfs/')
+  if (referredUrlIsPreviouslyIntercepted) {
+    const destinationParts = urlString.split('/')
+    const referrerParts = request.referrer.split('/')
+    const newParts: string[] = []
+    let index = 0
+    while (destinationParts[index] === referrerParts[index]) {
+      newParts.push(destinationParts[index])
+      index++
+    }
+    // console.log('leftover parts: ', referrerParts.slice(index))
+    try {
+      if (referrerParts[index] === 'ipfs') {
+        newParts.push(referrerParts[index])
+
+        CID.parse(referrerParts[index + 1])
+        newParts.push(referrerParts[index + 1])
+      } else {
+        CID.parse(referrerParts[index])
+        newParts.push(referrerParts[index])
+      }
+    } catch (err) {
+      // ignore
+    }
+    const newUrl = new URL(newParts.join('/') + '/' + destinationParts.slice(index).join('/'))
+    console.log('rerouting request to: ', newUrl.toString())
+    // event.respondWith(fetchHandler({ url: newUrl, request }))
+
+    /**
+     * respond with redirect to newUrl
+     */
+    if (newUrl.toString() !== urlString) {
+      event.respondWith(Response.redirect(newUrl.toString(), 307))
+      return
+    }
+  }
+
   if (urlInterceptRegex.some(regex => regex.test(url.pathname))) {
-    console.log('intercepting request to ', urlString)
     // intercept and do our own stuff...
     event.respondWith(fetchHandler({ url, request }))
   }
