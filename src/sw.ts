@@ -30,7 +30,7 @@ self.addEventListener('activate', event => {
   console.log('sw activating')
   void (async () => {
     // helia = await getHelia({ libp2pConfigType: 'dht', usePersistentDatastore: true })
-    helia = await getHelia({ libp2pConfigType: 'bootstrapOnly', usePersistentDatastore: true })
+    helia = await getHelia({ libp2pConfigType: 'ipni', usePersistentDatastore: true })
     // helia = await getHelia({ libp2pConfigType: 'ipni', usePersistentDatastore: false })
   })()
 })
@@ -38,7 +38,7 @@ self.addEventListener('activate', event => {
 const fetchHandler = async ({ url, request }: { url: URL, request: Request }): Promise<Response> => {
   if (helia == null) {
     // helia = await getHelia({ libp2pConfigType: 'dht', usePersistentDatastore: true })
-    helia = await getHelia({ libp2pConfigType: 'bootstrapOnly', usePersistentDatastore: true })
+    helia = await getHelia({ libp2pConfigType: 'ipni', usePersistentDatastore: true })
     // helia = await getHelia({ libp2pConfigType: 'ipni', usePersistentDatastore: false })
   } else {
     // await helia.start()
