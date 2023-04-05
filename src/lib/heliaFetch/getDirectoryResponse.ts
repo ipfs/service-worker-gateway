@@ -65,10 +65,11 @@ export interface GetDirectoryResponseOptions {
 
 // updated version of https://github.com/ipfs/js-ipfs/blob/b64d4af034f27aa7204e57e6a79f95461095502c/packages/ipfs-http-response/src/dir-view/index.js#L22
 
-function getEntryItemHtml (entry: UnixFSEntry): string {
+function getEntryItemHtml (entry: UnixFSEntry, path): string {
+  const link = `${path}${path.endsWith('/') ? '' : '/'}${entry.name}`
   return `<tr>
   <td><div class="ipfs-icon ipfs-_blank">&nbsp;</div></td>
-  <td><a href="/ipfs/${entry.path}">${entry.name}</a></td>
+  <td><a href="${link}">${entry.name}</a></td>
   <td>${entry.size}</td>
 </tr>`
 }
@@ -116,7 +117,7 @@ function getIndexListingResponse (path: string, entries: UnixFSEntry[]): Respons
             </td>
             <td></td>
           </tr>
-          ${entries.map((entry) => getEntryItemHtml(entry)).join('')}
+          ${entries.map((entry) => getEntryItemHtml(entry, path)).join('')}
         </tbody>
       </table>
     </div>

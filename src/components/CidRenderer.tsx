@@ -34,7 +34,7 @@ function contentRender ({ blob, contentType, text, cid, path }): JSX.Element {
     return <img src={URL.createObjectURL(blob)} />
   }
   if (contentType?.startsWith('text/html') && blob != null) {
-    const iframeSrc = `/ipfs/${cid}${path ? `${path}` : ''}`
+    const iframeSrc = `/helia-sw/${cid}${path ? `${path}` : ''}`
     // return the HTML in an iframe
     return <iframe src={iframeSrc} width="100%"/>
   }
@@ -54,7 +54,7 @@ export default function CidRenderer ({ cid, cidPath = '' }: { cid: string, cidPa
   const [text, setText] = React.useState('')
   // timer id to delay the fetch request so we don't fetch on every key stroke
   const [submitDelay, setSubmitDelay] = React.useState(0)
-  const swPath = `/ipfs/${cid ?? ''}${cidPath ?? ''}`
+  const swPath = `/helia-sw/${cid ?? ''}${cidPath ?? ''}`
 
   useEffect(() => {
     if (cid === null || cid === '' || isLoading) {

@@ -34,7 +34,7 @@ export interface HeliaFetchOptions {
  * @returns
  */
 export async function heliaFetch ({ path, helia, signal, headers }: HeliaFetchOptions): Promise<Response> {
-  const pathWithoutIpfsPrefix = path.replace(/^\/ipfs\//, '')
+  const pathWithoutIpfsPrefix = path.replace(/^\/helia-sw\//, '')
   const pathParts = pathWithoutIpfsPrefix.split('/')
   const cidString = pathParts[0]
   const contentPath = pathParts.slice(1).join('/')

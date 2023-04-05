@@ -75,8 +75,8 @@ self.addEventListener('fetch', event => {
   const urlString = request.url
   const url = new URL(urlString)
   // console.log('urlString: ', urlString)
-  // the urls to intercept and handle ourselves should match /ipfs/ or /ipns/
-  const urlInterceptRegex = [/\/ipfs\//, /\/ipns\//]
+  // the urls to intercept and handle ourselves should match /helia-sw/
+  const urlInterceptRegex = [/\/helia-sw\//]
 
   const referredFromSameOrigin = request.referrer.startsWith(self.location.origin)
   // if the request is not for the same origin, then we should not intercept it
@@ -88,7 +88,7 @@ self.addEventListener('fetch', event => {
   console.log('intercepting request to ', urlString)
   console.log('referred from ', request.referrer)
 
-  const referredUrlIsPreviouslyIntercepted = request.referrer.includes('/ipfs/')
+  const referredUrlIsPreviouslyIntercepted = request.referrer.includes('/helia-sw/')
   if (referredUrlIsPreviouslyIntercepted) {
     const destinationParts = urlString.split('/')
     const referrerParts = request.referrer.split('/')
@@ -100,7 +100,7 @@ self.addEventListener('fetch', event => {
     }
     // console.log('leftover parts: ', referrerParts.slice(index))
     try {
-      if (referrerParts[index] === 'ipfs') {
+      if (referrerParts[index] === 'helia-sw') {
         newParts.push(referrerParts[index])
 
         CID.parse(referrerParts[index + 1])
