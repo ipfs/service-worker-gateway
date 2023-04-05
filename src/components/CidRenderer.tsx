@@ -54,8 +54,15 @@ export default function CidRenderer ({ cidAndPath }: { cidAndPath: string }): JS
   const [text, setText] = React.useState('')
   // timer id to delay the fetch request so we don't fetch on every key stroke
   const [submitDelay, setSubmitDelay] = React.useState(0)
-  const cid = cidAndPath.split('/')[0]
-  const cidPath = cidAndPath.split('/')[1] ? `/${cidAndPath.split('/')[1]}` : ''
+  /**
+   * cidAndPath may be any of the following formats:
+   *
+   * * `/ipfs/${cid}/${path}`
+   * * `/ipfs/${cid}`
+   */
+  const ipfsPrefix = cidAndPath.split('/')[1]
+  const cid = cidAndPath.split('/')[2]
+  const cidPath = cidAndPath.split('/')[3] ? `/${cidAndPath.split('/')[3]}` : ''
   const swPath = `/helia-sw/${cid ?? ''}${cidPath ?? ''}`
 
   useEffect(() => {
@@ -99,8 +106,15 @@ export default function CidRenderer ({ cidAndPath }: { cidAndPath: string }): JS
     // void fetchContent()
   }, [cid, cidPath, swPath])
 
+  if (cidAndPath == null || cidAndPath === '') {
+    return <span>Nothing to render yet. Enter an IPFS Path</span> // bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq
+  }
+  if (ipfsPrefix !== 'ipfs') {
+    return <span>Not a valid IPFS path. Use the format <pre className="di">/ipfs/cid/path</pre>, where /path is optional</span>
+  }
+
   if (cid == null || cid === '') {
-    return <span>Nothing to render yet. Enter a CID</span> // bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq
+    return <span>Nothing to render yet. Add a CID to your path</span> // bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq
   }
   try {
     CID.parse(cid)

@@ -18,7 +18,7 @@ export default ({ handleSubmit, cidAndPath, setCidAndPath }): JSX.Element => (
       id='file-name'
       name='file-name'
       type='text'
-      placeholder='bafk.../path/to/file'
+      placeholder='/ipfs/bafk.../path/to/file'
       required
       value={cidAndPath} onChange={(e) => setCidAndPath(e.target.value)}
     />
