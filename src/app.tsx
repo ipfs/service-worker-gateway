@@ -13,11 +13,11 @@ function App (): JSX.Element {
   const [, setOutput] = useState<OutputLine[]>([])
   // const [fileCid, setFileCid] = useState(localStorage.getItem('helia-service-worker-gateway.forms.fileCid') ?? '')
   // const [cidPath, setCidPath] = useState(localStorage.getItem('helia-service-worker-gateway.forms.cidPath') ?? '')
-  const [cidAndPath, setCidAndPath] = useState(localStorage.getItem('helia-service-worker-gateway.forms.cidAndPath') ?? '')
+  const [requestPath, setRequestPath] = useState(localStorage.getItem('helia-service-worker-gateway.forms.requestPath') ?? '')
 
   useEffect(() => {
-    localStorage.setItem('helia-service-worker-gateway.forms.cidAndPath', cidAndPath)
-  }, [cidAndPath])
+    localStorage.setItem('helia-service-worker-gateway.forms.requestPath', requestPath)
+  }, [requestPath])
 
   const showStatus = (text: OutputLine['content'], color: OutputLine['color'] = COLORS.default, id: OutputLine['id'] = ''): void => {
     setOutput((prev: OutputLine[]) => {
@@ -62,12 +62,12 @@ function App (): JSX.Element {
         <h1 className='pa0 f2 ma0 mb4 aqua tc'>Fetch content from IPFS using Helia in a SW</h1>
         <Form
           handleSubmit={handleSubmit}
-          cidAndPath={cidAndPath}
-          setCidAndPath={setCidAndPath}
+          requestPath={requestPath}
+          setRequestPath={setRequestPath}
         />
 
         <div className="bg-snow mw7 center w-100">
-          <CidRenderer cidAndPath={cidAndPath} />
+          <CidRenderer requestPath={requestPath} />
         </div>
 
       </main>

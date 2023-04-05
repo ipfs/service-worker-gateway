@@ -4,6 +4,7 @@ import { CID } from 'multiformats/cid'
 
 import { getDirectoryResponse } from './heliaFetch/getDirectoryResponse.ts'
 import { getFileResponse } from './heliaFetch/getFileResponse.ts'
+import { GetDNSLinkOrIPNS } from '../kubo-rpc-ipns.ts'
 
 export interface HeliaFetchOptions {
   path: string
@@ -34,10 +35,29 @@ export interface HeliaFetchOptions {
  * @returns
  */
 export async function heliaFetch ({ path, helia, signal, headers }: HeliaFetchOptions): Promise<Response> {
-  const pathWithoutIpfsPrefix = path.replace(/^\/helia-sw\//, '')
-  const pathParts = pathWithoutIpfsPrefix.split('/')
-  const cidString = pathParts[0]
-  const contentPath = pathParts.slice(1).join('/')
+  const pathWithoutHeliaSWPrefix = path.replace(/^\/helia-sw\//, '')
+  const pathParts = pathWithoutHeliaSWPrefix.split('/')
+  const namespaceString = pathParts[0]
+  const pathRootString = pathParts[1]
+  const contentPath = pathParts.slice(2).join('/')
+
+  if (namespaceString !== 'ipfs' && namespaceString !== 'ipns') {
+    throw new Error(`only /ipfs or /ipns namespaces supported got ${namespaceString}`)
+  }
+
+  let rootCidString: string
+  if (namespaceString === 'ipns') {
+    const newPathRoot = await GetDNSLinkOrIPNS(pathRootString)
+    const newPathParts = newPathRoot.split('/')
+    // TODO: better parsing, surely this code already exists
+    // TODO: deal with recursive resolution
+    if ((newPathParts[0] !== '' || newPathParts[1] !== 'ipfs') || newPathParts.length !== 3) {
+      throw new Error('only non-recursive IPNS/DNSLink supported and must point to /ipfs/<CID>')
+    }
+    rootCidString = newPathParts[2]
+  } else {
+    rootCidString = pathRootString
+  }
 
   // console.log('cidString: ', cidString)
   // console.log('cidString: ', cidString)
@@ -49,7 +69,7 @@ export async function heliaFetch ({ path, helia, signal, headers }: HeliaFetchOp
   //   return new Response(undefined, { status: 304 }) // Not Modified
   // }
   const fs = unixfs(helia)
-  const cid = CID.parse(cidString)
+  const cid = CID.parse(rootCidString)
 
   try {
     const fsStatInfo = await fs.stat(cid, { signal, path: '/' + contentPath })

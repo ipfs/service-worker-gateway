@@ -42,6 +42,7 @@
     "debug": "^4.3.4",
     "file-type": "^16.5.3",
     "helia": "next",
+    "ipns": "^6.0.0",
     "kubo-rpc-client": "^3.0.1",
     "libp2p": "^0.43.3",
     "mime-types": "^2.1.35",

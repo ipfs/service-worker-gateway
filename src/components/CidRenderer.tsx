@@ -51,15 +51,15 @@ function contentRender ({ blob, contentType, text, cid, path, isLoading }): JSX.
   )
 }
 
-function ValidationMessage ({ cid, cidAndPath, ipfsPrefix, children }): JSX.Element {
+function ValidationMessage ({ cid, requestPath, pathNamespacePrefix, children }): JSX.Element {
   let errorElement: JSX.Element | null = null
-  if (cidAndPath == null || cidAndPath === '') {
+  if (requestPath == null || requestPath === '') {
     errorElement = <span>Nothing to render yet. Enter an IPFS Path</span> // bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq
-  } else if (ipfsPrefix !== 'ipfs') {
-    errorElement = <span>Not a valid IPFS path. Use the format <pre className="di">/ipfs/cid/path</pre>, where /path is optional</span>
+  } else if (pathNamespacePrefix !== 'ipfs' && pathNamespacePrefix !== 'ipns') {
+    errorElement = <span>Not a valid IPFS or IPNS path. Use the format <pre className="di">/ip(f|n)s/cid/path</pre>, where /path is optional</span>
   } else if (cid == null || cid === '') {
     errorElement = <span>Nothing to render yet. Add a CID to your path</span> // bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq
-  } else {
+  } else if (pathNamespacePrefix === 'ipfs') {
     try {
       CID.parse(cid)
     } catch {
@@ -79,7 +79,7 @@ function ValidationMessage ({ cid, cidAndPath, ipfsPrefix, children }): JSX.Elem
 }
 
 // contentRender({ blob, contentType, text, cid, path: cidPath })
-export default function CidRenderer ({ cidAndPath }: { cidAndPath: string }): JSX.Element {
+export default function CidRenderer ({ requestPath }: { requestPath: string }): JSX.Element {
   // const [isVideo, setIsVideo] = React.useState(false)
   // const [isImage, setIsImage] = React.useState(false)
   const [contentType, setContentType] = React.useState<string | null>(null)
@@ -90,15 +90,15 @@ export default function CidRenderer ({ cidAndPath }: { cidAndPath: string }): JS
   const [lastFetchPath, setLastFetchPath] = React.useState<string | null>(null)
   // timer id to delay the fetch request so we don't fetch on every key stroke
   /**
-   * cidAndPath may be any of the following formats:
+   * requestPath may be any of the following formats:
    *
    * * `/ipfs/${cid}/${path}`
    * * `/ipfs/${cid}`
    */
-  const ipfsPrefix = cidAndPath.split('/')[1]
-  const cid = cidAndPath.split('/')[2]
-  const cidPath = cidAndPath.split('/')[3] ? `/${cidAndPath.split('/').slice(3).join('/')}` : ''
-  const swPath = `/helia-sw/${cid ?? ''}${cidPath ?? ''}`
+  const pathNamespacePrefix = requestPath.split('/')[1]
+  const cid = requestPath.split('/')[2]
+  const cidPath = requestPath.split('/')[3] ? `/${requestPath.split('/').slice(3).join('/')}` : ''
+  const swPath = `/helia-sw/${pathNamespacePrefix}/${cid ?? ''}${cidPath ?? ''}`
 
   const makeRequest = async (): Promise<void> => {
     // if (cid === null || cid === '' || isLoading) {
@@ -113,7 +113,7 @@ export default function CidRenderer ({ cidAndPath }: { cidAndPath: string }): JS
     abortController?.abort()
     const newAbortController = new AbortController()
     setAbortController(newAbortController)
-    console.log(`fetching 'ipfs/${cid}${cidPath}' from service worker`)
+    console.log(`fetching '${pathNamespacePrefix}/${cid}${cidPath}' from service worker`)
     // const fetchContent = async (): Promise<void> => {
     setLastFetchPath(swPath)
     setIsLoading(true)
@@ -156,7 +156,7 @@ export default function CidRenderer ({ cidAndPath }: { cidAndPath: string }): JS
 
   return (
     <div>
-      <ValidationMessage ipfsPrefix={ipfsPrefix} cid={cid} cidAndPath={cidAndPath}>
+      <ValidationMessage pathNamespacePrefix={pathNamespacePrefix} cid={cid} requestPath={requestPath}>
         <button onClick={() => { void makeRequest() }} className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load in-page</button>
 
         <a className="pt3 db" href={swPath} target="_blank">

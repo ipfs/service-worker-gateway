@@ -1,7 +1,7 @@
 import React from 'react'
 // import Libp2pConfigTypes from './Libp2pConfigTypes'
 
-export default ({ handleSubmit, cidAndPath, setCidAndPath }): JSX.Element => (
+export default ({ handleSubmit, requestPath, setRequestPath }): JSX.Element => (
   <form id='add-file' onSubmit={handleSubmit}>
     {/* <label htmlFor='local-multiaddr' className='f5 ma0 pb2 aqua fw4 db'>Local multiaddr (e.g. webtransport multiaddr for your kubo node)</label>
     <input
@@ -20,7 +20,7 @@ export default ({ handleSubmit, cidAndPath, setCidAndPath }): JSX.Element => (
       type='text'
       placeholder='/ipfs/bafk.../path/to/file'
       required
-      value={cidAndPath} onChange={(e) => setCidAndPath(e.target.value)}
+      value={requestPath} onChange={(e) => setRequestPath(e.target.value)}
     />
     {/* <label htmlFor='useServiceWorker' className='f5 ma0 pb2 aqua fw4 db'>Use Service Worker
       <input
