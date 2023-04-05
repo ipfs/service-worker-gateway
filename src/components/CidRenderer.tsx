@@ -22,7 +22,7 @@ import { CID } from 'multiformats/cid'
  *
  */
 
-function contentRender ({ blob, contentType, text }): JSX.Element {
+function contentRender ({ blob, contentType, text, cid, path }): JSX.Element {
   if (contentType?.startsWith('video/') && blob != null) {
     return (
       <video controls autoPlay loop className="center" width="100%">
@@ -33,13 +33,18 @@ function contentRender ({ blob, contentType, text }): JSX.Element {
   if (contentType?.startsWith('image/') && blob != null) {
     return <img src={URL.createObjectURL(blob)} />
   }
+  if (contentType?.startsWith('text/html') && blob != null) {
+    const iframeSrc = `/ipfs/${cid}${path ? `${path}` : ''}`
+    // return the HTML in an iframe
+    return <iframe src={iframeSrc} width="100%"/>
+  }
   if (contentType?.startsWith('text/') && blob != null) {
     return <pre>{text}</pre>
   }
   return <span>Not a supported content-type of <pre>{contentType}</pre></span>
 }
 
-export default function CidRenderer ({ cid }: { cid: string }): JSX.Element {
+export default function CidRenderer ({ cid, cidPath = '' }: { cid: string, cidPath?: string }): JSX.Element {
   // const [isVideo, setIsVideo] = React.useState(false)
   // const [isImage, setIsImage] = React.useState(false)
   const [contentType, setContentType] = React.useState<string | null>(null)
@@ -47,6 +52,9 @@ export default function CidRenderer ({ cid }: { cid: string }): JSX.Element {
   const [abortController, setAbortController] = React.useState<AbortController | null>(null)
   const [blob, setBlob] = React.useState<Blob | null>(null)
   const [text, setText] = React.useState('')
+  // timer id to delay the fetch request so we don't fetch on every key stroke
+  const [submitDelay, setSubmitDelay] = React.useState(0)
+  const swPath = `/ipfs/${cid ?? ''}${cidPath ?? ''}`
 
   useEffect(() => {
     if (cid === null || cid === '' || isLoading) {
@@ -57,41 +65,38 @@ export default function CidRenderer ({ cid }: { cid: string }): JSX.Element {
     } catch {
       return
     }
+    window.clearTimeout(submitDelay)
     // cancel previous fetchRequest when cid is changed
     abortController?.abort()
-    // set loading to bloack this useEffect from running until done.
-    setIsLoading(true)
     const newAbortController = new AbortController()
     setAbortController(newAbortController)
-    // console.log('fetching from CidRenderer')
+    console.log(`fetching 'ipfs/${cid}${cidPath}' from service worker`)
     const fetchContent = async (): Promise<void> => {
-      const res = await fetch(`ipfs/${cid}`, {
+      const res = await fetch(swPath, {
         signal: newAbortController.signal,
         method: 'GET',
         headers: {
-          // cache: 'no-cache', // uncomment when testing
           Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8'
         }
       })
       const contentType = res.headers.get('content-type')
-      // console.log('res.headers: ', res.headers)
-      // console.log('contentType: ', contentType)
+
       setContentType(contentType)
-      console.log('contentType: ', contentType)
-      // if ((contentType?.startsWith('video/')) === true) {
-      //   // setIsVideo(true)
-      // } else if ((contentType?.startsWith('image/')) === true) {
-      //   // setIsImage(true)
-      // }
       setBlob(await res.clone().blob())
       setText(await res.text())
       setIsLoading(false)
     }
 
-    void fetchContent()
-  }, [cid])
+    // use timeout to delay the fetch request so we don't fetch on every key stroke
+    // i.e. simple debounce
+    setSubmitDelay(window.setTimeout(() => {
+      // set loading to bloack this useEffect from running until done.
+      setIsLoading(true)
+      void fetchContent()
+    }, 500))
+    // void fetchContent()
+  }, [cid, cidPath, swPath])
 
-  // console.log('cid: ', cid)
   if (cid == null || cid === '') {
     return <span>Nothing to render yet. Enter a CID</span> // bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq
   }
@@ -107,8 +112,8 @@ export default function CidRenderer ({ cid }: { cid: string }): JSX.Element {
 
   return (
     <div>
-      {contentRender({ blob, contentType, text })}
-      <a className="pt3 db" href={`/ipfs/${cid}`} target="_blank">
+      {contentRender({ blob, contentType, text, cid, path: cidPath })}
+      <a className="pt3 db" href={swPath} target="_blank">
         <button className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load directly / download</button>
       </a>
     </div>

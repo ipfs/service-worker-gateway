@@ -93,7 +93,8 @@ const dev = {
     compress: true,
     // Only update what has changed on hot reload
     hot: true,
-    port: 3000
+    port: 3000,
+    allowedHosts: ['helia-sw.dev.local']
 
   },
 

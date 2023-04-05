@@ -9,7 +9,7 @@ index 1386e3c..5effba4 100644
 -            if (!P2P.matches(candidate)) {
 -                log.error('Invalid multiaddr');
 +            // @see https://github.com/multiformats/js-mafmt/issues/147
-+            if (!P2P.matches(candidate) && !candidate.toString().includes('webtransport')) {
++            if (!P2P.matches(candidate)) {
 +                log.error('Invalid multiaddr', candidate);
                  continue;
              }

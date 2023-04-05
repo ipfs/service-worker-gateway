@@ -1,35 +1,15 @@
 import type { Libp2pOptions } from 'libp2p'
 import { bootstrap } from '@libp2p/bootstrap'
-import { kadDHT } from '@libp2p/kad-dht'
 
-// const validTransports = ['/ws', '/wss', '/webtransport']
-
-export const getDhtLibp2pConfig = (): Libp2pOptions => ({
-  dht: kadDHT({
-    clientMode: true
-  }),
+export const getBootstrapOnlyLibp2pConfig = (): Libp2pOptions => ({
   /**
      * @see https://github.com/libp2p/js-libp2p/blob/master/doc/CONFIGURATION.md#configuring-connection-manager
      */
   connectionManager: {
     maxConnections: Infinity,
     minConnections: 1,
-    pollInterval: 2000
-    // autoDial: true
-    // addressSorter: (addressA, addressB) => {
-    //   // Sort addresses by valid browser protocols first
-    //   const addressAString = addressA.multiaddr.toString()
-    //   const addressBString = addressB.multiaddr.toString()
-    //   const addressAIsValidBrowserProtocol = validTransports.some((transport) => addressAString.includes(transport))
-    //   const addressBIsValidBrowserProtocol = validTransports.some((transport) => addressBString.includes(transport))
-    //   if (addressAIsValidBrowserProtocol && !addressBIsValidBrowserProtocol) {
-    //     return -1
-    //   }
-    //   if (!addressAIsValidBrowserProtocol && addressBIsValidBrowserProtocol) {
-    //     return 1
-    //   }
-    //   return 0
-    // }
+    pollInterval: 2000,
+    autoDialInterval: 10000
   },
   /**
      * @see https://github.com/libp2p/js-libp2p/blob/master/doc/CONFIGURATION.md#configuring-peerstore

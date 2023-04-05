@@ -45,6 +45,7 @@
     "kubo-rpc-client": "^3.0.1",
     "libp2p": "^0.43.3",
     "multiformats": "^11.0.2",
+    "p-try-each": "^1.0.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "workbox-broadcast-update": "^6.5.4",

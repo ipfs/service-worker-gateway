@@ -9,6 +9,7 @@ import { mplex } from '@libp2p/mplex'
 import type { LibP2pComponents, Libp2pConfigTypes } from './types.ts'
 import { getIpniLibp2pConfig } from './libp2pConfigs/getIpniLibp2pConfig.ts'
 import { getDhtLibp2pConfig } from './libp2pConfigs/getDhtLibp2pConfig.ts'
+import { getBootstrapOnlyLibp2pConfig } from './libp2pConfigs/getBootstrapOnly.ts'
 
 interface GetLibP2pOptions {
   datastore: LibP2pComponents['datastore']
@@ -17,7 +18,8 @@ interface GetLibP2pOptions {
 
 const typeFnMap: Record<GetLibP2pOptions['type'], () => Libp2pOptions> = {
   ipni: getIpniLibp2pConfig,
-  dht: getDhtLibp2pConfig
+  dht: getDhtLibp2pConfig,
+  bootstrapOnly: getBootstrapOnlyLibp2pConfig
 }
 
 export async function getLibp2p ({ datastore, type }: GetLibP2pOptions): Promise<Libp2p> {
