@@ -78,11 +78,11 @@ self.addEventListener('fetch', event => {
   // the urls to intercept and handle ourselves should match /helia-sw/
   const urlInterceptRegex = [/\/helia-sw\//]
 
-  const referredFromSameOrigin = request.referrer.startsWith(self.location.origin)
-  // if the request is not for the same origin, then we should not intercept it
-  if (!referredFromSameOrigin) {
-    return
-  }
+  // const referredFromSameOrigin = request.referrer.startsWith(self.location.origin)
+  // // if the request is not for the same origin, then we should not intercept it
+  // if (!referredFromSameOrigin) {
+  //   return
+  // }
 
   console.log('self.location.origin: ', self.location.origin)
   console.log('intercepting request to ', urlString)
