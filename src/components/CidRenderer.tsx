@@ -62,7 +62,7 @@ export default function CidRenderer ({ cidAndPath }: { cidAndPath: string }): JS
    */
   const ipfsPrefix = cidAndPath.split('/')[1]
   const cid = cidAndPath.split('/')[2]
-  const cidPath = cidAndPath.split('/')[3] ? `/${cidAndPath.split('/')[3]}` : ''
+  const cidPath = cidAndPath.split('/')[3] ? `/${cidAndPath.split('/').slice(3).join('/')}` : ''
   const swPath = `/helia-sw/${cid ?? ''}${cidPath ?? ''}`
 
   useEffect(() => {
