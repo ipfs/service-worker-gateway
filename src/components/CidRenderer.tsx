@@ -44,7 +44,7 @@ function contentRender ({ blob, contentType, text, cid, path }): JSX.Element {
   return <span>Not a supported content-type of <pre>{contentType}</pre></span>
 }
 
-export default function CidRenderer ({ cid, cidPath = '' }: { cid: string, cidPath?: string }): JSX.Element {
+export default function CidRenderer ({ cidAndPath }: { cidAndPath: string }): JSX.Element {
   // const [isVideo, setIsVideo] = React.useState(false)
   // const [isImage, setIsImage] = React.useState(false)
   const [contentType, setContentType] = React.useState<string | null>(null)
@@ -54,6 +54,8 @@ export default function CidRenderer ({ cid, cidPath = '' }: { cid: string, cidPa
   const [text, setText] = React.useState('')
   // timer id to delay the fetch request so we don't fetch on every key stroke
   const [submitDelay, setSubmitDelay] = React.useState(0)
+  const cid = cidAndPath.split('/')[0]
+  const cidPath = cidAndPath.split('/')[1] ? `/${cidAndPath.split('/')[1]}` : ''
   const swPath = `/helia-sw/${cid ?? ''}${cidPath ?? ''}`
 
   useEffect(() => {
