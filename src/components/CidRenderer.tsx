@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/strict-boolean-expressions */
-import React, { useCallback, useEffect } from 'react'
+import React from 'react'
 
 import { CID } from 'multiformats/cid'
 // import Video from './Video'
