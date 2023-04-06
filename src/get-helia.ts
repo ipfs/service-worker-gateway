@@ -100,9 +100,7 @@ export async function getHelia ({ usePersistentDatastore, libp2pConfigType }: Ge
         //   }
         // })()
       } else {
-        if (peerHistory.has(addrString)) {
-          // ignore
-        } else {
+        if (!peerHistory.has(addrString)) {
           peerHistory.add(addrString)
           peerConnectionHistory.set(peerString, peerHistory)
           console.log(`Connected to new peer-addr pair: ${peerString} at ${addrString}`)
