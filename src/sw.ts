@@ -9,7 +9,7 @@ import { type ChannelMessage, HeliaServiceWorkerCommsChannel } from './lib/chann
 import type { Libp2pConfigTypes } from './types.ts'
 import { heliaFetch } from './lib/heliaFetch.ts'
 import AbortAbort from 'abortabort'
-import { CID } from 'multiformats/cid'
+// import { CID } from 'multiformats/cid'
 import mime from 'mime-types'
 
 declare let self: ServiceWorkerGlobalScope
@@ -190,7 +190,6 @@ self.addEventListener('fetch', event => {
       event.respondWith(fetchHandler({ url, request }))
     }
   } else if (isRootRequestForContent(event)) {
-    // check if CID comes after helia-sw
     // intercept and do our own stuff...
     event.respondWith(fetchHandler({ url, request }))
   }
