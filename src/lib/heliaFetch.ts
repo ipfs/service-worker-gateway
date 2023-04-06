@@ -1,9 +1,11 @@
 import type { Helia } from '@helia/interface'
 import { unixfs } from '@helia/unixfs'
 import { CID } from 'multiformats/cid'
+// import { ipns, ipnsValidator, ipnsSelector } from '@helia/ipns'
 
 import { getDirectoryResponse } from './heliaFetch/getDirectoryResponse.ts'
 import { getFileResponse } from './heliaFetch/getFileResponse.ts'
+import { GetDNSLinkOrIPNS } from '../kubo-rpc-ipns.ts'
 
 export interface HeliaFetchOptions {
   path: string
@@ -26,6 +28,14 @@ export interface HeliaFetchOptions {
  */
 
 /**
+ * heliaFetch should have zero awareness of whether it's being used inside a service worker or not.
+ *
+ * The `path` supplied should be either:
+ * * /ipfs/CID
+ * * /ipns/DNSLink
+ * * /ipns/key
+ *
+ * Things to do:
  * * TODO: implement as much of the gateway spec as possible.
  * * TODO: why we would be better than ipfs.io/other-gateway
  * * TODO: have error handling that renders 404/500/other if the request is bad.
@@ -34,10 +44,39 @@ export interface HeliaFetchOptions {
  * @returns
  */
 export async function heliaFetch ({ path, helia, signal, headers }: HeliaFetchOptions): Promise<Response> {
-  const pathWithoutIpfsPrefix = path.replace(/^\/helia-sw\//, '')
-  const pathParts = pathWithoutIpfsPrefix.split('/')
-  const cidString = pathParts[0]
-  const contentPath = pathParts.slice(1).join('/')
+  const pathParts = path.split('/')
+  console.log('pathParts: ', pathParts)
+  let pathPartIndex = 0
+  let namespaceString = pathParts[pathPartIndex++]
+  if (namespaceString === '') {
+    // we have a prefixed '/' in the path, use the new index instead
+    namespaceString = pathParts[pathPartIndex++]
+  }
+  const pathRootString = pathParts[pathPartIndex++]
+  const contentPath = pathParts.slice(pathPartIndex++).join('/')
+
+  if (namespaceString !== 'ipfs' && namespaceString !== 'ipns') {
+    console.error('received path: ', path)
+    throw new Error(`only /ipfs or /ipns namespaces supported got ${namespaceString}`)
+  }
+  // const name = ipns(helia)
+  // name.resolve
+
+  let rootCidString: string
+  if (namespaceString === 'ipns') {
+    const newPathRoot = await GetDNSLinkOrIPNS(pathRootString)
+    console.log('newPathRoot: ', newPathRoot)
+    const newPathParts = newPathRoot.split('/')
+    // TODO: better parsing, surely this code already exists
+    // TODO: deal with recursive resolution
+    if ((newPathParts[0] !== '' || newPathParts[1] !== 'ipfs') || newPathParts.length !== 3) {
+      throw new Error('only non-recursive IPNS/DNSLink supported and must point to /ipfs/<CID>')
+    }
+    // rootCidString = newPathParts[2]
+    return await heliaFetch({ path: `${newPathRoot}/${contentPath}`, helia, signal, headers })
+  } else {
+    rootCidString = pathRootString
+  }
 
   // console.log('cidString: ', cidString)
   // console.log('cidString: ', cidString)
@@ -49,10 +88,11 @@ export async function heliaFetch ({ path, helia, signal, headers }: HeliaFetchOp
   //   return new Response(undefined, { status: 304 }) // Not Modified
   // }
   const fs = unixfs(helia)
-  const cid = CID.parse(cidString)
+  const cid = CID.parse(rootCidString)
+  const statPath = contentPath != null ? '/' + contentPath : undefined
 
   try {
-    const fsStatInfo = await fs.stat(cid, { signal, path: '/' + contentPath })
+    const fsStatInfo = await fs.stat(cid, { signal, path: statPath })
     switch (fsStatInfo.type) {
       case 'directory':
         return await getDirectoryResponse({ cid, fs, helia, signal, headers, path: contentPath })
@@ -63,7 +103,7 @@ export async function heliaFetch ({ path, helia, signal, headers }: HeliaFetchOp
         throw new Error(`Unsupported fsStatInfo.type: ${fsStatInfo.type}`)
     }
   } catch (e) {
-    console.error('fs.stat error: ', e)
+    console.error(`fs.stat error for cid '${cid}' and path '${statPath}'`, e)
   }
   return new Response('Not Found', { status: 404 })
 }

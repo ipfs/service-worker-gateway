@@ -24,6 +24,7 @@
   "dependencies": {
     "@chainsafe/libp2p-noise": "^11.0.2",
     "@chainsafe/libp2p-yamux": "^3.0.7",
+    "@helia/ipns": "^1.1.0",
     "@helia/unixfs": "^1.2.1",
     "@libp2p/bootstrap": "^6.0.3",
     "@libp2p/delegated-content-routing": "^4.0.3",
@@ -42,6 +43,7 @@
     "debug": "^4.3.4",
     "file-type": "^16.5.3",
     "helia": "next",
+    "ipns": "^6.0.0",
     "kubo-rpc-client": "^3.0.1",
     "libp2p": "^0.43.3",
     "mime-types": "^2.1.35",
