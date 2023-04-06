@@ -89,9 +89,10 @@ export async function heliaFetch ({ path, helia, signal, headers }: HeliaFetchOp
   // }
   const fs = unixfs(helia)
   const cid = CID.parse(rootCidString)
+  const statPath = contentPath != null ? '/' + contentPath : undefined
 
   try {
-    const fsStatInfo = await fs.stat(cid, { signal, path: '/' + contentPath })
+    const fsStatInfo = await fs.stat(cid, { signal, path: statPath })
     switch (fsStatInfo.type) {
       case 'directory':
         return await getDirectoryResponse({ cid, fs, helia, signal, headers, path: contentPath })
@@ -102,7 +103,7 @@ export async function heliaFetch ({ path, helia, signal, headers }: HeliaFetchOp
         throw new Error(`Unsupported fsStatInfo.type: ${fsStatInfo.type}`)
     }
   } catch (e) {
-    console.error('fs.stat error: ', e)
+    console.error(`fs.stat error for cid '${cid}' and path '${statPath}'`, e)
   }
   return new Response('Not Found', { status: 404 })
 }

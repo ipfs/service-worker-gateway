@@ -70,7 +70,7 @@ const fetchHandler = async ({ url, request }: { url: URL, request: Request }): P
   }
   // await helia.stop()
 }
-const urlInterceptRegex = [/\/helia-sw\//]
+const urlInterceptRegex = [/\/helia-sw\/ip(n|f)s/]
 
 /**
  *
@@ -79,50 +79,56 @@ const urlInterceptRegex = [/\/helia-sw\//]
  * @returns
  */
 const isReferrerPreviouslyIntercepted = (event: FetchEvent): boolean => {
-  return urlInterceptRegex.some(regex => regex.test(event.request.referrer)) && getCidFromUrl(event.request.referrer) != null
+  return urlInterceptRegex.some(regex => regex.test(event.request.referrer)) // && getCidFromUrl(event.request.referrer) != null
 }
 
 const isRootRequestForContent = (event: FetchEvent): boolean => {
   const urlIsPreviouslyIntercepted = urlInterceptRegex.some(regex => regex.test(event.request.url))
   const isRootRequest = !isReferrerPreviouslyIntercepted(event) && urlIsPreviouslyIntercepted
-  return isRootRequest && getCidFromUrl(event.request.url) != null
+  return isRootRequest // && getCidFromUrl(event.request.url) != null
 }
 
-const getCidFromUrl = (url: string): CID | null => {
-  if (!urlInterceptRegex.some(regex => regex.test(url))) {
-    /**
-     * if the url doesn't match the regex, then we should return null, because
-     * we have no idea where a CID would be, and shouldn't try to guess
-     */
-    return null
-  }
-  const urlParts = url.split('/helia-sw/')
-  try {
-    const cidString = urlParts[1].split('/')[0]
-    const cid = CID.parse(cidString)
-    return cid
-  } catch (err) {
-    /**
-     * Invalid CID at `/helia-sw/${cidString}`
-     */
-    return null
-  }
-}
+// const getCidFromUrl = (url: string): CID | null => {
+//   if (!urlInterceptRegex.some(regex => regex.test(url))) {
+//     /**
+//      * if the url doesn't match the regex, then we should return null, because
+//      * we have no idea where a CID would be, and shouldn't try to guess
+//      */
+//     return null
+//   }
+//   const urlParts = url.split('/helia-sw/')
+//   try {
+//     const cidString = urlParts[1].split('/')[0]
+//     const cid = CID.parse(cidString)
+//     return cid
+//   } catch (err) {
+//     /**
+//      * Invalid CID at `/helia-sw/${cidString}`
+//      */
+//     return null
+//   }
+// }
 
-const getCidFromRequest = (event: FetchEvent): CID | null => {
-  return getCidFromUrl(event.request.url) ?? getCidFromUrl(event.request.referrer)
-}
+// const getCidFromRequest = (event: FetchEvent): CID | null => {
+//   return getCidFromUrl(event.request.url) ?? getCidFromUrl(event.request.referrer)
+// }
 
 const isValidRequestForSW = (event: FetchEvent): boolean => {
   // check that the request has {self.location.origin}helia-sw/{cid}
   // if it does, then we should intercept it
-  const cid = getCidFromRequest(event)
-  console.log('cid: ', cid)
-  if (cid === null) {
-    return false
+  // const cid = getCidFromRequest(event)
+  // console.log('cid: ', cid)
+  // if (cid === null) {
+  //   return false
+  // }
+  const heliaSwCounts = event.request.url.match(/\/helia-sw\//)?.length ?? 0
+
+  if (heliaSwCounts > 1) {
+    throw new Error('url should not contain /helia-sw/ more than once')
   }
 
-  return true
+  // return true
+  return isRootRequestForContent(event) || isReferrerPreviouslyIntercepted(event)
 }
 
 self.addEventListener('fetch', event => {
@@ -144,8 +150,8 @@ self.addEventListener('fetch', event => {
   // console.log('request: ', request)
   // console.log('self.location.origin: ', self.location.origin)
   console.log('intercepting request to ', urlString)
-  console.log('referred from ', request.referrer)
   if (isReferrerPreviouslyIntercepted(event)) {
+    console.log('referred from ', request.referrer)
     const destinationParts = urlString.split('/')
     const referrerParts = request.referrer.split('/')
     const newParts: string[] = []
@@ -154,22 +160,11 @@ self.addEventListener('fetch', event => {
       newParts.push(destinationParts[index])
       index++
     }
-    // console.log('leftover parts: ', referrerParts.slice(index))
-    try {
-      if (referrerParts[index] === 'helia-sw') {
-        newParts.push(referrerParts[index])
+    // console.log(`leftover parts for '${request.referrer}' -> '${urlString}': `, referrerParts.slice(index))
+    newParts.push(...referrerParts.slice(index))
 
-        CID.parse(referrerParts[index + 1])
-        newParts.push(referrerParts[index + 1])
-      } else {
-        CID.parse(referrerParts[index])
-        newParts.push(referrerParts[index])
-      }
-    } catch (err) {
-      // ignore
-    }
-    const newUrl = new URL(newParts.join('/') + '/' + destinationParts.slice(index).join('/'))
-    // event.respondWith(fetchHandler({ url: newUrl, request }))
+    const newUrlString = newParts.join('/') + '/' + destinationParts.slice(index).join('/')
+    const newUrl = new URL(newUrlString)
 
     /**
      * respond with redirect to newUrl
