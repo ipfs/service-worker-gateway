@@ -109,8 +109,6 @@ export class CustomRouting<T extends CustomRoutingEventType> implements ContentR
 
 function isBrowserFriendlyAddress (addr: Multiaddr): boolean {
   const pn = addr.protoNames()
-  if (pn.at(-1) === 'wss' || pn.at(-1) === 'certhash') {
-    return true
-  }
-  return false
+
+  return pn.at(-1) === 'wss' || pn.at(-1) === 'certhash'
 }

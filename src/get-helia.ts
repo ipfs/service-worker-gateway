@@ -44,18 +44,6 @@ export async function getHelia ({ usePersistentDatastore, libp2pConfigType }: Ge
   // libp2p is the networking layer that underpins Helia
   const libp2p = await getLibp2p({ datastore, type: libp2pConfigType })
 
-  libp2p.addEventListener('peer:discovery', (evt) => {
-    console.log(`Discovered peer ${evt.detail.id.toString()}`)
-  })
-
-  libp2p.addEventListener('peer:connect', (evt) => {
-    console.log(`Connected to ${evt.detail.remotePeer.toString()}`)
-  })
-  libp2p.addEventListener('peer:disconnect', (evt) => {
-    console.log(`Disconnected from ${evt.detail.remotePeer.toString()}`)
-  })
-  console.log('peerId: ', libp2p.peerId.toString())
-
   // create a Helia node
   const helia = await createHelia({
     datastore: datastore as unknown as HeliaInit['datastore'],
@@ -63,61 +51,7 @@ export async function getHelia ({ usePersistentDatastore, libp2pConfigType }: Ge
     libp2p
   })
 
-  // setTimeout((): void => {
-  //   void (async (): Promise<void> => {
-  //     for await (const queryEvent of libp2p.dht.findProviders(CID.parse('bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq'))) {
-  //       console.log('findProviders for video/webm CID queryEvent: ', queryEvent)
-  //     }
-
-  //     for await (const p of helia.libp2p.dht.getClosestPeers(peerIdFromPeerId(helia.libp2p.peerId).multihash.bytes)) {
-  //       console.log('getClosest peers response: ', p)
-  //     }
-  //   })()
-  // }, 20000)
-
-  const peerConnectionHistory = new Map<string, Set<string>>()
-  setInterval(() => {
-    // @ts-expect-error - broken types
-    helia.libp2p.components.peerStore.all().then((currentPeers) => {
-      // currentPeers.forEach((p) => {
-      //   console.log('peerStore peer: ', p.id.toString())
-      // })
-      console.log('total peers: ', currentPeers.length)
-    })
-    for (const connection of helia.libp2p.getConnections()) {
-      const peerString = connection.remotePeer.toString()
-      const addrString = connection.remoteAddr.toString()
-      const peerHistory = peerConnectionHistory.get(peerString)
-      if (peerHistory == null) {
-        peerConnectionHistory.set(peerString, new Set())
-        // void (async () => {
-        //   try {
-        //     for await (const p of helia.libp2p.dht.getClosestPeers(peerIdFromPeerId(connection.remotePeer).multihash.bytes)) {
-        //       console.log('getClosest peers response: ', p)
-        //     }
-        //   } catch (error) {
-        //     console.log('getClosest peers response error: ', error)
-        //   }
-        // })()
-      } else {
-        if (!peerHistory.has(addrString)) {
-          peerHistory.add(addrString)
-          peerConnectionHistory.set(peerString, peerHistory)
-          console.log(`Connected to new peer-addr pair: ${peerString} at ${addrString}`)
-        }
-      }
-      // Logs the PeerId string and the observed remote multiaddr of each Connection
-    }
-    console.log(`Unique count of past connected peers: ${peerConnectionHistory.size}`)
-    // currentPeers.forEach((p) => {
-
-    //     console.log('peerStore peer: ', p.id.toString())
-    // })
-    // console.log('total peers: ', currentPeers)
-  }, 5000)
-
   console.log('helia peerId: ', helia.libp2p.peerId.toString())
-  // log the multiaddrs for this node
 
   return helia
 }

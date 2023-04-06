@@ -4,7 +4,7 @@ import mime from 'mime-types'
 
 function isSvgText (bytes: Uint8Array): boolean {
   const svgText = new TextDecoder().decode(bytes.slice(0, 4))
-  return svgText.startsWith('<svg')
+  return svgText === '<svg'
 }
 
 function handleVideoMimeTypes (videoMimeType: string): string {
