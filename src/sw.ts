@@ -21,21 +21,21 @@ const channel = new HeliaServiceWorkerCommsChannel('SW')
 
 let helia: Helia
 self.addEventListener('install', event => {
-  if (helia != null) {
-    void (async () => {
-      console.log('stopping existing helia instance now')
-      await helia.stop()
-    })()
-  }
+  // if (helia != null) {
+  //   void (async () => {
+  //     console.log('stopping existing helia instance now')
+  //     await helia.stop()
+  //   })()
+  // }
   console.log('sw installing')
 })
 self.addEventListener('activate', event => {
   console.log('sw activating')
-  void (async () => {
-    // helia = await getHelia({ libp2pConfigType: 'dht', usePersistentDatastore: true })
-    helia = await getHelia({ libp2pConfigType: 'ipni', usePersistentDatastore: true })
-    // helia = await getHelia({ libp2pConfigType: 'ipni', usePersistentDatastore: false })
-  })()
+  // void (async () => {
+  //   // helia = await getHelia({ libp2pConfigType: 'dht', usePersistentDatastore: true })
+  //   helia = await getHelia({ libp2pConfigType: 'ipni', usePersistentDatastore: true })
+  //   // helia = await getHelia({ libp2pConfigType: 'ipni', usePersistentDatastore: false })
+  // })()
 })
 
 const fetchHandler = async ({ url, request }: { url: URL, request: Request }): Promise<Response> => {
@@ -57,7 +57,7 @@ const fetchHandler = async ({ url, request }: { url: URL, request: Request }): P
   // 5 minute timeout
   const abortController = new AbortAbort({ timeout: 5 * 60 * 1000 })
   try {
-    const response = await heliaFetch({ path: url.pathname, helia, signal: abortController.signal, headers: request.headers })
+    const response = await heliaFetch({ path: url.pathname.replace('/helia-sw/', ''), helia, signal: abortController.signal, headers: request.headers })
     return response
   } catch (err: unknown) {
     console.error('fetchHandler error: ', err)

@@ -6,7 +6,7 @@ import { peerIdFromString } from '@libp2p/peer-id'
 
 const log = logger('ipns:delegated-ipns-resolution')
 
-export async function GetDNSLinkOrIPNS(key: string): Promise<string> {
+export async function GetDNSLinkOrIPNS (key: string): Promise<string> {
   if (key.includes('.')) {
     return await GetDNSLink(key)
   }
@@ -14,7 +14,7 @@ export async function GetDNSLinkOrIPNS(key: string): Promise<string> {
   return await GetIPNS(id)
 }
 
-export async function GetDNSLink(domain: string): Promise<string> {
+export async function GetDNSLink (domain: string): Promise<string> {
   const reqUrl = `https://node3.delegate.ipfs.io/api/v0/name/resolve/${domain}?r=false`
   // abort in 1 second
   const controller = new AbortController()
@@ -29,7 +29,7 @@ export async function GetDNSLink(domain: string): Promise<string> {
   return result.Path
 }
 
-export async function GetIPNS(id: PeerId): Promise<string> {
+export async function GetIPNS (id: PeerId): Promise<string> {
   const reqUrl = `https://node3.delegate.ipfs.io/api/v0/dht?arg=/ipns/${id.toString()}`
   // abort in 1 second
   const controller = new AbortController()

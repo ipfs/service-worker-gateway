@@ -2,6 +2,8 @@
 import React from 'react'
 
 import { CID } from 'multiformats/cid'
+import { heliaFetch } from '../lib/heliaFetch.ts'
+import { getHelia } from '../get-helia'
 // import Video from './Video'
 
 /**
@@ -13,6 +15,8 @@ import { CID } from 'multiformats/cid'
  * bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq  - video/webm (147.78 KiB)    - https://bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq.ipfs.dweb.link
  * bafybeierkpfmf4vhtdiujgahfptiyriykoetxf3rmd3vcxsdemincpjoyu  - video/mp4 (2.80 MiB)    - https://bafybeierkpfmf4vhtdiujgahfptiyriykoetxf3rmd3vcxsdemincpjoyu.ipfs.dweb.link
  * QmbGtJg23skhvFmu9mJiePVByhfzu5rwo74MEkVDYAmF5T - video (160MiB)
+ * /ipns/k51qzi5uqu5dlvj2baxnqndepeb86cbk3ng7n3i46uzyxzyqj2xjonzllnv0v8 -
+ * /ipns/libp2p.io/
  */
 
 /**
@@ -22,7 +26,7 @@ import { CID } from 'multiformats/cid'
  *
  */
 
-function contentRender ({ blob, contentType, text, cid, path, isLoading }): JSX.Element {
+function contentRender ({ blob, contentType, text, path, isLoading }): JSX.Element {
   let content: JSX.Element | null = null
   if (isLoading) {
     content = <span>Loading...</span>
@@ -35,7 +39,7 @@ function contentRender ({ blob, contentType, text, cid, path, isLoading }): JSX.
   } else if (contentType?.startsWith('image/') && blob != null) {
     content = <img src={URL.createObjectURL(blob)} />
   } else if (contentType?.startsWith('text/html') && blob != null) {
-    const iframeSrc = `/helia-sw/${cid}${path ? `${path}` : ''}`
+    const iframeSrc = `/helia-sw/${path}`
     // return the HTML in an iframe
     content = <iframe src={iframeSrc} width="100%" height="100%"/>
   } else if (contentType?.startsWith('text/') && blob != null) {
@@ -80,84 +84,70 @@ function ValidationMessage ({ cid, requestPath, pathNamespacePrefix, children })
 
 // contentRender({ blob, contentType, text, cid, path: cidPath })
 export default function CidRenderer ({ requestPath }: { requestPath: string }): JSX.Element {
-  // const [isVideo, setIsVideo] = React.useState(false)
-  // const [isImage, setIsImage] = React.useState(false)
   const [contentType, setContentType] = React.useState<string | null>(null)
   const [isLoading, setIsLoading] = React.useState(false)
   const [abortController, setAbortController] = React.useState<AbortController | null>(null)
   const [blob, setBlob] = React.useState<Blob | null>(null)
   const [text, setText] = React.useState('')
   const [lastFetchPath, setLastFetchPath] = React.useState<string | null>(null)
-  // timer id to delay the fetch request so we don't fetch on every key stroke
   /**
    * requestPath may be any of the following formats:
    *
    * * `/ipfs/${cid}/${path}`
    * * `/ipfs/${cid}`
    */
-  const pathNamespacePrefix = requestPath.split('/')[1]
-  const cid = requestPath.split('/')[2]
-  const cidPath = requestPath.split('/')[3] ? `/${requestPath.split('/').slice(3).join('/')}` : ''
+  const requestPathParts = requestPath.split('/')
+  const pathNamespacePrefix = requestPathParts[1]
+  console.log('pathNamespacePrefix: ', pathNamespacePrefix)
+  const cid = requestPathParts[2]
+  console.log('cid: ', cid)
+  const cidPath = requestPathParts[3] ? `/${requestPathParts.slice(3).join('/')}` : ''
+  console.log('cidPath: ', cidPath)
   const swPath = `/helia-sw/${pathNamespacePrefix}/${cid ?? ''}${cidPath ?? ''}`
+  console.log('swPath: ', swPath)
 
-  const makeRequest = async (): Promise<void> => {
-    // if (cid === null || cid === '' || isLoading) {
-    //   return
-    // }
-    // try {
-    //   CID.parse(cid)
-    // } catch {
-    //   return
-    // }
-    // cancel previous fetchRequest when cid is changed
+  const makeRequest = async (useServiceWorker = true): Promise<void> => {
     abortController?.abort()
     const newAbortController = new AbortController()
     setAbortController(newAbortController)
-    console.log(`fetching '${pathNamespacePrefix}/${cid}${cidPath}' from service worker`)
-    // const fetchContent = async (): Promise<void> => {
     setLastFetchPath(swPath)
     setIsLoading(true)
-    const res = await fetch(swPath, {
-      signal: newAbortController.signal,
-      method: 'GET',
-      headers: {
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8'
-      }
-    })
+    let res: Response
+    if (useServiceWorker) {
+      console.log(`fetching '${pathNamespacePrefix}/${cid}${cidPath}' from service worker`)
+      res = await fetch(swPath, {
+        signal: newAbortController.signal,
+        method: 'GET',
+        headers: {
+          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8'
+        }
+      })
+    } else {
+      console.log(`fetching '${requestPath}' using heliaFetch`)
+      const helia = await getHelia({ libp2pConfigType: 'ipni', usePersistentDatastore: false })
+      res = await heliaFetch({ helia, path: requestPath, signal: newAbortController.signal })
+    }
     const contentType = res.headers.get('content-type')
 
     setContentType(contentType)
     setBlob(await res.clone().blob())
     setText(await res.text())
     setIsLoading(false)
-    // }
-
-    // use timeout to delay the fetch request so we don't fetch on every key stroke
-    // i.e. simple debounce
-    // setSubmitDelay(window.setTimeout(() => {
-    // set loading to bloack this useEffect from running until done.
-    // setIsLoading(true)
-    // void fetchContent()
-    // }, 500))
-    // void fetchContent()
   }
 
-  // if (isLoading) {
-  //   return <span>Loading...</span>
-  // }
   let inPageContent: JSX.Element | null = null
   if (lastFetchPath === swPath) {
     if (isLoading) {
       inPageContent = <span>Loading...</span>
     } else {
-      inPageContent = contentRender({ blob, contentType, text, cid, path: cidPath, isLoading })
+      inPageContent = contentRender({ blob, contentType, text, path: `${pathNamespacePrefix}/${cid}${cidPath}`, isLoading })
     }
   }
 
   return (
     <div>
       <ValidationMessage pathNamespacePrefix={pathNamespacePrefix} cid={cid} requestPath={requestPath}>
-        <button onClick={() => { void makeRequest() }} className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load in-page</button>
+        <button onClick={() => { void makeRequest(false) }} className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load in-page</button>
 
         <a className="pt3 db" href={swPath} target="_blank">
           <button className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load directly / download</button>
