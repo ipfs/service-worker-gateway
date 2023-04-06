@@ -2,34 +2,22 @@ import React, { useState, useEffect } from 'react'
 
 import Form from './components/Form.tsx'
 import { ChannelActions, COLORS } from './lib/common.ts'
-import { getHelia } from './get-helia.ts'
-import { connectAndGetFile } from './lib/connectAndGetFile.ts'
 import { HeliaServiceWorkerCommsChannel } from './lib/channel.ts'
 import type { OutputLine } from './components/types.ts'
 import Header from './components/Header.tsx'
-import type { Libp2pConfigTypes } from './types.ts'
 import CidRenderer from './components/CidRenderer'
 
 const channel = new HeliaServiceWorkerCommsChannel('WINDOW')
 
 function App (): JSX.Element {
   const [, setOutput] = useState<OutputLine[]>([])
-  const [fileCid, setFileCid] = useState(localStorage.getItem('helia-service-worker-gateway.forms.fileCid') ?? '')
-  const [localMultiaddr, setLocalMultiaddr] = useState(localStorage.getItem('helia-service-worker-gateway.forms.localMultiaddr') ?? '')
-  const [useServiceWorker, setUseServiceWorker] = useState(localStorage.getItem('helia-service-worker-gateway.forms.useServiceWorker') === 'true' ?? false)
-  const [configType, setConfigType] = useState<Libp2pConfigTypes>('ipni')
+  // const [fileCid, setFileCid] = useState(localStorage.getItem('helia-service-worker-gateway.forms.fileCid') ?? '')
+  // const [cidPath, setCidPath] = useState(localStorage.getItem('helia-service-worker-gateway.forms.cidPath') ?? '')
+  const [requestPath, setRequestPath] = useState(localStorage.getItem('helia-service-worker-gateway.forms.requestPath') ?? '')
 
   useEffect(() => {
-    localStorage.setItem('helia-service-worker-gateway.forms.fileCid', fileCid)
-  }, [fileCid])
-  useEffect(() => {
-    localStorage.setItem('helia-service-worker-gateway.forms.localMultiaddr', localMultiaddr)
-  }, [localMultiaddr])
-  useEffect(() => {
-    localStorage.setItem('helia-service-worker-gateway.forms.useServiceWorker', useServiceWorker.toString())
-  }, [useServiceWorker])
-
-  // const terminalRef = useRef<HTMLDivElement>(null)
+    localStorage.setItem('helia-service-worker-gateway.forms.requestPath', requestPath)
+  }, [requestPath])
 
   const showStatus = (text: OutputLine['content'], color: OutputLine['color'] = COLORS.default, id: OutputLine['id'] = ''): void => {
     setOutput((prev: OutputLine[]) => {
@@ -45,34 +33,6 @@ function App (): JSX.Element {
 
   const handleSubmit = async (e): Promise<void> => {
     e.preventDefault()
-
-    try {
-      if (fileCid == null || fileCid.trim() === '') {
-        throw new Error('File CID is missing...')
-      }
-
-      if (useServiceWorker) {
-        showStatus('Fetching content using Service worker...', COLORS.active)
-        channel.postMessage({ action: ChannelActions.GET_FILE, data: { fileCid, localMultiaddr, libp2pConfigType: configType } })
-      } else {
-        showStatus('Fetching content using main thread (no SW)...', COLORS.active)
-        const helia = await getHelia({ libp2pConfigType: configType })
-        showStatus(`Got helia with ${configType} libp2p config`)
-        await connectAndGetFile({
-          // need to use a separate channel instance because a BroadcastChannel instance won't listen to its own messages
-          channel: new HeliaServiceWorkerCommsChannel('WINDOW'),
-          localMultiaddr,
-          fileCid,
-          helia,
-          action: ChannelActions.GET_FILE,
-          cb: async ({ fileContent, action }) => {
-            console.log('non-SW fileContent: ', fileContent)
-          }
-        })
-      }
-    } catch (err) {
-      showStatus((err as Error)?.message, COLORS.error)
-    }
   }
 
   useEffect(() => {
@@ -102,28 +62,14 @@ function App (): JSX.Element {
         <h1 className='pa0 f2 ma0 mb4 aqua tc'>Fetch content from IPFS using Helia in a SW</h1>
         <Form
           handleSubmit={handleSubmit}
-          fileCid={fileCid}
-          setFileCid={setFileCid}
-          localMultiaddr={localMultiaddr}
-          setLocalMultiaddr={setLocalMultiaddr}
-          useServiceWorker={useServiceWorker}
-          setUseServiceWorker={setUseServiceWorker}
-          configType={configType}
-          setConfigType={setConfigType}
+          requestPath={requestPath}
+          setRequestPath={setRequestPath}
         />
 
-        {/* <h3>Output</h3>
-
-        <div className='window'>
-          <div className='header' />
-          <TerminalOutput output={output} terminalRef={terminalRef} />
-        </div> */}
         <div className="bg-snow mw7 center w-100">
-          <CidRenderer cid={fileCid} />
+          <CidRenderer requestPath={requestPath} />
         </div>
-        {/* <div className="pa4-l bg-snow mw7 mv5 center pa4">
-          <Video cid={fileCid} />
-        </div> */}
+
       </main>
     </>
   )

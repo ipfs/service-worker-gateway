@@ -65,8 +65,12 @@ class IpniRouting extends CustomRouting<IpniResponseItem> {
           continue
         }
 
-        console.log('found providers: ', event)
-        yield this.mapEvent(event)
+        log('found providers: ', event)
+        const pi = this.mapEvent(event)
+        if (pi.multiaddrs.length === 0) {
+          continue
+        }
+        yield pi
       }
     } catch (err) {
       log.error('findProviders errored:', err)

@@ -3,9 +3,19 @@ import type { Helia } from '@helia/interface'
 import { MemoryBlockstore } from 'blockstore-core'
 import { LevelDatastore } from 'datastore-level'
 import { MemoryDatastore } from 'datastore-core'
+// import { CID } from 'multiformats/cid'
 
 import type { LibP2pComponents, Libp2pConfigTypes } from './types.ts'
 import { getLibp2p } from './getLibp2p.ts'
+
+// import debug from 'debug'
+// debug.enable('libp2p:websockets,libp2p:webtransport,libp2p:kad-dht,libp2p:dialer*,libp2p:connection-manager')
+// debug.enable('libp2p:*:error')
+// debug.enable('libp2p:connection-manager:auto-dialler')
+// debug.enable('libp2p:*:error,libp2p:dialer*,libp2p:connection-manager*,libp2p:webtransport,-*:trace')
+// debug.enable('libp2p:connection-manager*,libp2p:dialer*,libp2p:delegated*')
+// debug.enable('libp2p:*,-*:trace')
+// debug.enable('libp2p:webtransport*,libp2p:connection-manager*')
 
 interface GetHeliaOptions {
   usePersistentDatastore?: boolean
@@ -34,22 +44,14 @@ export async function getHelia ({ usePersistentDatastore, libp2pConfigType }: Ge
   // libp2p is the networking layer that underpins Helia
   const libp2p = await getLibp2p({ datastore, type: libp2pConfigType })
 
-  libp2p.addEventListener('peer:discovery', (evt) => {
-    console.log(`Discovered peer ${evt.detail.id.toString()}`)
-  })
-
-  libp2p.addEventListener('peer:connect', (evt) => {
-    console.log(`Connected to ${evt.detail.remotePeer.toString()}`)
-  })
-  libp2p.addEventListener('peer:disconnect', (evt) => {
-    console.log(`Disconnected from ${evt.detail.remotePeer.toString()}`)
-  })
-  console.log('peerId: ', libp2p.peerId.toString())
-
   // create a Helia node
-  return await createHelia({
+  const helia = await createHelia({
     datastore: datastore as unknown as HeliaInit['datastore'],
     blockstore,
     libp2p
   })
+
+  console.log('helia peerId: ', helia.libp2p.peerId.toString())
+
+  return helia
 }

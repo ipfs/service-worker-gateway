@@ -68,12 +68,14 @@ export class CustomRouting<T extends CustomRoutingEventType> implements ContentR
   }
 
   mapEvent (event: T): PeerInfo {
-    console.log('event: ', event)
+    // console.log('event: ', event)
     const peer = peerIdFromString(this.getPeerIdFromEvent(event))
     const ma: Multiaddr[] = []
     for (const strAddr of this.getMultiaddrsFromEvent(event)) {
       const addr = multiaddr(strAddr)
-      ma.push(addr)
+      if (isBrowserFriendlyAddress(addr)) {
+        ma.push(addr)
+      }
     }
     const pi = {
       id: peer,
@@ -103,4 +105,10 @@ export class CustomRouting<T extends CustomRoutingEventType> implements ContentR
   async get (key: Uint8Array, options: HTTPClientExtraOptions & AbortOptions = {}): Promise<Uint8Array> {
     throw errCode(new Error('Not found'), 'ERR_NOT_FOUND')
   }
+}
+
+function isBrowserFriendlyAddress (addr: Multiaddr): boolean {
+  const pn = addr.protoNames()
+
+  return pn.at(-1) === 'wss' || pn.at(-1) === 'certhash'
 }

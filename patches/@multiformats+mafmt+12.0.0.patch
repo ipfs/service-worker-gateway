@@ -1,0 +1,83 @@
+diff --git a/node_modules/@multiformats/mafmt/dist/src/index.js b/node_modules/@multiformats/mafmt/dist/src/index.js
+index b59efd7..0bf992f 100644
+--- a/node_modules/@multiformats/mafmt/dist/src/index.js
++++ b/node_modules/@multiformats/mafmt/dist/src/index.js
+@@ -11,12 +11,23 @@ export const TCP = or(and(IP, base('tcp')), and(DNS, base('tcp')));
+ export const UDP = and(IP, base('udp'));
+ export const UTP = and(UDP, base('utp'));
+ export const QUIC = and(UDP, base('quic'));
++export const QUICV1 = and(UDP, base('quic-v1'))
+ export const WebSockets = or(and(TCP, base('ws')), and(DNS, base('ws')));
+ export const WebSocketsSecure = or(and(TCP, base('wss')), and(DNS, base('wss')), and(TCP, base('tls'), base('ws')), and(DNS, base('tls'), base('ws')));
+ export const HTTP = or(and(TCP, base('http')), and(IP, base('http')), and(DNS, base('http')));
+ export const HTTPS = or(and(TCP, base('https')), and(IP, base('https')), and(DNS, base('https')));
+ const _WebRTCDirect = and(UDP, base('webrtc-direct'), base('certhash'));
+ export const WebRTCDirect = or(and(_WebRTCDirect, base('p2p')), _WebRTCDirect);
++
++/**
++ * @see https://github.com/multiformats/js-mafmt/pull/148
++ * @see https://github.com/multiformats/js-mafmt/issues/147
++ */
++const _WebTransport = and(QUICV1, base('webtransport'), base('certhash'), base('certhash'))
++export const WebTransport = or(
++  and(_WebTransport, base('p2p')),
++  _WebTransport
++)
+ /**
+  * @deprecated
+  */
+@@ -26,10 +37,10 @@ export const WebSocketStar = or(and(WebSockets, base('p2p-websocket-star'), base
+  * @deprecated
+  */
+ export const P2PWebRTCDirect = or(and(HTTP, base('p2p-webrtc-direct'), base('p2p')), and(HTTPS, base('p2p-webrtc-direct'), base('p2p')), and(HTTP, base('p2p-webrtc-direct')), and(HTTPS, base('p2p-webrtc-direct')));
+-export const Reliable = or(WebSockets, WebSocketsSecure, HTTP, HTTPS, P2PWebRTCStar, P2PWebRTCDirect, TCP, UTP, QUIC, DNS, WebRTCDirect);
++export const Reliable = or(WebSockets, WebSocketsSecure, HTTP, HTTPS, P2PWebRTCStar, P2PWebRTCDirect, TCP, UTP, QUIC, DNS, WebRTCDirect, WebTransport);
+ // Unlike ws-star, stardust can run over any transport thus removing the requirement for websockets (but don't even think about running a stardust server over webrtc-star ;) )
+ export const Stardust = or(and(Reliable, base('p2p-stardust'), base('p2p')), and(Reliable, base('p2p-stardust')));
+-const _P2P = or(and(Reliable, base('p2p')), P2PWebRTCStar, P2PWebRTCDirect, WebRTCDirect, base('p2p'));
++const _P2P = or(and(Reliable, base('p2p')), P2PWebRTCStar, P2PWebRTCDirect, WebRTCDirect, WebTransport, base('p2p'));
+ const _Circuit = or(and(_P2P, base('p2p-circuit'), _P2P), and(_P2P, base('p2p-circuit')), and(base('p2p-circuit'), _P2P), and(Reliable, base('p2p-circuit')), and(base('p2p-circuit'), Reliable), base('p2p-circuit'));
+ const CircuitRecursive = () => or(and(_Circuit, CircuitRecursive), _Circuit);
+ export const Circuit = CircuitRecursive();
+diff --git a/node_modules/@multiformats/mafmt/src/index.ts b/node_modules/@multiformats/mafmt/src/index.ts
+index 090a147..fc22912 100644
+--- a/node_modules/@multiformats/mafmt/src/index.ts
++++ b/node_modules/@multiformats/mafmt/src/index.ts
+@@ -33,6 +33,7 @@ export const UDP = and(IP, base('udp'))
+ export const UTP = and(UDP, base('utp'))
+ 
+ export const QUIC = and(UDP, base('quic'))
++export const QUICV1 = and(UDP, base('quic-v1'))
+ 
+ export const WebSockets = or(
+   and(TCP, base('ws')),
+@@ -63,6 +64,11 @@ export const WebRTCDirect = or(
+   and(_WebRTCDirect, base('p2p')),
+   _WebRTCDirect
+ )
++const _WebTransport = and(QUICV1, base('webtransport'), base('certhash'), base('certhash'))
++export const WebTransport = or(
++  and(_WebTransport, base('p2p')),
++  _WebTransport
++)
+ 
+ /**
+  * @deprecated
+@@ -102,7 +108,8 @@ export const Reliable = or(
+   UTP,
+   QUIC,
+   DNS,
+-  WebRTCDirect
++  WebRTCDirect,
++  WebTransport
+ )
+ 
+ // Unlike ws-star, stardust can run over any transport thus removing the requirement for websockets (but don't even think about running a stardust server over webrtc-star ;) )
+@@ -116,6 +123,7 @@ const _P2P = or(
+   P2PWebRTCStar,
+   P2PWebRTCDirect,
+   WebRTCDirect,
++  WebTransport,
+   base('p2p')
+ )
+ 

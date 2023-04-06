@@ -1,7 +1,7 @@
 import React from 'react'
 // import Libp2pConfigTypes from './Libp2pConfigTypes'
 
-export default ({ handleSubmit, fileCid, setFileCid, localMultiaddr, setLocalMultiaddr, useServiceWorker, setUseServiceWorker, configType, setConfigType }): JSX.Element => (
+export default ({ handleSubmit, requestPath, setRequestPath }): JSX.Element => (
   <form id='add-file' onSubmit={handleSubmit}>
     {/* <label htmlFor='local-multiaddr' className='f5 ma0 pb2 aqua fw4 db'>Local multiaddr (e.g. webtransport multiaddr for your kubo node)</label>
     <input
@@ -12,15 +12,15 @@ export default ({ handleSubmit, fileCid, setFileCid, localMultiaddr, setLocalMul
       placeholder='/ip4/127.0.0.1/udp/4001/quic-v1/webtransport/certhash/XXXXXX/certhash/XXXXXX/p2p/YourLocalKuboPeerId'
       value={localMultiaddr} onChange={(e) => setLocalMultiaddr(e.target.value)}
     /> */}
-    <label htmlFor='file-name' className='f5 ma0 pb2 aqua fw4 db'>CID</label>
+    <label htmlFor='file-name' className='f5 ma0 pb2 aqua fw4 db'>CID (and path)</label>
     <input
       className='input-reset bn black-80 bg-white pa3 w-100 mb3'
       id='file-name'
       name='file-name'
       type='text'
-      placeholder='bafk...'
+      placeholder='/ipfs/bafk.../path/to/file'
       required
-      value={fileCid} onChange={(e) => setFileCid(e.target.value)}
+      value={requestPath} onChange={(e) => setRequestPath(e.target.value)}
     />
     {/* <label htmlFor='useServiceWorker' className='f5 ma0 pb2 aqua fw4 db'>Use Service Worker
       <input

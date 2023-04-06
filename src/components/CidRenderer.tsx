@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/strict-boolean-expressions */
-import React, { useEffect } from 'react'
+import React from 'react'
 
 import { CID } from 'multiformats/cid'
+import { heliaFetch } from '../lib/heliaFetch.ts'
+import { getHelia } from '../get-helia'
 // import Video from './Video'
 
 /**
@@ -13,6 +15,8 @@ import { CID } from 'multiformats/cid'
  * bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq  - video/webm (147.78 KiB)    - https://bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq.ipfs.dweb.link
  * bafybeierkpfmf4vhtdiujgahfptiyriykoetxf3rmd3vcxsdemincpjoyu  - video/mp4 (2.80 MiB)    - https://bafybeierkpfmf4vhtdiujgahfptiyriykoetxf3rmd3vcxsdemincpjoyu.ipfs.dweb.link
  * QmbGtJg23skhvFmu9mJiePVByhfzu5rwo74MEkVDYAmF5T - video (160MiB)
+ * /ipns/k51qzi5uqu5dlvj2baxnqndepeb86cbk3ng7n3i46uzyxzyqj2xjonzllnv0v8 -
+ * /ipns/libp2p.io/
  */
 
 /**
@@ -22,95 +26,135 @@ import { CID } from 'multiformats/cid'
  *
  */
 
-function contentRender ({ blob, contentType, text }): JSX.Element {
-  if (contentType?.startsWith('video/') && blob != null) {
-    return (
+function contentRender ({ blob, contentType, text, path, isLoading }): JSX.Element {
+  let content: JSX.Element | null = null
+  if (isLoading) {
+    content = <span>Loading...</span>
+  } else if (contentType?.startsWith('video/') && blob != null) {
+    content = (
       <video controls autoPlay loop className="center" width="100%">
         <source src={URL.createObjectURL(blob)} type={contentType} />
       </video>
     )
+  } else if (contentType?.startsWith('image/') && blob != null) {
+    content = <img src={URL.createObjectURL(blob)} />
+  } else if (contentType?.startsWith('text/html') && blob != null) {
+    const iframeSrc = `/helia-sw/${path}`
+    // return the HTML in an iframe
+    content = <iframe src={iframeSrc} width="100%" height="100%"/>
+  } else if (contentType?.startsWith('text/') && blob != null) {
+    content = <pre>{text}</pre>
+  } else {
+    content = <span>Not a supported content-type of <pre>{contentType}</pre></span>
   }
-  if (contentType?.startsWith('image/') && blob != null) {
-    return <img src={URL.createObjectURL(blob)} />
-  }
-  if (contentType?.startsWith('text/') && blob != null) {
-    return <pre>{text}</pre>
-  }
-  return <span>Not a supported content-type of <pre>{contentType}</pre></span>
+
+  return (
+    <div className="pt3 db" style={{ height: '50vh' }}>
+      {content}
+    </div>
+  )
 }
 
-export default function CidRenderer ({ cid }: { cid: string }): JSX.Element {
-  // const [isVideo, setIsVideo] = React.useState(false)
-  // const [isImage, setIsImage] = React.useState(false)
+function ValidationMessage ({ cid, requestPath, pathNamespacePrefix, children }): JSX.Element {
+  let errorElement: JSX.Element | null = null
+  if (requestPath == null || requestPath === '') {
+    errorElement = <span>Nothing to render yet. Enter an IPFS Path</span> // bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq
+  } else if (pathNamespacePrefix !== 'ipfs' && pathNamespacePrefix !== 'ipns') {
+    errorElement = <span>Not a valid IPFS or IPNS path. Use the format <pre className="di">/ip(f|n)s/cid/path</pre>, where /path is optional</span>
+  } else if (cid == null || cid === '') {
+    errorElement = <span>Nothing to render yet. Add a CID to your path</span> // bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq
+  } else if (pathNamespacePrefix === 'ipfs') {
+    try {
+      CID.parse(cid)
+    } catch {
+      errorElement = <span>Invalid CID</span>
+    }
+  }
+
+  if (errorElement == null) {
+    return <>{ children }</>
+  }
+
+  return <>
+    <span className="pb3 db">
+      { errorElement }
+    </span>
+  </>
+}
+
+// contentRender({ blob, contentType, text, cid, path: cidPath })
+export default function CidRenderer ({ requestPath }: { requestPath: string }): JSX.Element {
   const [contentType, setContentType] = React.useState<string | null>(null)
   const [isLoading, setIsLoading] = React.useState(false)
   const [abortController, setAbortController] = React.useState<AbortController | null>(null)
   const [blob, setBlob] = React.useState<Blob | null>(null)
   const [text, setText] = React.useState('')
+  const [lastFetchPath, setLastFetchPath] = React.useState<string | null>(null)
+  /**
+   * requestPath may be any of the following formats:
+   *
+   * * `/ipfs/${cid}/${path}`
+   * * `/ipfs/${cid}`
+   */
+  const requestPathParts = requestPath.split('/')
+  const pathNamespacePrefix = requestPathParts[1]
+  console.log('pathNamespacePrefix: ', pathNamespacePrefix)
+  const cid = requestPathParts[2]
+  console.log('cid: ', cid)
+  const cidPath = requestPathParts[3] ? `/${requestPathParts.slice(3).join('/')}` : ''
+  console.log('cidPath: ', cidPath)
+  const swPath = `/helia-sw/${pathNamespacePrefix}/${cid ?? ''}${cidPath ?? ''}`
+  console.log('swPath: ', swPath)
 
-  useEffect(() => {
-    if (cid === null || cid === '' || isLoading) {
-      return
-    }
-    try {
-      CID.parse(cid)
-    } catch {
-      return
-    }
-    // cancel previous fetchRequest when cid is changed
+  const makeRequest = async (useServiceWorker = true): Promise<void> => {
     abortController?.abort()
-    // set loading to bloack this useEffect from running until done.
-    setIsLoading(true)
     const newAbortController = new AbortController()
     setAbortController(newAbortController)
-    // console.log('fetching from CidRenderer')
-    const fetchContent = async (): Promise<void> => {
-      const res = await fetch(`ipfs/${cid}`, {
+    setLastFetchPath(swPath)
+    setIsLoading(true)
+    let res: Response
+    if (useServiceWorker) {
+      console.log(`fetching '${pathNamespacePrefix}/${cid}${cidPath}' from service worker`)
+      res = await fetch(swPath, {
         signal: newAbortController.signal,
         method: 'GET',
         headers: {
-          // cache: 'no-cache', // uncomment when testing
           Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8'
         }
       })
-      const contentType = res.headers.get('content-type')
-      // console.log('res.headers: ', res.headers)
-      // console.log('contentType: ', contentType)
-      setContentType(contentType)
-      console.log('contentType: ', contentType)
-      // if ((contentType?.startsWith('video/')) === true) {
-      //   // setIsVideo(true)
-      // } else if ((contentType?.startsWith('image/')) === true) {
-      //   // setIsImage(true)
-      // }
-      setBlob(await res.clone().blob())
-      setText(await res.text())
-      setIsLoading(false)
+    } else {
+      console.log(`fetching '${requestPath}' using heliaFetch`)
+      const helia = await getHelia({ libp2pConfigType: 'ipni', usePersistentDatastore: false })
+      res = await heliaFetch({ helia, path: requestPath, signal: newAbortController.signal })
     }
+    const contentType = res.headers.get('content-type')
 
-    void fetchContent()
-  }, [cid])
-
-  // console.log('cid: ', cid)
-  if (cid == null || cid === '') {
-    return <span>Nothing to render yet. Enter a CID</span> // bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq
-  }
-  try {
-    CID.parse(cid)
-  } catch {
-    return <span>Invalid CID</span>
+    setContentType(contentType)
+    setBlob(await res.clone().blob())
+    setText(await res.text())
+    setIsLoading(false)
   }
 
-  if (isLoading) {
-    return <span>Loading...</span>
+  let inPageContent: JSX.Element | null = null
+  if (lastFetchPath === swPath) {
+    if (isLoading) {
+      inPageContent = <span>Loading...</span>
+    } else {
+      inPageContent = contentRender({ blob, contentType, text, path: `${pathNamespacePrefix}/${cid}${cidPath}`, isLoading })
+    }
   }
 
   return (
     <div>
-      {contentRender({ blob, contentType, text })}
-      <a className="pt3 db" href={`/ipfs/${cid}`} target="_blank">
-        <button className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load directly / download</button>
-      </a>
+      <ValidationMessage pathNamespacePrefix={pathNamespacePrefix} cid={cid} requestPath={requestPath}>
+        <button onClick={() => { void makeRequest(false) }} className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load in-page</button>
+
+        <a className="pt3 db" href={swPath} target="_blank">
+          <button className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load directly / download</button>
+        </a>
+
+        {inPageContent}
+      </ValidationMessage>
     </div>
   )
 }
