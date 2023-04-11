@@ -49,7 +49,7 @@ export async function getHelia ({ usePersistentDatastore, libp2pConfigType }: Ge
   const libp2p = await getLibp2p({ datastore, type: libp2pConfigType })
 
   // TODO we don't get the webtransport multiaddr after a provide. TODO debug.
-  const marcoServer = multiaddr('/ip4/34.221.29.193/udp/4001/quic-v1/webtransport/certhash/uEiC13IfwpbpLsAgaV3a-9JR9FDZPxPabgv-UqmAfQuHeVw/certhash/uEiAdK9M5b3NvBMINTaVbfLAjxsTMTY2x-pEQB6lPYQe-Tw/p2p/12D3KooWEKMXiNrBNi6LkNGdT7PxoGuTqFqAiQTosRHftk2vk4k7')
+  const marcoServer = multiaddr('/ip4/34.221.29.193/udp/4001/quic-v1/webtransport/certhash/uEiB_ZUUNWBvfeznwow-gFUyCNLowd3IXNKV4XAY9Sbn9mw/certhash/uEiBGOgRjttIl7M32CRCeZKk3yoCzO3qaziHzNhs4TLXK_Q/p2p/12D3KooWEnsQuMTfvXxuPmiHUYfGbGPog3UZHRhqS4FjukfEPpca')
   await libp2p.peerStore.addressBook.add(peerIdFromString('12D3KooWEKMXiNrBNi6LkNGdT7PxoGuTqFqAiQTosRHftk2vk4k7'), [marcoServer])
   // TODO, this is to bootstrap a single http over libp2p server. We should get these peers from the router.
   await libp2p.dial(marcoServer)
@@ -62,6 +62,7 @@ export async function getHelia ({ usePersistentDatastore, libp2pConfigType }: Ge
     blockstore,
     libp2p
   })
+  console.log('helia', helia.bitswap, helia.bitswap)
 
   console.log('helia peerId: ', helia.libp2p.peerId.toString())
 
