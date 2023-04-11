@@ -86,7 +86,7 @@ export async function connectAndGetFile ({ channel, localMultiaddr, fileCid, hel
       color: COLORS.active
     }
   })
-  // await helia.stop()
+  await helia.stop()
   channel.postMessage({
     action: 'SHOW_STATUS',
     data: {
