@@ -24,6 +24,7 @@
   "dependencies": {
     "@chainsafe/libp2p-noise": "^11.0.2",
     "@chainsafe/libp2p-yamux": "^3.0.7",
+    "@helia/interface": "file:../../ipfs/helia/packages/interface",
     "@helia/ipns": "^1.1.0",
     "@helia/unixfs": "^1.2.1",
     "@libp2p/bootstrap": "^6.0.3",
@@ -43,8 +44,9 @@
     "datastore-level": "^10.1.0",
     "debug": "^4.3.4",
     "file-type": "^16.5.4",
-    "helia": "next",
+    "helia": "file:../../ipfs/helia/packages/helia",
     "interface-blockstore": "^5.2.0",
+    "ipfs-bitswap": "file:../../ipfs/js-ipfs-bitswap",
     "ipns": "^6.0.0",
     "kubo-rpc-client": "^3.0.1",
     "libp2p": "^0.43.3",
@@ -87,5 +89,8 @@
     "webpack-cli": "^5.0.1",
     "webpack-dev-server": "^4.13.1",
     "webpack-merge": "^5.8.0"
+  },
+  "overrides": {
+    "ipfs-bitswap": "file:../../ipfs/js-ipfs-bitswap"
   }
 }
