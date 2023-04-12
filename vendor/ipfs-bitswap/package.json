@@ -150,7 +150,6 @@
     "clean": "aegir clean",
     "lint": "aegir lint",
     "build": "aegir build",
-    "prepare": "aegir build",
     "release": "aegir release",
     "test": "aegir test",
     "test:node": "aegir test -t node",
