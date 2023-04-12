@@ -167,9 +167,16 @@ const common = {
     })
   ],
 
+  ignoreWarnings: [/Failed to parse source map/],
+
   // Determine how modules within the project are treated
   module: {
     rules: [
+      {
+        test: /\.js$/,
+        enforce: 'pre',
+        use: ['source-map-loader'],
+      },
       // JavaScript: Use Babel to transpile JavaScript files
       {
         test: /\.[jt]sx?$/,
