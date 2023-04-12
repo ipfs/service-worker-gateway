@@ -42,7 +42,8 @@
     "datastore-level": "^10.1.0",
     "debug": "^4.3.4",
     "file-type": "^16.5.4",
-    "helia": "next",
+    "helia": "file:vendor/helia/packages/helia",
+    "ipfs-bitswap": "file:vendor/ipfs-bitswap",
     "ipns": "^6.0.0",
     "kubo-rpc-client": "^3.0.1",
     "libp2p": "^0.43.3",
@@ -85,5 +86,8 @@
     "webpack-cli": "^5.0.1",
     "webpack-dev-server": "^4.13.1",
     "webpack-merge": "^5.8.0"
+  },
+  "overrides": {
+    "ipfs-bitswap": "file:vendor/ipfs-bitswap"
   }
 }
