@@ -156,7 +156,7 @@ self.addEventListener('fetch', event => {
     const referrerParts = request.referrer.split('/')
     const newParts: string[] = []
     let index = 0
-    while (destinationParts[index] === referrerParts[index]) {
+    while (destinationParts[index] === referrerParts[index] && index < destinationParts.length && index < referrerParts.length) {
       newParts.push(destinationParts[index])
       index++
     }
