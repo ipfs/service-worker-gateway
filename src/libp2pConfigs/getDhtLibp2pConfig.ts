@@ -49,7 +49,7 @@ export const getDhtLibp2pConfig = (): Libp2pOptions => ({
     bootstrap({
       list: [
         // Marco's random server
-        '/ip4/34.221.29.193/udp/4001/quic-v1/webtransport/certhash/uEiB_ZUUNWBvfeznwow-gFUyCNLowd3IXNKV4XAY9Sbn9mw/certhash/uEiBGOgRjttIl7M32CRCeZKk3yoCzO3qaziHzNhs4TLXK_Q/p2p/12D3KooWEnsQuMTfvXxuPmiHUYfGbGPog3UZHRhqS4FjukfEPpca',
+        '/ip4/34.221.29.193/udp/4001/quic-v1/webtransport/certhash/uEiCuO-L9hgcyX0W8InuEddnpCZgrKM0nDuhbHmfLZS1yhg/certhash/uEiCCZxrd830q5k_tLX86jl6DK4qCTdKsH0M_T4nQGlu08Q/p2p/12D3KooWEBQi1GAUt1Ypftkvv1y2G9L2QHvjJ9A8oWRTDSnLwWLe',
         '/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN',
         '/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa',
         '/dnsaddr/bootstrap.libp2p.io/p2p/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb',

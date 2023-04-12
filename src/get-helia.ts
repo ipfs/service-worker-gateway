@@ -3,12 +3,14 @@ import type { Helia } from '@helia/interface'
 import { MemoryBlockstore } from 'blockstore-core'
 import { LevelDatastore } from 'datastore-level'
 import { MemoryDatastore } from 'datastore-core'
-import type { Blockstore } from 'interface-blockstore'
+import type { MultihashHasher } from 'multiformats/hashes/interface'
+import { createBitswapWithHTTP } from 'ipfs-bitswap'
+import { sha256, sha512 } from 'multiformats/hashes/sha2'
+import { identity } from 'multiformats/hashes/identity'
 // import { CID } from 'multiformats/cid'
 
 import type { LibP2pComponents, Libp2pConfigTypes } from './types.ts'
 import { getLibp2p } from './getLibp2p.ts'
-import { HttpBlockstore } from './http-blockstore.ts'
 import { multiaddr } from '@multiformats/multiaddr'
 import { peerIdFromString } from '@libp2p/peer-id'
 
@@ -32,7 +34,7 @@ const defaultOptions: GetHeliaOptions = {
 
 export async function getHelia ({ usePersistentDatastore, libp2pConfigType }: GetHeliaOptions = defaultOptions): Promise<Helia> {
   // the blockstore is where we store the blocks that make up files
-  const memBlockstore = new MemoryBlockstore()
+  const blockstore = new MemoryBlockstore()
 
   // application-specific data lives in the datastore
   let datastore: LibP2pComponents['datastore']
@@ -48,21 +50,47 @@ export async function getHelia ({ usePersistentDatastore, libp2pConfigType }: Ge
   // libp2p is the networking layer that underpins Helia
   const libp2p = await getLibp2p({ datastore, type: libp2pConfigType })
 
-  // TODO we don't get the webtransport multiaddr after a provide. TODO debug.
-  const marcoServer = multiaddr('/ip4/34.221.29.193/udp/4001/quic-v1/webtransport/certhash/uEiB_ZUUNWBvfeznwow-gFUyCNLowd3IXNKV4XAY9Sbn9mw/certhash/uEiBGOgRjttIl7M32CRCeZKk3yoCzO3qaziHzNhs4TLXK_Q/p2p/12D3KooWEnsQuMTfvXxuPmiHUYfGbGPog3UZHRhqS4FjukfEPpca')
-  await libp2p.peerStore.addressBook.add(peerIdFromString('12D3KooWEKMXiNrBNi6LkNGdT7PxoGuTqFqAiQTosRHftk2vk4k7'), [marcoServer])
-  // TODO, this is to bootstrap a single http over libp2p server. We should get these peers from the router.
-  await libp2p.dial(marcoServer)
+  const hashers: MultihashHasher[] = [
+    sha256,
+    sha512,
+    identity
+  ]
 
-  const blockstore = new HttpBlockstore(memBlockstore, libp2p)
+  const httpBitswap = createBitswapWithHTTP(libp2p, blockstore, {
+    bootstrapHttpOnlyPeers: [
+      // 'https://cloudflare-ipfs.com',
+      // 'https://ipfs.io'
+    ],
+    bitswapOptions: {
+      hashLoader: {
+        getHasher: async (codecOrName: string | number) => {
+          const hasher = hashers.find(hasher => {
+            return hasher.code === codecOrName || hasher.name === codecOrName
+          })
+
+          if (hasher != null) {
+            return await Promise.resolve(hasher)
+          }
+
+          throw new Error(`Could not load hasher for code/name "${codecOrName}"`)
+        }
+      }
+    }
+  })
+
+  // TODO remove this hardcoded bootstrap peer for the http over libp2p part
+  const marcoServer = multiaddr('/ip4/34.221.29.193/udp/4001/quic-v1/webtransport/certhash/uEiCuO-L9hgcyX0W8InuEddnpCZgrKM0nDuhbHmfLZS1yhg/certhash/uEiCCZxrd830q5k_tLX86jl6DK4qCTdKsH0M_T4nQGlu08Q/p2p/12D3KooWEBQi1GAUt1Ypftkvv1y2G9L2QHvjJ9A8oWRTDSnLwWLe')
+  await libp2p.peerStore.addressBook.add(peerIdFromString('12D3KooWEBQi1GAUt1Ypftkvv1y2G9L2QHvjJ9A8oWRTDSnLwWLe'), [marcoServer])
+  // TODO, this is to bootstrap a single http over libp2p server. We should get these peers from the router.
+  libp2p.dial(marcoServer).catch(err => { console.log('error dialing marcoServer', err) })
 
   // create a Helia node
   const helia = await createHelia({
     datastore: datastore as unknown as HeliaInit['datastore'],
+    bitswap: httpBitswap,
     blockstore,
     libp2p
   })
-  console.log('helia', helia.bitswap, helia.bitswap)
 
   console.log('helia peerId: ', helia.libp2p.peerId.toString())
 

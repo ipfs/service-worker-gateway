@@ -49,7 +49,7 @@ const prod = {
   target: 'browserslist',
   plugins: [
     {
-      apply (compiler) {
+      apply(compiler) {
         // allows users to load HTML page via filesystem in browser.
         compiler.hooks.compilation.tap('usePageRelativeLinks', (compilation) => {
           HtmlWebpackPlugin.getHooks(compilation).alterAssetTags.tapAsync('usePageRelativeLinks', (data, cb) => {
@@ -94,7 +94,7 @@ const dev = {
     // Only update what has changed on hot reload
     hot: true,
     port: 3000,
-    allowedHosts: ['helia-sw.dev.local']
+    allowedHosts: ['localhost']
 
   },
 
@@ -108,7 +108,7 @@ const dev = {
  * @type {import('webpack').Configuration}
  */
 const common = {
-// Where webpack looks to start building the bundle
+  // Where webpack looks to start building the bundle
   entry: {
     main: paths.src + '/index.tsx',
     sw: paths.src + '/sw.ts'
@@ -167,9 +167,16 @@ const common = {
     })
   ],
 
+  ignoreWarnings: [/Failed to parse source map/],
+
   // Determine how modules within the project are treated
   module: {
     rules: [
+      {
+        test: /\.js$/,
+        enforce: 'pre',
+        use: ['source-map-loader'],
+      },
       // JavaScript: Use Babel to transpile JavaScript files
       {
         test: /\.[jt]sx?$/,
@@ -200,6 +207,8 @@ const common = {
       { test: /\.(woff(2)?|eot|ttf|otf|svg|)$/, type: 'asset/inline' },
 
       { test: /\.(css)$/, use: ['style-loader', 'css-loader'] }
+
+
     ]
   },
 
