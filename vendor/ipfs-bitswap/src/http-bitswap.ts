@@ -106,7 +106,27 @@ export class HttpBitswap implements Bitswap {
     if ((options?.signal) != null) {
       options.signal.addEventListener('abort', () => { abortController.abort() })
     }
-    const bitswapWantPromise = this.innerBitswap.want(cid, { ...options, signal: abortController.signal })
+
+    let totalReqs = 1 + this.httpOverLibp2pPeers.length + this.httpOnlyPeers.length
+    let totalFailures = 0
+    const waitForAbortOrAllFailures = async <T>(err: T): Promise<T> => {
+      totalFailures++
+      if (totalFailures === totalReqs) {
+        throw err
+      }
+      // Wait for the abort so others can provide
+      await new Promise((resolve) => { options?.signal?.addEventListener('abort', resolve) })
+      return err
+    }
+
+    // const bitswapWantPromise = this.innerBitswap.want(cid, { ...options, signal: abortController.signal })
+    // .then((block) => {
+    //   console.log("Got block from bitswap", Date.now())
+    //   return block
+    // })
+    // .catch(async (err) => {
+    //   throw await waitForAbortOrAllFailures(err)
+    // })
 
     // Start a http req over libp2p
     const httpOverLibp2pReqs = this.httpOverLibp2pPeers.map(async ({ val: peerId }) => {
@@ -129,14 +149,13 @@ export class HttpBitswap implements Bitswap {
         if (resp.ok) {
           const block = new Uint8Array(await resp.arrayBuffer())
           await this.blockstore.put(cid, block)
+          console.log("Got block from http over libp2p", Date.now())
           return block
         }
         // Otherwise, do nothing and block on the abort signal
         throw new Error('Not found')
       } catch (err) {
-        // Wait for the abort so others can provide
-        await new Promise((resolve) => { options?.signal?.addEventListener('abort', resolve) })
-        throw err
+        throw await waitForAbortOrAllFailures(err)
       }
     })
 
@@ -155,19 +174,18 @@ export class HttpBitswap implements Bitswap {
         if (resp.ok) {
           const block = new Uint8Array(await resp.arrayBuffer())
           await this.blockstore.put(cid, block)
+          console.log("Got block from http", Date.now())
           return block
         }
         throw new Error('Not found')
       } catch (err) {
-        // Wait for the abort so others can provide the block
-        await new Promise((resolve) => { options?.signal?.addEventListener('abort', resolve) })
-        throw err
+        throw await waitForAbortOrAllFailures(err)
       }
     })
 
     // Wait for the first to finish
     const block = await Promise.race([
-      bitswapWantPromise,
+      // bitswapWantPromise,
       ...httpOverLibp2pReqs,
       ...httpOnlyReqs
     ])
