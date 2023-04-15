@@ -43,7 +43,7 @@
     "datastore-level": "^10.1.0",
     "debug": "^4.3.4",
     "file-type": "^16.5.4",
-    "helia": "next",
+    "helia": "file:vendor/helia/packages/helia",
     "ipfs-bitswap": "file:vendor/ipfs-bitswap",
     "ipns": "^6.0.0",
     "kubo-rpc-client": "^3.0.1",
