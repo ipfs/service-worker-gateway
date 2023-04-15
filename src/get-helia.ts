@@ -81,7 +81,7 @@ export async function getHelia ({ usePersistentDatastore, libp2pConfigType }: Ge
   const marcoServer = multiaddr('/ip4/34.221.29.193/udp/4001/quic-v1/webtransport/certhash/uEiCuO-L9hgcyX0W8InuEddnpCZgrKM0nDuhbHmfLZS1yhg/certhash/uEiCCZxrd830q5k_tLX86jl6DK4qCTdKsH0M_T4nQGlu08Q/p2p/12D3KooWEBQi1GAUt1Ypftkvv1y2G9L2QHvjJ9A8oWRTDSnLwWLe')
   await libp2p.peerStore.addressBook.add(peerIdFromString('12D3KooWEBQi1GAUt1Ypftkvv1y2G9L2QHvjJ9A8oWRTDSnLwWLe'), [marcoServer])
   // TODO, this is to bootstrap a single http over libp2p server. We should get these peers from the router.
-  await libp2p.dial(marcoServer).catch(err => { console.log('error dialing marcoServer', err) })
+  void libp2p.dial(marcoServer).then(() => { console.log('Marco server connected') }).catch(err => { console.log('error dialing marcoServer', err) })
 
   // create a Helia node
   const helia = await createHelia({
