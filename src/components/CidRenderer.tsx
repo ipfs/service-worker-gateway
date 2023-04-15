@@ -147,7 +147,7 @@ export default function CidRenderer ({ requestPath }: { requestPath: string }): 
   return (
     <div>
       <ValidationMessage pathNamespacePrefix={pathNamespacePrefix} cid={cid} requestPath={requestPath}>
-        <button onClick={() => { void makeRequest(false) }} className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load in-page</button>
+        <button onClick={() => { void makeRequest() }} className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load in-page</button>
 
         <a className="pt3 db" href={swPath} target="_blank">
           <button className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load directly / download</button>
