@@ -10,6 +10,7 @@ import type { AbortOptions } from '@libp2p/interfaces'
 import type { Startable } from '@libp2p/interfaces/startable'
 import type { ProgressEvent, ProgressOptions } from 'progress-events'
 import type { BitswapNetworkNotifyProgressEvents, BitswapNetworkWantProgressEvents } from './network.js'
+import { HttpBitswap, HttpBitswapOptions } from './http-bitswap.js'
 
 export interface WantListEntry {
   cid: CID
@@ -140,4 +141,9 @@ export interface BitswapOptions {
 
 export const createBitswap = (libp2p: Libp2p, blockstore: Blockstore, options: BitswapOptions = {}): Bitswap => {
   return new DefaultBitswap(libp2p, blockstore, options)
+}
+
+export const createBitswapWithHTTP = (libp2p: Libp2p, blockstore: Blockstore, options: HttpBitswapOptions = {}): Bitswap => {
+  const inner = new DefaultBitswap(libp2p, blockstore, options.bitswapOptions)
+  return new HttpBitswap(libp2p, inner, blockstore, options)
 }
