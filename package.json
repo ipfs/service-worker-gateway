@@ -7,6 +7,7 @@
   "keywords": [],
   "license": "MIT",
   "scripts": {
+    "preinstall": "(cd vendor/ipfs-bitswap && npm i --no-package-lock && npm run build)",
     "clean": "rimraf ./dist",
     "lint": "eslint -c .eslintrc.cjs src/",
     "lint:fix": "eslint -c .eslintrc.cjs src/ --fix",
@@ -43,6 +44,7 @@
     "debug": "^4.3.4",
     "file-type": "^16.5.4",
     "helia": "next",
+    "ipfs-bitswap": "file:vendor/ipfs-bitswap",
     "ipns": "^6.0.0",
     "kubo-rpc-client": "^3.0.1",
     "libp2p": "^0.43.3",
@@ -78,6 +80,7 @@
     "patch-package": "^6.5.1",
     "playwright": "^1.32.1",
     "rimraf": "^4.4.1",
+    "source-map-loader": "^4.0.1",
     "style-loader": "^3.3.2",
     "test-util-ipfs-example": "^1.0.2",
     "typescript": "^5.0.3",
