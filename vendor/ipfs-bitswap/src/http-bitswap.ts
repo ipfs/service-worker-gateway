@@ -119,14 +119,14 @@ export class HttpBitswap implements Bitswap {
       return err
     }
 
-    // const bitswapWantPromise = this.innerBitswap.want(cid, { ...options, signal: abortController.signal })
-    // .then((block) => {
-    //   console.log("Got block from bitswap", Date.now())
-    //   return block
-    // })
-    // .catch(async (err) => {
-    //   throw await waitForAbortOrAllFailures(err)
-    // })
+    const bitswapWantPromise = this.innerBitswap.want(cid, { ...options, signal: abortController.signal })
+    .then((block) => {
+      console.log("Got block from bitswap", Date.now())
+      return block
+    })
+    .catch(async (err) => {
+      throw await waitForAbortOrAllFailures(err)
+    })
 
     // Start a http req over libp2p
     const httpOverLibp2pReqs = this.httpOverLibp2pPeers.map(async ({ val: peerId }) => {
@@ -185,7 +185,7 @@ export class HttpBitswap implements Bitswap {
 
     // Wait for the first to finish
     const block = await Promise.race([
-      // bitswapWantPromise,
+      bitswapWantPromise,
       ...httpOverLibp2pReqs,
       ...httpOnlyReqs
     ])
