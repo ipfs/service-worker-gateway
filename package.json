@@ -7,7 +7,6 @@
   "keywords": [],
   "license": "MIT",
   "scripts": {
-    "preinstall": "(cd vendor/ipfs-bitswap && npm i --no-package-lock && npm run build) && (cd vendor/helia && npm i --no-package-lock && npm run build)",
     "clean": "rimraf ./dist",
     "lint": "eslint -c .eslintrc.cjs src/",
     "lint:fix": "eslint -c .eslintrc.cjs src/ --fix",
@@ -79,7 +78,6 @@
     "patch-package": "^6.5.1",
     "playwright": "^1.32.1",
     "rimraf": "^4.4.1",
-    "source-map-loader": "^4.0.1",
     "style-loader": "^3.3.2",
     "test-util-ipfs-example": "^1.0.2",
     "typescript": "^5.0.3",

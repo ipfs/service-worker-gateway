@@ -1,0 +1,128 @@
+diff --git a/node_modules/mortice/dist/index.min.js b/node_modules/mortice/dist/index.min.js
+new file mode 100644
+index 0000000..013867a
+--- /dev/null
++++ b/node_modules/mortice/dist/index.min.js
+@@ -0,0 +1,3 @@
++(function (root, factory) {(typeof module === 'object' && module.exports) ? module.exports = factory() : root.Mortice = factory()}(typeof self !== 'undefined' ? self : this, function () {
++var Mortice=(()=>{var Ae=Object.create;var K=Object.defineProperty;var Ce=Object.getOwnPropertyDescriptor;var ke=Object.getOwnPropertyNames;var We=Object.getPrototypeOf,Me=Object.prototype.hasOwnProperty;var Se=(r,e)=>()=>(e||r((e={exports:{}}).exports,e),e.exports),Ne=(r,e)=>{for(var t in e)K(r,t,{get:e[t],enumerable:!0})},fe=(r,e,t,n)=>{if(e&&typeof e=="object"||typeof e=="function")for(let i of ke(e))!Me.call(r,i)&&i!==t&&K(r,i,{get:()=>e[i],enumerable:!(n=Ce(e,i))||n.enumerable});return r};var Ke=(r,e,t)=>(t=r!=null?Ae(We(r)):{},fe(e||!r||!r.__esModule?K(t,"default",{value:r,enumerable:!0}):t,r)),qe=r=>fe(K({},"__esModule",{value:!0}),r);var de=Se((Ye,B)=>{"use strict";var ze=Object.prototype.hasOwnProperty,p="~";function Q(){}Object.create&&(Q.prototype=Object.create(null),new Q().__proto__||(p=!1));function De(r,e,t){this.fn=r,this.context=e,this.once=t||!1}function he(r,e,t,n,i){if(typeof t!="function")throw new TypeError("The listener must be a function");var u=new De(t,n||r,i),o=p?p+e:e;return r._events[o]?r._events[o].fn?r._events[o]=[r._events[o],u]:r._events[o].push(u):(r._events[o]=u,r._eventsCount++),r}function q(r,e){--r._eventsCount===0?r._events=new Q:delete r._events[e]}function _(){this._events=new Q,this._eventsCount=0}_.prototype.eventNames=function(){var e=[],t,n;if(this._eventsCount===0)return e;for(n in t=this._events)ze.call(t,n)&&e.push(p?n.slice(1):n);return Object.getOwnPropertySymbols?e.concat(Object.getOwnPropertySymbols(t)):e};_.prototype.listeners=function(e){var t=p?p+e:e,n=this._events[t];if(!n)return[];if(n.fn)return[n.fn];for(var i=0,u=n.length,o=new Array(u);i<u;i++)o[i]=n[i].fn;return o};_.prototype.listenerCount=function(e){var t=p?p+e:e,n=this._events[t];return n?n.fn?1:n.length:0};_.prototype.emit=function(e,t,n,i,u,o){var l=p?p+e:e;if(!this._events[l])return!1;var s=this._events[l],f=arguments.length,m,c;if(s.fn){switch(s.once&&this.removeListener(e,s.fn,void 0,!0),f){case 1:return s.fn.call(s.context),!0;case 2:return s.fn.call(s.context,t),!0;case 3:return s.fn.call(s.context,t,n),!0;case 4:return s.fn.call(s.context,t,n,i),!0;case 5:return s.fn.call(s.context,t,n,i,u),!0;case 6:return s.fn.call(s.context,t,n,i,u,o),!0}for(c=1,m=new Array(f-1);c<f;c++)m[c-1]=arguments[c];s.fn.apply(s.context,m)}else{var Qe=s.length,O;for(c=0;c<Qe;c++)switch(s[c].once&&this.removeListener(e,s[c].fn,void 0,!0),f){case 1:s[c].fn.call(s[c].context);break;case 2:s[c].fn.call(s[c].context,t);break;case 3:s[c].fn.call(s[c].context,t,n);break;case 4:s[c].fn.call(s[c].context,t,n,i);break;default:if(!m)for(O=1,m=new Array(f-1);O<f;O++)m[O-1]=arguments[O];s[c].fn.apply(s[c].context,m)}}return!0};_.prototype.on=function(e,t,n){return he(this,e,t,n,!1)};_.prototype.once=function(e,t,n){return he(this,e,t,n,!0)};_.prototype.removeListener=function(e,t,n,i){var u=p?p+e:e;if(!this._events[u])return this;if(!t)return q(this,u),this;var o=this._events[u];if(o.fn)o.fn===t&&(!i||o.once)&&(!n||o.context===n)&&q(this,u);else{for(var l=0,s=[],f=o.length;l<f;l++)(o[l].fn!==t||i&&!o[l].once||n&&o[l].context!==n)&&s.push(o[l]);s.length?this._events[u]=s.length===1?s[0]:s:q(this,u)}return this};_.prototype.removeAllListeners=function(e){var t;return e?(t=p?p+e:e,this._events[t]&&q(this,t)):(this._events=new Q,this._eventsCount=0),this};_.prototype.off=_.prototype.removeListener;_.prototype.addListener=_.prototype.on;_.prefixed=p;_.EventEmitter=_;typeof B<"u"&&(B.exports=_)});var Ue={};Ne(Ue,{default:()=>Oe});var Pe=Ke(de(),1);var A=class extends Error{constructor(e){super(e),this.name="TimeoutError"}},j=class extends Error{constructor(e){super(),this.name="AbortError",this.message=e}},me=r=>globalThis.DOMException===void 0?new j(r):new DOMException(r),_e=r=>{let e=r.reason===void 0?me("This operation was aborted."):r.reason;return e instanceof Error?e:me(e)};function H(r,e,t,n){let i,u=new Promise((o,l)=>{if(typeof e!="number"||Math.sign(e)!==1)throw new TypeError(`Expected \`milliseconds\` to be a positive number, got \`${e}\``);if(e===Number.POSITIVE_INFINITY){o(r);return}if(n={customTimers:{setTimeout,clearTimeout},...n},n.signal){let{signal:s}=n;s.aborted&&l(_e(s)),s.addEventListener("abort",()=>{l(_e(s))})}i=n.customTimers.setTimeout.call(void 0,()=>{if(typeof t=="function"){try{o(t())}catch(m){l(m)}return}let s=typeof t=="string"?t:`Promise timed out after ${e} milliseconds`,f=t instanceof Error?t:new A(s);typeof r.cancel=="function"&&r.cancel(),l(f)},e),(async()=>{try{o(await r)}catch(s){l(s)}finally{n.customTimers.clearTimeout.call(void 0,i)}})()});return u.clear=()=>{clearTimeout(i),i=void 0},u}function J(r,e,t){let n=0,i=r.length;for(;i>0;){let u=Math.trunc(i/2),o=n+u;t(r[o],e)<=0?(n=++o,i-=u+1):i=u}return n}var x=function(r,e,t,n){if(t==="a"&&!n)throw new TypeError("Private accessor was defined without a getter");if(typeof e=="function"?r!==e||!n:!e.has(r))throw new TypeError("Cannot read private member from an object whose class did not declare it");return t==="m"?n:t==="a"?n.call(r):n?n.value:e.get(r)},E,C=class{constructor(){E.set(this,[])}enqueue(e,t){t={priority:0,...t};let n={priority:t.priority,run:e};if(this.size&&x(this,E,"f")[this.size-1].priority>=t.priority){x(this,E,"f").push(n);return}let i=J(x(this,E,"f"),n,(u,o)=>o.priority-u.priority);x(this,E,"f").splice(i,0,n)}dequeue(){let e=x(this,E,"f").shift();return e?.run}filter(e){return x(this,E,"f").filter(t=>t.priority===e.priority).map(t=>t.run)}get size(){return x(this,E,"f").length}};E=new WeakMap;var h=function(r,e,t,n,i){if(n==="m")throw new TypeError("Private method is not writable");if(n==="a"&&!i)throw new TypeError("Private accessor was defined without a setter");if(typeof e=="function"?r!==e||!i:!e.has(r))throw new TypeError("Cannot write private member to an object whose class did not declare it");return n==="a"?i.call(r,t):i?i.value=t:e.set(r,t),t},a=function(r,e,t,n){if(t==="a"&&!n)throw new TypeError("Private accessor was defined without a getter");if(typeof e=="function"?r!==e||!n:!e.has(r))throw new TypeError("Cannot read private member from an object whose class did not declare it");return t==="m"?n:t==="a"?n.call(r):n?n.value:e.get(r)},d,W,M,P,U,S,z,y,k,v,D,w,N,g,F,pe,ve,Ee,we,ye,$,X,Z,V,ge,G,Y=class extends Error{},R=class extends Pe.default{constructor(e){var t,n,i,u;if(super(),d.add(this),W.set(this,void 0),M.set(this,void 0),P.set(this,0),U.set(this,void 0),S.set(this,void 0),z.set(this,0),y.set(this,void 0),k.set(this,void 0),v.set(this,void 0),D.set(this,void 0),w.set(this,0),N.set(this,void 0),g.set(this,void 0),F.set(this,void 0),Object.defineProperty(this,"timeout",{enumerable:!0,configurable:!0,writable:!0,value:void 0}),e={carryoverConcurrencyCount:!1,intervalCap:Number.POSITIVE_INFINITY,interval:0,concurrency:Number.POSITIVE_INFINITY,autoStart:!0,queueClass:C,...e},!(typeof e.intervalCap=="number"&&e.intervalCap>=1))throw new TypeError(`Expected \`intervalCap\` to be a number from 1 and up, got \`${(n=(t=e.intervalCap)===null||t===void 0?void 0:t.toString())!==null&&n!==void 0?n:""}\` (${typeof e.intervalCap})`);if(e.interval===void 0||!(Number.isFinite(e.interval)&&e.interval>=0))throw new TypeError(`Expected \`interval\` to be a finite number >= 0, got \`${(u=(i=e.interval)===null||i===void 0?void 0:i.toString())!==null&&u!==void 0?u:""}\` (${typeof e.interval})`);h(this,W,e.carryoverConcurrencyCount,"f"),h(this,M,e.intervalCap===Number.POSITIVE_INFINITY||e.interval===0,"f"),h(this,U,e.intervalCap,"f"),h(this,S,e.interval,"f"),h(this,v,new e.queueClass,"f"),h(this,D,e.queueClass,"f"),this.concurrency=e.concurrency,this.timeout=e.timeout,h(this,F,e.throwOnTimeout===!0,"f"),h(this,g,e.autoStart===!1,"f")}get concurrency(){return a(this,N,"f")}set concurrency(e){if(!(typeof e=="number"&&e>=1))throw new TypeError(`Expected \`concurrency\` to be a number from 1 and up, got \`${e}\` (${typeof e})`);h(this,N,e,"f"),a(this,d,"m",V).call(this)}async add(e,t={}){return t={timeout:this.timeout,throwOnTimeout:a(this,F,"f"),...t},new Promise((n,i)=>{a(this,v,"f").enqueue(async()=>{var u,o,l;h(this,w,(o=a(this,w,"f"),o++,o),"f"),h(this,P,(l=a(this,P,"f"),l++,l),"f");try{if(!((u=t.signal)===null||u===void 0)&&u.aborted)throw new Y("The task was aborted.");let s=e({signal:t.signal});t.timeout&&(s=H(Promise.resolve(s),t.timeout)),t.signal&&(s=Promise.race([s,a(this,d,"m",ge).call(this,t.signal)]));let f=await s;n(f),this.emit("completed",f)}catch(s){if(s instanceof A&&!t.throwOnTimeout){n();return}i(s),this.emit("error",s)}finally{a(this,d,"m",Ee).call(this)}},t),this.emit("add"),a(this,d,"m",$).call(this)})}async addAll(e,t){return Promise.all(e.map(async n=>this.add(n,t)))}start(){return a(this,g,"f")?(h(this,g,!1,"f"),a(this,d,"m",V).call(this),this):this}pause(){h(this,g,!0,"f")}clear(){h(this,v,new(a(this,D,"f")),"f")}async onEmpty(){a(this,v,"f").size!==0&&await a(this,d,"m",G).call(this,"empty")}async onSizeLessThan(e){a(this,v,"f").size<e||await a(this,d,"m",G).call(this,"next",()=>a(this,v,"f").size<e)}async onIdle(){a(this,w,"f")===0&&a(this,v,"f").size===0||await a(this,d,"m",G).call(this,"idle")}get size(){return a(this,v,"f").size}sizeBy(e){return a(this,v,"f").filter(e).length}get pending(){return a(this,w,"f")}get isPaused(){return a(this,g,"f")}};W=new WeakMap,M=new WeakMap,P=new WeakMap,U=new WeakMap,S=new WeakMap,z=new WeakMap,y=new WeakMap,k=new WeakMap,v=new WeakMap,D=new WeakMap,w=new WeakMap,N=new WeakMap,g=new WeakMap,F=new WeakMap,d=new WeakSet,pe=function(){return a(this,M,"f")||a(this,P,"f")<a(this,U,"f")},ve=function(){return a(this,w,"f")<a(this,N,"f")},Ee=function(){var e;h(this,w,(e=a(this,w,"f"),e--,e),"f"),a(this,d,"m",$).call(this),this.emit("next")},we=function(){a(this,d,"m",Z).call(this),a(this,d,"m",X).call(this),h(this,k,void 0,"f")},ye=function(){let e=Date.now();if(a(this,y,"f")===void 0){let t=a(this,z,"f")-e;if(t<0)h(this,P,a(this,W,"f")?a(this,w,"f"):0,"f");else return a(this,k,"f")===void 0&&h(this,k,setTimeout(()=>{a(this,d,"m",we).call(this)},t),"f"),!0}return!1},$=function(){if(a(this,v,"f").size===0)return a(this,y,"f")&&clearInterval(a(this,y,"f")),h(this,y,void 0,"f"),this.emit("empty"),a(this,w,"f")===0&&this.emit("idle"),!1;if(!a(this,g,"f")){let e=!a(this,d,"a",ye);if(a(this,d,"a",pe)&&a(this,d,"a",ve)){let t=a(this,v,"f").dequeue();return t?(this.emit("active"),t(),e&&a(this,d,"m",X).call(this),!0):!1}}return!1},X=function(){a(this,M,"f")||a(this,y,"f")!==void 0||(h(this,y,setInterval(()=>{a(this,d,"m",Z).call(this)},a(this,S,"f")),"f"),h(this,z,Date.now()+a(this,S,"f"),"f"))},Z=function(){a(this,P,"f")===0&&a(this,w,"f")===0&&a(this,y,"f")&&(clearInterval(a(this,y,"f")),h(this,y,void 0,"f")),h(this,P,a(this,W,"f")?a(this,w,"f"):0,"f"),a(this,d,"m",V).call(this)},V=function(){for(;a(this,d,"m",$).call(this););},ge=async function(e){return new Promise((t,n)=>{e.addEventListener("abort",()=>{n(new Y("The task was aborted."))},{once:!0})})},G=async function(e,t){return new Promise(n=>{let i=()=>{t&&!t()||(this.off(e,i),n())};this.on(e,i)})};var ee=class extends Error{constructor(e){super(e),this.name="TimeoutError"}},te=class extends Error{constructor(e){super(),this.name="AbortError",this.message=e}},Te=r=>globalThis.DOMException===void 0?new te(r):new DOMException(r),be=r=>{let e=r.reason===void 0?Te("This operation was aborted."):r.reason;return e instanceof Error?e:Te(e)};function re(r,e){let{milliseconds:t,fallback:n,message:i,customTimers:u={setTimeout,clearTimeout}}=e,o,l=new Promise((s,f)=>{if(typeof t!="number"||Math.sign(t)!==1)throw new TypeError(`Expected \`milliseconds\` to be a positive number, got \`${t}\``);if(t===Number.POSITIVE_INFINITY){s(r);return}if(e.signal){let{signal:c}=e;c.aborted&&f(be(c)),c.addEventListener("abort",()=>{f(be(c))})}let m=new ee;o=u.setTimeout.call(void 0,()=>{if(n){try{s(n())}catch(c){f(c)}return}typeof r.cancel=="function"&&r.cancel(),i===!1?s():i instanceof Error?f(i):(m.message=i??`Promise timed out after ${t} milliseconds`,f(m))},t),(async()=>{try{s(await r)}catch(c){f(c)}finally{u.clearTimeout.call(void 0,o)}})()});return l.clear=()=>{u.clearTimeout.call(void 0,o),o=void 0},l}var xe=(r=21)=>crypto.getRandomValues(new Uint8Array(r)).reduce((e,t)=>(t&=63,t<36?e+=t.toString(36):t<62?e+=(t-26).toString(36).toUpperCase():t>62?e+="-":e+="_",e),"");var ne="lock:worker:request-read",ie="lock:worker:release-read",se="lock:master:grant-read",ae="lock:worker:request-write",oe="lock:worker:release-write",ue="lock:master:grant-write";var T={},I=r=>{r.addEventListener("message",e=>{I.dispatchEvent("message",r,e)}),r.port!=null&&r.port.addEventListener("message",e=>{I.dispatchEvent("message",r,e)})};I.addEventListener=(r,e)=>{T[r]==null&&(T[r]=[]),T[r].push(e)};I.removeEventListener=(r,e)=>{T[r]!=null&&(T[r]=T[r].filter(t=>t===e))};I.dispatchEvent=function(r,e,t){T[r]!=null&&T[r].forEach(n=>n(e,t))};var le=I;var Le=(r,e,t,n,i)=>(u,o)=>{if(o.data.type!==t)return;let l={type:o.data.type,name:o.data.name,identifier:o.data.identifier};r.dispatchEvent(new MessageEvent(e,{data:{name:l.name,handler:async()=>(u.postMessage({type:i,name:l.name,identifier:l.identifier}),await new Promise(s=>{let f=m=>{if(m==null||m.data==null)return;let c={type:m.data.type,name:m.data.name,identifier:m.data.identifier};c.type===n&&c.identifier===l.identifier&&(u.removeEventListener("message",f),s())};u.addEventListener("message",f)}))}}))},Re=(r,e,t,n)=>async()=>{let i=xe();return globalThis.postMessage({type:e,identifier:i,name:r}),await new Promise(u=>{let o=l=>{if(l==null||l.data==null)return;let s={type:l.data.type,identifier:l.data.identifier};s.type===t&&s.identifier===i&&(globalThis.removeEventListener("message",o),u(()=>{globalThis.postMessage({type:n,identifier:i,name:r})}))};globalThis.addEventListener("message",o)})},Fe={singleProcess:!1},Ie=r=>{if(r=Object.assign({},Fe,r),!!globalThis.document||r.singleProcess){let t=new EventTarget;return le.addEventListener("message",Le(t,"requestReadLock",ne,ie,se)),le.addEventListener("message",Le(t,"requestWriteLock",ae,oe,ue)),t}return{isWorker:!0,readLock:t=>Re(t,ne,se,ie),writeLock:t=>Re(t,ae,ue,oe)}};var L={},b;async function ce(r,e){let t,n=new Promise(i=>{t=i});return r.add(async()=>await re((async()=>await new Promise(i=>{t(()=>{i()})}))(),{milliseconds:e.timeout})),await n}var $e=(r,e)=>{if(b.isWorker===!0)return{readLock:b.readLock(r,e),writeLock:b.writeLock(r,e)};let t=new R({concurrency:1}),n;return{async readLock(){if(n!=null)return await ce(n,e);n=new R({concurrency:e.concurrency,autoStart:!1});let i=n,u=ce(n,e);return t.add(async()=>(i.start(),await i.onIdle().then(()=>{n===i&&(n=null)}))),await u},async writeLock(){return n=null,await ce(t,e)}}},Ge={name:"lock",concurrency:1/0,timeout:846e5,singleProcess:!1};function Oe(r){let e=Object.assign({},Ge,r);return b==null&&(b=Ie(e),b.isWorker!==!0&&(b.addEventListener("requestReadLock",t=>{L[t.data.name]!=null&&L[t.data.name].readLock().then(async n=>await t.data.handler().finally(()=>n()))}),b.addEventListener("requestWriteLock",async t=>{L[t.data.name]!=null&&L[t.data.name].writeLock().then(async n=>await t.data.handler().finally(()=>n()))}))),L[e.name]==null&&(L[e.name]=$e(e.name,e)),L[e.name]}return qe(Ue);})();
++return Mortice}));
+diff --git a/node_modules/mortice/dist/src/browser.js b/node_modules/mortice/dist/src/browser.js
+index 8311994..e0de956 100644
+--- a/node_modules/mortice/dist/src/browser.js
++++ b/node_modules/mortice/dist/src/browser.js
+@@ -1,6 +1,11 @@
+ import { nanoid } from 'nanoid';
+ import { WORKER_REQUEST_READ_LOCK, WORKER_RELEASE_READ_LOCK, MASTER_GRANT_READ_LOCK, WORKER_REQUEST_WRITE_LOCK, WORKER_RELEASE_WRITE_LOCK, MASTER_GRANT_WRITE_LOCK } from './constants.js';
+ import observer from 'observable-webworkers';
++
++const morticeSymbol = Symbol('mortice@3.0.1')
++
++const morticeChannel = new BroadcastChannel(morticeSymbol.toString())
++
+ const handleWorkerLockRequest = (emitter, masterEvent, requestType, releaseType, grantType) => {
+     return (worker, event) => {
+         if (event.data.type !== requestType) {
+@@ -47,7 +52,7 @@ const handleWorkerLockRequest = (emitter, masterEvent, requestType, releaseType,
+ const makeWorkerLockRequest = (name, requestType, grantType, releaseType) => {
+     return async () => {
+         const id = nanoid();
+-        globalThis.postMessage({
++        morticeChannel.postMessage({
+             type: requestType,
+             identifier: id,
+             name
+@@ -62,11 +67,11 @@ const makeWorkerLockRequest = (name, requestType, grantType, releaseType) => {
+                     identifier: event.data.identifier
+                 };
+                 if (responseEvent.type === grantType && responseEvent.identifier === id) {
+-                    globalThis.removeEventListener('message', listener);
++                    morticeChannel.removeEventListener('message', listener);
+                     // grant lock
+                     resolve(() => {
+                         // release lock
+-                        globalThis.postMessage({
++                        morticeChannel.postMessage({
+                             type: releaseType,
+                             identifier: id,
+                             name
+@@ -74,7 +79,7 @@ const makeWorkerLockRequest = (name, requestType, grantType, releaseType) => {
+                     });
+                 }
+             };
+-            globalThis.addEventListener('message', listener);
++            morticeChannel.addEventListener('message', listener);
+         });
+     };
+ };
+@@ -85,7 +90,8 @@ export default (options) => {
+     options = Object.assign({}, defaultOptions, options);
+     const isPrimary = Boolean(globalThis.document) || options.singleProcess;
+     if (isPrimary) {
+-        const emitter = new EventTarget();
++        // const emitter = new EventTarget();
++        const emitter = morticeChannel;
+         observer.addEventListener('message', handleWorkerLockRequest(emitter, 'requestReadLock', WORKER_REQUEST_READ_LOCK, WORKER_RELEASE_READ_LOCK, MASTER_GRANT_READ_LOCK));
+         observer.addEventListener('message', handleWorkerLockRequest(emitter, 'requestWriteLock', WORKER_REQUEST_WRITE_LOCK, WORKER_RELEASE_WRITE_LOCK, MASTER_GRANT_WRITE_LOCK));
+         return emitter;
+diff --git a/node_modules/mortice/src/browser.ts b/node_modules/mortice/src/browser.ts
+index ad8bbb9..ebf3b65 100644
+--- a/node_modules/mortice/src/browser.ts
++++ b/node_modules/mortice/src/browser.ts
+@@ -10,6 +10,11 @@ import {
+ import observer from 'observable-webworkers'
+ import type { MorticeImplementation, MorticeOptions, Release } from './index.js'
+ 
++const morticeSymbol: unique symbol = Symbol('mortice@3.0.1')
++
++const morticeChannel = new BroadcastChannel(morticeSymbol.toString())
++
++
+ const handleWorkerLockRequest = (emitter: EventTarget, masterEvent: string, requestType: string, releaseType: string, grantType: string) => {
+   return (worker: Worker, event: MessageEvent) => {
+     if (event.data.type !== requestType) {
+@@ -64,7 +69,9 @@ const makeWorkerLockRequest = (name: string, requestType: string, grantType: str
+   return async () => {
+     const id = nanoid()
+ 
+-    globalThis.postMessage({
++
++    // globalThis.postMessage?.({
++    morticeChannel.postMessage({
+       type: requestType,
+       identifier: id,
+       name
+@@ -82,12 +89,12 @@ const makeWorkerLockRequest = (name: string, requestType: string, grantType: str
+         }
+ 
+         if (responseEvent.type === grantType && responseEvent.identifier === id) {
+-          globalThis.removeEventListener('message', listener)
++          morticeChannel.removeEventListener('message', listener)
+ 
+           // grant lock
+           resolve(() => {
+             // release lock
+-            globalThis.postMessage({
++            morticeChannel.postMessage?.({
+               type: releaseType,
+               identifier: id,
+               name
+@@ -96,7 +103,7 @@ const makeWorkerLockRequest = (name: string, requestType: string, grantType: str
+         }
+       }
+ 
+-      globalThis.addEventListener('message', listener)
++      morticeChannel.addEventListener('message', listener)
+     })
+   }
+ }
+@@ -110,7 +117,8 @@ export default (options: Required<MorticeOptions>): MorticeImplementation | Even
+   const isPrimary = Boolean(globalThis.document) || options.singleProcess
+ 
+   if (isPrimary) {
+-    const emitter = new EventTarget()
++    // const emitter = new EventTarget()
++    const emitter = morticeChannel
+ 
+     observer.addEventListener('message', handleWorkerLockRequest(emitter, 'requestReadLock', WORKER_REQUEST_READ_LOCK, WORKER_RELEASE_READ_LOCK, MASTER_GRANT_READ_LOCK))
+     observer.addEventListener('message', handleWorkerLockRequest(emitter, 'requestWriteLock', WORKER_REQUEST_WRITE_LOCK, WORKER_RELEASE_WRITE_LOCK, MASTER_GRANT_WRITE_LOCK))
