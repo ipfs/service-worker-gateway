@@ -121,7 +121,6 @@ const common = {
       patterns: [
         {
           from: `${paths.public}/_redirects`,
-          to: '_redirects',
           noErrorOnMissing: false
         }
       ]
