@@ -33,7 +33,7 @@ enum BlockFetcher {
 }
 
 let q: (() => void)[] = []
-let numWorkersAvail = 1
+let numWorkersAvail = 256
 
 export class HttpBitswap implements Bitswap {
   stats: Stats = this.innerBitswap.stats
@@ -149,15 +149,17 @@ export class HttpBitswap implements Bitswap {
       return err
     }
 
-    // totalReqs += 1
-    // const bitswapWantPromise = this.innerBitswap.want(cid, { ...options, signal: abortController.signal })
-    // .then((block) => {
-    //   this.recordStats(cid, BlockFetcher.Bitswap)
-    //   return block
-    // })
-    // .catch(async (err) => {
-    //   throw await waitForAbortOrAllFailures(err)
-    // })
+    totalReqs += 1
+    const bitswapWantPromise = (async () => {
+      return await this.innerBitswap.want(cid, { ...options, signal: abortController.signal })
+        .then((block) => {
+          this.recordStats(cid, BlockFetcher.Bitswap)
+          return block
+        })
+        .catch(async (err) => {
+          throw await waitForAbortOrAllFailures(err)
+        })
+    })()
 
     // Start a http req over libp2p
     const httpOverLibp2pReqs = this.httpOverLibp2pPeers.map(async ({ val: peerId }) => {
@@ -173,12 +175,6 @@ export class HttpBitswap implements Bitswap {
             throw new Error('Not found')
           }
         }
-        // sleep for 400 ms
-        await new Promise((resolve) => setTimeout(resolve, 400))
-
-        // if (cid.toString() === "QmeMkgGxNMR7dmqPiGp5AFEwyNySwjp1FWxgKVH8VhWDx2") {
-        //   debugger
-        // }
 
         if (numWorkersAvail <= 0) {
           const p = new Promise<void>((resolve, reject) => {
@@ -196,7 +192,7 @@ export class HttpBitswap implements Bitswap {
         if (resp.ok) {
           const block = new Uint8Array(await resp.arrayBuffer())
           if (block.length === 0 || block.length != parseInt(resp.headers.get("Content-Length") ?? '0')) {
-            debugger
+            // debugger - why??
             throw new Error('Not found')
           }
           await this.blockstore.put(cid, block)
@@ -227,6 +223,10 @@ export class HttpBitswap implements Bitswap {
     const httpOnlyReqs = this.httpOnlyPeers.map(async (url) => {
       try {
         {
+          // Delay a bit so we prefer bitswap, but can fallback to the gateway
+          await new Promise((resolve) => { setTimeout(resolve, 500) })
+          if (abortController.signal.aborted) throw new Error('Aborted')
+
           // We should be using the Cache-Control header, but this is not a CORS allowed header on some gateways
           // const resp: Response = await fetch(new Request(`${url}/ipfs/${cid.toString()}/`, { method: 'HEAD', headers: { 'Cache-Control': 'only-if-cached' } }), { signal: options?.signal })
           const resp: Response = await fetch(new Request(`${url}/ipfs/${cid.toString()}/`, { method: 'HEAD' }), { signal: abortController.signal })
@@ -250,7 +250,7 @@ export class HttpBitswap implements Bitswap {
 
     // Wait for the first to finish
     const block = await Promise.race([
-      // bitswapWantPromise,
+      bitswapWantPromise,
       ...httpOverLibp2pReqs,
       ...httpOnlyReqs
     ])
