@@ -38,7 +38,10 @@ export class BlockStorage implements Blocks {
     this.child = blockstore
     this.bitswap = options.bitswap
     this.pins = pins
-    this.lock = createMortice({
+    this.lock = (typeof ServiceWorkerGlobalScope !== "undefined" && globalThis instanceof ServiceWorkerGlobalScope) ?  {
+      readLock: () => Promise.resolve(() => {}),
+      writeLock: () => Promise.resolve(() => {}),
+    } : createMortice({
       singleProcess: options.holdGcLock
     })
   }

@@ -47,7 +47,7 @@
     "ipfs-bitswap": "file:vendor/ipfs-bitswap",
     "ipns": "^6.0.0",
     "kubo-rpc-client": "^3.0.1",
-    "libp2p": "^0.43.3",
+    "libp2p": "^0.44.0",
     "mime-types": "^2.1.35",
     "multiformats": "^11.0.2",
     "p-try-each": "^1.0.1",

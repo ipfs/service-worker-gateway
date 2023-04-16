@@ -26,12 +26,22 @@ export const defaultOptions = {
   bitswapOptions: {}
 }
 
+enum BlockFetcher {
+  Http = 0,
+  HttpOverLibp2p,
+  Bitswap,
+}
+
+let q: (() => void)[] = []
+let numWorkersAvail = 1
+
 export class HttpBitswap implements Bitswap {
   stats: Stats = this.innerBitswap.stats
   peers: PeerId[] = this.innerBitswap.peers
   httpOverLibp2pPeersLimit: number
   httpOverLibp2pPeers: Array<WithTimestamp<PeerId>> = []
   httpOnlyPeers: string[] = []
+  blockFetchStats: Map<string, BlockFetcher> = new Map() 
 
   constructor (private readonly libp2p: Libp2p, private readonly innerBitswap: Bitswap, private readonly blockstore: Blockstore, options: HttpBitswapOptions = defaultOptions) {
     this.httpOverLibp2pPeersLimit = options.httpOverLibp2pPeersLimit ?? defaultOptions.httpOverLibp2pPeersLimit
@@ -52,6 +62,9 @@ export class HttpBitswap implements Bitswap {
   }
 
   private newHttpOverLibp2pPeer (peerId: PeerId): void {
+    if (this.libp2p.peerId.equals(peerId)) {
+      return
+    }
     if (this.httpOverLibp2pPeers.length < this.httpOverLibp2pPeersLimit) {
       this.httpOverLibp2pPeers.push({ val: peerId, timestamp: Date.now() })
       return
@@ -97,6 +110,22 @@ export class HttpBitswap implements Bitswap {
     this.innerBitswap.notify(cid, block, options)
   }
 
+  private recordStats(cid: CID, fetcher: BlockFetcher) {
+    if (this.blockFetchStats.has(cid.toString())) {
+      return
+    }
+    console.log(`Fetched ${cid.toString()} via ${BlockFetcher[fetcher]}`, Date.now())
+    this.blockFetchStats.set(cid.toString(), fetcher)
+    console.log(`Stats`, this.blockFetchStats)
+    let allCids = 0;
+    let breakdown = [0,0,0]
+    for (const fetcher of this.blockFetchStats.values()) {
+      allCids++
+      breakdown[fetcher] = breakdown[fetcher] + 1
+    }
+    console.log("Breakdown", allCids, breakdown.map((b, fetcher) => [BlockFetcher[fetcher], b/allCids] ))
+  }
+
   async want (
     cid: CID<unknown, number, number, Version>,
     options?: AbortOptions & ProgressOptions<BitswapWantBlockProgressEvents>
@@ -106,8 +135,9 @@ export class HttpBitswap implements Bitswap {
     if ((options?.signal) != null) {
       options.signal.addEventListener('abort', () => { abortController.abort() })
     }
+    // setTimeout(() => { abortController.abort() }, 1000)
 
-    let totalReqs = 1 + this.httpOverLibp2pPeers.length + this.httpOnlyPeers.length
+    let totalReqs = this.httpOverLibp2pPeers.length + this.httpOnlyPeers.length
     let totalFailures = 0
     const waitForAbortOrAllFailures = async <T>(err: T): Promise<T> => {
       totalFailures++
@@ -119,21 +149,23 @@ export class HttpBitswap implements Bitswap {
       return err
     }
 
-    const bitswapWantPromise = this.innerBitswap.want(cid, { ...options, signal: abortController.signal })
-    .then((block) => {
-      console.log("Got block from bitswap", Date.now())
-      return block
-    })
-    .catch(async (err) => {
-      throw await waitForAbortOrAllFailures(err)
-    })
+    // totalReqs += 1
+    // const bitswapWantPromise = this.innerBitswap.want(cid, { ...options, signal: abortController.signal })
+    // .then((block) => {
+    //   this.recordStats(cid, BlockFetcher.Bitswap)
+    //   return block
+    // })
+    // .catch(async (err) => {
+    //   throw await waitForAbortOrAllFailures(err)
+    // })
 
     // Start a http req over libp2p
     const httpOverLibp2pReqs = this.httpOverLibp2pPeers.map(async ({ val: peerId }) => {
+      let incrementedNumWorkers = false
       try {
-        const conn = await this.libp2p.dial(peerId, { signal: options?.signal })
+        const conn = await this.libp2p.dial(peerId, { signal: abortController.signal })
         {
-          const s = await conn.newStream('/libp2p-http', { signal: options?.signal })
+          const s = await conn.newStream('/libp2p-http', { signal: abortController.signal })
           const fetch = fetchViaDuplex(s)
           const resp: Response = await fetch(new Request(`https://example.com/ipfs/${cid.toString()}/`, { method: 'HEAD', headers: { 'Cache-Control': 'only-if-cached' } }))
           if (!resp.ok) {
@@ -141,21 +173,54 @@ export class HttpBitswap implements Bitswap {
             throw new Error('Not found')
           }
         }
+        // sleep for 400 ms
+        await new Promise((resolve) => setTimeout(resolve, 400))
 
-        const s = await conn.newStream('/libp2p-http', { signal: options?.signal })
+        // if (cid.toString() === "QmeMkgGxNMR7dmqPiGp5AFEwyNySwjp1FWxgKVH8VhWDx2") {
+        //   debugger
+        // }
+
+        if (numWorkersAvail <= 0) {
+          const p = new Promise<void>((resolve, reject) => {
+            q.push(resolve)
+          })
+          await p
+        }
+        numWorkersAvail--
+        
+
+        const s = await conn.newStream('/libp2p-http', { signal: abortController.signal })
         const fetch = fetchViaDuplex(s)
         const resp: Response = await fetch(new Request(`https://example.com/ipfs/${cid.toString()}/?format=raw`))
 
         if (resp.ok) {
           const block = new Uint8Array(await resp.arrayBuffer())
+          if (block.length === 0 || block.length != parseInt(resp.headers.get("Content-Length") ?? '0')) {
+            debugger
+            throw new Error('Not found')
+          }
           await this.blockstore.put(cid, block)
-          console.log("Got block from http over libp2p", Date.now())
+          this.recordStats(cid, BlockFetcher.HttpOverLibp2p)
           return block
         }
         // Otherwise, do nothing and block on the abort signal
         throw new Error('Not found')
       } catch (err) {
+        numWorkersAvail++
+        if (q.length > 0) {
+          // @ts-expect-error we check the size
+          q.shift()()
+        }
+        incrementedNumWorkers = true
         throw await waitForAbortOrAllFailures(err)
+      } finally {
+        if (!incrementedNumWorkers) {
+          numWorkersAvail++
+          if (q.length > 0) {
+            // @ts-expect-error we check the size
+            q.shift()()
+          }
+        }
       }
     })
 
@@ -164,17 +229,17 @@ export class HttpBitswap implements Bitswap {
         {
           // We should be using the Cache-Control header, but this is not a CORS allowed header on some gateways
           // const resp: Response = await fetch(new Request(`${url}/ipfs/${cid.toString()}/`, { method: 'HEAD', headers: { 'Cache-Control': 'only-if-cached' } }), { signal: options?.signal })
-          const resp: Response = await fetch(new Request(`${url}/ipfs/${cid.toString()}/`, { method: 'HEAD' }), { signal: options?.signal })
+          const resp: Response = await fetch(new Request(`${url}/ipfs/${cid.toString()}/`, { method: 'HEAD' }), { signal: abortController.signal })
           if (!resp.ok) {
             throw new Error('Not found')
           }
         }
 
-        const resp = await fetch(new Request(`${url}/ipfs/${cid.toString()}/?format=raw`), { signal: options?.signal })
+        const resp = await fetch(new Request(`${url}/ipfs/${cid.toString()}/?format=raw`), { signal: abortController.signal })
         if (resp.ok) {
           const block = new Uint8Array(await resp.arrayBuffer())
           await this.blockstore.put(cid, block)
-          console.log("Got block from http", Date.now())
+          this.recordStats(cid, BlockFetcher.Http)
           return block
         }
         throw new Error('Not found')
@@ -185,7 +250,7 @@ export class HttpBitswap implements Bitswap {
 
     // Wait for the first to finish
     const block = await Promise.race([
-      bitswapWantPromise,
+      // bitswapWantPromise,
       ...httpOverLibp2pReqs,
       ...httpOnlyReqs
     ])
