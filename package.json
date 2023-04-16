@@ -7,7 +7,7 @@
   "keywords": [],
   "license": "MIT",
   "scripts": {
-    "preinstall": "(cd vendor/ipfs-bitswap && npm i --no-package-lock && npm run build)",
+    "preinstall": "(cd vendor/ipfs-bitswap && npm i --no-package-lock && npm run build) && (cd vendor/helia && npm i --no-package-lock && npm run build)",
     "clean": "rimraf ./dist",
     "lint": "eslint -c .eslintrc.cjs src/",
     "lint:fix": "eslint -c .eslintrc.cjs src/ --fix",
