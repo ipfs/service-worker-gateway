@@ -57,8 +57,7 @@ const fetchHandler = async ({ url, request }: { url: URL, request: Request }): P
   // 5 minute timeout
   const abortController = new AbortAbort({ timeout: 5 * 60 * 1000 })
   try {
-    const response = await heliaFetch({ path: url.pathname.replace('/helia-sw/', ''), helia, signal: abortController.signal, headers: request.headers })
-    return response
+    return await heliaFetch({ path: url.pathname, helia, signal: abortController.signal, headers: request.headers })
   } catch (err: unknown) {
     console.error('fetchHandler error: ', err)
     const errorMessage = err instanceof Error ? err.message : JSON.stringify(err)
@@ -70,7 +69,8 @@ const fetchHandler = async ({ url, request }: { url: URL, request: Request }): P
   }
   // await helia.stop()
 }
-const urlInterceptRegex = [/\/helia-sw\/ip(n|f)s/]
+// const urlInterceptRegex = [/\/helia-sw\/ip(n|f)s/]
+const urlInterceptRegex = [/\/ip(n|f)s/]
 
 /**
  *
@@ -88,61 +88,15 @@ const isRootRequestForContent = (event: FetchEvent): boolean => {
   return isRootRequest // && getCidFromUrl(event.request.url) != null
 }
 
-// const getCidFromUrl = (url: string): CID | null => {
-//   if (!urlInterceptRegex.some(regex => regex.test(url))) {
-//     /**
-//      * if the url doesn't match the regex, then we should return null, because
-//      * we have no idea where a CID would be, and shouldn't try to guess
-//      */
-//     return null
-//   }
-//   const urlParts = url.split('/helia-sw/')
-//   try {
-//     const cidString = urlParts[1].split('/')[0]
-//     const cid = CID.parse(cidString)
-//     return cid
-//   } catch (err) {
-//     /**
-//      * Invalid CID at `/helia-sw/${cidString}`
-//      */
-//     return null
-//   }
-// }
-
-// const getCidFromRequest = (event: FetchEvent): CID | null => {
-//   return getCidFromUrl(event.request.url) ?? getCidFromUrl(event.request.referrer)
-// }
-
-const isValidRequestForSW = (event: FetchEvent): boolean => {
-  // check that the request has {self.location.origin}helia-sw/{cid}
-  // if it does, then we should intercept it
-  // const cid = getCidFromRequest(event)
-  // console.log('cid: ', cid)
-  // if (cid === null) {
-  //   return false
-  // }
-  const heliaSwCounts = event.request.url.match(/\/helia-sw\//)?.length ?? 0
-
-  if (heliaSwCounts > 1) {
-    throw new Error('url should not contain /helia-sw/ more than once')
-  }
-
-  // return true
-  return isRootRequestForContent(event) || isReferrerPreviouslyIntercepted(event)
-}
+const isValidRequestForSW = (event: FetchEvent): boolean =>
+  isRootRequestForContent(event) || isReferrerPreviouslyIntercepted(event)
 
 self.addEventListener('fetch', event => {
   const request = event.request
   const urlString = request.url
   const url = new URL(urlString)
-  // console.log('urlString: ', urlString)
-  // the urls to intercept and handle ourselves should match /helia-sw/
+  console.log('service worker location: ', self.location)
 
-  // const referredFromSameOrigin = request.referrer.startsWith(self.location.origin)
-  // // if the request is not for the same origin, then we should not intercept it
-  // if (!referredFromSameOrigin) {
-  //   return
-  // }
   if (!isValidRequestForSW(event)) {
     console.warn('not a valid request for helia-sw, ignoring ', urlString)
     return
@@ -156,7 +110,7 @@ self.addEventListener('fetch', event => {
     const referrerParts = request.referrer.split('/')
     const newParts: string[] = []
     let index = 0
-    while (destinationParts[index] === referrerParts[index]) {
+    while (destinationParts[index] === referrerParts[index] && index < destinationParts.length && index < referrerParts.length) {
       newParts.push(destinationParts[index])
       index++
     }

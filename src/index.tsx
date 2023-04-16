@@ -22,7 +22,8 @@ if (heliaSwPath != null) {
   )
   // if heliaSwPath value is set, then we need to redirect to the path based helia-sw
   // e.g. http://localhost:3000/?helia-sw=/ipns/docs.ipfs.tech should redirect to http://localhost:3000/helia-sw/ipns/docs.ipfs.tech
-  const pathname = heliaSwPath[0] === '/' ? `/helia-sw${heliaSwPath}` : `/helia-sw/${heliaSwPath}`
+  const pathname = heliaSwPath[0] === '/' ? heliaSwPath : `/${heliaSwPath}`
+  console.log('pathname: ', pathname)
   const redirectURL = new URL(pathname, window.location.origin)
   window.location.replace(redirectURL.toString())
 } else {

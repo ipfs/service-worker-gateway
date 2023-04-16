@@ -1,1 +1,2 @@
-/helia-sw/* /?helia-sw=:splat 302
+/ipns/* /?helia-sw=/ipns:splat 302
+/ipfs/* /?helia-sw=/ipfs:splat 302
