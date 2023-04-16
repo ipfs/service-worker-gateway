@@ -3,32 +3,36 @@ import ReactDOMClient from 'react-dom/client'
 
 import './app.css'
 import App from './app.tsx'
+import RedirectPage from './redirectPage.tsx'
 
 const container = document.getElementById('root')
-const root = ReactDOMClient.createRoot(container)
-
 // set up debug logging if you want.
 // import debug from 'debug';
 // debug.enable('libp2p:*:error,-*:trace,libp2p:webtransport')
 
-// simple demo showing messageAndWaitForResponse
-// (async () => {
-//   const result = await channel.messageAndWaitForResponse('SW', {action: 'PING', data: '123'});
-//   console.log(`WINDOW ping result: `, result);
-// })();
-
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-)
-
-// const swURL = new URL('sw.ts', import.meta.url)
-// console.log('swURL: ', swURL)
-// const sw = await navigator.serviceWorker.register(swURL)
-
 const sw = await navigator.serviceWorker.register(new URL('sw.ts', import.meta.url))
-console.log('sw: ', sw)
+const root = ReactDOMClient.createRoot(container)
+
+// get urlSearchParameters and check for existing helia-sw parameter & value
+const urlSearchParams = new URLSearchParams(window.location.search)
+const heliaSwPath = urlSearchParams.get('helia-sw')
+if (heliaSwPath != null) {
+  root.render(
+    <RedirectPage />
+  )
+  // if heliaSwPath value is set, then we need to redirect to the path based helia-sw
+  // e.g. http://localhost:3000/?helia-sw=/ipns/docs.ipfs.tech should redirect to http://localhost:3000/helia-sw/ipns/docs.ipfs.tech
+  const pathname = heliaSwPath[0] === '/' ? `/helia-sw${heliaSwPath}` : `/helia-sw/${heliaSwPath}`
+  const redirectURL = new URL(pathname, window.location.origin)
+  window.location.replace(redirectURL.toString())
+} else {
+  // we don't have a helia-sw query parameter, so let's render the demo app
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  )
+}
 
 // always update the service worker
 void sw.update()
