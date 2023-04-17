@@ -56,7 +56,7 @@ const fetchHandler = async ({ url, request }: { url: URL, request: Request }): P
     return new Response('heliaFetch error: ' + errorMessage, { status: 500 })
   }
 }
-const urlInterceptRegex = [/\/ip(n|f)s\//]
+const urlInterceptRegex = [new RegExp(`${self.location.origin}/ip(n|f)s/`)]
 
 /**
  *
