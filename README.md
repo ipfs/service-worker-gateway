@@ -141,24 +141,24 @@ Notes:
 
 #### Static website and it's nested content
 
-* ipfs.tech/images directory listing page - https://helia-service-worker-gateway.on.fleek.co/helia-sw/ipfs/QmeUdoMyahuQUPHS2odrZEL6yk2HnNfBJ147BeLXsZuqLJ/images
-* ipfs.tech/images/images/ipfs-desktop-hex.png - https://helia-service-worker-gateway.on.fleek.co/helia-sw/ipfs/QmeUdoMyahuQUPHS2odrZEL6yk2HnNfBJ147BeLXsZuqLJ/images/ipfs-desktop-hex.png
-* ipfs.tech website - https://helia-service-worker-gateway.on.fleek.co/helia-sw/ipfs/QmeUdoMyahuQUPHS2odrZEL6yk2HnNfBJ147BeLXsZuqLJ
+* ipfs.tech/images directory listing page - https://helia-service-worker-gateway.on.fleek.co/ipfs/QmeUdoMyahuQUPHS2odrZEL6yk2HnNfBJ147BeLXsZuqLJ/images
+* ipfs.tech/images/images/ipfs-desktop-hex.png - https://helia-service-worker-gateway.on.fleek.co/ipfs/QmeUdoMyahuQUPHS2odrZEL6yk2HnNfBJ147BeLXsZuqLJ/images/ipfs-desktop-hex.png
+* ipfs.tech website - https://helia-service-worker-gateway.on.fleek.co/ipfs/QmeUdoMyahuQUPHS2odrZEL6yk2HnNfBJ147BeLXsZuqLJ
 
 #### Single images
 
-* router image - https://helia-service-worker-gateway.on.fleek.co/helia-sw/ipfs/bafkreicafxt3zr4cshf7qteztjzl62ouxqrofu647e44wt7s2iaqjn7bra
-* web3.storage logo - https://helia-service-worker-gateway.on.fleek.co/helia-sw/ipfs/bafkreif4ufrfpfcmqn5ltjvmeisgv4k7ykqz2mjygpngtwt4bijxosidqa
+* router image - https://helia-service-worker-gateway.on.fleek.co/ipfs/bafkreicafxt3zr4cshf7qteztjzl62ouxqrofu647e44wt7s2iaqjn7bra
+* web3.storage logo - https://helia-service-worker-gateway.on.fleek.co/ipfs/bafkreif4ufrfpfcmqn5ltjvmeisgv4k7ykqz2mjygpngtwt4bijxosidqa
 
 #### Videos
 
-* skateboarder stock video - https://helia-service-worker-gateway.on.fleek.co/helia-sw/ipfs/bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq
-* big buck bunny video - https://helia-service-worker-gateway.on.fleek.co/helia-sw/ipfs/bafybeidsp6fva53dexzjycntiucts57ftecajcn5omzfgjx57pqfy3kwbq
+* skateboarder stock video - https://helia-service-worker-gateway.on.fleek.co/ipfs/bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq
+* big buck bunny video - https://helia-service-worker-gateway.on.fleek.co/ipfs/bafybeidsp6fva53dexzjycntiucts57ftecajcn5omzfgjx57pqfy3kwbq
 
 #### IPNS paths
 
-* /ipns/libp2p.io - https://helia-service-worker-gateway.on.fleek.co/helia-sw/ipns/libp2p.io
-* /ipns/ipfs.tech - https://helia-service-worker-gateway.on.fleek.co/helia-sw/ipns/ipfs.tech
+* /ipns/libp2p.io - https://helia-service-worker-gateway.on.fleek.co/ipns/libp2p.io
+* /ipns/ipfs.tech - https://helia-service-worker-gateway.on.fleek.co/ipns/ipfs.tech
 
 #### DNSLink paths
 
