@@ -95,7 +95,7 @@ export async function heliaFetch ({ path, helia, signal, headers }: HeliaFetchOp
     const fsStatInfo = await fs.stat(cid, { signal, path: statPath })
     switch (fsStatInfo.type) {
       case 'directory':
-        return await getDirectoryResponse({ cid, fs, helia, signal, headers, path: contentPath })
+        return await getDirectoryResponse({ pathRoot: namespaceString, cid, fs, helia, signal, headers, path: contentPath })
       case 'raw':
       case 'file':
         return await getFileResponse({ cid, fs, helia, signal, headers, path: contentPath })

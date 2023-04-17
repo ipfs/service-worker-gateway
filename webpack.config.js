@@ -120,12 +120,8 @@ const common = {
     new CopyWebpackPlugin({
       patterns: [
         {
-          from: `${paths.public}/assets`,
-          to: 'assets',
-          globOptions: {
-            ignore: ['*.DS_Store']
-          },
-          noErrorOnMissing: true
+          from: `${paths.public}/_redirects`,
+          noErrorOnMissing: false
         }
       ]
     }),

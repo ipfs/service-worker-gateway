@@ -55,6 +55,7 @@ const findIndexFile = async (heliaFs: UnixFS, cid: CID, path: string): Promise<U
 // }
 
 export interface GetDirectoryResponseOptions {
+  pathRoot: 'ipfs' | 'ipns'
   cid: CID<unknown, number, number, Version>
   fs: UnixFS
   helia: Helia
@@ -114,11 +115,11 @@ function getIndexListingResponse (path: string, entries: UnixFSEntry[]): Respons
               <div class="ipfs-icon ipfs-_blank">&nbsp;</div>
             </td>
             <td class="padding">
-              <a href="/helia-sw/${parentHref}">..</a>
+              <a href="/${parentHref}">..</a>
             </td>
             <td></td>
           </tr>
-          ${entries.map((entry) => getEntryItemHtml(entry, `helia-sw/${path}`)).join('')}
+          ${entries.map((entry) => getEntryItemHtml(entry, `${path}`)).join('')}
         </tbody>
       </table>
     </div>
@@ -135,7 +136,7 @@ function getIndexListingResponse (path: string, entries: UnixFSEntry[]): Respons
   })
 }
 
-export async function getDirectoryResponse ({ cid, fs, helia, signal, headers, path = '' }: GetDirectoryResponseOptions): Promise<Response> {
+export async function getDirectoryResponse ({ pathRoot, cid, fs, helia, signal, headers, path = '' }: GetDirectoryResponseOptions): Promise<Response> {
   try {
     const indexFile = await findIndexFile(fs, cid, path)
     console.log('getDirectoryResponse indexFile: ', indexFile)
@@ -156,6 +157,6 @@ export async function getDirectoryResponse ({ cid, fs, helia, signal, headers, p
       console.error('fs.ls error: ', e)
     }
 
-    return getIndexListingResponse(`${cid}/${path}`, entries)
+    return getIndexListingResponse(`${pathRoot}/${cid}/${path}`, entries)
   }
 }

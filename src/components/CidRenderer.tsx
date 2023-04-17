@@ -4,7 +4,6 @@ import React from 'react'
 import { CID } from 'multiformats/cid'
 import { heliaFetch } from '../lib/heliaFetch.ts'
 import { getHelia } from '../get-helia'
-// import Video from './Video'
 
 /**
  * Test files:
@@ -39,7 +38,7 @@ function contentRender ({ blob, contentType, text, path, isLoading }): JSX.Eleme
   } else if (contentType?.startsWith('image/') && blob != null) {
     content = <img src={URL.createObjectURL(blob)} />
   } else if (contentType?.startsWith('text/html') && blob != null) {
-    const iframeSrc = `/helia-sw/${path}`
+    const iframeSrc = path[0] === '/' ? `${path}` : `/${path}`
     // return the HTML in an iframe
     content = <iframe src={iframeSrc} width="100%" height="100%"/>
   } else if (contentType?.startsWith('text/') && blob != null) {
@@ -98,13 +97,9 @@ export default function CidRenderer ({ requestPath }: { requestPath: string }): 
    */
   const requestPathParts = requestPath.split('/')
   const pathNamespacePrefix = requestPathParts[1]
-  console.log('pathNamespacePrefix: ', pathNamespacePrefix)
   const cid = requestPathParts[2]
-  console.log('cid: ', cid)
   const cidPath = requestPathParts[3] ? `/${requestPathParts.slice(3).join('/')}` : ''
-  console.log('cidPath: ', cidPath)
-  const swPath = `/helia-sw/${pathNamespacePrefix}/${cid ?? ''}${cidPath ?? ''}`
-  console.log('swPath: ', swPath)
+  const swPath = `/${pathNamespacePrefix}/${cid ?? ''}${cidPath ?? ''}`
 
   const makeRequest = async (useServiceWorker = true): Promise<void> => {
     abortController?.abort()
@@ -114,7 +109,7 @@ export default function CidRenderer ({ requestPath }: { requestPath: string }): 
     setIsLoading(true)
     let res: Response
     if (useServiceWorker) {
-      console.log(`fetching '${pathNamespacePrefix}/${cid}${cidPath}' from service worker`)
+      console.log(`fetching '${swPath}' from service worker`)
       res = await fetch(swPath, {
         signal: newAbortController.signal,
         method: 'GET',
@@ -147,7 +142,7 @@ export default function CidRenderer ({ requestPath }: { requestPath: string }): 
   return (
     <div>
       <ValidationMessage pathNamespacePrefix={pathNamespacePrefix} cid={cid} requestPath={requestPath}>
-        <button onClick={() => { void makeRequest(false) }} className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load in-page</button>
+        <button onClick={() => { void makeRequest(true) }} className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load in-page</button>
 
         <a className="pt3 db" href={swPath} target="_blank">
           <button className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load directly / download</button>
