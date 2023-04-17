@@ -14,28 +14,16 @@ import mime from 'mime-types'
 
 declare let self: ServiceWorkerGlobalScope
 
-void self?.skipWaiting?.()
-// clientsClaim()
-
 const channel = new HeliaServiceWorkerCommsChannel('SW')
 
 let helia: Helia
 self.addEventListener('install', event => {
-  // if (helia != null) {
-  //   void (async () => {
-  //     console.log('stopping existing helia instance now')
-  //     await helia.stop()
-  //   })()
-  // }
   console.log('sw installing')
+  void self.skipWaiting()
 })
+
 self.addEventListener('activate', event => {
   console.log('sw activating')
-  // void (async () => {
-  //   // helia = await getHelia({ libp2pConfigType: 'dht', usePersistentDatastore: true })
-  //   helia = await getHelia({ libp2pConfigType: 'ipni', usePersistentDatastore: true })
-  //   // helia = await getHelia({ libp2pConfigType: 'ipni', usePersistentDatastore: false })
-  // })()
 })
 
 const fetchHandler = async ({ url, request }: { url: URL, request: Request }): Promise<Response> => {
@@ -67,9 +55,7 @@ const fetchHandler = async ({ url, request }: { url: URL, request: Request }): P
     }
     return new Response('heliaFetch error: ' + errorMessage, { status: 500 })
   }
-  // await helia.stop()
 }
-// const urlInterceptRegex = [/\/helia-sw\/ip(n|f)s/]
 const urlInterceptRegex = [/\/ip(n|f)s\//]
 
 /**
