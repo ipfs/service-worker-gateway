@@ -70,7 +70,7 @@ const fetchHandler = async ({ url, request }: { url: URL, request: Request }): P
   // await helia.stop()
 }
 // const urlInterceptRegex = [/\/helia-sw\/ip(n|f)s/]
-const urlInterceptRegex = [/\/ip(n|f)s/]
+const urlInterceptRegex = [/\/ip(n|f)s\//]
 
 /**
  *
