@@ -29,49 +29,11 @@ Make sure you have installed all of the following prerequisites on your developm
 
 Now open your browser at `http://localhost:3000`
 
-## Examples
-
-### fetch request to ipfs.io gateway. (what you shouldn't have to do anymore)
-
-```js
-// fetch content from ipfs.io gateway (centralized web2.5 gateway for IFPS content)
-const response = await fetch('https://ipfs.io/ipfs/bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq')
-
-// You can see examples of the below usage in src/components/CidRenderer.tsx
-// <img src={URL.createObjectURL(await response.blob())} />
-// <video controls autoPlay loop className="center" width="100%"><source src={URL.createObjectURL(await response.blob())} type={contentType} /></video>
-// <span>{await res.text()}</span>
-```
-
-### request directly to IPFS network using helia
-
-```js
-import { heliaFetch } from 'ipfs-shipyard/helia-fetch'
-
-/**
- * A function that returns a helia instance
- * @see https://github.com/ipfs-examples/helia-examples/blob/main/examples/helia-webpack/src/get-helia.js
- */
-import { getHelia } from './lib/getHelia'
-
-
-// fetch content from IPFS directly using helia
-const response = await heliaFetch({ path: '/ipfs/bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq', helia: getHelia() })
-
-// You can see examples of the below usage in src/components/CidRenderer.tsx
-// <img src={URL.createObjectURL(await response.blob())} />
-// <video controls autoPlay loop className="center" width="100%"><source src={URL.createObjectURL(await response.blob())} type={contentType} /></video>
-// <span>{await res.text()}</span>
-
-```
-
-_For more examples, please refer to the [Documentation](#documentation)_
-
 ## Usage
 
 In this example, you will find an example of using helia inside a service worker, that will intercept ipfs path requests (e.g. `/ipfs/*` and `/ipns/*`) and return a `Response` object. This can be used to obtain verified IPFS content instead of using a public IPFS gateway, using helia.
 
-There are two methods of loading content with this demo, each method with their own buttons:
+There are two methods of loading content with this demo, each method with its own buttons:
 
 1. Load in-page - This calls heliaFetch directly. NOTE: If you're loading an HTML page (a static website) the service worker must run in order to handle redirecting the loading of content through `heliaFetch`.
 2. Load directly / download - This method is processed directly by the service worker, and is essentially an IPFS gateway in the browser via helia in a service worker.
