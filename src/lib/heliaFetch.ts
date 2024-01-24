@@ -1,11 +1,5 @@
 import type { Helia } from '@helia/interface'
-import { unixfs } from '@helia/unixfs'
-import { CID } from 'multiformats/cid'
-// import { ipns, ipnsValidator, ipnsSelector } from '@helia/ipns'
-
-import { getDirectoryResponse } from './heliaFetch/getDirectoryResponse.ts'
-import { getFileResponse } from './heliaFetch/getFileResponse.ts'
-import { GetDNSLinkOrIPNS } from '../kubo-rpc-ipns.ts'
+import { createVerifiedFetch } from '@helia/verified-fetch'
 
 export interface HeliaFetchOptions {
   path: string
@@ -59,51 +53,9 @@ export async function heliaFetch ({ path, helia, signal, headers }: HeliaFetchOp
     console.error('received path: ', path)
     throw new Error(`only /ipfs or /ipns namespaces supported got ${namespaceString}`)
   }
-  // const name = ipns(helia)
-  // name.resolve
 
-  let rootCidString: string
-  if (namespaceString === 'ipns') {
-    const newPathRoot = await GetDNSLinkOrIPNS(pathRootString)
-    console.log('newPathRoot: ', newPathRoot)
-    const newPathParts = newPathRoot.split('/')
-    // TODO: better parsing, surely this code already exists
-    // TODO: deal with recursive resolution
-    if ((newPathParts[0] !== '' || newPathParts[1] !== 'ipfs') || newPathParts.length !== 3) {
-      throw new Error('only non-recursive IPNS/DNSLink supported and must point to /ipfs/<CID>')
-    }
-    // rootCidString = newPathParts[2]
-    return await heliaFetch({ path: `${newPathRoot}/${contentPath}`, helia, signal, headers })
-  } else {
-    rootCidString = pathRootString
-  }
+  const verifiedFetch = await createVerifiedFetch(helia)
 
-  // console.log('cidString: ', cidString)
-  // console.log('cidString: ', cidString)
-  // const helia = await getHelia({ libp2pConfigType: 'ipni' })
-
-  // const etag = cidString
-  // const cachedEtag = headers?.['if-none-match']
-  // if (cachedEtag === etag || cachedEtag === `W/${etag}`) {
-  //   return new Response(undefined, { status: 304 }) // Not Modified
-  // }
-  const fs = unixfs(helia)
-  const cid = CID.parse(rootCidString)
-  const statPath = contentPath != null ? '/' + contentPath : undefined
-
-  try {
-    const fsStatInfo = await fs.stat(cid, { signal, path: statPath })
-    switch (fsStatInfo.type) {
-      case 'directory':
-        return await getDirectoryResponse({ pathRoot: namespaceString, cid, fs, helia, signal, headers, path: contentPath })
-      case 'raw':
-      case 'file':
-        return await getFileResponse({ cid, fs, helia, signal, headers, path: contentPath })
-      default:
-        throw new Error(`Unsupported fsStatInfo.type: ${fsStatInfo.type}`)
-    }
-  } catch (e) {
-    console.error(`fs.stat error for cid '${cid}' and path '${statPath}'`, e)
-  }
-  return new Response('Not Found', { status: 404 })
+  const resp = await verifiedFetch(namespaceString + '://' + pathRootString + '/' + contentPath, { signal, headers })
+  return resp
 }
