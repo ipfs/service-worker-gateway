@@ -28,12 +28,9 @@ self.addEventListener('activate', event => {
 
 const fetchHandler = async ({ url, request }: { url: URL, request: Request }): Promise<Response> => {
   if (helia == null) {
-    // helia = await getHelia({ libp2pConfigType: 'dht', usePersistentDatastore: true })
-    helia = await getHelia({ libp2pConfigType: 'ipni', usePersistentDatastore: true })
-    // helia = await getHelia({ libp2pConfigType: 'ipni', usePersistentDatastore: false })
-  } else {
-    // await helia.start()
-  }
+    helia = await getHelia()
+  } 
+
   // 2 second timeout - for debugging
   // const abortController = new AbortAbort({ timeout: 2 * 1000 })
 
@@ -113,8 +110,6 @@ self.addEventListener('fetch', event => {
       console.log('rerouting request to: ', newUrl.toString())
       const redirectHeaders = new Headers()
       redirectHeaders.set('Location', newUrl.toString())
-      // const redirectResponse = Response.redirect(newUrl.toString(), 307)
-      // http://localhost:3000/helia-sw/QmeUdoMyahuQUPHS2odrZEL6yk2HnNfBJ147BeLXsZuqLJ/images/meet-builders-thumbnail-pinata.png
       if (mime.lookup(newUrl.toString())) {
         redirectHeaders.set('Content-Type', mime.lookup(newUrl.toString()))
       }
@@ -150,7 +145,7 @@ channel.onmessagefrom('WINDOW', async (event: MessageEvent<ChannelMessage<'WINDO
       if (fileCid == null) {
         throw new Error('No fileCid provided')
       }
-      helia = await getHelia({ libp2pConfigType })
+      helia = await getHelia()
       channel.postMessage({
         action: 'SHOW_STATUS',
         data: {

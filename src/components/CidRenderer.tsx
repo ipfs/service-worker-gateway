@@ -119,7 +119,7 @@ export default function CidRenderer ({ requestPath }: { requestPath: string }): 
       })
     } else {
       console.log(`fetching '${requestPath}' using heliaFetch`)
-      const helia = await getHelia({ libp2pConfigType: 'ipni', usePersistentDatastore: false })
+      const helia = await getHelia()
       res = await heliaFetch({ helia, path: requestPath, signal: newAbortController.signal })
     }
     const contentType = res.headers.get('content-type')
