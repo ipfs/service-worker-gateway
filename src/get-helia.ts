@@ -24,7 +24,5 @@ export async function getHelia (): Promise<Helia> {
     ]
   })
 
-  console.log('helia peerId: ', helia.libp2p.peerId.toString())
-
   return helia
 }

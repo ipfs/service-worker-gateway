@@ -11,8 +11,6 @@ const channel = new HeliaServiceWorkerCommsChannel('WINDOW')
 
 function App (): JSX.Element {
   const [, setOutput] = useState<OutputLine[]>([])
-  // const [fileCid, setFileCid] = useState(localStorage.getItem('helia-service-worker-gateway.forms.fileCid') ?? '')
-  // const [cidPath, setCidPath] = useState(localStorage.getItem('helia-service-worker-gateway.forms.cidPath') ?? '')
   const [requestPath, setRequestPath] = useState(localStorage.getItem('helia-service-worker-gateway.forms.requestPath') ?? '')
 
   useEffect(() => {
