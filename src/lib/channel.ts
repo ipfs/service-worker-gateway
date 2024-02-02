@@ -45,11 +45,13 @@ export class HeliaServiceWorkerCommsChannel<S extends ChannelUserValues = 'EMITT
 
   log (...args: unknown[]): void {
     if (!this.debug) return
+    // eslint-disable-next-line no-console
     console.log(`HeliaServiceWorkerCommsChannel(${this.source}): `, ...args)
   }
 
   error (...args: unknown[]): void {
     if (!this.debug) return
+    // eslint-disable-next-line no-console
     console.error(`HeliaServiceWorkerCommsChannel(${this.source}): `, ...args)
   }
 
@@ -84,6 +86,7 @@ export class HeliaServiceWorkerCommsChannel<S extends ChannelUserValues = 'EMITT
 
   /**
    * Like onmessage, but only fires if the message is from a source other than the current source
+   *
    * @param source
    * @param cb
    */
@@ -112,7 +115,7 @@ export class HeliaServiceWorkerCommsChannel<S extends ChannelUserValues = 'EMITT
     if (!this.canListen()) {
       throw new Error('Cannot use messageAndWaitForResponse on EMITTER_ONLY channel')
     }
-    return await new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       const onMessage = (e: MessageEvent): void => {
         if (e.data.source !== responseSource) {
           return

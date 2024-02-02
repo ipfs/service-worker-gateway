@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react'
-
-import Form from './components/Form.tsx'
-import { ChannelActions, COLORS } from './lib/common.ts'
-import { HeliaServiceWorkerCommsChannel } from './lib/channel.ts'
-import type { OutputLine } from './components/types.ts'
-import Header from './components/Header.tsx'
 import CidRenderer from './components/CidRenderer'
+import Form from './components/Form.tsx'
+import Header from './components/Header.tsx'
+import { HeliaServiceWorkerCommsChannel } from './lib/channel.ts'
+import { ChannelActions, COLORS } from './lib/common.ts'
+import type { OutputLine } from './components/types.ts'
 
 const channel = new HeliaServiceWorkerCommsChannel('WINDOW')
 
@@ -36,6 +35,7 @@ function App (): JSX.Element {
   useEffect(() => {
     const onMsg = (event): void => {
       const { data } = event
+      // eslint-disable-next-line no-console
       console.log('received message:', data)
       switch (data.action) {
         case ChannelActions.SHOW_STATUS:
@@ -46,6 +46,7 @@ function App (): JSX.Element {
           }
           break
         default:
+          // eslint-disable-next-line no-console
           console.log(`SW action ${data.action} NOT_IMPLEMENTED yet...`)
       }
     }

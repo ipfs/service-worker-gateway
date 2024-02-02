@@ -1,6 +1,5 @@
 import React from 'react'
 import ReactDOMClient from 'react-dom/client'
-
 import './app.css'
 import App from './app.tsx'
 import RedirectPage from './redirectPage.tsx'
@@ -23,6 +22,7 @@ if (heliaSwPath != null) {
   // if heliaSwPath value is set, then we need to redirect to the path based helia-sw
   // e.g. http://localhost:3000/?helia-sw=/ipns/docs.ipfs.tech should redirect to http://localhost:3000/helia-sw/ipns/docs.ipfs.tech
   const pathname = heliaSwPath[0] === '/' ? heliaSwPath : `/${heliaSwPath}`
+  // eslint-disable-next-line no-console
   console.log('pathname: ', pathname)
   const redirectURL = new URL(pathname, window.location.origin)
   window.location.replace(redirectURL.toString())

@@ -1,10 +1,9 @@
-/* eslint-disable @typescript-eslint/strict-boolean-expressions */
+/* eslint-disable @typescript-eslint/strict-boolean-expressions, no-console */
 // import { clientsClaim } from 'workbox-core'
-import type { Helia } from '@helia/interface'
-
+import mime from 'mime-types'
 import { getHelia } from './get-helia.ts'
 import { heliaFetch } from './lib/heliaFetch.ts'
-import mime from 'mime-types'
+import type { Helia } from '@helia/interface'
 
 declare let self: ServiceWorkerGlobalScope
 

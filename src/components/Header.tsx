@@ -1,5 +1,4 @@
 import React from 'react'
-
 import ipfsLogo from '../ipfs-logo.svg'
 
 export default function Header (): JSX.Element {

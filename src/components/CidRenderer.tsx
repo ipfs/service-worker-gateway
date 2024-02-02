@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/strict-boolean-expressions */
-import React from 'react'
-
 import { CID } from 'multiformats/cid'
-import { heliaFetch } from '../lib/heliaFetch.ts'
+import React from 'react'
 import { getHelia } from '../get-helia'
+import { heliaFetch } from '../lib/heliaFetch.ts'
 
 /**
  * Test files:
@@ -37,18 +36,30 @@ function contentRender ({ blob, contentType, text, path, isLoading }): JSX.Eleme
     )
   } else if (contentType?.startsWith('image/') && blob != null) {
     content = <img src={URL.createObjectURL(blob)} />
-  } else if (contentType?.startsWith('text/html') && blob != null) {
-    const iframeSrc = path[0] === '/' ? `${path}` : `/${path}`
-    // return the HTML in an iframe
-    content = <iframe src={iframeSrc} width="100%" height="100%"/>
-  } else if (contentType?.startsWith('text/') && blob != null) {
-    content = <pre>{text}</pre>
+  } else if (text != null) {
+    /**
+     * because @helia/verified-fetch defaults to 'application/octect-stream' for unknown content-types, we need to check if the content-type is text/html
+     * or text/plain and render the content accordingly
+     */
+    const parser = new DOMParser()
+    const htmlDoc = parser.parseFromString(text, 'text/html')
+    const errorNode = htmlDoc.querySelector('parsererror')
+    if (errorNode == null && !contentType?.startsWith('text/html')) {
+      // parsing failed
+      content = <pre id="text-content">{text}</pre>
+    } else {
+      // eslint-disable-next-line no-console
+      console.log('errorNode', errorNode)
+      const iframeSrc = path[0] === '/' ? `${path}` : `/${path}`
+      // parsing succeeded
+      content = <iframe src={iframeSrc} width="100%" height="100%"/>
+    }
   } else {
     content = <span>Not a supported content-type of <pre>{contentType}</pre></span>
   }
 
   return (
-    <div className="pt3 db" style={{ height: '50vh' }}>
+    <div id="loaded-content" className="pt3 db" style={{ height: '50vh' }}>
       {content}
     </div>
   )
@@ -109,6 +120,7 @@ export default function CidRenderer ({ requestPath }: { requestPath: string }): 
     setIsLoading(true)
     let res: Response
     if (useServiceWorker) {
+      // eslint-disable-next-line no-console
       console.log(`fetching '${swPath}' from service worker`)
       res = await fetch(swPath, {
         signal: newAbortController.signal,
@@ -118,6 +130,7 @@ export default function CidRenderer ({ requestPath }: { requestPath: string }): 
         }
       })
     } else {
+      // eslint-disable-next-line no-console
       console.log(`fetching '${requestPath}' using heliaFetch`)
       const helia = await getHelia()
       res = await heliaFetch({ helia, path: requestPath, signal: newAbortController.signal })
@@ -142,10 +155,10 @@ export default function CidRenderer ({ requestPath }: { requestPath: string }): 
   return (
     <div>
       <ValidationMessage pathNamespacePrefix={pathNamespacePrefix} cid={cid} requestPath={requestPath}>
-        <button onClick={() => { void makeRequest(true) }} className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load in-page</button>
+        <button id="load-in-page" onClick={() => { void makeRequest(true) }} className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load in-page</button>
 
         <a className="pt3 db" href={swPath} target="_blank">
-          <button className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load directly / download</button>
+          <button id="load-directly" className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load directly / download</button>
         </a>
 
         {inPageContent}

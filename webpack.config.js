@@ -1,13 +1,12 @@
 import path from 'path'
+import { fileURLToPath } from 'url'
+import CompressionPlugin from 'compression-webpack-plugin'
+import CopyWebpackPlugin from 'copy-webpack-plugin'
+import HtmlWebpackPlugin from 'html-webpack-plugin'
+import NodePolyfillPlugin from 'node-polyfill-webpack-plugin'
 import webpack from 'webpack'
 import { merge } from 'webpack-merge'
-import { fileURLToPath } from 'url'
-import CopyWebpackPlugin from 'copy-webpack-plugin'
-import NodePolyfillPlugin from 'node-polyfill-webpack-plugin'
-import HtmlWebpackPlugin from 'html-webpack-plugin'
-import CompressionPlugin from 'compression-webpack-plugin'
 // import {GenerateSW} from 'workbox-webpack-plugin';
-import zlib from 'zlib'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -64,7 +63,7 @@ const prod = {
           })
         })
       }
-    },
+    }
   ]
 }
 
@@ -158,7 +157,7 @@ const common = {
         level: 9,
         numiterations: 15,
         minRatio: 0.8,
-        deleteOriginalAssets: true,
+        deleteOriginalAssets: true
       }
     })
   ],

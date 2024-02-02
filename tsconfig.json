@@ -9,12 +9,16 @@
     "jsx": "react",
     "lib": ["WebWorker", "ES6", "DOM"],
     // "moduleResolution": "nodenext",
+    // "resolveJsonModule": false,
+    "strictNullChecks": true,
+
     "moduleResolution": "bundler",
 
     "ignoreDeprecations": "5.0", // needed due to deprecated usage in tsconfig.aegir.json
     // "moduleSuffixes": [".js", ".jsx", ".ts", ".tsx"]
     "allowImportingTsExtensions": true,
-    "emitDeclarationOnly": true,
+    "declaration": true,
+    "emitDeclarationOnly": true
   },
   "include": [
     "src",
