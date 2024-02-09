@@ -17,11 +17,22 @@ self.addEventListener('activate', () => {
   console.log('sw activating')
 })
 
+/**
+ * Not available in ServiceWorkerGlobalScope
+ */
+
+interface AggregateError extends Error {
+  errors: Error[]
+}
+
+function isAggregateError (err: unknown): err is AggregateError {
+  return err instanceof Error && (err as AggregateError).errors != null
+}
+
 const fetchHandler = async ({ url, request }: { url: URL, request: Request }): Promise<Response> => {
   if (helia == null) {
     helia = await getHelia()
   }
-
   // 2 second timeout - for debugging
   // const abortController = new AbortAbort({ timeout: 2 * 1000 })
 
@@ -35,8 +46,18 @@ const fetchHandler = async ({ url, request }: { url: URL, request: Request }): P
   try {
     return await heliaFetch({ path: url.pathname, helia, signal: abortController, headers: request.headers })
   } catch (err: unknown) {
-    console.error('fetchHandler error: ', err)
-    const errorMessage = err instanceof Error ? err.message : JSON.stringify(err)
+    const errorMessages: string[] = []
+    if (isAggregateError(err)) {
+      console.error('fetchHandler aggregate error: ', err.message)
+      for (const e of err.errors) {
+        errorMessages.push(e.message)
+        console.error('fetchHandler errors: ', e)
+      }
+    } else {
+      errorMessages.push(err instanceof Error ? err.message : JSON.stringify(err))
+      console.error('fetchHandler error: ', err)
+    }
+    const errorMessage = errorMessages.join('\n')
 
     if (errorMessage.includes('aborted')) {
       return new Response('heliaFetch error aborted due to timeout: ' + errorMessage, { status: 408 })

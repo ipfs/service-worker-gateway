@@ -1,4 +1,5 @@
-import { createVerifiedFetch } from '@helia/verified-fetch'
+import { createVerifiedFetch, type ContentTypeParser } from '@helia/verified-fetch'
+import { fileTypeFromBuffer } from '@sgtpooki/file-type'
 import type { Helia } from '@helia/interface'
 
 export interface HeliaFetchOptions {
@@ -6,6 +7,53 @@ export interface HeliaFetchOptions {
   helia: Helia
   signal?: AbortSignal
   headers?: Headers
+}
+
+// default from verified-fetch is application/octect-stream, which forces a download. This is not what we want for MANY file types.
+const defaultMimeType = 'text/html; charset=utf-8'
+const contentTypeParser: ContentTypeParser = async (bytes, fileName) => {
+  // eslint-disable-next-line no-console
+  console.log('bytes received in contentTypeParser for ', fileName, ' : ', bytes.slice(0, 10), '...')
+
+  const detectedType = (await fileTypeFromBuffer(bytes))?.mime
+  if (detectedType != null) {
+    return detectedType
+  }
+  if (fileName == null) {
+    // no other way to determine file-type.
+    return defaultMimeType
+  }
+
+  // no need to include file-types listed at https://github.com/SgtPooki/file-type#supported-file-types
+  switch (fileName.split('.').pop()) {
+    case 'css':
+      return 'text/css'
+    case 'html':
+      return 'text/html; charset=utf-8'
+    case 'js':
+      return 'application/javascript'
+    case 'json':
+      return 'application/json'
+    case 'txt':
+      return 'text/plain'
+    case 'woff2':
+      return 'font/woff2'
+    // see bottom of https://github.com/SgtPooki/file-type#supported-file-types
+    case 'svg':
+      return 'image/svg+xml'
+    case 'csv':
+      return 'text/csv'
+    case 'doc':
+      return 'application/msword'
+    case 'xls':
+      return 'application/vnd.ms-excel'
+    case 'ppt':
+      return 'application/vnd.ms-powerpoint'
+    case 'msi':
+      return 'application/x-msdownload'
+    default:
+      return defaultMimeType
+  }
 }
 
 /**
@@ -51,18 +99,16 @@ export async function heliaFetch ({ path, helia, signal, headers }: HeliaFetchOp
     throw new Error(`only /ipfs or /ipns namespaces supported got ${namespaceString}`)
   }
 
-  const verifiedFetch = await createVerifiedFetch(helia)
+  const verifiedFetch = await createVerifiedFetch(helia, {
+    contentTypeParser
+  })
 
-  const resp = await verifiedFetch(namespaceString + '://' + pathRootString + '/' + contentPath, {
+  return verifiedFetch(`${namespaceString}://${pathRootString}/${contentPath}`, {
     signal,
     headers,
     onProgress: (e) => {
-      if (e.type.includes('dnslink:')) {
-        // @ts-expect-error - types on custom events are hard
-        // eslint-disable-next-line no-console
-        console.log(`${e.type}: `, e.detail.detail)
-      }
+      // eslint-disable-next-line no-console
+      console.log(`${e.type}: `, e.detail)
     }
   })
-  return resp
 }

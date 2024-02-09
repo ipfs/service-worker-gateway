@@ -37,19 +37,10 @@ function contentRender ({ blob, contentType, text, path, isLoading }): JSX.Eleme
   } else if (contentType?.startsWith('image/') && blob != null) {
     content = <img src={URL.createObjectURL(blob)} />
   } else if (text != null) {
-    /**
-     * because @helia/verified-fetch defaults to 'application/octect-stream' for unknown content-types, we need to check if the content-type is text/html
-     * or text/plain and render the content accordingly
-     */
-    const parser = new DOMParser()
-    const htmlDoc = parser.parseFromString(text, 'text/html')
-    const errorNode = htmlDoc.querySelector('parsererror')
-    if (errorNode == null && !contentType?.startsWith('text/html')) {
+    if (!contentType?.startsWith('text/html')) {
       // parsing failed
       content = <pre id="text-content">{text}</pre>
     } else {
-      // eslint-disable-next-line no-console
-      console.log('errorNode', errorNode)
       const iframeSrc = path[0] === '/' ? `${path}` : `/${path}`
       // parsing succeeded
       content = <iframe src={iframeSrc} width="100%" height="100%"/>
