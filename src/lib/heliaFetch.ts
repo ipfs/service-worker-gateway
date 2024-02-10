@@ -7,6 +7,8 @@ export interface HeliaFetchOptions {
   helia: Helia
   signal?: AbortSignal
   headers?: Headers
+  origin?: string | null
+  protocol?: string | null
 }
 
 // default from verified-fetch is application/octect-stream, which forces a download. This is not what we want for MANY file types.
@@ -57,7 +59,7 @@ const contentTypeParser: ContentTypeParser = async (bytes, fileName) => {
 }
 
 // Check for **/*.css/fonts/**/*.ttf urls */
-const cssPathRegex = /(?<cssPath>.*\.css)(?<fontPath>[^.]*\.ttf)/
+const cssPathRegex = /(?<cssPath>.*\.css)(?<fontPath>.*\.(ttf|otf|woff|woff2){1})$/
 
 /**
  * Maps relative paths to font-faces from css files to the correct path from the root.
@@ -75,18 +77,24 @@ const cssPathRegex = /(?<cssPath>.*\.css)(?<fontPath>[^.]*\.ttf)/
  * ```
  * which results in a request to `/ipns/specs.ipfs.tech/css/ipseity.min.css/fonts/IBMPlexSans-Thin.ttf`. Instead,
  * we want to request `/ipns/specs.ipfs.tech/fonts/IBMPlexSans-Thin.ttf`.
+ *
+ * /ipns/blog.libp2p.io/assets/css/0.styles.4520169f.css/fonts/Montserrat-Medium.d8478173.woff
  */
 function changeCssFontPath (path: string): string {
   const match = path.match(cssPathRegex)
   if (match == null) {
+    // eslint-disable-next-line no-console
+    console.log(`changeCssFontPath: No match for ${path}`)
     return path
   }
   const { cssPath, fontPath } = match.groups as { cssPath?: string, fontPath?: string }
   if (cssPath == null || fontPath == null) {
+    // eslint-disable-next-line no-console
+    console.log(`changeCssFontPath: No groups for ${path}`, match.groups)
     return path
   }
   // eslint-disable-next-line no-console
-  // console.log(`changeCssFontPath: Changing font path from ${path} to ${fontPath}`)
+  console.log(`changeCssFontPath: Changing font path from ${path} to ${fontPath}`)
   return fontPath
 }
 
@@ -117,27 +125,34 @@ function changeCssFontPath (path: string): string {
  * * TODO: have error handling that renders 404/500/other if the request is bad.
  *
  */
-export async function heliaFetch ({ path, helia, signal, headers }: HeliaFetchOptions): Promise<Response> {
-  const pathParts = path.split('/')
-
-  let pathPartIndex = 0
-  let namespaceString = pathParts[pathPartIndex++]
-  if (namespaceString === '') {
-    // we have a prefixed '/' in the path, use the new index instead
-    namespaceString = pathParts[pathPartIndex++]
-  }
-  const pathRootString = pathParts[pathPartIndex++]
-  const contentPath = pathParts.slice(pathPartIndex++).join('/')
-
-  if (namespaceString !== 'ipfs' && namespaceString !== 'ipns') {
-    throw new Error(`only /ipfs or /ipns namespaces supported got ${namespaceString}`)
-  }
-
+export async function heliaFetch ({ path, helia, signal, headers, origin, protocol }: HeliaFetchOptions): Promise<Response> {
   const verifiedFetch = await createVerifiedFetch(helia, {
     contentTypeParser
   })
 
-  return verifiedFetch(`${namespaceString}://${pathRootString}/${changeCssFontPath(contentPath)}`, {
+  let verifiedFetchUrl: string
+  if (origin != null && protocol != null) {
+    verifiedFetchUrl = `${protocol}://${origin}${path}`
+    // eslint-disable-next-line no-console
+    console.log('subdomain fetch for ', verifiedFetchUrl)
+  } else {
+    const pathParts = path.split('/')
+
+    let pathPartIndex = 0
+    let namespaceString = pathParts[pathPartIndex++]
+    if (namespaceString === '') {
+    // we have a prefixed '/' in the path, use the new index instead
+      namespaceString = pathParts[pathPartIndex++]
+    }
+    if (namespaceString !== 'ipfs' && namespaceString !== 'ipns') {
+      throw new Error(`only /ipfs or /ipns namespaces supported got ${namespaceString}`)
+    }
+    const pathRootString = pathParts[pathPartIndex++]
+    const contentPath = pathParts.slice(pathPartIndex++).join('/')
+    verifiedFetchUrl = `${namespaceString}://${pathRootString}/${changeCssFontPath(contentPath)}`
+  }
+
+  return verifiedFetch(verifiedFetchUrl, {
     signal,
     headers,
     onProgress: (e) => {

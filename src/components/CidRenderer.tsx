@@ -24,7 +24,7 @@ import { heliaFetch } from '../lib/heliaFetch.ts'
  *
  */
 
-function contentRender ({ blob, contentType, text, path, isLoading }): JSX.Element {
+export function ContentRender ({ blob, contentType, text, path, isLoading }): JSX.Element {
   let content: JSX.Element | null = null
   if (isLoading) {
     content = <span>Loading...</span>
@@ -83,7 +83,7 @@ function ValidationMessage ({ cid, requestPath, pathNamespacePrefix, children })
   </>
 }
 
-// contentRender({ blob, contentType, text, cid, path: cidPath })
+// ContentRender({ blob, contentType, text, cid, path: cidPath })
 export default function CidRenderer ({ requestPath }: { requestPath: string }): JSX.Element {
   const [contentType, setContentType] = React.useState<string | null>(null)
   const [isLoading, setIsLoading] = React.useState(false)
@@ -139,7 +139,7 @@ export default function CidRenderer ({ requestPath }: { requestPath: string }): 
     if (isLoading) {
       inPageContent = <span>Loading...</span>
     } else {
-      inPageContent = contentRender({ blob, contentType, text, path: `${pathNamespacePrefix}/${cid}${cidPath}`, isLoading })
+      inPageContent = ContentRender({ blob, contentType, text, path: `${pathNamespacePrefix}/${cid}${cidPath}`, isLoading })
     }
   }
 
