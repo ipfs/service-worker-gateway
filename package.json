@@ -39,6 +39,7 @@
     "@sgtpooki/file-type": "^1.0.1",
     "blockstore-level": "^1.1.7",
     "datastore-level": "^10.1.0",
+    "level": "^8.0.1",
     "mime-types": "^2.1.35",
     "multiformats": "^11.0.2",
     "react": "^18.2.0",
