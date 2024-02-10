@@ -56,6 +56,40 @@ const contentTypeParser: ContentTypeParser = async (bytes, fileName) => {
   }
 }
 
+// Check for **/*.css/fonts/**/*.ttf urls */
+const cssPathRegex = /(?<cssPath>.*\.css)(?<fontPath>[^.]*\.ttf)/
+
+/**
+ * Maps relative paths to font-faces from css files to the correct path from the root.
+ *
+ * e.g. in a css file (like specs.ipfs.tech's /ipns/specs.ipfs.tech/css/ipseity.min.css), you will find lines like:
+ * ```
+ * @font-face {
+ *   font-family: 'Plex';
+ *   font-style:  normal;
+ *   font-weight: 100;
+ *   src: local('IBM Plex Sans'),
+ *     local('IBM-Plex-Sans'),
+ *     url('/fonts/IBMPlexSans-Thin.ttf') format('opentype');
+ * }
+ * ```
+ * which results in a request to `/ipns/specs.ipfs.tech/css/ipseity.min.css/fonts/IBMPlexSans-Thin.ttf`. Instead,
+ * we want to request `/ipns/specs.ipfs.tech/fonts/IBMPlexSans-Thin.ttf`.
+ */
+function changeCssFontPath (path: string): string {
+  const match = path.match(cssPathRegex)
+  if (match == null) {
+    return path
+  }
+  const { cssPath, fontPath } = match.groups as { cssPath?: string, fontPath?: string }
+  if (cssPath == null || fontPath == null) {
+    return path
+  }
+  // eslint-disable-next-line no-console
+  // console.log(`changeCssFontPath: Changing font path from ${path} to ${fontPath}`)
+  return fontPath
+}
+
 /**
  * Test files:
  * bafkreienxxjqg3jomg5b75k7547dgf7qlbd3qpxy2kbg537ck3rol4mcve  - text            - https://bafkreienxxjqg3jomg5b75k7547dgf7qlbd3qpxy2kbg537ck3rol4mcve.ipfs.w3s.link/?filename=test.txt
@@ -103,7 +137,7 @@ export async function heliaFetch ({ path, helia, signal, headers }: HeliaFetchOp
     contentTypeParser
   })
 
-  return verifiedFetch(`${namespaceString}://${pathRootString}/${contentPath}`, {
+  return verifiedFetch(`${namespaceString}://${pathRootString}/${changeCssFontPath(contentPath)}`, {
     signal,
     headers,
     onProgress: (e) => {
