@@ -98,6 +98,13 @@ function changeCssFontPath (path: string): string {
   return fontPath
 }
 
+function convertSubdomainDashesToDots (subdomain: string): string {
+  if (subdomain.includes('.')) {
+    return subdomain
+  }
+  return subdomain.split('-').join('.')
+}
+
 /**
  * Test files:
  * bafkreienxxjqg3jomg5b75k7547dgf7qlbd3qpxy2kbg537ck3rol4mcve  - text            - https://bafkreienxxjqg3jomg5b75k7547dgf7qlbd3qpxy2kbg537ck3rol4mcve.ipfs.w3s.link/?filename=test.txt
@@ -132,7 +139,7 @@ export async function heliaFetch ({ path, helia, signal, headers, origin, protoc
 
   let verifiedFetchUrl: string
   if (origin != null && protocol != null) {
-    verifiedFetchUrl = `${protocol}://${origin}${path}`
+    verifiedFetchUrl = `${protocol}://${convertSubdomainDashesToDots(origin)}${path}`
     // eslint-disable-next-line no-console
     console.log('subdomain fetch for ', verifiedFetchUrl)
   } else {
