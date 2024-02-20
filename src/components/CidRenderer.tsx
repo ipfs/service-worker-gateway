@@ -103,29 +103,21 @@ export default function CidRenderer ({ requestPath }: { requestPath: string }): 
   const cidPath = requestPathParts[3] ? `/${requestPathParts.slice(3).join('/')}` : ''
   const swPath = `/${pathNamespacePrefix}/${cid ?? ''}${cidPath ?? ''}`
 
-  const makeRequest = async (useServiceWorker = true): Promise<void> => {
+  const makeRequest = async (): Promise<void> => {
     abortController?.abort()
     const newAbortController = new AbortController()
     setAbortController(newAbortController)
     setLastFetchPath(swPath)
     setIsLoading(true)
-    let res: Response
-    if (useServiceWorker) {
-      // eslint-disable-next-line no-console
-      console.log(`fetching '${swPath}' from service worker`)
-      res = await fetch(swPath, {
-        signal: newAbortController.signal,
-        method: 'GET',
-        headers: {
-          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8'
-        }
-      })
-    } else {
-      // eslint-disable-next-line no-console
-      console.log(`fetching '${requestPath}' using heliaFetch`)
-      const helia = await getHelia()
-      res = await heliaFetch({ helia, path: requestPath, signal: newAbortController.signal })
-    }
+    // eslint-disable-next-line no-console
+    console.log(`fetching '${swPath}' from service worker`)
+    const res = await fetch(swPath, {
+      signal: newAbortController.signal,
+      method: 'GET',
+      headers: {
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8'
+      }
+    })
     const contentType = res.headers.get('content-type')
 
     setContentType(contentType)
@@ -146,7 +138,7 @@ export default function CidRenderer ({ requestPath }: { requestPath: string }): 
   return (
     <div>
       <ValidationMessage pathNamespacePrefix={pathNamespacePrefix} cid={cid} requestPath={requestPath}>
-        <button id="load-in-page" onClick={() => { void makeRequest(true) }} className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load in-page</button>
+        <button id="load-in-page" onClick={() => { void makeRequest() }} className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load in-page</button>
 
         <a className="pt3 db" href={swPath} target="_blank">
           <button id="load-directly" className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load directly / download</button>
