@@ -18,7 +18,7 @@ export async function getHelia (): Promise<Helia> {
     datastore,
     blockBrokers: [
       trustlessGateway({
-        gateways: ['https://cloudflare-ipfs.com', 'https://dweb.link', 'https://trustless-gateway.dev', ...config.gateways]
+        gateways: ['https://trustless-gateway.link', ...config.gateways]
       })
     ],
     routers: ['https://delegated-ipfs.dev', ...config.routers].map(rUrl => delegatedHTTPRouting(rUrl))
