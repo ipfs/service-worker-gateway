@@ -4,16 +4,17 @@ import Form from './components/Form.tsx'
 import Header from './components/Header.tsx'
 import { HeliaServiceWorkerCommsChannel } from './lib/channel.ts'
 import { ChannelActions, COLORS } from './lib/common.ts'
+import { getLocalStorageKey } from './lib/local-storage.ts'
 import type { OutputLine } from './components/types.ts'
 
 const channel = new HeliaServiceWorkerCommsChannel('WINDOW')
 
 function App (): JSX.Element {
   const [, setOutput] = useState<OutputLine[]>([])
-  const [requestPath, setRequestPath] = useState(localStorage.getItem('helia-service-worker-gateway.forms.requestPath') ?? '')
+  const [requestPath, setRequestPath] = useState(localStorage.getItem(getLocalStorageKey('forms', 'requestPath')) ?? '')
 
   useEffect(() => {
-    localStorage.setItem('helia-service-worker-gateway.forms.requestPath', requestPath)
+    localStorage.setItem(getLocalStorageKey('forms', 'requestPath'), requestPath)
   }, [requestPath])
 
   const showStatus = (text: OutputLine['content'], color: OutputLine['color'] = COLORS.default, id: OutputLine['id'] = ''): void => {

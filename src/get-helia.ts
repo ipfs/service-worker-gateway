@@ -3,7 +3,7 @@ import { createHeliaHTTP } from '@helia/http'
 import { delegatedHTTPRouting } from '@helia/routers'
 import { IDBBlockstore } from 'blockstore-idb'
 import { IDBDatastore } from 'datastore-idb'
-import { getConfig } from './lib/config-db'
+import { getConfig } from './lib/config-db.ts'
 import type { Helia } from '@helia/interface'
 
 export async function getHelia (): Promise<Helia> {

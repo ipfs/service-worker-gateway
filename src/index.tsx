@@ -2,8 +2,10 @@ import React from 'react'
 import ReactDOMClient from 'react-dom/client'
 import './app.css'
 import App from './app.tsx'
+import { loadConfigFromLocalStorage } from './lib/config-db.ts'
 import RedirectPage from './redirectPage.tsx'
 
+await loadConfigFromLocalStorage()
 /**
  * You can change the BASE_URL when deploying this app to a different domain.
  */

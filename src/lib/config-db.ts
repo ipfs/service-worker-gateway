@@ -1,4 +1,4 @@
-import { Level } from 'level'
+import { getLocalStorageKey } from './local-storage.ts'
 
 export interface ConfigDb {
   gateways: string[]
@@ -7,57 +7,65 @@ export interface ConfigDb {
 
 export type configDbKeys = keyof ConfigDb
 
-function getConfigDb (): Level<configDbKeys, ConfigDb[configDbKeys]> {
-  return new Level<configDbKeys, ConfigDb[configDbKeys]>('./config', { valueEncoding: 'json' })
-}
+export const DB_NAME = 'helia-sw'
+export const STORE_NAME = 'config'
 
-function getLocalStorageKey (key: configDbKeys): string {
-  return `helia-service-worker-gateway.config.${key}`
-}
-
-/**
- * If the key doesn't exist in the config db, set it to the default value.
- */
-async function setDefaults <T extends configDbKeys> (config: Level<configDbKeys, ConfigDb[configDbKeys]>, key: T, value: ConfigDb[T]): Promise<void> {
-  await config.get(key).catch(async () => {
-    await config.put(key, value)
+export async function openDatabase (): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 1)
+    request.onerror = () => { reject(request.error) }
+    request.onsuccess = () => { resolve(request.result) }
+    request.onupgradeneeded = (event) => {
+      const db = request.result
+      db.createObjectStore(STORE_NAME)
+    }
   })
 }
 
-// TODO: Create a User interface for setting configuration values for the service worker.
-export async function loadFromLocalStorage (): Promise<void> {
-  /**
-   * Try to load values from localStorage if it's available, this will override whatever is set in the config db.
-   */
+export async function getFromDatabase <T extends keyof ConfigDb> (db: IDBDatabase, key: T): Promise<ConfigDb[T] | undefined> {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, 'readonly')
+    const store = transaction.objectStore(STORE_NAME)
+    const request = store.get(key)
+    request.onerror = () => { reject(request.error) }
+    request.onsuccess = () => { resolve(request.result) }
+  })
+}
+
+export async function setInDatabase <T extends keyof ConfigDb> (db: IDBDatabase, key: T, value: ConfigDb[T]): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, 'readwrite')
+    const store = transaction.objectStore(STORE_NAME)
+    const request = store.put(value, key)
+    request.onerror = () => { reject(request.error) }
+    request.onsuccess = () => { resolve() }
+  })
+}
+
+export async function closeDatabase (db: IDBDatabase): Promise<void> {
+  db.close()
+}
+
+export async function loadConfigFromLocalStorage (): Promise<void> {
   if (typeof globalThis.localStorage !== 'undefined') {
-    const config = getConfigDb()
-    /* eslint-disable no-console */
-    console.group('You can customize the gateways and routers used by the service worker by running the following in the console:')
-    console.log(`localStorage.setItem('${getLocalStorageKey('gateways')}', JSON.stringify(['http://localhost:8080']));
-localStorage.setItem('${getLocalStorageKey('routers')}', JSON.stringify(['http://localhost:8080']));`)
-    console.groupEnd()
-    /* eslint-enable no-console */
+    const db = await openDatabase()
     const localStorage = global.localStorage
-    const localStorageGatewaysString = localStorage.getItem(getLocalStorageKey('gateways')) ?? '[]'
-    const localStorageRoutersString = localStorage.getItem(getLocalStorageKey('routers')) ?? '[]'
+    const localStorageGatewaysString = localStorage.getItem(getLocalStorageKey('config', 'gateways')) ?? '[]'
+    const localStorageRoutersString = localStorage.getItem(getLocalStorageKey('config', 'routers')) ?? '[]'
     const gateways = JSON.parse(localStorageGatewaysString)
     const routers = JSON.parse(localStorageRoutersString)
 
-    await config.put('gateways', gateways)
-    await config.put('routers', routers)
-    await config.close() // close the db on the main thread, so we can open it in the service-worker
+    await setInDatabase(db, 'gateways', gateways)
+    await setInDatabase(db, 'routers', routers)
+    await closeDatabase(db)
   }
 }
 
 export async function getConfig (): Promise<ConfigDb> {
-  const config = getConfigDb()
-  await loadFromLocalStorage()
+  const db = await openDatabase()
 
-  await setDefaults(config, 'gateways', [])
-  await setDefaults(config, 'routers', [])
-
-  const gateways = await config.get('gateways')
-  const routers = await config.get('routers')
+  const gateways = await getFromDatabase(db, 'gateways') ?? []
+  const routers = await getFromDatabase(db, 'routers') ?? []
 
   return {
     gateways: gateways instanceof Array ? gateways : [],
