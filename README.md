@@ -57,6 +57,26 @@ etc... When your path is valid, you will be shown buttons that will let you load
 
 **NOTE:** There is no way to confirm the validity of an `/ipns/` path without actually querying for it, which is not currently done until you attempt to load the content.
 
+### Enabling subdomains
+
+You can enable support for subdomains with a simple nginx configuration:
+
+```nginx
+    # simple proxy from helia-sw-gateway.localhost to localhost:3000
+    server {
+        listen       80;
+
+        server_name ~^(?<subdomain>.+)\.ipfs\.helia-sw-gateway.localhost$ ~^(?<subdomain>.+)\.ipns\.helia-sw-gateway.localhost$ .helia-sw-gateway.localhost;
+
+        location / {
+            proxy_pass http://localhost:3000;
+            proxy_set_header Host $host;
+            proxy_set_header X-Forwarded-For $remote_addr;
+        }
+    }
+```
+
+You can then run `npm start` and your nginx server, and then visit `http://specs.ipfs.tech.ipns.helia-sw-gateway.localhost` in your browser to load the `specs.ipfs.tech` website via Helia, completely from the service worker.
 
 ## Demo links
 

@@ -1,22 +1,20 @@
 import React, { useState, useEffect } from 'react'
-
-import Form from './components/Form.tsx'
-import { ChannelActions, COLORS } from './lib/common.ts'
-import { HeliaServiceWorkerCommsChannel } from './lib/channel.ts'
-import type { OutputLine } from './components/types.ts'
-import Header from './components/Header.tsx'
 import CidRenderer from './components/CidRenderer'
+import Form from './components/Form.tsx'
+import Header from './components/Header.tsx'
+import { HeliaServiceWorkerCommsChannel } from './lib/channel.ts'
+import { ChannelActions, COLORS } from './lib/common.ts'
+import { getLocalStorageKey } from './lib/local-storage.ts'
+import type { OutputLine } from './components/types.ts'
 
 const channel = new HeliaServiceWorkerCommsChannel('WINDOW')
 
 function App (): JSX.Element {
   const [, setOutput] = useState<OutputLine[]>([])
-  // const [fileCid, setFileCid] = useState(localStorage.getItem('helia-service-worker-gateway.forms.fileCid') ?? '')
-  // const [cidPath, setCidPath] = useState(localStorage.getItem('helia-service-worker-gateway.forms.cidPath') ?? '')
-  const [requestPath, setRequestPath] = useState(localStorage.getItem('helia-service-worker-gateway.forms.requestPath') ?? '')
+  const [requestPath, setRequestPath] = useState(localStorage.getItem(getLocalStorageKey('forms', 'requestPath')) ?? '')
 
   useEffect(() => {
-    localStorage.setItem('helia-service-worker-gateway.forms.requestPath', requestPath)
+    localStorage.setItem(getLocalStorageKey('forms', 'requestPath'), requestPath)
   }, [requestPath])
 
   const showStatus = (text: OutputLine['content'], color: OutputLine['color'] = COLORS.default, id: OutputLine['id'] = ''): void => {
@@ -38,6 +36,7 @@ function App (): JSX.Element {
   useEffect(() => {
     const onMsg = (event): void => {
       const { data } = event
+      // eslint-disable-next-line no-console
       console.log('received message:', data)
       switch (data.action) {
         case ChannelActions.SHOW_STATUS:
@@ -48,6 +47,7 @@ function App (): JSX.Element {
           }
           break
         default:
+          // eslint-disable-next-line no-console
           console.log(`SW action ${data.action} NOT_IMPLEMENTED yet...`)
       }
     }

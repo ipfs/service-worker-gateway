@@ -1,17 +1,102 @@
+import { createVerifiedFetch, type ContentTypeParser } from '@helia/verified-fetch'
+import { fileTypeFromBuffer } from '@sgtpooki/file-type'
+import { dnsLinkLabelDecoder, isDnsLabel } from './dns-link-labels.ts'
 import type { Helia } from '@helia/interface'
-import { unixfs } from '@helia/unixfs'
-import { CID } from 'multiformats/cid'
-// import { ipns, ipnsValidator, ipnsSelector } from '@helia/ipns'
-
-import { getDirectoryResponse } from './heliaFetch/getDirectoryResponse.ts'
-import { getFileResponse } from './heliaFetch/getFileResponse.ts'
-import { GetDNSLinkOrIPNS } from '../kubo-rpc-ipns.ts'
 
 export interface HeliaFetchOptions {
   path: string
   helia: Helia
   signal?: AbortSignal
   headers?: Headers
+  origin?: string | null
+  protocol?: string | null
+}
+
+// default from verified-fetch is application/octect-stream, which forces a download. This is not what we want for MANY file types.
+const defaultMimeType = 'text/html'
+const contentTypeParser: ContentTypeParser = async (bytes, fileName) => {
+  // eslint-disable-next-line no-console
+  console.log('bytes received in contentTypeParser for ', fileName, ' : ', bytes.slice(0, 10), '...')
+
+  const detectedType = (await fileTypeFromBuffer(bytes))?.mime
+  if (detectedType != null) {
+    return detectedType
+  }
+  if (fileName == null) {
+    // no other way to determine file-type.
+    return defaultMimeType
+  }
+
+  // no need to include file-types listed at https://github.com/SgtPooki/file-type#supported-file-types
+  switch (fileName.split('.').pop()) {
+    case 'css':
+      return 'text/css'
+    case 'html':
+      return 'text/html'
+    case 'js':
+      return 'application/javascript'
+    case 'json':
+      return 'application/json'
+    case 'txt':
+      return 'text/plain'
+    case 'woff2':
+      return 'font/woff2'
+    // see bottom of https://github.com/SgtPooki/file-type#supported-file-types
+    case 'svg':
+      return 'image/svg+xml'
+    case 'csv':
+      return 'text/csv'
+    case 'doc':
+      return 'application/msword'
+    case 'xls':
+      return 'application/vnd.ms-excel'
+    case 'ppt':
+      return 'application/vnd.ms-powerpoint'
+    case 'msi':
+      return 'application/x-msdownload'
+    default:
+      return defaultMimeType
+  }
+}
+
+// Check for **/*.css/fonts/**/*.ttf urls */
+const cssPathRegex = /(?<cssPath>.*\.css)(?<fontPath>.*\.(ttf|otf|woff|woff2){1})$/
+
+/**
+ * Maps relative paths to font-faces from css files to the correct path from the root.
+ *
+ * e.g. in a css file (like specs.ipfs.tech's /ipns/specs.ipfs.tech/css/ipseity.min.css), you will find lines like:
+ * ```
+ * @font-face {
+ *   font-family: 'Plex';
+ *   font-style:  normal;
+ *   font-weight: 100;
+ *   src: local('IBM Plex Sans'),
+ *     local('IBM-Plex-Sans'),
+ *     url('/fonts/IBMPlexSans-Thin.ttf') format('opentype');
+ * }
+ * ```
+ * which results in a request to `/ipns/specs.ipfs.tech/css/ipseity.min.css/fonts/IBMPlexSans-Thin.ttf`. Instead,
+ * we want to request `/ipns/specs.ipfs.tech/fonts/IBMPlexSans-Thin.ttf`.
+ *
+ * /ipns/blog.libp2p.io/assets/css/0.styles.4520169f.css/fonts/Montserrat-Medium.d8478173.woff
+ */
+function changeCssFontPath (path: string): string {
+  const match = path.match(cssPathRegex)
+  if (match == null) {
+    // eslint-disable-next-line no-console
+    console.log(`changeCssFontPath: No match for ${path}`)
+    return path
+  }
+  const { cssPath, fontPath } = match.groups as { cssPath?: string, fontPath?: string }
+  if (cssPath == null || fontPath == null) {
+    // eslint-disable-next-line no-console
+    console.log(`changeCssFontPath: No groups for ${path}`, match.groups)
+    return path
+  }
+  // eslint-disable-next-line no-console
+  console.log(`changeCssFontPath: Changing font path from ${path} to ${fontPath}`)
+  return fontPath
 }
 
 /**
@@ -40,70 +125,45 @@ export interface HeliaFetchOptions {
  * * TODO: why we would be better than ipfs.io/other-gateway
  * * TODO: have error handling that renders 404/500/other if the request is bad.
  *
- * @param event
- * @returns
  */
-export async function heliaFetch ({ path, helia, signal, headers }: HeliaFetchOptions): Promise<Response> {
-  const pathParts = path.split('/')
-  console.log('pathParts: ', pathParts)
-  let pathPartIndex = 0
-  let namespaceString = pathParts[pathPartIndex++]
-  if (namespaceString === '') {
-    // we have a prefixed '/' in the path, use the new index instead
-    namespaceString = pathParts[pathPartIndex++]
-  }
-  const pathRootString = pathParts[pathPartIndex++]
-  const contentPath = pathParts.slice(pathPartIndex++).join('/')
+export async function heliaFetch ({ path, helia, signal, headers, origin, protocol }: HeliaFetchOptions): Promise<Response> {
+  const verifiedFetch = await createVerifiedFetch(helia, {
+    contentTypeParser
+  })
 
-  if (namespaceString !== 'ipfs' && namespaceString !== 'ipns') {
-    console.error('received path: ', path)
-    throw new Error(`only /ipfs or /ipns namespaces supported got ${namespaceString}`)
-  }
-  // const name = ipns(helia)
-  // name.resolve
-
-  let rootCidString: string
-  if (namespaceString === 'ipns') {
-    const newPathRoot = await GetDNSLinkOrIPNS(pathRootString)
-    console.log('newPathRoot: ', newPathRoot)
-    const newPathParts = newPathRoot.split('/')
-    // TODO: better parsing, surely this code already exists
-    // TODO: deal with recursive resolution
-    if ((newPathParts[0] !== '' || newPathParts[1] !== 'ipfs') || newPathParts.length !== 3) {
-      throw new Error('only non-recursive IPNS/DNSLink supported and must point to /ipfs/<CID>')
+  let verifiedFetchUrl: string
+  if (origin != null && protocol != null) {
+    if (protocol === 'ipns' && isDnsLabel(origin)) {
+      verifiedFetchUrl = `${protocol}://${dnsLinkLabelDecoder(origin)}/${path}`
+    } else {
+      // likely a peerId instead of a dnsLink label
+      verifiedFetchUrl = `${protocol}://${origin}}${path}`
     }
-    // rootCidString = newPathParts[2]
-    return await heliaFetch({ path: `${newPathRoot}/${contentPath}`, helia, signal, headers })
+    // eslint-disable-next-line no-console
+    console.log('subdomain fetch for ', verifiedFetchUrl)
   } else {
-    rootCidString = pathRootString
-  }
+    const pathParts = path.split('/')
 
-  // console.log('cidString: ', cidString)
-  // console.log('cidString: ', cidString)
-  // const helia = await getHelia({ libp2pConfigType: 'ipni' })
-
-  // const etag = cidString
-  // const cachedEtag = headers?.['if-none-match']
-  // if (cachedEtag === etag || cachedEtag === `W/${etag}`) {
-  //   return new Response(undefined, { status: 304 }) // Not Modified
-  // }
-  const fs = unixfs(helia)
-  const cid = CID.parse(rootCidString)
-  const statPath = contentPath != null ? '/' + contentPath : undefined
-
-  try {
-    const fsStatInfo = await fs.stat(cid, { signal, path: statPath })
-    switch (fsStatInfo.type) {
-      case 'directory':
-        return await getDirectoryResponse({ pathRoot: namespaceString, cid, fs, helia, signal, headers, path: contentPath })
-      case 'raw':
-      case 'file':
-        return await getFileResponse({ cid, fs, helia, signal, headers, path: contentPath })
-      default:
-        throw new Error(`Unsupported fsStatInfo.type: ${fsStatInfo.type}`)
+    let pathPartIndex = 0
+    let namespaceString = pathParts[pathPartIndex++]
+    if (namespaceString === '') {
+    // we have a prefixed '/' in the path, use the new index instead
+      namespaceString = pathParts[pathPartIndex++]
     }
-  } catch (e) {
-    console.error(`fs.stat error for cid '${cid}' and path '${statPath}'`, e)
+    if (namespaceString !== 'ipfs' && namespaceString !== 'ipns') {
+      throw new Error(`only /ipfs or /ipns namespaces supported got ${namespaceString}`)
+    }
+    const pathRootString = pathParts[pathPartIndex++]
+    const contentPath = pathParts.slice(pathPartIndex++).join('/')
+    verifiedFetchUrl = `${namespaceString}://${pathRootString}/${changeCssFontPath(contentPath)}`
   }
-  return new Response('Not Found', { status: 404 })
+
+  return verifiedFetch(verifiedFetchUrl, {
+    signal,
+    headers,
+    onProgress: (e) => {
+      // eslint-disable-next-line no-console
+      console.log(`${e.type}: `, e.detail)
+    }
+  })
 }

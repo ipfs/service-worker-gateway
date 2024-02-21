@@ -1,9 +1,6 @@
 /* eslint-disable @typescript-eslint/strict-boolean-expressions */
-import React from 'react'
-
 import { CID } from 'multiformats/cid'
-import { heliaFetch } from '../lib/heliaFetch.ts'
-import { getHelia } from '../get-helia'
+import React from 'react'
 
 /**
  * Test files:
@@ -25,7 +22,7 @@ import { getHelia } from '../get-helia'
  *
  */
 
-function contentRender ({ blob, contentType, text, path, isLoading }): JSX.Element {
+export function ContentRender ({ blob, contentType, text, path, isLoading }): JSX.Element {
   let content: JSX.Element | null = null
   if (isLoading) {
     content = <span>Loading...</span>
@@ -37,18 +34,21 @@ function contentRender ({ blob, contentType, text, path, isLoading }): JSX.Eleme
     )
   } else if (contentType?.startsWith('image/') && blob != null) {
     content = <img src={URL.createObjectURL(blob)} />
-  } else if (contentType?.startsWith('text/html') && blob != null) {
-    const iframeSrc = path[0] === '/' ? `${path}` : `/${path}`
-    // return the HTML in an iframe
-    content = <iframe src={iframeSrc} width="100%" height="100%"/>
-  } else if (contentType?.startsWith('text/') && blob != null) {
-    content = <pre>{text}</pre>
+  } else if (text != null) {
+    if (!contentType?.startsWith('text/html')) {
+      // parsing failed
+      content = <pre id="text-content">{text}</pre>
+    } else {
+      const iframeSrc = path[0] === '/' ? `${path}` : `/${path}`
+      // parsing succeeded
+      content = <iframe src={iframeSrc} width="100%" height="100%"/>
+    }
   } else {
     content = <span>Not a supported content-type of <pre>{contentType}</pre></span>
   }
 
   return (
-    <div className="pt3 db" style={{ height: '50vh' }}>
+    <div id="loaded-content" className="pt3 db" style={{ height: '50vh' }}>
       {content}
     </div>
   )
@@ -81,7 +81,6 @@ function ValidationMessage ({ cid, requestPath, pathNamespacePrefix, children })
   </>
 }
 
-// contentRender({ blob, contentType, text, cid, path: cidPath })
 export default function CidRenderer ({ requestPath }: { requestPath: string }): JSX.Element {
   const [contentType, setContentType] = React.useState<string | null>(null)
   const [isLoading, setIsLoading] = React.useState(false)
@@ -101,27 +100,21 @@ export default function CidRenderer ({ requestPath }: { requestPath: string }): 
   const cidPath = requestPathParts[3] ? `/${requestPathParts.slice(3).join('/')}` : ''
   const swPath = `/${pathNamespacePrefix}/${cid ?? ''}${cidPath ?? ''}`
 
-  const makeRequest = async (useServiceWorker = true): Promise<void> => {
+  const makeRequest = async (): Promise<void> => {
     abortController?.abort()
     const newAbortController = new AbortController()
     setAbortController(newAbortController)
     setLastFetchPath(swPath)
     setIsLoading(true)
-    let res: Response
-    if (useServiceWorker) {
-      console.log(`fetching '${swPath}' from service worker`)
-      res = await fetch(swPath, {
-        signal: newAbortController.signal,
-        method: 'GET',
-        headers: {
-          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8'
-        }
-      })
-    } else {
-      console.log(`fetching '${requestPath}' using heliaFetch`)
-      const helia = await getHelia({ libp2pConfigType: 'ipni', usePersistentDatastore: false })
-      res = await heliaFetch({ helia, path: requestPath, signal: newAbortController.signal })
-    }
+    // eslint-disable-next-line no-console
+    console.log(`fetching '${swPath}' from service worker`)
+    const res = await fetch(swPath, {
+      signal: newAbortController.signal,
+      method: 'GET',
+      headers: {
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8'
+      }
+    })
     const contentType = res.headers.get('content-type')
 
     setContentType(contentType)
@@ -135,17 +128,17 @@ export default function CidRenderer ({ requestPath }: { requestPath: string }): 
     if (isLoading) {
       inPageContent = <span>Loading...</span>
     } else {
-      inPageContent = contentRender({ blob, contentType, text, path: `${pathNamespacePrefix}/${cid}${cidPath}`, isLoading })
+      inPageContent = ContentRender({ blob, contentType, text, path: `${pathNamespacePrefix}/${cid}${cidPath}`, isLoading })
     }
   }
 
   return (
     <div>
       <ValidationMessage pathNamespacePrefix={pathNamespacePrefix} cid={cid} requestPath={requestPath}>
-        <button onClick={() => { void makeRequest(true) }} className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load in-page</button>
+        <button id="load-in-page" onClick={() => { void makeRequest() }} className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load in-page</button>
 
         <a className="pt3 db" href={swPath} target="_blank">
-          <button className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load directly / download</button>
+          <button id="load-directly" className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load directly / download</button>
         </a>
 
         {inPageContent}

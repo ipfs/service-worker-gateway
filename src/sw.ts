@@ -1,38 +1,43 @@
-/* eslint-disable @typescript-eslint/strict-boolean-expressions */
+/* eslint-disable @typescript-eslint/strict-boolean-expressions, no-console */
 // import { clientsClaim } from 'workbox-core'
-import type { Helia } from '@helia/interface'
-
-import { getHelia } from './get-helia.ts'
-import { ChannelActions } from './lib/common.ts'
-import { connectAndGetFile } from './lib/connectAndGetFile.ts'
-import { type ChannelMessage, HeliaServiceWorkerCommsChannel } from './lib/channel.ts'
-import type { Libp2pConfigTypes } from './types.ts'
-import { heliaFetch } from './lib/heliaFetch.ts'
-import AbortAbort from 'abortabort'
-// import { CID } from 'multiformats/cid'
 import mime from 'mime-types'
+import { getHelia } from './get-helia.ts'
+import { heliaFetch } from './lib/heliaFetch.ts'
+import type { Helia } from '@helia/interface'
 
 declare let self: ServiceWorkerGlobalScope
 
-const channel = new HeliaServiceWorkerCommsChannel('SW')
-
 let helia: Helia
-self.addEventListener('install', event => {
+self.addEventListener('install', () => {
   console.log('sw installing')
   void self.skipWaiting()
 })
 
-self.addEventListener('activate', event => {
+self.addEventListener('activate', () => {
   console.log('sw activating')
 })
 
-const fetchHandler = async ({ url, request }: { url: URL, request: Request }): Promise<Response> => {
+/**
+ * Not available in ServiceWorkerGlobalScope
+ */
+
+interface AggregateError extends Error {
+  errors: Error[]
+}
+
+function isAggregateError (err: unknown): err is AggregateError {
+  return err instanceof Error && (err as AggregateError).errors != null
+}
+
+interface FetchHandlerArg {
+  path: string
+  request: Request
+
+}
+
+const fetchHandler = async ({ path, request }: FetchHandlerArg): Promise<Response> => {
   if (helia == null) {
-    // helia = await getHelia({ libp2pConfigType: 'dht', usePersistentDatastore: true })
-    helia = await getHelia({ libp2pConfigType: 'ipni', usePersistentDatastore: true })
-    // helia = await getHelia({ libp2pConfigType: 'ipni', usePersistentDatastore: false })
-  } else {
-    // await helia.start()
+    helia = await getHelia()
   }
   // 2 second timeout - for debugging
   // const abortController = new AbortAbort({ timeout: 2 * 1000 })
@@ -43,12 +48,23 @@ const fetchHandler = async ({ url, request }: { url: URL, request: Request }): P
    * * https://bugzilla.mozilla.org/show_bug.cgi?id=1394102
    */
   // 5 minute timeout
-  const abortController = new AbortAbort({ timeout: 5 * 60 * 1000 })
+  const abortController = AbortSignal.timeout(5 * 60 * 1000)
   try {
-    return await heliaFetch({ path: url.pathname, helia, signal: abortController.signal, headers: request.headers })
+    const { origin, protocol } = getSubdomainParts(request)
+    return await heliaFetch({ path, helia, signal: abortController, headers: request.headers, origin, protocol })
   } catch (err: unknown) {
-    console.error('fetchHandler error: ', err)
-    const errorMessage = err instanceof Error ? err.message : JSON.stringify(err)
+    const errorMessages: string[] = []
+    if (isAggregateError(err)) {
+      console.error('fetchHandler aggregate error: ', err.message)
+      for (const e of err.errors) {
+        errorMessages.push(e.message)
+        console.error('fetchHandler errors: ', e)
+      }
+    } else {
+      errorMessages.push(err instanceof Error ? err.message : JSON.stringify(err))
+      console.error('fetchHandler error: ', err)
+    }
+    const errorMessage = errorMessages.join('\n')
 
     if (errorMessage.includes('aborted')) {
       return new Response('heliaFetch error aborted due to timeout: ' + errorMessage, { status: 408 })
@@ -74,24 +90,53 @@ const isRootRequestForContent = (event: FetchEvent): boolean => {
   return isRootRequest // && getCidFromUrl(event.request.url) != null
 }
 
+function getSubdomainParts (request: Request): { origin: string | null, protocol: string | null } {
+  const BASE_URL = 'helia-sw-gateway.localhost'
+  const urlString = request.url
+  const url = new URL(urlString)
+  const subdomain = url.hostname.replace(`.${BASE_URL}`, '')
+  const subdomainRegex = /^(?<origin>[^/]+)\.(?<protocol>ip[fn]s)?$/
+  const subdomainMatch = subdomain.match(subdomainRegex)
+  const { origin, protocol } = subdomainMatch?.groups ?? { origin: null, protocol: null }
+
+  return { origin, protocol }
+}
+
+function isSubdomainRequest (event: FetchEvent): boolean {
+  const { origin, protocol } = getSubdomainParts(event.request)
+  console.log('isSubdomainRequest.origin: ', origin)
+  console.log('isSubdomainRequest.protocol: ', protocol)
+
+  return origin != null && protocol != null
+}
+
 const isValidRequestForSW = (event: FetchEvent): boolean =>
-  isRootRequestForContent(event) || isReferrerPreviouslyIntercepted(event)
+  isSubdomainRequest(event) || isRootRequestForContent(event) || isReferrerPreviouslyIntercepted(event)
 
 self.addEventListener('fetch', event => {
   const request = event.request
   const urlString = request.url
   const url = new URL(urlString)
-  console.log('service worker location: ', self.location)
+  console.log('helia-sw: urlString: ', urlString)
 
+  if (urlString.includes('?helia-sw-subdomain')) {
+    console.log('helia-sw: subdomain request: ', urlString)
+    // subdomain request where URL has <subdomain>.ip[fn]s and any paths should be appended to the url
+    // const subdomain = url.searchParams.get('helia-sw-subdomain')
+    // console.log('url.href: ', url.href)
+    // const path = `${url.searchParams.get('helia-sw-subdomain')}/${url.pathname}`
+    event.respondWith(fetchHandler({ path: url.pathname, request }))
+    return
+  }
   if (!isValidRequestForSW(event)) {
-    console.warn('not a valid request for helia-sw, ignoring ', urlString)
+    console.warn('helia-sw: not a valid request for helia-sw, ignoring ', urlString)
     return
   }
   // console.log('request: ', request)
   // console.log('self.location.origin: ', self.location.origin)
-  console.log('intercepting request to ', urlString)
+  console.log('helia-sw: intercepting request to ', urlString)
   if (isReferrerPreviouslyIntercepted(event)) {
-    console.log('referred from ', request.referrer)
+    console.log('helia-sw: referred from ', request.referrer)
     const destinationParts = urlString.split('/')
     const referrerParts = request.referrer.split('/')
     const newParts: string[] = []
@@ -106,15 +151,15 @@ self.addEventListener('fetch', event => {
     const newUrlString = newParts.join('/') + '/' + destinationParts.slice(index).join('/')
     const newUrl = new URL(newUrlString)
 
+    // const { origin, protocol } = getSubdomainParts(event)
+
     /**
      * respond with redirect to newUrl
      */
     if (newUrl.toString() !== urlString) {
-      console.log('rerouting request to: ', newUrl.toString())
+      console.log('helia-sw: rerouting request to: ', newUrl.toString())
       const redirectHeaders = new Headers()
       redirectHeaders.set('Location', newUrl.toString())
-      // const redirectResponse = Response.redirect(newUrl.toString(), 307)
-      // http://localhost:3000/helia-sw/QmeUdoMyahuQUPHS2odrZEL6yk2HnNfBJ147BeLXsZuqLJ/images/meet-builders-thumbnail-pinata.png
       if (mime.lookup(newUrl.toString())) {
         redirectHeaders.set('Content-Type', mime.lookup(newUrl.toString()))
       }
@@ -125,60 +170,14 @@ self.addEventListener('fetch', event => {
       })
       event.respondWith(redirectResponse)
     } else {
-      console.log('not rerouting request to same url: ', newUrl.toString())
+      console.log('helia-sw: not rerouting request to same url: ', newUrl.toString())
 
-      event.respondWith(fetchHandler({ url, request }))
+      event.respondWith(fetchHandler({ path: url.pathname, request }))
     }
   } else if (isRootRequestForContent(event)) {
     // intercept and do our own stuff...
-    event.respondWith(fetchHandler({ url, request }))
-  }
-})
-
-interface SWDataContent {
-  localMultiaddr?: string
-  fileCid?: string
-  libp2pConfigType: Libp2pConfigTypes
-}
-
-channel.onmessagefrom('WINDOW', async (event: MessageEvent<ChannelMessage<'WINDOW', SWDataContent>>) => {
-  const { data } = event
-  const { localMultiaddr, fileCid, libp2pConfigType } = data.data
-  let helia: Helia
-  switch (data.action) {
-    case ChannelActions.GET_FILE:
-      if (fileCid == null) {
-        throw new Error('No fileCid provided')
-      }
-      helia = await getHelia({ libp2pConfigType })
-      channel.postMessage({
-        action: 'SHOW_STATUS',
-        data: {
-          text: `Got helia with ${libp2pConfigType} libp2p config`
-        }
-      })
-      await connectAndGetFile({
-        channel,
-        localMultiaddr,
-        fileCid,
-        helia,
-        action: data.action,
-        cb: async ({ fileContent, action }) => { console.log('connectAndGetFile cb', fileContent, action) }
-      })
-
-      break
-    // case ChannelActions.DIAL:
-    //   try {
-    //     const ma = multiaddr(data.data)
-    //     console.log(`ma: `, ma);
-    //     const dialResponse = await helia.libp2p.dial(ma)
-    //     console.log(`sw dialResponse: `, dialResponse);
-    //   } catch (e) {
-    //     console.error(`sw dial error: `, e);
-    //   }
-    //   break;
-    default:
-      // console.warn('SW received unknown action', data.action)
-      break
+    event.respondWith(fetchHandler({ path: url.pathname, request }))
+  } else if (isSubdomainRequest(event)) {
+    event.respondWith(fetchHandler({ path: url.pathname, request }))
   }
 })

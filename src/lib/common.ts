@@ -1,4 +1,3 @@
-
 export enum COLORS {
   default = '#fff',
   active = '#357edd',

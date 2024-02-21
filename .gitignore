@@ -1,3 +1,4 @@
+test-build
 # Created by https://www.toptal.com/developers/gitignore/api/macos,node,windows,linux
 # Edit at https://www.toptal.com/developers/gitignore?templates=macos,node,windows,linux
 
@@ -215,3 +216,4 @@ $RECYCLE.BIN/
 *.lnk
 
 # End of https://www.toptal.com/developers/gitignore/api/macos,node,windows,linux
+.vscode

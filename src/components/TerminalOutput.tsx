@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react'
-
 import type { OutputLine } from './types.ts'
 
 interface TerminalOutputProps {
