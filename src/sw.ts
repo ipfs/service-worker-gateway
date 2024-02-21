@@ -1,8 +1,6 @@
-/* eslint-disable @typescript-eslint/strict-boolean-expressions, no-console */
-// import { clientsClaim } from 'workbox-core'
 import mime from 'mime-types'
 import { getHelia } from './get-helia.ts'
-import { HeliaServiceWorkerCommsChannel, type ChannelMessage, type ChannelUsers } from './lib/channel.ts'
+import { HeliaServiceWorkerCommsChannel, type ChannelMessage } from './lib/channel.ts'
 import { heliaFetch } from './lib/heliaFetch.ts'
 import type { Helia } from '@helia/interface'
 
@@ -25,6 +23,7 @@ self.addEventListener('activate', () => {
         })
         break
       default:
+        // eslint-disable-next-line no-console
         console.log('unknown action: ', action)
     }
   })
@@ -66,13 +65,16 @@ const fetchHandler = async ({ path, request }: FetchHandlerArg): Promise<Respons
   } catch (err: unknown) {
     const errorMessages: string[] = []
     if (isAggregateError(err)) {
+      // eslint-disable-next-line no-console
       console.error('fetchHandler aggregate error: ', err.message)
       for (const e of err.errors) {
         errorMessages.push(e.message)
+        // eslint-disable-next-line no-console
         console.error('fetchHandler errors: ', e)
       }
     } else {
       errorMessages.push(err instanceof Error ? err.message : JSON.stringify(err))
+      // eslint-disable-next-line no-console
       console.error('fetchHandler error: ', err)
     }
     const errorMessage = errorMessages.join('\n')
@@ -115,8 +117,6 @@ function getSubdomainParts (request: Request): { origin: string | null, protocol
 
 function isSubdomainRequest (event: FetchEvent): boolean {
   const { origin, protocol } = getSubdomainParts(event.request)
-  console.log('isSubdomainRequest.origin: ', origin)
-  console.log('isSubdomainRequest.protocol: ', protocol)
 
   return origin != null && protocol != null
 }
@@ -128,9 +128,11 @@ self.addEventListener('fetch', event => {
   const request = event.request
   const urlString = request.url
   const url = new URL(urlString)
+  // eslint-disable-next-line no-console
   console.log('helia-sw: urlString: ', urlString)
 
   if (urlString.includes('?helia-sw-subdomain')) {
+    // eslint-disable-next-line no-console
     console.log('helia-sw: subdomain request: ', urlString)
     // subdomain request where URL has <subdomain>.ip[fn]s and any paths should be appended to the url
     // const subdomain = url.searchParams.get('helia-sw-subdomain')
@@ -140,13 +142,15 @@ self.addEventListener('fetch', event => {
     return
   }
   if (!isValidRequestForSW(event)) {
+    // eslint-disable-next-line no-console
     console.warn('helia-sw: not a valid request for helia-sw, ignoring ', urlString)
     return
   }
-  // console.log('request: ', request)
-  // console.log('self.location.origin: ', self.location.origin)
+
+  // eslint-disable-next-line no-console
   console.log('helia-sw: intercepting request to ', urlString)
   if (isReferrerPreviouslyIntercepted(event)) {
+    // eslint-disable-next-line no-console
     console.log('helia-sw: referred from ', request.referrer)
     const destinationParts = urlString.split('/')
     const referrerParts = request.referrer.split('/')
@@ -168,10 +172,11 @@ self.addEventListener('fetch', event => {
      * respond with redirect to newUrl
      */
     if (newUrl.toString() !== urlString) {
+      // eslint-disable-next-line no-console
       console.log('helia-sw: rerouting request to: ', newUrl.toString())
       const redirectHeaders = new Headers()
       redirectHeaders.set('Location', newUrl.toString())
-      if (mime.lookup(newUrl.toString())) {
+      if (mime.lookup(newUrl.toString()) != null) {
         redirectHeaders.set('Content-Type', mime.lookup(newUrl.toString()))
       }
       redirectHeaders.set('X-helia-sw', 'redirected')
@@ -181,6 +186,7 @@ self.addEventListener('fetch', event => {
       })
       event.respondWith(redirectResponse)
     } else {
+      // eslint-disable-next-line no-console
       console.log('helia-sw: not rerouting request to same url: ', newUrl.toString())
 
       event.respondWith(fetchHandler({ path: url.pathname, request }))

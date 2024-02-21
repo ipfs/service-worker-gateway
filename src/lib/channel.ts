@@ -104,7 +104,6 @@ export class HeliaServiceWorkerCommsChannel<S extends ChannelUserValues = 'EMITT
     this.channel.addEventListener('message', onMsgHandler)
   }
 
-
   async messageAndWaitForResponse<ResponseSource extends NotSourceUser<S>, MSendType = unknown, MReceiveType = unknown>(responseSource: ResponseSource, data: Omit<ChannelMessage<S, MSendType>, 'source'>): Promise<MReceiveType> {
     if (!this.canListen()) {
       throw new Error('Cannot use messageAndWaitForResponse on EMITTER_ONLY channel')
