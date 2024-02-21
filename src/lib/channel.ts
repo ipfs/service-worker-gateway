@@ -104,17 +104,6 @@ export class HeliaServiceWorkerCommsChannel<S extends ChannelUserValues = 'EMITT
     this.channel.addEventListener('message', onMsgHandler)
   }
 
-  onmessageOnce<MType = unknown>(cb: (e: MessageEvent<ChannelMessage<ChannelUsers, MType>>) => void | Promise<void>): void {
-    if (!this.canListen()) {
-      throw new Error('Cannot use onmessageOnce on EMITTER_ONLY channel')
-    }
-    const onMsgHandler = (e: MessageEvent<ChannelMessage<ChannelUsers, MType>>): void => {
-      this.log('onMsgHandler: ', e)
-      this.channel.removeEventListener('message', onMsgHandler)
-      void cb(e)
-    }
-    this.channel.addEventListener('message', onMsgHandler)
-  }
 
   async messageAndWaitForResponse<ResponseSource extends NotSourceUser<S>, MSendType = unknown, MReceiveType = unknown>(responseSource: ResponseSource, data: Omit<ChannelMessage<S, MSendType>, 'source'>): Promise<MReceiveType> {
     if (!this.canListen()) {
