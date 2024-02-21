@@ -70,7 +70,6 @@ export class HeliaServiceWorkerCommsChannel<S extends ChannelUserValues = 'EMITT
     if (!this.canListen()) {
       throw new Error('Cannot use onmessagefrom on EMITTER_ONLY channel')
     }
-    this.channel.removeEventListener('message', cb as EventListener)
     const onMsgHandler = (e: MessageEvent<ChannelMessage<Source, MType>>): void => {
       this.log('onMsgHandler: ', e)
       if (e.data.source !== source) {
