@@ -103,7 +103,6 @@ const isRootRequestForContent = (event: FetchEvent): boolean => {
 
 function getSubdomainParts (request: Request): { origin: string | null, protocol: string | null } {
   const BASE_URL = 'helia-sw-gateway.localhost'
-  // const BASE_URL = 'sw.sgtpooki.com'
   const urlString = request.url
   const url = new URL(urlString)
   const subdomain = url.hostname.replace(`.${BASE_URL}`, '')
