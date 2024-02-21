@@ -49,7 +49,7 @@ export async function closeDatabase (db: IDBDatabase): Promise<void> {
 export async function loadConfigFromLocalStorage (): Promise<void> {
   if (typeof globalThis.localStorage !== 'undefined') {
     const db = await openDatabase()
-    const localStorage = global.localStorage
+    const localStorage = globalThis.localStorage
     const localStorageGatewaysString = localStorage.getItem(getLocalStorageKey('config', 'gateways')) ?? '[]'
     const localStorageRoutersString = localStorage.getItem(getLocalStorageKey('config', 'routers')) ?? '[]'
     const gateways = JSON.parse(localStorageGatewaysString)

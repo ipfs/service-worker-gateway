@@ -2,6 +2,7 @@
 // import { clientsClaim } from 'workbox-core'
 import mime from 'mime-types'
 import { getHelia } from './get-helia.ts'
+import { HeliaServiceWorkerCommsChannel, type ChannelMessage, type ChannelUsers } from './lib/channel.ts'
 import { heliaFetch } from './lib/heliaFetch.ts'
 import type { Helia } from '@helia/interface'
 
@@ -9,12 +10,24 @@ declare let self: ServiceWorkerGlobalScope
 
 let helia: Helia
 self.addEventListener('install', () => {
-  console.log('sw installing')
   void self.skipWaiting()
 })
 
+const channel = new HeliaServiceWorkerCommsChannel('SW')
+
 self.addEventListener('activate', () => {
-  console.log('sw activating')
+  channel.onmessagefrom('WINDOW', async (message: MessageEvent<ChannelMessage<'WINDOW', null>>) => {
+    const { action } = message.data
+    switch (action) {
+      case 'RELOAD_CONFIG':
+        void getHelia().then((newHelia) => {
+          helia = newHelia
+        })
+        break
+      default:
+        console.log('unknown action: ', action)
+    }
+  })
 })
 
 /**
@@ -39,8 +52,6 @@ const fetchHandler = async ({ path, request }: FetchHandlerArg): Promise<Respons
   if (helia == null) {
     helia = await getHelia()
   }
-  // 2 second timeout - for debugging
-  // const abortController = new AbortAbort({ timeout: 2 * 1000 })
 
   /**
    * Note that there are existing bugs regarding service worker signal handling:
@@ -92,6 +103,7 @@ const isRootRequestForContent = (event: FetchEvent): boolean => {
 
 function getSubdomainParts (request: Request): { origin: string | null, protocol: string | null } {
   const BASE_URL = 'helia-sw-gateway.localhost'
+  // const BASE_URL = 'sw.sgtpooki.com'
   const urlString = request.url
   const url = new URL(urlString)
   const subdomain = url.hostname.replace(`.${BASE_URL}`, '')

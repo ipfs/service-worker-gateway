@@ -26,8 +26,8 @@ type NotSourceUser<T extends ChannelUserValues> = T extends ChannelUsers
 export interface ChannelMessage<Source extends ChannelUserValues, Data = Record<string, unknown>> {
   source: Source
   target?: ChannelUserValues
-  action: ChannelActions | keyof typeof ChannelActions | 'TEST'
-  data: Data
+  action: keyof typeof ChannelActions
+  data?: Data
 }
 
 export class HeliaServiceWorkerCommsChannel<S extends ChannelUserValues = 'EMITTER_ONLY'> {
@@ -70,13 +70,10 @@ export class HeliaServiceWorkerCommsChannel<S extends ChannelUserValues = 'EMITT
     if (!this.canListen()) {
       throw new Error('Cannot use onmessagefrom on EMITTER_ONLY channel')
     }
+    this.channel.removeEventListener('message', cb as EventListener)
     const onMsgHandler = (e: MessageEvent<ChannelMessage<Source, MType>>): void => {
       this.log('onMsgHandler: ', e)
       if (e.data.source !== source) {
-        return
-      }
-      if (e.data.action === 'PING') {
-        this.postMessage({ action: 'PONG', data: e.data.data })
         return
       }
       void cb(e)
@@ -99,15 +96,24 @@ export class HeliaServiceWorkerCommsChannel<S extends ChannelUserValues = 'EMITT
       if (e.data.source !== source) {
         return
       }
-      if (e.data.action === 'PING') {
-        this.postMessage({ action: 'PONG', data: e.data.data })
-        return
-      }
+
       void cb(e)
 
       // this.channel.removeEventListener('message', onMsgHandler)
     }
 
+    this.channel.addEventListener('message', onMsgHandler)
+  }
+
+  onmessageOnce<MType = unknown>(cb: (e: MessageEvent<ChannelMessage<ChannelUsers, MType>>) => void | Promise<void>): void {
+    if (!this.canListen()) {
+      throw new Error('Cannot use onmessageOnce on EMITTER_ONLY channel')
+    }
+    const onMsgHandler = (e: MessageEvent<ChannelMessage<ChannelUsers, MType>>): void => {
+      this.log('onMsgHandler: ', e)
+      this.channel.removeEventListener('message', onMsgHandler)
+      void cb(e)
+    }
     this.channel.addEventListener('message', onMsgHandler)
   }
 
@@ -123,7 +129,6 @@ export class HeliaServiceWorkerCommsChannel<S extends ChannelUserValues = 'EMITT
         this.channel.removeEventListener('message', onMessage)
         resolve(e.data)
       }
-      // this.channel.onmessage = onMessage;
       this.channel.addEventListener('message', onMessage)
       this.postMessage(data)
     })

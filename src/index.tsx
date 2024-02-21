@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOMClient from 'react-dom/client'
 import './app.css'
 import App from './app.tsx'
+import { ConfigProvider } from './context/config-context.tsx'
 import { loadConfigFromLocalStorage } from './lib/config-db.ts'
 import { isPathOrSubdomainRequest } from './lib/path-or-subdomain.ts'
 import RedirectPage from './redirectPage.tsx'
@@ -11,6 +12,7 @@ await loadConfigFromLocalStorage()
  * You can change the BASE_URL when deploying this app to a different domain.
  */
 const BASE_URL = process.env.BASE_URL ?? 'helia-sw-gateway.localhost'
+// const BASE_URL = 'sw.sgtpooki.com'
 
 const container = document.getElementById('root')
 
@@ -32,7 +34,9 @@ if (isPathOrSubdomainRequest(BASE_URL, window.location)) {
   } else {
     root.render(
       <React.StrictMode>
-        <App />
+        <ConfigProvider>
+          <App />
+        </ConfigProvider>
       </React.StrictMode>
     )
   }
