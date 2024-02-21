@@ -1,7 +1,7 @@
 /** @type {import('aegir').PartialOptions} */
 export default {
   lint: {
-    files: ['src/**/*.ts', 'src/**/*.tsx']
+    files: ['src/**/*.ts', 'src/**/*.tsx', 'tests/**/*']
   },
   dependencyCheck: {
     ignore: [
@@ -10,13 +10,12 @@ export default {
 
       'react-dom',
 
-      // required by webpack but not explicitly
+      // required by webpack
       'webpack-cli',
       'webpack-dev-server',
       'babel-loader',
       'style-loader',
       'css-loader'
-
     ],
     productionIgnorePatterns: [
       'webpack.config.js',

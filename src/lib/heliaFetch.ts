@@ -1,6 +1,6 @@
 import { createVerifiedFetch, type ContentTypeParser } from '@helia/verified-fetch'
 import { fileTypeFromBuffer } from '@sgtpooki/file-type'
-import { dnsLinkLabelDecoder, isDnsLabel } from './dns-link-labels'
+import { dnsLinkLabelDecoder, isDnsLabel } from './dns-link-labels.ts'
 import type { Helia } from '@helia/interface'
 
 export interface HeliaFetchOptions {

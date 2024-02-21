@@ -1,8 +1,6 @@
 /* eslint-disable @typescript-eslint/strict-boolean-expressions */
 import { CID } from 'multiformats/cid'
 import React from 'react'
-import { getHelia } from '../get-helia'
-import { heliaFetch } from '../lib/heliaFetch.ts'
 
 /**
  * Test files:
@@ -83,7 +81,6 @@ function ValidationMessage ({ cid, requestPath, pathNamespacePrefix, children })
   </>
 }
 
-// ContentRender({ blob, contentType, text, cid, path: cidPath })
 export default function CidRenderer ({ requestPath }: { requestPath: string }): JSX.Element {
   const [contentType, setContentType] = React.useState<string | null>(null)
   const [isLoading, setIsLoading] = React.useState(false)

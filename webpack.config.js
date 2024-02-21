@@ -1,12 +1,12 @@
-import path from 'path'
-import { fileURLToPath } from 'url'
+import { readdirSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import CompressionPlugin from 'compression-webpack-plugin'
 import CopyWebpackPlugin from 'copy-webpack-plugin'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
 import NodePolyfillPlugin from 'node-polyfill-webpack-plugin'
 import webpack from 'webpack'
 import { merge } from 'webpack-merge'
-// import {GenerateSW} from 'workbox-webpack-plugin';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -20,6 +20,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const paths = {
   // Source files
   src: path.resolve(__dirname, './src'),
+  testSrc: path.resolve(__dirname, './tests'),
+  testBuild: path.resolve(__dirname, './test-build'),
 
   // Production build files
   build: path.resolve(__dirname, './dist'),
@@ -101,6 +103,25 @@ const dev = {
     // Only update what has changed on hot reload
     new webpack.HotModuleReplacementPlugin()
   ]
+}
+
+/**
+ * @type {import('webpack').Configuration}
+ */
+const test = {
+  mode: 'development',
+  devtool: 'inline-source-map',
+  output: {
+    path: paths.testBuild,
+    filename: 'tests.js'
+  },
+  entry: {
+    tests: readdirSync(paths.testSrc).filter(function (file) {
+      return file.match(/.*\.ts$/)
+    }).map(function (file) {
+      return path.join(paths.testSrc, file)
+    })
+  }
 }
 
 /**
@@ -201,9 +222,6 @@ const common = {
   resolve: {
     modules: [paths.src, 'node_modules'],
     extensions: ['.js', '.jsx', '.json', '.ts', '.tsx']
-    // alias: {
-    //   '@': paths.src
-    // }
   },
 
   // fix: https://github.com/webpack/webpack-dev-server/issues/2758
@@ -221,7 +239,15 @@ const common = {
 
 export default (cmd) => {
   const production = cmd.production
-  const config = production ? prod : dev
+  let config = prod
+  if (cmd.test) {
+    config = test
+    const testConfig = merge(common, test)
+    testConfig.entry = test.entry
+    return testConfig
+  } else if (!production) {
+    config = dev
+  }
 
   return merge(common, config)
 }
