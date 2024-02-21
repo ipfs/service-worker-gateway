@@ -12,7 +12,6 @@ await loadConfigFromLocalStorage()
  * You can change the BASE_URL when deploying this app to a different domain.
  */
 const BASE_URL = process.env.BASE_URL ?? 'helia-sw-gateway.localhost'
-// const BASE_URL = 'sw.sgtpooki.com'
 
 const container = document.getElementById('root')
 
