@@ -85,6 +85,7 @@ You can then run `npm start` and your nginx server, and then visit `http://specs
 You have to visit the [hosted site](https://helia-service-worker-gateway.on.fleek.co/) first, and make sure the SW is loaded. Once it is, the below links should work for you.
 
 Notes:
+- ⚠️ Deployment at `helia-service-worker-gateway.on.fleek.co` is for testing purposes only. It does not provide [Origin isolation](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway), it is a plain path gateway. NEVER user it for loading dapps with sensitive information such as keys, passwords, wallets. 
 * Attempting a few refreshes, clearing site data (cache/cookies/sw/indexDb/etc..), etc, may resolve your problem (though may be indicative of issues you can fix with a PR!)
 * Some content-types are not *previewable* with certain browsers. If you receive a download prompt you didn't expect: double check the returned content-type and make sure your browser supports previewing that content-type.
 

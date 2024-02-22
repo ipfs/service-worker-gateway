@@ -5,13 +5,10 @@ import App from './app.tsx'
 import { ConfigProvider } from './context/config-context.tsx'
 import { loadConfigFromLocalStorage } from './lib/config-db.ts'
 import { isPathOrSubdomainRequest } from './lib/path-or-subdomain.ts'
+import { BASE_URL } from './lib/webpack-constants.ts'
 import RedirectPage from './redirectPage.tsx'
 
 await loadConfigFromLocalStorage()
-/**
- * You can change the BASE_URL when deploying this app to a different domain.
- */
-const BASE_URL = process.env.BASE_URL ?? 'helia-sw-gateway.localhost'
 
 const container = document.getElementById('root')
 
