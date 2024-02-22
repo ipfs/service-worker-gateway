@@ -1,14 +1,14 @@
-import React from 'react'
+import React, { createContext, useEffect, useState } from 'react'
 import { registerServiceWorker } from '../service-worker-utils'
 
-export const ServiceWorkerContext = React.createContext({
+export const ServiceWorkerContext = createContext({
   isServiceWorkerRegistered: false
 })
 
 export const ServiceWorkerProvider = ({ children }): JSX.Element => {
-  const [isServiceWorkerRegistered, setIsServiceWorkerRegistered] = React.useState(false)
+  const [isServiceWorkerRegistered, setIsServiceWorkerRegistered] = useState(false)
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isServiceWorkerRegistered) {
       return
     }

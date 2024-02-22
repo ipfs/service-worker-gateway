@@ -29,7 +29,7 @@ const urlValidationFn = (value: string): Error | null => {
 
 export default (): JSX.Element | null => {
   const { isConfigExpanded, setConfigExpanded } = useContext(ConfigContext)
-  const { isServiceWorkerRegistered } = React.useContext(ServiceWorkerContext)
+  const { isServiceWorkerRegistered } = useContext(ServiceWorkerContext)
 
   const [error, setError] = useState<Error | null>(null)
 

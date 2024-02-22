@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react'
+import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { ServiceWorkerContext } from './context/service-worker-context.tsx'
 import { HeliaServiceWorkerCommsChannel } from './lib/channel.ts'
 import { setConfig, type ConfigDb } from './lib/config-db.ts'
@@ -15,8 +15,8 @@ const ConfigIframe = (): JSX.Element => {
 const channel = new HeliaServiceWorkerCommsChannel('WINDOW')
 
 export default function RedirectPage (): JSX.Element {
-  const [isAutoReloadEnabled, setIsAutoReloadEnabled] = React.useState(false)
-  const { isServiceWorkerRegistered } = React.useContext(ServiceWorkerContext)
+  const [isAutoReloadEnabled, setIsAutoReloadEnabled] = useState(false)
+  const { isServiceWorkerRegistered } = useContext(ServiceWorkerContext)
 
   useEffect(() => {
     const listener = (event: MessageEvent): void => {

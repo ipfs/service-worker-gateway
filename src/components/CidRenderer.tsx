@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/strict-boolean-expressions */
 import { CID } from 'multiformats/cid'
-import React from 'react'
+import React, { useState } from 'react'
 
 /**
  * Test files:
@@ -82,12 +82,12 @@ function ValidationMessage ({ cid, requestPath, pathNamespacePrefix, children })
 }
 
 export default function CidRenderer ({ requestPath }: { requestPath: string }): JSX.Element {
-  const [contentType, setContentType] = React.useState<string | null>(null)
-  const [isLoading, setIsLoading] = React.useState(false)
-  const [abortController, setAbortController] = React.useState<AbortController | null>(null)
-  const [blob, setBlob] = React.useState<Blob | null>(null)
-  const [text, setText] = React.useState('')
-  const [lastFetchPath, setLastFetchPath] = React.useState<string | null>(null)
+  const [contentType, setContentType] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [abortController, setAbortController] = useState<AbortController | null>(null)
+  const [blob, setBlob] = useState<Blob | null>(null)
+  const [text, setText] = useState('')
+  const [lastFetchPath, setLastFetchPath] = useState<string | null>(null)
   /**
    * requestPath may be any of the following formats:
    *
