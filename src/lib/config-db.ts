@@ -1,4 +1,4 @@
-import { getLocalStorageKey } from './local-storage.ts'
+import { LOCAL_STORAGE_KEYS } from './local-storage.ts'
 
 export interface ConfigDb {
   gateways: string[]
@@ -50,8 +50,8 @@ export async function loadConfigFromLocalStorage (): Promise<void> {
   if (typeof globalThis.localStorage !== 'undefined') {
     const db = await openDatabase()
     const localStorage = globalThis.localStorage
-    const localStorageGatewaysString = localStorage.getItem(getLocalStorageKey('config', 'gateways')) ?? '[]'
-    const localStorageRoutersString = localStorage.getItem(getLocalStorageKey('config', 'routers')) ?? '[]'
+    const localStorageGatewaysString = localStorage.getItem(LOCAL_STORAGE_KEYS.config.gateways) ?? '[]'
+    const localStorageRoutersString = localStorage.getItem(LOCAL_STORAGE_KEYS.config.routers) ?? '[]'
     const gateways = JSON.parse(localStorageGatewaysString)
     const routers = JSON.parse(localStorageRoutersString)
 
