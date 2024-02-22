@@ -7,7 +7,8 @@ export function getLocalStorageKey (root: LocalStorageRoots, key: string): strin
 export const LOCAL_STORAGE_KEYS = {
   config: {
     gateways: getLocalStorageKey('config', 'gateways'),
-    routers: getLocalStorageKey('config', 'routers')
+    routers: getLocalStorageKey('config', 'routers'),
+    autoReload: getLocalStorageKey('config', 'autoReload')
   },
   forms: {
     requestPath: getLocalStorageKey('forms', 'requestPath')

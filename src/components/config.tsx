@@ -1,10 +1,11 @@
-import React, { useCallback, useContext, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useState } from 'react'
 import { ConfigContext } from '../context/config-context.tsx'
 import { ServiceWorkerContext } from '../context/service-worker-context.tsx'
 import { HeliaServiceWorkerCommsChannel } from '../lib/channel.ts'
 import { getConfig, loadConfigFromLocalStorage } from '../lib/config-db.ts'
 import { LOCAL_STORAGE_KEYS } from '../lib/local-storage.ts'
 import LocalStorageInput from './local-storage-input.tsx'
+import { LocalStorageToggle } from './local-storage-toggle'
 
 const channel = new HeliaServiceWorkerCommsChannel('WINDOW')
 
@@ -50,6 +51,13 @@ export default (): JSX.Element | null => {
     })
   }, [])
 
+  useEffect(() => {
+    /**
+     * On initial load, we want to send the config to the parent window, so that the reload page can auto-reload if enabled, and the subdomain registered service worker gets the latest config without user interaction.
+     */
+    void postFromIframeToParentSw()
+  }, [])
+
   const saveConfig = useCallback(async () => {
     try {
       await loadConfigFromLocalStorage()
@@ -79,9 +87,10 @@ export default (): JSX.Element | null => {
   }
 
   return (
-    <main className='pa4-l bg-snow mw7 mv5 center pa4'>
+    <main className='pa4-l bg-snow mw7 center pa4'>
       <LocalStorageInput localStorageKey={LOCAL_STORAGE_KEYS.config.gateways} label='Gateways' validationFn={urlValidationFn} />
       <LocalStorageInput localStorageKey={LOCAL_STORAGE_KEYS.config.routers} label='Routers' validationFn={urlValidationFn} />
+      <LocalStorageToggle localStorageKey={LOCAL_STORAGE_KEYS.config.autoReload} onLabel='Auto Reload' offLabel='Show Config' />
       <button id="save-config" disabled={saveDisabled} onClick={() => { void saveConfig() }} className={Array.from(buttonClasses).join(' ')}>{saveDisabled ? 'Waiting for service worker registration...' : 'Save Config'}</button>
 
       {error != null && <span style={{ color: 'red' }}>{error.message}</span>}

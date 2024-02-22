@@ -3,6 +3,7 @@ import { LOCAL_STORAGE_KEYS } from './local-storage.ts'
 export interface ConfigDb {
   gateways: string[]
   routers: string[]
+  autoReload: boolean
 }
 
 export type configDbKeys = keyof ConfigDb
@@ -52,11 +53,13 @@ export async function loadConfigFromLocalStorage (): Promise<void> {
     const localStorage = globalThis.localStorage
     const localStorageGatewaysString = localStorage.getItem(LOCAL_STORAGE_KEYS.config.gateways) ?? '[]'
     const localStorageRoutersString = localStorage.getItem(LOCAL_STORAGE_KEYS.config.routers) ?? '[]'
+    const autoReload = localStorage.getItem(LOCAL_STORAGE_KEYS.config.autoReload) === 'true'
     const gateways = JSON.parse(localStorageGatewaysString)
     const routers = JSON.parse(localStorageRoutersString)
 
     await setInDatabase(db, 'gateways', gateways)
     await setInDatabase(db, 'routers', routers)
+    await setInDatabase(db, 'autoReload', autoReload)
     await closeDatabase(db)
   }
 }
@@ -65,6 +68,7 @@ export async function setConfig (config: ConfigDb): Promise<void> {
   const db = await openDatabase()
   await setInDatabase(db, 'gateways', config.gateways)
   await setInDatabase(db, 'routers', config.routers)
+  await setInDatabase(db, 'autoReload', config.autoReload)
   await closeDatabase(db)
 }
 
@@ -73,9 +77,11 @@ export async function getConfig (): Promise<ConfigDb> {
 
   const gateways = await getFromDatabase(db, 'gateways') ?? []
   const routers = await getFromDatabase(db, 'routers') ?? []
+  const autoReload = await getFromDatabase(db, 'autoReload') ?? false
 
   return {
-    gateways: gateways instanceof Array ? gateways : [],
-    routers: routers instanceof Array ? routers : []
+    gateways,
+    routers,
+    autoReload
   }
 }
