@@ -34,25 +34,12 @@ export class HeliaServiceWorkerCommsChannel<S extends ChannelUserValues = 'EMITT
   channel: BroadcastChannel
   debug = false
   constructor (public source: S, private readonly channelName = 'helia:sw') {
-    this.log('HeliaServiceWorkerCommsChannel construction: ', source)
-
     // NOTE: We're supposed to close the channel when we're done with it, but we're not doing that anywhere yet.
     this.channel = new BroadcastChannel(this.channelName)
     this.channel.onmessageerror = (e) => {
-      this.error('onmessageerror', e)
+      // eslint-disable-next-line no-console
+      console.error('onmessageerror', e)
     }
-  }
-
-  log (...args: unknown[]): void {
-    if (!this.debug) return
-    // eslint-disable-next-line no-console
-    console.log(`HeliaServiceWorkerCommsChannel(${this.source}): `, ...args)
-  }
-
-  error (...args: unknown[]): void {
-    if (!this.debug) return
-    // eslint-disable-next-line no-console
-    console.error(`HeliaServiceWorkerCommsChannel(${this.source}): `, ...args)
   }
 
   canListen (): boolean {

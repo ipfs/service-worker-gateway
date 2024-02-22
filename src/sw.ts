@@ -128,27 +128,13 @@ self.addEventListener('fetch', event => {
   const request = event.request
   const urlString = request.url
   const url = new URL(urlString)
-  // eslint-disable-next-line no-console
-  console.log('helia-sw: urlString: ', urlString)
 
-  if (urlString.includes('?helia-sw-subdomain')) {
-    // eslint-disable-next-line no-console
-    console.log('helia-sw: subdomain request: ', urlString)
-    // subdomain request where URL has <subdomain>.ip[fn]s and any paths should be appended to the url
-    // const subdomain = url.searchParams.get('helia-sw-subdomain')
-    // console.log('url.href: ', url.href)
-    // const path = `${url.searchParams.get('helia-sw-subdomain')}/${url.pathname}`
-    event.respondWith(fetchHandler({ path: url.pathname, request }))
-    return
-  }
   if (!isValidRequestForSW(event)) {
     // eslint-disable-next-line no-console
     console.warn('helia-sw: not a valid request for helia-sw, ignoring ', urlString)
     return
   }
 
-  // eslint-disable-next-line no-console
-  console.log('helia-sw: intercepting request to ', urlString)
   if (isReferrerPreviouslyIntercepted(event)) {
     // eslint-disable-next-line no-console
     console.log('helia-sw: referred from ', request.referrer)

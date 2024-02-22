@@ -61,6 +61,13 @@ export async function loadConfigFromLocalStorage (): Promise<void> {
   }
 }
 
+export async function setConfig (config: ConfigDb): Promise<void> {
+  const db = await openDatabase()
+  await setInDatabase(db, 'gateways', config.gateways)
+  await setInDatabase(db, 'routers', config.routers)
+  await closeDatabase(db)
+}
+
 export async function getConfig (): Promise<ConfigDb> {
   const db = await openDatabase()
 

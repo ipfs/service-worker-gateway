@@ -15,9 +15,6 @@ export interface HeliaFetchOptions {
 // default from verified-fetch is application/octect-stream, which forces a download. This is not what we want for MANY file types.
 const defaultMimeType = 'text/html'
 const contentTypeParser: ContentTypeParser = async (bytes, fileName) => {
-  // eslint-disable-next-line no-console
-  console.log('bytes received in contentTypeParser for ', fileName, ' : ', bytes.slice(0, 10), '...')
-
   const detectedType = (await fileTypeFromBuffer(bytes))?.mime
   if (detectedType != null) {
     return detectedType

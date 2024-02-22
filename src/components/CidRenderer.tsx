@@ -106,8 +106,7 @@ export default function CidRenderer ({ requestPath }: { requestPath: string }): 
     setAbortController(newAbortController)
     setLastFetchPath(swPath)
     setIsLoading(true)
-    // eslint-disable-next-line no-console
-    console.log(`fetching '${swPath}' from service worker`)
+
     const res = await fetch(swPath, {
       signal: newAbortController.signal,
       method: 'GET',

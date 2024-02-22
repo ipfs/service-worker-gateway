@@ -41,3 +41,7 @@ form {
   flex: 1;
   word-break: break-word;
 }
+
+.cursor-disabled {
+  cursor: not-allowed;
+}
