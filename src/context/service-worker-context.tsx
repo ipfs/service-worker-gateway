@@ -12,11 +12,25 @@ export const ServiceWorkerProvider = ({ children }): JSX.Element => {
     if (isServiceWorkerRegistered) {
       return
     }
-    void registerServiceWorker().then(() => {
-      // eslint-disable-next-line no-console
-      console.log('config-debug: service worker registered', self.location.origin)
-      setIsServiceWorkerRegistered(true)
-    })
+    async function doWork (): Promise<void> {
+      const registration = await navigator.serviceWorker.getRegistration()
+
+      if (registration != null) {
+        // service worker already registered
+        // attempt to update it
+        await registration.update()
+        setIsServiceWorkerRegistered(true)
+      } else {
+        try {
+          await registerServiceWorker()
+          setIsServiceWorkerRegistered(true)
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.error('config-debug: error registering service worker', err)
+        }
+      }
+    }
+    void doWork()
   }, [])
 
   return (
