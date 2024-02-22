@@ -58,7 +58,6 @@ export class HeliaServiceWorkerCommsChannel<S extends ChannelUserValues = 'EMITT
       throw new Error('Cannot use onmessagefrom on EMITTER_ONLY channel')
     }
     const onMsgHandler = (e: MessageEvent<ChannelMessage<Source, MType>>): void => {
-      this.log('onMsgHandler: ', e)
       if (e.data.source !== source) {
         return
       }
@@ -78,7 +77,6 @@ export class HeliaServiceWorkerCommsChannel<S extends ChannelUserValues = 'EMITT
       throw new Error('Cannot use onmessagefromother on EMITTER_ONLY channel')
     }
     const onMsgHandler = (e: MessageEvent<ChannelMessage<Source, MType>>): void => {
-      this.log('onMsgHandler: ', e)
       if (e.data.source !== source) {
         return
       }
@@ -109,7 +107,6 @@ export class HeliaServiceWorkerCommsChannel<S extends ChannelUserValues = 'EMITT
   }
 
   postMessage<MType>(msg: Omit<ChannelMessage<S, MType>, 'source'>): void {
-    this.log('postMessage: ', msg)
     const msgObj: ChannelMessage<typeof this.source, MType> = {
       ...msg,
       source: this.source
