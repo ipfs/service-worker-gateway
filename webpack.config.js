@@ -95,8 +95,7 @@ const dev = {
     // Only update what has changed on hot reload
     hot: true,
     port: 3000,
-    allowedHosts: ['helia-sw.dev.local']
-
+    allowedHosts: [process.env.BASE_URL ?? 'helia-sw-gateway.localhost', 'localhost']
   },
 
   plugins: [
@@ -169,6 +168,9 @@ const common = {
 
     new webpack.DefinePlugin({
       window: 'globalThis' // attempt to naively replace all "window" keywords with "globalThis"
+    }),
+    new webpack.EnvironmentPlugin({
+      BASE_URL: process.env.BASE_URL ?? 'helia-sw-gateway.localhost'
     }),
     new CompressionPlugin({
       algorithm: 'gzip',
