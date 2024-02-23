@@ -8,7 +8,8 @@ export const LOCAL_STORAGE_KEYS = {
   config: {
     gateways: getLocalStorageKey('config', 'gateways'),
     routers: getLocalStorageKey('config', 'routers'),
-    autoReload: getLocalStorageKey('config', 'autoReload')
+    autoReload: getLocalStorageKey('config', 'autoReload'),
+    debug: getLocalStorageKey('config', 'debug')
   },
   forms: {
     requestPath: getLocalStorageKey('forms', 'requestPath')

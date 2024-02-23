@@ -4,6 +4,7 @@ export interface LocalStorageInputProps {
   localStorageKey: string
   label: string
   placeholder?: string
+  defaultValue: string
   validationFn?(value: string): Error | null
 }
 
@@ -15,8 +16,8 @@ const defaultValidationFunction = (value: string): Error | null => {
     return err as Error
   }
 }
-export default ({ localStorageKey, label, placeholder, validationFn }: LocalStorageInputProps): JSX.Element => {
-  const [value, setValue] = useState(localStorage.getItem(localStorageKey) ?? '[]')
+export default ({ localStorageKey, label, placeholder, validationFn, defaultValue }: LocalStorageInputProps): JSX.Element => {
+  const [value, setValue] = useState(localStorage.getItem(localStorageKey) ?? defaultValue)
   const [error, setError] = useState<null | Error>(null)
 
   if (validationFn == null) {

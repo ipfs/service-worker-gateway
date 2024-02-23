@@ -2,7 +2,6 @@ import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { ServiceWorkerContext } from './context/service-worker-context.tsx'
 import { HeliaServiceWorkerCommsChannel } from './lib/channel.ts'
 import { setConfig, type ConfigDb } from './lib/config-db.ts'
-// import { convertSubdomainUrlToSwFetchUrl } from './lib/url-utils.ts'
 import { error } from './lib/logger.ts'
 import { BASE_URL } from './lib/webpack-constants.ts'
 
@@ -26,15 +25,15 @@ export default function RedirectPage (): JSX.Element {
         await setConfig(config)
         channel.postMessage({ target: 'SW', action: 'RELOAD_CONFIG' })
         // try to preload the content
-        // setTimeout(() => {
-        //   fetch(convertSubdomainUrlToSwFetchUrl(window.location.href), { method: 'GET' }).then((response) => {
-        //     // eslint-disable-next-line no-console
-        //     console.log('response', response)
-        //   }).catch((err) => {
-        //     // eslint-disable-next-line no-console
-        //     console.error('error fetching', err)
-        //   })
-        // }, 500)
+        setTimeout(() => {
+          fetch(window.location.href, { method: 'GET' }).then((response) => {
+            // eslint-disable-next-line no-console
+            console.log('response', response)
+          }).catch((err) => {
+            // eslint-disable-next-line no-console
+            console.error('error fetching', err)
+          })
+        }, 500)
       } catch (err) {
         error('config-debug: error setting config on subdomain', err)
       }
