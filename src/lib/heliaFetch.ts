@@ -133,7 +133,7 @@ export async function heliaFetch ({ path, helia, signal, headers, origin, protoc
       verifiedFetchUrl = `${protocol}://${dnsLinkLabelDecoder(origin)}/${path}`
     } else {
       // likely a peerId instead of a dnsLink label
-      verifiedFetchUrl = `${protocol}://${origin}}${path}`
+      verifiedFetchUrl = `${protocol}://${origin}${path}`
     }
 
     trace('subdomain fetch for ', verifiedFetchUrl)
