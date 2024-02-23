@@ -94,8 +94,8 @@ export default (): JSX.Element | null => {
 
   return (
     <main className='pa4-l bg-snow mw7 center pa4'>
-      <LocalStorageInput localStorageKey={LOCAL_STORAGE_KEYS.config.gateways} label='Gateways' validationFn={urlValidationFn} defaultValue='"[]"' />
-      <LocalStorageInput localStorageKey={LOCAL_STORAGE_KEYS.config.routers} label='Routers' validationFn={urlValidationFn} defaultValue='"[]"'/>
+      <LocalStorageInput localStorageKey={LOCAL_STORAGE_KEYS.config.gateways} label='Gateways' validationFn={urlValidationFn} defaultValue='[]' />
+      <LocalStorageInput localStorageKey={LOCAL_STORAGE_KEYS.config.routers} label='Routers' validationFn={urlValidationFn} defaultValue='[]'/>
       <LocalStorageToggle localStorageKey={LOCAL_STORAGE_KEYS.config.autoReload} onLabel='Auto Reload' offLabel='Show Config' />
       <LocalStorageInput localStorageKey={LOCAL_STORAGE_KEYS.config.debug} label='Debug logging' validationFn={stringValidationFn} defaultValue=''/>
       <button id="save-config" disabled={saveDisabled} onClick={() => { void saveConfig() }} className={Array.from(buttonClasses).join(' ')}>{saveDisabled ? 'Waiting for service worker registration...' : 'Save Config'}</button>
