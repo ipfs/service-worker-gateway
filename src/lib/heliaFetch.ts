@@ -130,9 +130,10 @@ export async function heliaFetch ({ path, helia, signal, headers, origin, protoc
   let verifiedFetchUrl: string
   if (origin != null && protocol != null) {
     if (protocol === 'ipns' && isDnsLabel(origin)) {
+      // ipns://<dnsLink>/path
       verifiedFetchUrl = `${protocol}://${dnsLinkLabelDecoder(origin)}/${path}`
     } else {
-      // likely a peerId instead of a dnsLink label
+      // ipns://<peerId> or ipfs://<cid>
       verifiedFetchUrl = `${protocol}://${origin}${path}`
     }
 
