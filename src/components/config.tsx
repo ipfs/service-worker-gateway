@@ -67,6 +67,7 @@ export default (): JSX.Element | null => {
     try {
       await loadConfigFromLocalStorage()
       // update the BASE_URL service worker
+      // TODO: use channel.messageAndWaitForResponse to ensure that the config is loaded before proceeding.
       channel.postMessage({ target: 'SW', action: 'RELOAD_CONFIG' })
       // update the <subdomain>.<namespace>.BASE_URL service worker
       await postFromIframeToParentSw()

@@ -23,6 +23,7 @@ export default function RedirectPage (): JSX.Element {
     async function doWork (config: ConfigDb): Promise<void> {
       try {
         await setConfig(config)
+        // TODO: use channel.messageAndWaitForResponse to ensure that the config is loaded before proceeding.
         channel.postMessage({ target: 'SW', action: 'RELOAD_CONFIG' })
         // try to preload the content
         setTimeout(() => {
