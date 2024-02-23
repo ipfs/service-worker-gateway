@@ -20,10 +20,10 @@ export async function getHelia (): Promise<Helia> {
     datastore,
     blockBrokers: [
       trustlessGateway({
-        gateways: ['https://trustless-gateway.link', ...config.gateways]
+        gateways: [...config.gateways, 'https://trustless-gateway.link']
       })
     ],
-    routers: ['https://delegated-ipfs.dev', ...config.routers].map(rUrl => delegatedHTTPRouting(rUrl))
+    routers: [...config.routers, 'https://delegated-ipfs.dev'].map(rUrl => delegatedHTTPRouting(rUrl))
   })
 
   return helia
