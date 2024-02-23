@@ -1,3 +1,4 @@
+import { error } from './logger.ts'
 import type { ChannelActions } from './common.ts'
 
 export enum ChannelUsers {
@@ -37,8 +38,7 @@ export class HeliaServiceWorkerCommsChannel<S extends ChannelUserValues = 'EMITT
     // NOTE: We're supposed to close the channel when we're done with it, but we're not doing that anywhere yet.
     this.channel = new BroadcastChannel(this.channelName)
     this.channel.onmessageerror = (e) => {
-      // eslint-disable-next-line no-console
-      console.error('onmessageerror', e)
+      error('onmessageerror', e)
     }
   }
 

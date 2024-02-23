@@ -4,12 +4,12 @@ import { delegatedHTTPRouting } from '@helia/routers'
 import { IDBBlockstore } from 'blockstore-idb'
 import { IDBDatastore } from 'datastore-idb'
 import { getConfig } from './lib/config-db.ts'
+import { trace } from './lib/logger.ts'
 import type { Helia } from '@helia/interface'
 
 export async function getHelia (): Promise<Helia> {
   const config = await getConfig()
-  // eslint-disable-next-line no-console
-  console.log(`config-debug: got config for sw location ${self.location.origin}`, config)
+  trace(`config-debug: got config for sw location ${self.location.origin}`, config)
   const blockstore = new IDBBlockstore('./helia-sw/blockstore')
   const datastore = new IDBDatastore('./helia-sw/datastore')
   await blockstore.open()

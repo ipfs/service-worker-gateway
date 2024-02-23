@@ -2,6 +2,7 @@ import mime from 'mime-types'
 import { getHelia } from './get-helia.ts'
 import { HeliaServiceWorkerCommsChannel, type ChannelMessage } from './lib/channel.ts'
 import { heliaFetch } from './lib/heliaFetch.ts'
+import { error, log, trace } from './lib/logger.ts'
 import { BASE_URL } from './lib/webpack-constants.ts'
 import type { Helia } from '@helia/interface'
 
@@ -24,8 +25,7 @@ self.addEventListener('activate', () => {
         })
         break
       default:
-        // eslint-disable-next-line no-console
-        console.log('unknown action: ', action)
+        log('unknown action: ', action)
     }
   })
 })
@@ -66,17 +66,14 @@ const fetchHandler = async ({ path, request }: FetchHandlerArg): Promise<Respons
   } catch (err: unknown) {
     const errorMessages: string[] = []
     if (isAggregateError(err)) {
-      // eslint-disable-next-line no-console
-      console.error('fetchHandler aggregate error: ', err.message)
+      error('fetchHandler aggregate error: ', err.message)
       for (const e of err.errors) {
         errorMessages.push(e.message)
-        // eslint-disable-next-line no-console
-        console.error('fetchHandler errors: ', e)
+        error('fetchHandler errors: ', e)
       }
     } else {
       errorMessages.push(err instanceof Error ? err.message : JSON.stringify(err))
-      // eslint-disable-next-line no-console
-      console.error('fetchHandler error: ', err)
+      error('fetchHandler error: ', err)
     }
     const errorMessage = errorMessages.join('\n')
 
@@ -130,14 +127,14 @@ self.addEventListener('fetch', event => {
   const url = new URL(urlString)
 
   if (!isValidRequestForSW(event)) {
-    // eslint-disable-next-line no-console
-    console.warn('helia-sw: not a valid request for helia-sw, ignoring ', urlString)
+    trace('helia-sw: not a valid request for helia-sw, ignoring ', urlString)
     return
+  } else {
+    log('helia-sw: valid request for helia-sw: ', urlString)
   }
 
   if (isReferrerPreviouslyIntercepted(event)) {
-    // eslint-disable-next-line no-console
-    console.log('helia-sw: referred from ', request.referrer)
+    log('helia-sw: referred from ', request.referrer)
     const destinationParts = urlString.split('/')
     const referrerParts = request.referrer.split('/')
     const newParts: string[] = []
@@ -146,20 +143,16 @@ self.addEventListener('fetch', event => {
       newParts.push(destinationParts[index])
       index++
     }
-    // console.log(`leftover parts for '${request.referrer}' -> '${urlString}': `, referrerParts.slice(index))
     newParts.push(...referrerParts.slice(index))
 
     const newUrlString = newParts.join('/') + '/' + destinationParts.slice(index).join('/')
     const newUrl = new URL(newUrlString)
 
-    // const { origin, protocol } = getSubdomainParts(event)
-
     /**
      * respond with redirect to newUrl
      */
     if (newUrl.toString() !== urlString) {
-      // eslint-disable-next-line no-console
-      console.log('helia-sw: rerouting request to: ', newUrl.toString())
+      log('helia-sw: rerouting request to: ', newUrl.toString())
       const redirectHeaders = new Headers()
       redirectHeaders.set('Location', newUrl.toString())
       if (mime.lookup(newUrl.toString()) != null) {
@@ -172,8 +165,7 @@ self.addEventListener('fetch', event => {
       })
       event.respondWith(redirectResponse)
     } else {
-      // eslint-disable-next-line no-console
-      console.log('helia-sw: not rerouting request to same url: ', newUrl.toString())
+      log('helia-sw: not rerouting request to same url: ', newUrl.toString())
 
       event.respondWith(fetchHandler({ path: url.pathname, request }))
     }

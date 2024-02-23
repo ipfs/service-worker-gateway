@@ -1,5 +1,6 @@
 import React, { createContext, useEffect, useState } from 'react'
-import { registerServiceWorker } from '../service-worker-utils'
+import { error } from '../lib/logger.ts'
+import { registerServiceWorker } from '../service-worker-utils.ts'
 
 export const ServiceWorkerContext = createContext({
   isServiceWorkerRegistered: false
@@ -22,11 +23,11 @@ export const ServiceWorkerProvider = ({ children }): JSX.Element => {
         setIsServiceWorkerRegistered(true)
       } else {
         try {
-          await registerServiceWorker()
+          const registration = await registerServiceWorker()
+          await registration.update()
           setIsServiceWorkerRegistered(true)
         } catch (err) {
-          // eslint-disable-next-line no-console
-          console.error('config-debug: error registering service worker', err)
+          error('error registering service worker', err)
         }
       }
     }

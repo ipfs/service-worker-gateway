@@ -1,6 +1,7 @@
 import { createVerifiedFetch, type ContentTypeParser } from '@helia/verified-fetch'
 import { fileTypeFromBuffer } from '@sgtpooki/file-type'
 import { dnsLinkLabelDecoder, isDnsLabel } from './dns-link-labels.ts'
+import { trace } from './logger'
 import type { Helia } from '@helia/interface'
 
 export interface HeliaFetchOptions {
@@ -81,18 +82,16 @@ const cssPathRegex = /(?<cssPath>.*\.css)(?<fontPath>.*\.(ttf|otf|woff|woff2){1}
 function changeCssFontPath (path: string): string {
   const match = path.match(cssPathRegex)
   if (match == null) {
-    // eslint-disable-next-line no-console
-    console.log(`changeCssFontPath: No match for ${path}`)
+    trace(`changeCssFontPath: No match for ${path}`)
     return path
   }
   const { cssPath, fontPath } = match.groups as { cssPath?: string, fontPath?: string }
   if (cssPath == null || fontPath == null) {
-    // eslint-disable-next-line no-console
-    console.log(`changeCssFontPath: No groups for ${path}`, match.groups)
+    trace(`changeCssFontPath: No groups for ${path}`, match.groups)
     return path
   }
-  // eslint-disable-next-line no-console
-  console.log(`changeCssFontPath: Changing font path from ${path} to ${fontPath}`)
+
+  trace(`changeCssFontPath: Changing font path from ${path} to ${fontPath}`)
   return fontPath
 }
 
@@ -136,8 +135,8 @@ export async function heliaFetch ({ path, helia, signal, headers, origin, protoc
       // likely a peerId instead of a dnsLink label
       verifiedFetchUrl = `${protocol}://${origin}}${path}`
     }
-    // eslint-disable-next-line no-console
-    console.log('subdomain fetch for ', verifiedFetchUrl)
+
+    trace('subdomain fetch for ', verifiedFetchUrl)
   } else {
     const pathParts = path.split('/')
 
@@ -159,8 +158,7 @@ export async function heliaFetch ({ path, helia, signal, headers, origin, protoc
     signal,
     headers,
     onProgress: (e) => {
-      // eslint-disable-next-line no-console
-      console.log(`${e.type}: `, e.detail)
+      trace(`${e.type}: `, e.detail)
     }
   })
 }
