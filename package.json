@@ -17,6 +17,7 @@
     "serve:prod": "webpack serve --mode=production",
     "start": "npm run serve",
     "test": "webpack --env test && npx mocha test-build/tests.js",
+    "test:node": "npm run test",
     "postinstall": "patch-package"
   },
   "browser": "./dist/src/index.js",
