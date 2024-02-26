@@ -40,7 +40,7 @@ export function isInlinedDnsLink (label: string): boolean {
  * @example en-wikipedia--on--ipfs-org.ipns.example.net -> example.net/ipns/en.wikipedia-on-ipfs.org
  */
 export function dnsLinkLabelDecoder (linkLabel: string): string {
-  return linkLabel.replace(/--/g, '-').replace(/-/g, '.')
+  return linkLabel.replace(/--/g, '%').replace(/-/g, '.').replace(/%/g, '-')
 }
 
 /**
@@ -51,5 +51,5 @@ export function dnsLinkLabelDecoder (linkLabel: string): string {
  * @example example.net/ipns/en.wikipedia-on-ipfs.org → Host: en-wikipedia--on--ipfs-org.ipns.example.net
  */
 export function dnsLinkLabelEncoder (linkLabel: string): string {
-  return linkLabel.replace(/\./g, '-').replace(/-/g, '--')
+  return linkLabel.replace(/-/g, '--').replace(/\./g, '-')
 }

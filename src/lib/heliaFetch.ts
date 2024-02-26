@@ -131,8 +131,10 @@ export async function heliaFetch ({ path, helia, signal, headers, id, protocol }
   })
 
   let verifiedFetchUrl: string
+
   if (id != null && protocol != null) {
     verifiedFetchUrl = `${protocol}://${id}${path}`
+
     // eslint-disable-next-line no-console
     console.log('subdomain fetch for ', verifiedFetchUrl)
   } else {
