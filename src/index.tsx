@@ -4,7 +4,6 @@ import './app.css'
 import App from './app.tsx'
 import { loadConfigFromLocalStorage } from './lib/config-db.ts'
 import { isPathOrSubdomainRequest } from './lib/path-or-subdomain.ts'
-import { BASE_URL } from './lib/webpack-constants.ts'
 import RedirectPage from './redirectPage.tsx'
 
 await loadConfigFromLocalStorage()
@@ -15,13 +14,14 @@ const sw = await navigator.serviceWorker.register(new URL('sw.ts', import.meta.u
 const root = ReactDOMClient.createRoot(container)
 
 // SW did not trigger for this request
-if (isPathOrSubdomainRequest(BASE_URL, window.location)) {
+if (isPathOrSubdomainRequest(window.location)) {
   // but the requested path is something it should, so show redirect and redirect to the same URL
   root.render(
     <RedirectPage />
   )
   window.location.replace(window.location.href)
 } else {
+  // TODO: add detection of DNSLink gateways (alowing use with Host: en.wikipedia-on-ipfs.org)
   // the requested path is not recognized as a path or subdomain request, so render the app UI
   if (window.location.pathname !== '/') {
     // pathname is not blank, but is invalid. redirect to the root
