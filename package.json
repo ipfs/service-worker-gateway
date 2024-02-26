@@ -35,7 +35,7 @@
     "@helia/http": "^1.0.0",
     "@helia/interface": "^4.0.0",
     "@helia/routers": "^1.0.0",
-    "@helia/verified-fetch": "^0.0.0-3283a5c",
+    "@helia/verified-fetch": "^0.0.0-1ee6a4a",
     "@sgtpooki/file-type": "^1.0.1",
     "blockstore-idb": "^1.1.8",
     "datastore-idb": "^2.1.8",
