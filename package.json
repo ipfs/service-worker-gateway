@@ -37,7 +37,7 @@
     "@helia/interface": "^4.0.0",
     "@helia/ipns": "^6.0.0",
     "@helia/routers": "^1.0.0",
-    "@helia/verified-fetch": "^0.0.0-6f8c15b",
+    "@helia/verified-fetch": "^0.0.0",
     "@libp2p/logger": "^4.0.6",
     "@sgtpooki/file-type": "^1.0.1",
     "blockstore-idb": "^1.1.8",
