@@ -1,5 +1,8 @@
+import { dnsJsonOverHttps } from '@helia/ipns/dns-resolvers'
+import { delegatedHTTPRouting } from '@helia/routers'
 import { createVerifiedFetch, type ContentTypeParser } from '@helia/verified-fetch'
 import { fileTypeFromBuffer } from '@sgtpooki/file-type'
+import { getConfig } from './config-db'
 import type { Helia } from '@helia/interface'
 
 export interface HeliaFetchOptions {
@@ -126,7 +129,12 @@ function changeCssFontPath (path: string): string {
  *
  */
 export async function heliaFetch ({ path, helia, signal, headers, id, protocol }: HeliaFetchOptions): Promise<Response> {
-  const verifiedFetch = await createVerifiedFetch(helia, {
+  const config = await getConfig()
+  const verifiedFetch = await createVerifiedFetch({
+    gateways: ['https://trustless-gateway.link', ...config.gateways],
+    routers: ['https://delegated-ipfs.dev', ...config.routers],
+    dnsResolvers: ['https://resolver.cloudflare-eth.com/dns-query'].map(dnsJsonOverHttps)
+  }, {
     contentTypeParser
   })
 
