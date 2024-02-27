@@ -1,6 +1,5 @@
 import { createVerifiedFetch, type ContentTypeParser } from '@helia/verified-fetch'
 import { fileTypeFromBuffer } from '@sgtpooki/file-type'
-import { dnsLinkLabelDecoder, isDnsLabel } from './dns-link-labels.ts'
 import { trace } from './logger'
 import type { Helia } from '@helia/interface'
 
@@ -9,7 +8,7 @@ export interface HeliaFetchOptions {
   helia: Helia
   signal?: AbortSignal
   headers?: Headers
-  origin?: string | null
+  id?: string | null
   protocol?: string | null
 }
 
@@ -112,9 +111,9 @@ function changeCssFontPath (path: string): string {
  * heliaFetch should have zero awareness of whether it's being used inside a service worker or not.
  *
  * The `path` supplied should be either:
- * * /ipfs/CID
- * * /ipns/DNSLink
- * * /ipns/key
+ * * /ipfs/CID      (https://docs.ipfs.tech/concepts/content-addressing/)
+ * * /ipns/DNSLink  (https://dnslink.dev/)
+ * * /ipns/IPNSName (https://specs.ipfs.tech/ipns/ipns-record/#ipns-name)
  *
  * Things to do:
  * * TODO: implement as much of the gateway spec as possible.
@@ -122,22 +121,18 @@ function changeCssFontPath (path: string): string {
  * * TODO: have error handling that renders 404/500/other if the request is bad.
  *
  */
-export async function heliaFetch ({ path, helia, signal, headers, origin, protocol }: HeliaFetchOptions): Promise<Response> {
+export async function heliaFetch ({ path, helia, signal, headers, id, protocol }: HeliaFetchOptions): Promise<Response> {
   const verifiedFetch = await createVerifiedFetch(helia, {
     contentTypeParser
   })
 
   let verifiedFetchUrl: string
-  if (origin != null && protocol != null) {
-    if (protocol === 'ipns' && isDnsLabel(origin)) {
-      // ipns://<dnsLink>/path
-      verifiedFetchUrl = `${protocol}://${dnsLinkLabelDecoder(origin)}/${path}`
-    } else {
-      // ipns://<peerId> or ipfs://<cid>
-      verifiedFetchUrl = `${protocol}://${origin}${path}`
-    }
 
-    trace('subdomain fetch for ', verifiedFetchUrl)
+  if (id != null && protocol != null) {
+    verifiedFetchUrl = `${protocol}://${id}${path}`
+
+    // eslint-disable-next-line no-console
+    console.log('subdomain fetch for ', verifiedFetchUrl)
   } else {
     const pathParts = path.split('/')
 

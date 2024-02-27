@@ -1,9 +1,9 @@
 import mime from 'mime-types'
 import { getHelia } from './get-helia.ts'
 import { HeliaServiceWorkerCommsChannel, type ChannelMessage } from './lib/channel.ts'
+import { dnsLinkLabelDecoder, isInlinedDnsLink } from './lib/dns-link-labels.ts'
 import { heliaFetch } from './lib/heliaFetch.ts'
 import { error, log, trace } from './lib/logger.ts'
-import { BASE_URL } from './lib/webpack-constants.ts'
 import type { Helia } from '@helia/interface'
 
 declare let self: ServiceWorkerGlobalScope
@@ -61,8 +61,8 @@ const fetchHandler = async ({ path, request }: FetchHandlerArg): Promise<Respons
   // 5 minute timeout
   const abortController = AbortSignal.timeout(5 * 60 * 1000)
   try {
-    const { origin, protocol } = getSubdomainParts(request)
-    return await heliaFetch({ path, helia, signal: abortController, headers: request.headers, origin, protocol })
+    const { id, protocol } = getSubdomainParts(request)
+    return await heliaFetch({ path, helia, signal: abortController, headers: request.headers, id, protocol })
   } catch (err: unknown) {
     const errorMessages: string[] = []
     if (isAggregateError(err)) {
@@ -101,21 +101,34 @@ const isRootRequestForContent = (event: FetchEvent): boolean => {
   return isRootRequest // && getCidFromUrl(event.request.url) != null
 }
 
-function getSubdomainParts (request: Request): { origin: string | null, protocol: string | null } {
+function getSubdomainParts (request: Request): { id: string | null, protocol: string | null } {
   const urlString = request.url
-  const url = new URL(urlString)
-  const subdomain = url.hostname.replace(`.${BASE_URL}`, '')
-  const subdomainRegex = /^(?<origin>[^/]+)\.(?<protocol>ip[fn]s)?$/
-  const subdomainMatch = subdomain.match(subdomainRegex)
-  const { origin, protocol } = subdomainMatch?.groups ?? { origin: null, protocol: null }
+  const labels = new URL(urlString).hostname.split('.')
+  let id: string | null = null; let protocol: string | null = null
 
-  return { origin, protocol }
+  // DNS label inspection happens from from right to left
+  // to work fine with edge cases like docs.ipfs.tech.ipns.foo.localhost
+  for (let i = labels.length - 1; i >= 0; i--) {
+    if (labels[i].startsWith('ipfs') || labels[i].startsWith('ipns')) {
+      protocol = labels[i]
+      id = labels.slice(0, i).join('.')
+      if (protocol === 'ipns' && isInlinedDnsLink(id)) {
+        // un-inline DNSLink names according to https://specs.ipfs.tech/http-gateways/subdomain-gateway/#host-request-header
+        id = dnsLinkLabelDecoder(id)
+      }
+      break
+    }
+  }
+
+  return { id, protocol }
 }
 
 function isSubdomainRequest (event: FetchEvent): boolean {
-  const { origin, protocol } = getSubdomainParts(event.request)
+  const { id, protocol } = getSubdomainParts(event.request)
+  trace('isSubdomainRequest.id: ', id)
+  trace('isSubdomainRequest.protocol: ', protocol)
 
-  return origin != null && protocol != null
+  return id != null && protocol != null
 }
 
 const isValidRequestForSW = (event: FetchEvent): boolean =>

@@ -3,10 +3,9 @@ import { ServiceWorkerContext } from './context/service-worker-context.tsx'
 import { HeliaServiceWorkerCommsChannel } from './lib/channel.ts'
 import { setConfig, type ConfigDb } from './lib/config-db.ts'
 import { error } from './lib/logger.ts'
-import { BASE_URL } from './lib/webpack-constants.ts'
 
 const ConfigIframe = (): JSX.Element => {
-  const iframeSrc = `${window.location.protocol}//${BASE_URL}/config?origin=${encodeURIComponent(window.location.origin)}`
+  const iframeSrc = `${window.location.origin}/config?origin=${encodeURIComponent(window.location.origin)}`
 
   return (
     <iframe id="redirect-config-iframe" src={iframeSrc} style={{ width: '100vw', height: '100vh', border: 'none' }} />

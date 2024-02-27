@@ -3,7 +3,6 @@ import Config from './components/config.tsx'
 import { ConfigContext } from './context/config-context.tsx'
 import HelperUi from './helper-ui.tsx'
 import { isPathOrSubdomainRequest } from './lib/path-or-subdomain.ts'
-import { BASE_URL } from './lib/webpack-constants.ts'
 import RedirectPage from './redirectPage.tsx'
 
 function App (): JSX.Element {
@@ -15,7 +14,7 @@ function App (): JSX.Element {
     return <Config />
   }
 
-  if (isPathOrSubdomainRequest(BASE_URL, window.location)) {
+  if (isPathOrSubdomainRequest(window.location)) {
     return (<RedirectPage />)
   }
 

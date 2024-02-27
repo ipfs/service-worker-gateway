@@ -1,13 +1,35 @@
+import { CID } from 'multiformats/cid'
+
 /**
  * For dnslinks see https://specs.ipfs.tech/http-gateways/subdomain-gateway/#host-request-header
  * DNSLink names include . which means they must be inlined into a single DNS label to provide unique origin and work with wildcard TLS certificates.
  */
 
+// DNS label can have up to 63 characters, consisting of alphanumeric
+// characters or hyphens -, but it must not start or end with a hyphen.
+const dnsLabelRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/
+
 /**
- * We can receive either a peerId string or dnsLink label string here. PeerId strings do not have dots or dashes.
+ * We can receive either IPNS Name string or DNSLink label string here.
+ * IPNS Names do not have dots or dashes.
  */
-export function isDnsLabel (label: string): boolean {
-  return ['-', '.'].some((char) => label.includes(char))
+export function isValidDnsLabel (label: string): boolean {
+  // If string is not a valid IPNS Name (CID)
+  // then we assume it may be a valid DNSLabel.
+  try {
+    CID.parse(label)
+    return false
+  } catch {
+    return dnsLabelRegex.test(label)
+  }
+}
+
+/**
+ * Checks if label looks like inlined DNSLink.
+ * (https://specs.ipfs.tech/http-gateways/subdomain-gateway/#host-request-header)
+ */
+export function isInlinedDnsLink (label: string): boolean {
+  return isValidDnsLabel(label) && label.includes('-') && !label.includes('.')
 }
 
 /**

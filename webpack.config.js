@@ -106,7 +106,7 @@ const dev = {
     // Only update what has changed on hot reload
     hot: true,
     port: 3000,
-    allowedHosts: [process.env.BASE_URL ?? 'helia-sw-gateway.localhost', 'localhost']
+    allowedHosts: ['helia-sw-gateway.localhost', 'localhost']
   },
 
   plugins: [
