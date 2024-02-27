@@ -1,21 +1,33 @@
-/* eslint-disable @typescript-eslint/strict-boolean-expressions, no-console */
-// import { clientsClaim } from 'workbox-core'
 import mime from 'mime-types'
 import { getHelia } from './get-helia.ts'
-import { dnsLinkLabelDecoder, isInlinedDnsLink } from './lib/dns-link-labels.ts'
+import { HeliaServiceWorkerCommsChannel, type ChannelMessage } from './lib/channel.ts'
+import { getSubdomainParts } from './lib/get-subdomain-parts.ts'
 import { heliaFetch } from './lib/heliaFetch.ts'
+import { error, log, trace } from './lib/logger.ts'
 import type { Helia } from '@helia/interface'
 
 declare let self: ServiceWorkerGlobalScope
 
 let helia: Helia
 self.addEventListener('install', () => {
-  console.log('sw installing')
   void self.skipWaiting()
 })
 
+const channel = new HeliaServiceWorkerCommsChannel('SW')
+
 self.addEventListener('activate', () => {
-  console.log('sw activating')
+  channel.onmessagefrom('WINDOW', async (message: MessageEvent<ChannelMessage<'WINDOW', null>>) => {
+    const { action } = message.data
+    switch (action) {
+      case 'RELOAD_CONFIG':
+        void getHelia().then((newHelia) => {
+          helia = newHelia
+        })
+        break
+      default:
+        log('unknown action: ', action)
+    }
+  })
 })
 
 /**
@@ -40,8 +52,6 @@ const fetchHandler = async ({ path, request }: FetchHandlerArg): Promise<Respons
   if (helia == null) {
     helia = await getHelia()
   }
-  // 2 second timeout - for debugging
-  // const abortController = new AbortAbort({ timeout: 2 * 1000 })
 
   /**
    * Note that there are existing bugs regarding service worker signal handling:
@@ -51,19 +61,19 @@ const fetchHandler = async ({ path, request }: FetchHandlerArg): Promise<Respons
   // 5 minute timeout
   const abortController = AbortSignal.timeout(5 * 60 * 1000)
   try {
-    const { id, protocol } = getSubdomainParts(request)
+    const { id, protocol } = getSubdomainParts(request.url)
     return await heliaFetch({ path, helia, signal: abortController, headers: request.headers, id, protocol })
   } catch (err: unknown) {
     const errorMessages: string[] = []
     if (isAggregateError(err)) {
-      console.error('fetchHandler aggregate error: ', err.message)
+      error('fetchHandler aggregate error: ', err.message)
       for (const e of err.errors) {
         errorMessages.push(e.message)
-        console.error('fetchHandler errors: ', e)
+        error('fetchHandler errors: ', e)
       }
     } else {
       errorMessages.push(err instanceof Error ? err.message : JSON.stringify(err))
-      console.error('fetchHandler error: ', err)
+      error('fetchHandler error: ', err)
     }
     const errorMessage = errorMessages.join('\n')
 
@@ -91,32 +101,10 @@ const isRootRequestForContent = (event: FetchEvent): boolean => {
   return isRootRequest // && getCidFromUrl(event.request.url) != null
 }
 
-function getSubdomainParts (request: Request): { id: string | null, protocol: string | null } {
-  const urlString = request.url
-  const labels = new URL(urlString).hostname.split('.')
-  let id: string | null = null; let protocol: string | null = null
-
-  // DNS label inspection happens from from right to left
-  // to work fine with edge cases like docs.ipfs.tech.ipns.foo.localhost
-  for (let i = labels.length - 1; i >= 0; i--) {
-    if (labels[i].startsWith('ipfs') || labels[i].startsWith('ipns')) {
-      protocol = labels[i]
-      id = labels.slice(0, i).join('.')
-      if (protocol === 'ipns' && isInlinedDnsLink(id)) {
-        // un-inline DNSLink names according to https://specs.ipfs.tech/http-gateways/subdomain-gateway/#host-request-header
-        id = dnsLinkLabelDecoder(id)
-      }
-      break
-    }
-  }
-
-  return { id, protocol }
-}
-
 function isSubdomainRequest (event: FetchEvent): boolean {
-  const { id, protocol } = getSubdomainParts(event.request)
-  console.log('isSubdomainRequest.id: ', id)
-  console.log('isSubdomainRequest.protocol: ', protocol)
+  const { id, protocol } = getSubdomainParts(event.request.url)
+  trace('isSubdomainRequest.id: ', id)
+  trace('isSubdomainRequest.protocol: ', protocol)
 
   return id != null && protocol != null
 }
@@ -128,26 +116,16 @@ self.addEventListener('fetch', event => {
   const request = event.request
   const urlString = request.url
   const url = new URL(urlString)
-  console.log('helia-sw: urlString: ', urlString)
 
-  if (urlString.includes('?helia-sw-subdomain')) {
-    console.log('helia-sw: subdomain request: ', urlString)
-    // subdomain request where URL has <subdomain>.ip[fn]s and any paths should be appended to the url
-    // const subdomain = url.searchParams.get('helia-sw-subdomain')
-    // console.log('url.href: ', url.href)
-    // const path = `${url.searchParams.get('helia-sw-subdomain')}/${url.pathname}`
-    event.respondWith(fetchHandler({ path: url.pathname, request }))
-    return
-  }
   if (!isValidRequestForSW(event)) {
-    console.warn('helia-sw: not a valid request for helia-sw, ignoring ', urlString)
+    trace('helia-sw: not a valid request for helia-sw, ignoring ', urlString)
     return
+  } else {
+    log('helia-sw: valid request for helia-sw: ', urlString)
   }
-  // console.log('request: ', request)
-  // console.log('self.location.origin: ', self.location.origin)
-  console.log('helia-sw: intercepting request to ', urlString)
+
   if (isReferrerPreviouslyIntercepted(event)) {
-    console.log('helia-sw: referred from ', request.referrer)
+    log('helia-sw: referred from ', request.referrer)
     const destinationParts = urlString.split('/')
     const referrerParts = request.referrer.split('/')
     const newParts: string[] = []
@@ -156,7 +134,6 @@ self.addEventListener('fetch', event => {
       newParts.push(destinationParts[index])
       index++
     }
-    // console.log(`leftover parts for '${request.referrer}' -> '${urlString}': `, referrerParts.slice(index))
     newParts.push(...referrerParts.slice(index))
 
     const newUrlString = newParts.join('/') + '/' + destinationParts.slice(index).join('/')
@@ -166,10 +143,10 @@ self.addEventListener('fetch', event => {
      * respond with redirect to newUrl
      */
     if (newUrl.toString() !== urlString) {
-      console.log('helia-sw: rerouting request to: ', newUrl.toString())
+      log('helia-sw: rerouting request to: ', newUrl.toString())
       const redirectHeaders = new Headers()
       redirectHeaders.set('Location', newUrl.toString())
-      if (mime.lookup(newUrl.toString())) {
+      if (mime.lookup(newUrl.toString()) != null) {
         redirectHeaders.set('Content-Type', mime.lookup(newUrl.toString()))
       }
       redirectHeaders.set('X-helia-sw', 'redirected')
@@ -179,7 +156,7 @@ self.addEventListener('fetch', event => {
       })
       event.respondWith(redirectResponse)
     } else {
-      console.log('helia-sw: not rerouting request to same url: ', newUrl.toString())
+      log('helia-sw: not rerouting request to same url: ', newUrl.toString())
 
       event.respondWith(fetchHandler({ path: url.pathname, request }))
     }
