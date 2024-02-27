@@ -1,7 +1,7 @@
 import mime from 'mime-types'
 import { getHelia } from './get-helia.ts'
 import { HeliaServiceWorkerCommsChannel, type ChannelMessage } from './lib/channel.ts'
-import { dnsLinkLabelDecoder, isInlinedDnsLink } from './lib/dns-link-labels.ts'
+import { getSubdomainParts } from './lib/get-subdomain-parts.ts'
 import { heliaFetch } from './lib/heliaFetch.ts'
 import { error, log, trace } from './lib/logger.ts'
 import type { Helia } from '@helia/interface'
@@ -61,7 +61,7 @@ const fetchHandler = async ({ path, request }: FetchHandlerArg): Promise<Respons
   // 5 minute timeout
   const abortController = AbortSignal.timeout(5 * 60 * 1000)
   try {
-    const { id, protocol } = getSubdomainParts(request)
+    const { id, protocol } = getSubdomainParts(request.url)
     return await heliaFetch({ path, helia, signal: abortController, headers: request.headers, id, protocol })
   } catch (err: unknown) {
     const errorMessages: string[] = []
@@ -101,30 +101,8 @@ const isRootRequestForContent = (event: FetchEvent): boolean => {
   return isRootRequest // && getCidFromUrl(event.request.url) != null
 }
 
-function getSubdomainParts (request: Request): { id: string | null, protocol: string | null } {
-  const urlString = request.url
-  const labels = new URL(urlString).hostname.split('.')
-  let id: string | null = null; let protocol: string | null = null
-
-  // DNS label inspection happens from from right to left
-  // to work fine with edge cases like docs.ipfs.tech.ipns.foo.localhost
-  for (let i = labels.length - 1; i >= 0; i--) {
-    if (labels[i].startsWith('ipfs') || labels[i].startsWith('ipns')) {
-      protocol = labels[i]
-      id = labels.slice(0, i).join('.')
-      if (protocol === 'ipns' && isInlinedDnsLink(id)) {
-        // un-inline DNSLink names according to https://specs.ipfs.tech/http-gateways/subdomain-gateway/#host-request-header
-        id = dnsLinkLabelDecoder(id)
-      }
-      break
-    }
-  }
-
-  return { id, protocol }
-}
-
 function isSubdomainRequest (event: FetchEvent): boolean {
-  const { id, protocol } = getSubdomainParts(event.request)
+  const { id, protocol } = getSubdomainParts(event.request.url)
   trace('isSubdomainRequest.id: ', id)
   trace('isSubdomainRequest.protocol: ', protocol)
 

@@ -4,8 +4,10 @@ import { ServiceWorkerContext } from '../context/service-worker-context.tsx'
 import { HeliaServiceWorkerCommsChannel } from '../lib/channel.ts'
 import { getConfig, loadConfigFromLocalStorage } from '../lib/config-db.ts'
 import { LOCAL_STORAGE_KEYS } from '../lib/local-storage.ts'
+import { Collapsible } from './collapsible'
 import LocalStorageInput from './local-storage-input.tsx'
 import { LocalStorageToggle } from './local-storage-toggle'
+import { ServiceWorkerReadyButton } from './sw-ready-button.tsx'
 
 const channel = new HeliaServiceWorkerCommsChannel('WINDOW')
 
@@ -80,10 +82,9 @@ export default (): JSX.Element | null => {
   if (!isConfigExpanded) {
     return null
   }
-  let saveDisabled = true
+
   const buttonClasses = new Set(['button-reset', 'pv3', 'tc', 'bn', 'white', 'w-100', 'cursor-disabled', 'bg-gray'])
   if (isServiceWorkerRegistered) {
-    saveDisabled = false
     buttonClasses.delete('bg-gray')
     buttonClasses.delete('cursor-disabled')
     buttonClasses.add('bg-animate')
@@ -94,13 +95,15 @@ export default (): JSX.Element | null => {
 
   return (
     <main className='pa4-l bg-snow mw7 center pa4'>
-      <LocalStorageInput localStorageKey={LOCAL_STORAGE_KEYS.config.gateways} label='Gateways' validationFn={urlValidationFn} defaultValue='[]' />
-      <LocalStorageInput localStorageKey={LOCAL_STORAGE_KEYS.config.routers} label='Routers' validationFn={urlValidationFn} defaultValue='[]'/>
-      <LocalStorageToggle localStorageKey={LOCAL_STORAGE_KEYS.config.autoReload} onLabel='Auto Reload' offLabel='Show Config' />
-      <LocalStorageInput localStorageKey={LOCAL_STORAGE_KEYS.config.debug} label='Debug logging' validationFn={stringValidationFn} defaultValue=''/>
-      <button id="save-config" disabled={saveDisabled} onClick={() => { void saveConfig() }} className={Array.from(buttonClasses).join(' ')}>{saveDisabled ? 'Waiting for service worker registration...' : 'Save Config'}</button>
+      <Collapsible collapsedLabel="View config" expandedLabel='Hide config' collapsed={true}>
+        <LocalStorageInput localStorageKey={LOCAL_STORAGE_KEYS.config.gateways} label='Gateways' validationFn={urlValidationFn} defaultValue='[]' />
+        <LocalStorageInput localStorageKey={LOCAL_STORAGE_KEYS.config.routers} label='Routers' validationFn={urlValidationFn} defaultValue='[]'/>
+        <LocalStorageToggle localStorageKey={LOCAL_STORAGE_KEYS.config.autoReload} onLabel='Auto Reload' offLabel='Show Config' />
+        <LocalStorageInput localStorageKey={LOCAL_STORAGE_KEYS.config.debug} label='Debug logging' validationFn={stringValidationFn} defaultValue=''/>
+        <ServiceWorkerReadyButton id="save-config" label='Save Config' waitingLabel='Waiting for service worker registration...' onClick={() => { void saveConfig() }} />
 
-      {error != null && <span style={{ color: 'red' }}>{error.message}</span>}
+        {error != null && <span style={{ color: 'red' }}>{error.message}</span>}
+      </Collapsible>
     </main>
   )
 }
