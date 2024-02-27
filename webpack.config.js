@@ -35,7 +35,7 @@ const paths = {
  */
 const prod = {
   mode: 'production',
-  devtool: false,
+  devtool: 'inline-source-map',
   output: {
     path: paths.build,
     publicPath: '/',
@@ -66,7 +66,18 @@ const prod = {
         })
       }
     }
-  ]
+  ],
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        reactVendor: {
+          test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom)[\\/]/,
+          name: 'vendor-react',
+          chunks: 'all'
+        }
+      }
+    }
+  }
 }
 
 /**

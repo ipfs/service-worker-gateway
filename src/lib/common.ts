@@ -6,13 +6,5 @@ export enum COLORS {
 }
 
 export enum ChannelActions {
-  GET_FILE = 'GET_FILE',
-  DIAL = 'DIAL',
-  UPDATE_OUTPUT = 'UPDATE_OUTPUT',
-  PING = 'PING',
-  PONG = 'PONG',
-  /**
-   * Intended only for pushing from SW to the UI output terminal
-   */
-  SHOW_STATUS = 'SHOW_STATUS',
+  RELOAD_CONFIG = 'RELOAD_CONFIG',
 }

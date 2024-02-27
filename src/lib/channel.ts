@@ -1,3 +1,4 @@
+import { error } from './logger.ts'
 import type { ChannelActions } from './common.ts'
 
 export enum ChannelUsers {
@@ -26,33 +27,19 @@ type NotSourceUser<T extends ChannelUserValues> = T extends ChannelUsers
 export interface ChannelMessage<Source extends ChannelUserValues, Data = Record<string, unknown>> {
   source: Source
   target?: ChannelUserValues
-  action: ChannelActions | keyof typeof ChannelActions | 'TEST'
-  data: Data
+  action: keyof typeof ChannelActions
+  data?: Data
 }
 
 export class HeliaServiceWorkerCommsChannel<S extends ChannelUserValues = 'EMITTER_ONLY'> {
   channel: BroadcastChannel
   debug = false
   constructor (public source: S, private readonly channelName = 'helia:sw') {
-    this.log('HeliaServiceWorkerCommsChannel construction: ', source)
-
     // NOTE: We're supposed to close the channel when we're done with it, but we're not doing that anywhere yet.
     this.channel = new BroadcastChannel(this.channelName)
     this.channel.onmessageerror = (e) => {
-      this.error('onmessageerror', e)
+      error('onmessageerror', e)
     }
-  }
-
-  log (...args: unknown[]): void {
-    if (!this.debug) return
-    // eslint-disable-next-line no-console
-    console.log(`HeliaServiceWorkerCommsChannel(${this.source}): `, ...args)
-  }
-
-  error (...args: unknown[]): void {
-    if (!this.debug) return
-    // eslint-disable-next-line no-console
-    console.error(`HeliaServiceWorkerCommsChannel(${this.source}): `, ...args)
   }
 
   canListen (): boolean {
@@ -71,12 +58,7 @@ export class HeliaServiceWorkerCommsChannel<S extends ChannelUserValues = 'EMITT
       throw new Error('Cannot use onmessagefrom on EMITTER_ONLY channel')
     }
     const onMsgHandler = (e: MessageEvent<ChannelMessage<Source, MType>>): void => {
-      this.log('onMsgHandler: ', e)
       if (e.data.source !== source) {
-        return
-      }
-      if (e.data.action === 'PING') {
-        this.postMessage({ action: 'PONG', data: e.data.data })
         return
       }
       void cb(e)
@@ -95,14 +77,10 @@ export class HeliaServiceWorkerCommsChannel<S extends ChannelUserValues = 'EMITT
       throw new Error('Cannot use onmessagefromother on EMITTER_ONLY channel')
     }
     const onMsgHandler = (e: MessageEvent<ChannelMessage<Source, MType>>): void => {
-      this.log('onMsgHandler: ', e)
       if (e.data.source !== source) {
         return
       }
-      if (e.data.action === 'PING') {
-        this.postMessage({ action: 'PONG', data: e.data.data })
-        return
-      }
+
       void cb(e)
 
       // this.channel.removeEventListener('message', onMsgHandler)
@@ -123,14 +101,12 @@ export class HeliaServiceWorkerCommsChannel<S extends ChannelUserValues = 'EMITT
         this.channel.removeEventListener('message', onMessage)
         resolve(e.data)
       }
-      // this.channel.onmessage = onMessage;
       this.channel.addEventListener('message', onMessage)
       this.postMessage(data)
     })
   }
 
   postMessage<MType>(msg: Omit<ChannelMessage<S, MType>, 'source'>): void {
-    this.log('postMessage: ', msg)
     const msgObj: ChannelMessage<typeof this.source, MType> = {
       ...msg,
       source: this.source

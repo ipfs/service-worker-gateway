@@ -1,8 +1,12 @@
-import { getLocalStorageKey } from './local-storage.ts'
+import debugLib from 'debug'
+import { LOCAL_STORAGE_KEYS } from './local-storage.ts'
+import { log } from './logger'
 
 export interface ConfigDb {
   gateways: string[]
   routers: string[]
+  autoReload: boolean
+  debug: string
 }
 
 export type configDbKeys = keyof ConfigDb
@@ -49,16 +53,32 @@ export async function closeDatabase (db: IDBDatabase): Promise<void> {
 export async function loadConfigFromLocalStorage (): Promise<void> {
   if (typeof globalThis.localStorage !== 'undefined') {
     const db = await openDatabase()
-    const localStorage = global.localStorage
-    const localStorageGatewaysString = localStorage.getItem(getLocalStorageKey('config', 'gateways')) ?? '[]'
-    const localStorageRoutersString = localStorage.getItem(getLocalStorageKey('config', 'routers')) ?? '[]'
+    const localStorage = globalThis.localStorage
+    const localStorageGatewaysString = localStorage.getItem(LOCAL_STORAGE_KEYS.config.gateways) ?? '[]'
+    const localStorageRoutersString = localStorage.getItem(LOCAL_STORAGE_KEYS.config.routers) ?? '[]'
+    const autoReload = localStorage.getItem(LOCAL_STORAGE_KEYS.config.autoReload) === 'true'
+    const debug = localStorage.getItem(LOCAL_STORAGE_KEYS.config.debug) ?? ''
     const gateways = JSON.parse(localStorageGatewaysString)
     const routers = JSON.parse(localStorageRoutersString)
+    debugLib.enable(debug)
 
     await setInDatabase(db, 'gateways', gateways)
     await setInDatabase(db, 'routers', routers)
+    await setInDatabase(db, 'autoReload', autoReload)
+    await setInDatabase(db, 'debug', debug)
     await closeDatabase(db)
   }
+}
+
+export async function setConfig (config: ConfigDb): Promise<void> {
+  log('config-debug: setting config', config)
+  debugLib.enable(config.debug ?? '')
+  const db = await openDatabase()
+  await setInDatabase(db, 'gateways', config.gateways)
+  await setInDatabase(db, 'routers', config.routers)
+  await setInDatabase(db, 'autoReload', config.autoReload)
+  await setInDatabase(db, 'debug', config.debug ?? '')
+  await closeDatabase(db)
 }
 
 export async function getConfig (): Promise<ConfigDb> {
@@ -66,9 +86,14 @@ export async function getConfig (): Promise<ConfigDb> {
 
   const gateways = await getFromDatabase(db, 'gateways') ?? []
   const routers = await getFromDatabase(db, 'routers') ?? []
+  const autoReload = await getFromDatabase(db, 'autoReload') ?? false
+  const debug = await getFromDatabase(db, 'debug') ?? ''
+  debugLib.enable(debug)
 
   return {
-    gateways: gateways instanceof Array ? gateways : [],
-    routers: routers instanceof Array ? routers : []
+    gateways,
+    routers,
+    autoReload,
+    debug
   }
 }
