@@ -1,6 +1,5 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react'
 import { ConfigContext } from '../context/config-context.tsx'
-import { ServiceWorkerContext } from '../context/service-worker-context.tsx'
 import { HeliaServiceWorkerCommsChannel } from '../lib/channel.ts'
 import { getConfig, loadConfigFromLocalStorage } from '../lib/config-db.ts'
 import { LOCAL_STORAGE_KEYS } from '../lib/local-storage.ts'
@@ -36,8 +35,6 @@ const stringValidationFn = (value: string): Error | null => {
 
 export default (): JSX.Element | null => {
   const { isConfigExpanded, setConfigExpanded } = useContext(ConfigContext)
-  const { isServiceWorkerRegistered } = useContext(ServiceWorkerContext)
-
   const [error, setError] = useState<Error | null>(null)
 
   const isLoadedInIframe = window.self !== window.top
@@ -81,16 +78,6 @@ export default (): JSX.Element | null => {
 
   if (!isConfigExpanded) {
     return null
-  }
-
-  const buttonClasses = new Set(['button-reset', 'pv3', 'tc', 'bn', 'white', 'w-100', 'cursor-disabled', 'bg-gray'])
-  if (isServiceWorkerRegistered) {
-    buttonClasses.delete('bg-gray')
-    buttonClasses.delete('cursor-disabled')
-    buttonClasses.add('bg-animate')
-    buttonClasses.add('bg-black-80')
-    buttonClasses.add('hover-bg-aqua')
-    buttonClasses.add('pointer')
   }
 
   return (
