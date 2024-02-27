@@ -128,7 +128,7 @@ export async function heliaFetch ({ path, helia, signal, headers, id, protocol }
   const verifiedFetch = await createVerifiedFetch({
     gateways: ['https://trustless-gateway.link', ...config.gateways],
     routers: ['https://delegated-ipfs.dev', ...config.routers],
-    dnsResolvers: ['https://sgtpooki.com/dns-query'].map(dnsJsonOverHttps)
+    dnsResolvers: ['https://delegated-ipfs.dev/dns-query'].map(dnsJsonOverHttps)
   }, {
     contentTypeParser
   })
