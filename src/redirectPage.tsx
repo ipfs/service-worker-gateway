@@ -5,7 +5,6 @@ import { HeliaServiceWorkerCommsChannel } from './lib/channel.ts'
 import { setConfig, type ConfigDb } from './lib/config-db.ts'
 import { getSubdomainParts } from './lib/get-subdomain-parts'
 import { error } from './lib/logger.ts'
-// import { findOriginIsolationRedirect } from './lib/path-or-subdomain.ts'
 
 const ConfigIframe = (): JSX.Element => {
   const { parentDomain } = getSubdomainParts(window.location.href)
@@ -22,19 +21,6 @@ const channel = new HeliaServiceWorkerCommsChannel('WINDOW')
 export default function RedirectPage (): JSX.Element {
   const [isAutoReloadEnabled, setIsAutoReloadEnabled] = useState(false)
   const { isServiceWorkerRegistered } = useContext(ServiceWorkerContext)
-
-  /* TODO:: we can enable this after we have means of caching the check result
-  useEffect(() => {
-    async function originEnforcement (): Promise<void> {
-      // enforce  early when loaded before SW was registered
-      const originRedirect = await findOriginIsolationRedirect(window.location)
-      if (originRedirect !== null) {
-        window.location.replace(originRedirect)
-      }
-    }
-    void originEnforcement()
-  }, [])
-  */
 
   useEffect(() => {
     async function doWork (config: ConfigDb): Promise<void> {
