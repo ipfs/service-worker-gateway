@@ -106,6 +106,10 @@ const dev = {
     // Only update what has changed on hot reload
     hot: true,
     port: 3000,
+    headers: {
+      'access-control-allow-origin': '*',
+      'access-control-allow-methods': 'GET'
+    },
     allowedHosts: ['helia-sw-gateway.localhost', 'localhost']
   },
 
