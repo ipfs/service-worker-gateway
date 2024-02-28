@@ -128,7 +128,6 @@ export async function heliaFetch ({ path, helia, signal, headers, id, protocol }
   const verifiedFetch = await createVerifiedFetch({
     gateways: [...config.gateways, 'https://trustless-gateway.link'],
     routers: [...config.routers, 'https://delegated-ipfs.dev'],
-    // @ts-expect-error dnsResolvers' does not exist in type 'Helia | CreateVerifiedFetchInit'
     dnsResolvers: ['https://delegated-ipfs.dev/dns-query'].map(dnsJsonOverHttps)
   }, {
     contentTypeParser
