@@ -5,6 +5,7 @@ import App from './app.tsx'
 import { ConfigProvider } from './context/config-context.tsx'
 import { ServiceWorkerProvider } from './context/service-worker-context.tsx'
 import { loadConfigFromLocalStorage } from './lib/config-db.ts'
+import { isConfigPage } from './lib/is-config-page.ts'
 
 await loadConfigFromLocalStorage()
 
@@ -16,7 +17,7 @@ const root = ReactDOMClient.createRoot(container)
 root.render(
   <React.StrictMode>
     <ServiceWorkerProvider>
-      <ConfigProvider expanded={window.location.pathname === '/config'}>
+      <ConfigProvider expanded={isConfigPage()}>
           <App />
       </ConfigProvider>
     </ServiceWorkerProvider>

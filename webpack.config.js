@@ -106,6 +106,10 @@ const dev = {
     // Only update what has changed on hot reload
     hot: true,
     port: 3000,
+    headers: {
+      'access-control-allow-origin': '*',
+      'access-control-allow-methods': 'GET'
+    },
     allowedHosts: ['helia-sw-gateway.localhost', 'localhost']
   },
 
@@ -170,7 +174,7 @@ const common = {
     // Generates an HTML file from a template
     // Generates deprecation warning: https://github.com/jantimon/html-webpack-plugin/issues/1501
     new HtmlWebpackPlugin({
-      title: 'Helia bundle by Webpack',
+      title: 'Helia service worker gateway',
       favicon: paths.public + '/favicon.ico',
       template: paths.public + '/index.html', // template file
       filename: 'index.html', // output file,
