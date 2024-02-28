@@ -3,7 +3,6 @@ import { getHelia } from './get-helia.ts'
 import { HeliaServiceWorkerCommsChannel, type ChannelMessage } from './lib/channel.ts'
 import { getSubdomainParts } from './lib/get-subdomain-parts.ts'
 import { heliaFetch } from './lib/heliaFetch.ts'
-import { getActualUrl } from './lib/ipfs-hosted-redirect-utils.ts'
 import { error, log, trace } from './lib/logger.ts'
 import { findOriginIsolationRedirect } from './lib/path-or-subdomain.ts'
 import type { Helia } from '@helia/interface'
@@ -52,7 +51,7 @@ interface FetchHandlerArg {
 
 const fetchHandler = async ({ path, request }: FetchHandlerArg): Promise<Response> => {
   // test and enforce origin isolation before anything else is executed
-  const originLocation = await findOriginIsolationRedirect(getActualUrl(request.url))
+  const originLocation = await findOriginIsolationRedirect(new URL(request.url))
   if (originLocation !== null) {
     const body = 'Gateway supports subdomain mode, redirecting to ensure Origin isolation..'
     return new Response(body, {
