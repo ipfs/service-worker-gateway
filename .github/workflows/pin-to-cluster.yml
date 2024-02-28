@@ -1,0 +1,71 @@
+name: Pin Latest DNSLink to Cluster
+
+on:
+  schedule:
+    - cron: '6 0 * * *'
+  workflow_dispatch:
+
+env:
+ KUBO_VER: 'v0.26.0'       # kubo daemon used for chunking and applying diff
+ CLUSTER_CTL_VER: 'v1.0.8' # ipfs-cluster-ctl used for pinning
+
+jobs:
+  persist:
+    runs-on: ${{ fromJSON(vars.CI_BUILD_RUNS_ON || '"ubuntu-latest"') }}
+    environment: Deploy
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+      - uses: ipfs/download-ipfs-distribution-action@v1
+        with:
+          name: kubo
+          version: "${{ env.KUBO_VER }}"
+      - uses: ipfs/download-ipfs-distribution-action@v1
+        with:
+          name: ipfs-cluster-ctl
+          version: "${{ env.CLUSTER_CTL_VER }}"
+      - name: Init IPFS daemon
+        run: |
+          # fix resolv - DNS provided by Github is unreliable for DNSLik/dnsaddr
+          sudo sed -i -e 's/nameserver 127.0.0.*/nameserver 1.1.1.1/g' /etc/resolv.conf
+          ipfs init --profile flatfs,server,randomports,lowpower
+          # make flatfs async for faster ci
+          ipfs config --json 'Datastore.Spec.mounts' "$(ipfs config 'Datastore.Spec.mounts' | jq -c '.[0].child.sync=false')"
+        shell: bash
+      - uses: ipfs/start-ipfs-daemon-action@v1
+        with:
+          args: --enable-gc=false
+      - name: Preconnect to cluster peers
+        run: |
+          ipfs-cluster-ctl --enc=json \
+            --host "/dnsaddr/ipfs-websites.collab.ipfscluster.io" \
+            --basic-auth "$CLUSTER_USER:$CLUSTER_PASSWORD" \
+            peers ls | tee cluster-peers-ls
+          for maddr in $(jq -r '.ipfs.addresses[]?' cluster-peers-ls); do
+            ipfs swarm peering add $maddr
+            ipfs swarm connect $maddr || true &
+          done
+        shell: bash
+        env:
+          CLUSTER_USER: ${{ secrets.CLUSTER_USER }}
+          CLUSTER_PASSWORD: ${{ secrets.CLUSTER_PASSWORD }}
+      - name: Read CID from DNSLink at inbrowser.link
+        id: cid-reader
+        run: echo "CID=$(ipfs resolve /ipns/inbrowser.link | sed 's|^/ipfs/||')" >> $GITHUB_OUTPUT
+      - name: Pin latest CID to ipfs-websites.collab.ipfscluster.io
+        run: |
+          ipfs-cluster-ctl --enc=json \
+              --host "/dnsaddr/ipfs-websites.collab.ipfscluster.io" \
+              --basic-auth "${CLUSTER_USER}:${CLUSTER_PASSWORD}" \
+              pin add \
+              --name "inbrowser.link_$(date +"%Y-%m-%d_%H:%M:%S")" \
+              --replication-min 2 \
+              --replication-max 6 \
+              --wait \
+              "$PIN_CID"
+        env:
+          PIN_CID: ${{ steps.cid-reader.outputs.CID }}
+          CLUSTER_USER: ${{ secrets.CLUSTER_USER }}
+          CLUSTER_PASSWORD: ${{ secrets.CLUSTER_PASSWORD }}
+        timeout-minutes: 60
