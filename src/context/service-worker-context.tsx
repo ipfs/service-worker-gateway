@@ -23,8 +23,8 @@ export const ServiceWorkerProvider = ({ children }): JSX.Element => {
         setIsServiceWorkerRegistered(true)
       } else {
         try {
-          const registration = await registerServiceWorker()
-          await registration.update()
+          const registration = await registerServiceWorker() // this will hang until `updatefound` evt is fired.
+          await registration.update() // why the update necessary right after registering?
           setIsServiceWorkerRegistered(true)
         } catch (err) {
           error('error registering service worker', err)

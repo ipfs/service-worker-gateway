@@ -4,7 +4,7 @@ import type { ChannelActions } from './common.ts'
 export enum ChannelUsers {
   SW = 'SW',
   WINDOW = 'WINDOW',
-  EMITTER_ONLY = 'EMITTER_ONLY'
+  EMITTER_ONLY = 'EMITTER_ONLY' // What's the use case for Emitter only?
 }
 
 export type ChannelUserValues = keyof typeof ChannelUsers
