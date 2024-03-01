@@ -6,6 +6,8 @@ on:
   pull_request:
     branches:
       - '**'
+  workflow_dispatch:
+
 
 jobs:
 
@@ -17,6 +19,11 @@ jobs:
       with:
         node-version: lts/*
     - uses: ipfs/aegir/actions/cache-node-modules@master
+    - name: Save ./dist output for later
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist_${{ github.sha }}
+        path: dist
 
   check:
     needs: build
@@ -155,3 +162,111 @@ jobs:
         with:
           flags: electron-renderer
           files: .coverage/*,packages/*/.coverage/*
+
+  publish-to-ipfs:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: Deploy # dependency on 'Deploy' env means 'publish-to-ipfs' only runs when it is present
+    concurrency:
+      # only one job runs at a time == DNSLinks are updated in-order
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+    env:
+      KUBO_VER: 'v0.26.0'       # kubo daemon used for publishing to IPFS
+      CLUSTER_CTL_VER: 'v1.0.8' # ipfs-cluster-ctl used for pinning
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve ./dist produced by build job
+        uses: actions/download-artifact@v4
+        with:
+          name: dist_${{ github.sha }}
+          path: dist
+      - uses: ipfs/download-ipfs-distribution-action@v1
+        with:
+          name: kubo
+          version: "${{ env.KUBO_VER }}"
+      - uses: ipfs/download-ipfs-distribution-action@v1
+        with:
+          name: ipfs-cluster-ctl
+          version: "${{ env.CLUSTER_CTL_VER }}"
+      - name: Init IPFS daemon
+        run: |
+          # fix resolv - DNS provided by Github is unreliable for DNSLik/dnsaddr
+          sudo sed -i -e 's/nameserver 127.0.0.*/nameserver 1.1.1.1/g' /etc/resolv.conf
+          ipfs init --profile flatfs,server,randomports,lowpower
+          # make flatfs async for faster ci
+          ipfs config --json 'Datastore.Spec.mounts' "$(ipfs config 'Datastore.Spec.mounts' | jq -c '.[0].child.sync=false')"
+        shell: bash
+      - uses: ipfs/start-ipfs-daemon-action@v1
+        with:
+          args: --enable-gc=false
+      - name: Preconnect to cluster peers
+        run: |
+          ipfs-cluster-ctl --enc=json \
+            --host "/dnsaddr/ipfs-websites.collab.ipfscluster.io" \
+            --basic-auth "$CLUSTER_USER:$CLUSTER_PASSWORD" \
+            peers ls | tee cluster-peers-ls
+          for maddr in $(jq -r '.ipfs.addresses[]?' cluster-peers-ls); do
+            ipfs swarm peering add $maddr
+            ipfs swarm connect $maddr || true &
+          done
+        shell: bash
+        env:
+          CLUSTER_USER: ${{ secrets.CLUSTER_USER }}
+          CLUSTER_PASSWORD: ${{ secrets.CLUSTER_PASSWORD }}
+      - name: IPFS import of ./dist
+        id: ipfs-import
+        run: |
+          root_cid=$(ipfs add --cid-version 1 --inline --chunker size-1048576 -Q -r --offline ./dist)
+          echo "cid=$root_cid" >> $GITHUB_OUTPUT
+      - name: ℹ️  Generated DAG and CID
+        run: ipfs dag stat --progress=false ${{ steps.ipfs-import.outputs.cid }}
+      - name: Create CAR file
+        run: ipfs dag export ${{ steps.ipfs-import.outputs.cid }} > dist_${{ github.sha }}.car
+      - name: Attach CAR to Github Action
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist_${{ github.sha }}.car
+          path: dist_${{ github.sha }}.car
+          if-no-files-found: error
+      - name: Pin to ipfs-websites.collab.ipfscluster.io
+        run: |
+          ipfs-cluster-ctl --enc=json \
+              --host "/dnsaddr/ipfs-websites.collab.ipfscluster.io" \
+              --basic-auth "${CLUSTER_USER}:${CLUSTER_PASSWORD}" \
+              pin add \
+              --name "${{ github.repository }}/${{ github.sha }}" \
+              --replication-min 2 \
+              --replication-max 6 \
+              --wait \
+              "$PIN_CID"
+        env:
+          PIN_CID: ${{ steps.ipfs-import.outputs.cid }}
+          CLUSTER_USER: ${{ secrets.CLUSTER_USER }}
+          CLUSTER_PASSWORD: ${{ secrets.CLUSTER_PASSWORD }}
+        timeout-minutes: 60
+      - name: Update DNSLink at inbrowser.dev (Dev Testing)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          curl --request PUT --header "Authorization: Bearer ${AUTH_TOKEN}" --header 'Content-Type: application/json' \
+            --url "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records/${RECORD_ID}" \
+            --data "{\"type\":\"TXT\",\"name\":\"_dnslink.${DNSLINK_NAME}\",\"content\":\"dnslink=/ipfs/${DNSLINK_CID}\",\"comment\":\"${{ github.repository }}/${{ github.sha }}\"}"
+        env:
+          DNSLINK_NAME: inbrowser.dev
+          DNSLINK_CID: ${{ steps.ipfs-import.outputs.cid }}
+          ZONE_ID: ${{ secrets.CF_INBROWSERDEV_ZONE_ID }}
+          RECORD_ID:  ${{ secrets.CF_INBROWSERDEV_RECORD_ID }}
+          AUTH_TOKEN: ${{ secrets.CF_INBROWSERDEV_AUTH_TOKEN }}
+      - name: Update DNSLink at inbrowser.link (Stable Production)
+        # TODO: make this run only on release
+        if: github.ref == 'refs/heads/main'
+        run: |
+          curl --request PUT --header "Authorization: Bearer ${AUTH_TOKEN}" --header 'Content-Type: application/json'  \
+            --url "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records/${RECORD_ID}" \
+            --data "{\"type\":\"TXT\",\"name\":\"_dnslink.${DNSLINK_NAME}\",\"content\":\"dnslink=/ipfs/${DNSLINK_CID}\",\"comment\":\"${{ github.repository }}/${{ github.sha }}\"}"
+        env:
+          DNSLINK_NAME: inbrowser.link
+          DNSLINK_CID: ${{ steps.ipfs-import.outputs.cid }}
+          ZONE_ID: ${{ secrets.CF_INBROWSERLINK_ZONE_ID }}
+          RECORD_ID:  ${{ secrets.CF_INBROWSERLINK_RECORD_ID }}
+          AUTH_TOKEN: ${{ secrets.CF_INBROWSERLINK_AUTH_TOKEN }}
