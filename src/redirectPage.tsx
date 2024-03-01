@@ -9,7 +9,7 @@ import { error } from './lib/logger.ts'
 const ConfigIframe = (): JSX.Element => {
   const { parentDomain } = getSubdomainParts(window.location.href)
 
-  const iframeSrc = `${window.location.protocol}//${parentDomain}/config?origin=${encodeURIComponent(window.location.origin)}`
+  const iframeSrc = `${window.location.protocol}//${parentDomain}:${window.location.port}/config?origin=${encodeURIComponent(window.location.origin)}`
 
   return (
     <iframe id="redirect-config-iframe" src={iframeSrc} style={{ width: '100vw', height: '100vh', border: 'none' }} />
