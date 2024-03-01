@@ -214,11 +214,13 @@ jobs:
         env:
           CLUSTER_USER: ${{ secrets.CLUSTER_USER }}
           CLUSTER_PASSWORD: ${{ secrets.CLUSTER_PASSWORD }}
-      - name: IPFS import of ./dist and generating CID
+      - name: IPFS import of ./dist
         id: ipfs-import
         run: |
-          root_cid=$(ipfs add --cid-version 1 -Q -r --offline ./dist)
+          root_cid=$(ipfs add --cid-version 1 --inline --chunker size-1048576 -Q -r --offline ./dist)
           echo "cid=$root_cid" >> $GITHUB_OUTPUT
+      - name: ℹ️  Generated DAG and CID
+        run: ipfs dag stat --progress=false ${{ steps.ipfs-import.outputs.cid }}
       - name: Create CAR file
         run: ipfs dag export ${{ steps.ipfs-import.outputs.cid }} > dist_${{ github.sha }}.car
       - name: Attach CAR to Github Action
