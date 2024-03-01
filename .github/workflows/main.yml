@@ -8,6 +8,7 @@ on:
       - '**'
   workflow_dispatch:
 
+
 jobs:
 
   build:
@@ -23,7 +24,6 @@ jobs:
       with:
         name: dist_${{ github.sha }}
         path: dist
-        retention-days: 3
 
   check:
     needs: build
@@ -166,8 +166,11 @@ jobs:
   publish-to-ipfs:
     needs: build
     runs-on: ubuntu-latest
-    environment: Deploy
-    # TODO only if: release or main branch
+    environment: Deploy # dependency on 'Deploy' env means 'publish-to-ipfs' only runs when it is present
+    concurrency:
+      # only one job runs at a time == DNSLinks are updated in-order
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
     env:
       KUBO_VER: 'v0.26.0'       # kubo daemon used for publishing to IPFS
       CLUSTER_CTL_VER: 'v1.0.8' # ipfs-cluster-ctl used for pinning
@@ -240,18 +243,28 @@ jobs:
           CLUSTER_USER: ${{ secrets.CLUSTER_USER }}
           CLUSTER_PASSWORD: ${{ secrets.CLUSTER_PASSWORD }}
         timeout-minutes: 60
-      - name: Update DNSLink at inbrowser.dev
-        # TODO .dev only if: github.ref == 'refs/heads/main'
+      - name: Update DNSLink at inbrowser.dev (Dev Testing)
+        if: github.ref == 'refs/heads/main'
         run: |
-          curl --request PUT --header "Authorization: Bearer ${AUTH_TOKEN}" \
+          curl --request PUT --header "Authorization: Bearer ${AUTH_TOKEN}" --header 'Content-Type: application/json' \
             --url "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records/${RECORD_ID}" \
-            --header 'Content-Type: application/json' \
-            --data "{\"type\":\"TXT\",\"name\":\"${DNSLINK_NAME}\",\"content\":\"dnslink=/ipfs/${DNSLINK_CID}\",\"comment\":\"${{ github.repository }}/${{ github.sha }}\"}"
+            --data "{\"type\":\"TXT\",\"name\":\"_dnslink.${DNSLINK_NAME}\",\"content\":\"dnslink=/ipfs/${DNSLINK_CID}\",\"comment\":\"${{ github.repository }}/${{ github.sha }}\"}"
         env:
-          # TODO switch to real name, and update record_id
-          DNSLINK_NAME: test.inbrowser.dev
+          DNSLINK_NAME: inbrowser.dev
           DNSLINK_CID: ${{ steps.ipfs-import.outputs.cid }}
           ZONE_ID: ${{ secrets.CF_INBROWSERDEV_ZONE_ID }}
           RECORD_ID:  ${{ secrets.CF_INBROWSERDEV_RECORD_ID }}
           AUTH_TOKEN: ${{ secrets.CF_INBROWSERDEV_AUTH_TOKEN }}
-        # TODO same for .link but only if release
+      - name: Update DNSLink at inbrowser.link (Stable Production)
+        # TODO: make this run only on release
+        if: github.ref == 'refs/heads/main'
+        run: |
+          curl --request PUT --header "Authorization: Bearer ${AUTH_TOKEN}" --header 'Content-Type: application/json'  \
+            --url "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records/${RECORD_ID}" \
+            --data "{\"type\":\"TXT\",\"name\":\"_dnslink.${DNSLINK_NAME}\",\"content\":\"dnslink=/ipfs/${DNSLINK_CID}\",\"comment\":\"${{ github.repository }}/${{ github.sha }}\"}"
+        env:
+          DNSLINK_NAME: inbrowser.link
+          DNSLINK_CID: ${{ steps.ipfs-import.outputs.cid }}
+          ZONE_ID: ${{ secrets.CF_INBROWSERLINK_ZONE_ID }}
+          RECORD_ID:  ${{ secrets.CF_INBROWSERLINK_RECORD_ID }}
+          AUTH_TOKEN: ${{ secrets.CF_INBROWSERLINK_AUTH_TOKEN }}
