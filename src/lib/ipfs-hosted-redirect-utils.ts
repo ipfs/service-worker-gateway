@@ -4,7 +4,7 @@
  *
  * This function will check for "?helia-sw=" in the URL and modify the URL so that it works with the rest of our logic
  */
-export function getActualUrl (urlString: string): URL {
+export function translateIpfsRedirectUrl (urlString: string): URL {
   const url = new URL(urlString)
   const heliaSw = url.searchParams.get('helia-sw')
   if (heliaSw != null) {
