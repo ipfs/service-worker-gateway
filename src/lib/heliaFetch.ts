@@ -137,9 +137,6 @@ export async function heliaFetch ({ path, helia, signal, headers, id, protocol }
 
   if (id != null && protocol != null) {
     verifiedFetchUrl = `${protocol}://${id}${path}`
-
-    // eslint-disable-next-line no-console
-    console.log('subdomain fetch for ', verifiedFetchUrl)
   } else {
     const pathParts = path.split('/')
 
@@ -157,9 +154,12 @@ export async function heliaFetch ({ path, helia, signal, headers, id, protocol }
     verifiedFetchUrl = `${namespaceString}://${pathRootString}/${changeCssFontPath(contentPath)}`
   }
 
+  // eslint-disable-next-line no-console
+  console.log('verifiedFetch for ', verifiedFetchUrl)
   return verifiedFetch(verifiedFetchUrl, {
     signal,
     headers,
+    // TODO redirect: 'manual', // enable when http urls are supported by verified-fetch: https://github.com/ipfs-shipyard/helia-service-worker-gateway/issues/62#issuecomment-1977661456
     onProgress: (e) => {
       trace(`${e.type}: `, e.detail)
     }
