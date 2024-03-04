@@ -164,6 +164,8 @@ jobs:
           files: .coverage/*,packages/*/.coverage/*
 
   publish-to-ipfs:
+    # TODO: make this run also on release
+    if: github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
     environment: Deploy # dependency on 'Deploy' env means 'publish-to-ipfs' only runs when it is present
