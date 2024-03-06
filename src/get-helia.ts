@@ -1,30 +1,21 @@
-import { trustlessGateway } from '@helia/block-brokers'
-import { createHeliaHTTP } from '@helia/http'
-import { delegatedHTTPRouting } from '@helia/routers'
-import { IDBBlockstore } from 'blockstore-idb'
-import { IDBDatastore } from 'datastore-idb'
+
+import { createVerifiedFetch, type VerifiedFetch } from '@helia/verified-fetch'
 import { getConfig } from './lib/config-db.ts'
 import { trace } from './lib/logger.ts'
-import type { Helia } from '@helia/interface'
+import { dnsJsonOverHttps } from '@helia/ipns/dns-resolvers'
+import { contentTypeParser } from './lib/content-type-parser.ts'
 
-export async function getHelia (): Promise<Helia> {
+export async function getVerifiedFetch (): Promise<VerifiedFetch> {
   const config = await getConfig()
   trace(`config-debug: got config for sw location ${self.location.origin}`, config)
-  const blockstore = new IDBBlockstore('./helia-sw/blockstore')
-  const datastore = new IDBDatastore('./helia-sw/datastore')
-  await blockstore.open()
-  await datastore.open()
 
-  const helia = await createHeliaHTTP({
-    blockstore,
-    datastore,
-    blockBrokers: [
-      trustlessGateway({
-        gateways: [...config.gateways, 'https://trustless-gateway.link']
-      })
-    ],
-    routers: [...config.routers, 'https://delegated-ipfs.dev'].map(rUrl => delegatedHTTPRouting(rUrl))
+  const verifiedFetch = await createVerifiedFetch({
+    gateways: config.gateways,
+    routers: config.routers,
+    dnsResolvers: ['https://delegated-ipfs.dev/dns-query'].map(dnsJsonOverHttps)
+  }, {
+    contentTypeParser
   })
 
-  return helia
+  return verifiedFetch
 }

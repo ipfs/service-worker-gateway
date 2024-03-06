@@ -1,16 +1,18 @@
 import mime from 'mime-types'
-import { getHelia } from './get-helia.ts'
+import { getVerifiedFetch } from './get-helia.ts'
 import { HeliaServiceWorkerCommsChannel, type ChannelMessage } from './lib/channel.ts'
 import { getSubdomainParts } from './lib/get-subdomain-parts.ts'
-import { heliaFetch } from './lib/heliaFetch.ts'
+import { getVerifiedFetchUrl, heliaFetch } from './lib/heliaFetch.ts'
 import { error, log, trace } from './lib/logger.ts'
 import { findOriginIsolationRedirect } from './lib/path-or-subdomain.ts'
-import type { Helia } from '@helia/interface'
+import type { VerifiedFetch } from '@helia/verified-fetch'
 
 declare let self: ServiceWorkerGlobalScope
 
-let helia: Helia
-self.addEventListener('install', () => {
+let verifiedFetch: VerifiedFetch
+
+self.addEventListener('install', (event) => {
+  // 👇 When a new version of the SW is installed, activate immediately
   void self.skipWaiting()
 })
 
@@ -21,8 +23,8 @@ self.addEventListener('activate', () => {
     const { action } = message.data
     switch (action) {
       case 'RELOAD_CONFIG':
-        void getHelia().then((newHelia) => {
-          helia = newHelia
+        void getVerifiedFetch().then((newVerifiedFetch) => {
+          verifiedFetch = newVerifiedFetch
         })
         break
       default:
@@ -63,10 +65,6 @@ const fetchHandler = async ({ path, request }: FetchHandlerArg): Promise<Respons
     })
   }
 
-  if (helia == null) {
-    helia = await getHelia()
-  }
-
   /**
    * Note that there are existing bugs regarding service worker signal handling:
    * * https://bugs.chromium.org/p/chromium/issues/detail?id=823697
@@ -76,7 +74,8 @@ const fetchHandler = async ({ path, request }: FetchHandlerArg): Promise<Respons
   const abortController = AbortSignal.timeout(5 * 60 * 1000)
   try {
     const { id, protocol } = getSubdomainParts(request.url)
-    return await heliaFetch({ path, helia, signal: abortController, headers: request.headers, id, protocol })
+    const verifiedFetchUrl = getVerifiedFetchUrl({id, protocol, path})
+    return await heliaFetch({ verifiedFetch, verifiedFetchUrl, signal: abortController, headers: request.headers, })
   } catch (err: unknown) {
     const errorMessages: string[] = []
     if (isAggregateError(err)) {
@@ -97,6 +96,7 @@ const fetchHandler = async ({ path, request }: FetchHandlerArg): Promise<Respons
     return new Response('heliaFetch error: ' + errorMessage, { status: 500 })
   }
 }
+
 const urlInterceptRegex = [new RegExp(`${self.location.origin}/ip(n|f)s/`)]
 
 /**

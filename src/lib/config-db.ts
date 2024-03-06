@@ -84,8 +84,8 @@ export async function setConfig (config: ConfigDb): Promise<void> {
 export async function getConfig (): Promise<ConfigDb> {
   const db = await openDatabase()
 
-  const gateways = await getFromDatabase(db, 'gateways') ?? []
-  const routers = await getFromDatabase(db, 'routers') ?? []
+  const gateways = await getFromDatabase(db, 'gateways') ?? ['https://trustless-gateway.link']
+  const routers = await getFromDatabase(db, 'routers') ?? ['https://delegated-ipfs.dev']
   const autoReload = await getFromDatabase(db, 'autoReload') ?? false
   const debug = await getFromDatabase(db, 'debug') ?? ''
   debugLib.enable(debug)

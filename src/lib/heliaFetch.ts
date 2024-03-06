@@ -1,61 +1,11 @@
-import { dnsJsonOverHttps } from '@helia/ipns/dns-resolvers'
-import { createVerifiedFetch, type ContentTypeParser } from '@helia/verified-fetch'
-import { fileTypeFromBuffer } from '@sgtpooki/file-type'
-import { getConfig } from './config-db.ts'
-import { trace } from './logger.ts'
-import type { Helia } from '@helia/interface'
+import { type VerifiedFetch } from '@helia/verified-fetch'
+import { trace, log } from './logger.ts'
 
 export interface HeliaFetchOptions {
-  path: string
-  helia: Helia
+  verifiedFetch: VerifiedFetch
+  verifiedFetchUrl: string
   signal?: AbortSignal
   headers?: Headers
-  id?: string | null
-  protocol?: string | null
-}
-
-// default from verified-fetch is application/octect-stream, which forces a download. This is not what we want for MANY file types.
-const defaultMimeType = 'text/html'
-const contentTypeParser: ContentTypeParser = async (bytes, fileName) => {
-  const detectedType = (await fileTypeFromBuffer(bytes))?.mime
-  if (detectedType != null) {
-    return detectedType
-  }
-  if (fileName == null) {
-    // no other way to determine file-type.
-    return defaultMimeType
-  }
-
-  // no need to include file-types listed at https://github.com/SgtPooki/file-type#supported-file-types
-  switch (fileName.split('.').pop()) {
-    case 'css':
-      return 'text/css'
-    case 'html':
-      return 'text/html'
-    case 'js':
-      return 'application/javascript'
-    case 'json':
-      return 'application/json'
-    case 'txt':
-      return 'text/plain'
-    case 'woff2':
-      return 'font/woff2'
-    // see bottom of https://github.com/SgtPooki/file-type#supported-file-types
-    case 'svg':
-      return 'image/svg+xml'
-    case 'csv':
-      return 'text/csv'
-    case 'doc':
-      return 'application/msword'
-    case 'xls':
-      return 'application/vnd.ms-excel'
-    case 'ppt':
-      return 'application/vnd.ms-powerpoint'
-    case 'msi':
-      return 'application/x-msdownload'
-    default:
-      return defaultMimeType
-  }
 }
 
 // Check for **/*.css/fonts/**/*.ttf urls */
@@ -123,40 +73,9 @@ function changeCssFontPath (path: string): string {
  * * TODO: have error handling that renders 404/500/other if the request is bad.
  *
  */
-export async function heliaFetch ({ path, helia, signal, headers, id, protocol }: HeliaFetchOptions): Promise<Response> {
-  const config = await getConfig()
-  const verifiedFetch = await createVerifiedFetch({
-    gateways: [...config.gateways, 'https://trustless-gateway.link'],
-    routers: [...config.routers, 'https://delegated-ipfs.dev'],
-    dnsResolvers: ['https://delegated-ipfs.dev/dns-query'].map(dnsJsonOverHttps)
-  }, {
-    contentTypeParser
-  })
-
-  let verifiedFetchUrl: string
-
-  if (id != null && protocol != null) {
-    verifiedFetchUrl = `${protocol}://${id}${path}`
-  } else {
-    const pathParts = path.split('/')
-
-    let pathPartIndex = 0
-    let namespaceString = pathParts[pathPartIndex++]
-    if (namespaceString === '') {
-    // we have a prefixed '/' in the path, use the new index instead
-      namespaceString = pathParts[pathPartIndex++]
-    }
-    if (namespaceString !== 'ipfs' && namespaceString !== 'ipns') {
-      throw new Error(`only /ipfs or /ipns namespaces supported got ${namespaceString}`)
-    }
-    const pathRootString = pathParts[pathPartIndex++]
-    const contentPath = pathParts.slice(pathPartIndex++).join('/')
-    verifiedFetchUrl = `${namespaceString}://${pathRootString}/${changeCssFontPath(contentPath)}`
-  }
-
-  // eslint-disable-next-line no-console
-  console.log('verifiedFetch for ', verifiedFetchUrl)
-  return verifiedFetch(verifiedFetchUrl, {
+export async function heliaFetch ({ verifiedFetch, verifiedFetchUrl, signal, headers }: HeliaFetchOptions): Promise<Response> {
+  log('verifiedFetch for ', verifiedFetchUrl)
+  const response = await verifiedFetch(verifiedFetchUrl, {
     signal,
     headers,
     // TODO redirect: 'manual', // enable when http urls are supported by verified-fetch: https://github.com/ipfs-shipyard/helia-service-worker-gateway/issues/62#issuecomment-1977661456
@@ -164,4 +83,35 @@ export async function heliaFetch ({ path, helia, signal, headers, id, protocol }
       trace(`${e.type}: `, e.detail)
     }
   })
+
+  return response
+}
+
+
+export interface GetVerifiedFetchUrlOptions {
+  protocol?: string | null
+  id?: string | null
+  path: string
+}
+
+
+export function getVerifiedFetchUrl({ protocol, id, path }: GetVerifiedFetchUrlOptions): string {
+  if (id != null && protocol != null) {
+    return `${protocol}://${id}${path}`
+  }
+
+  const pathParts = path.split('/')
+
+  let pathPartIndex = 0
+  let namespaceString = pathParts[pathPartIndex++]
+  if (namespaceString === '') {
+  // we have a prefixed '/' in the path, use the new index instead
+    namespaceString = pathParts[pathPartIndex++]
+  }
+  if (namespaceString !== 'ipfs' && namespaceString !== 'ipns') {
+    throw new Error(`only /ipfs or /ipns namespaces supported got ${namespaceString}`)
+  }
+  const pathRootString = pathParts[pathPartIndex++]
+  const contentPath = pathParts.slice(pathPartIndex++).join('/')
+  return `${namespaceString}://${pathRootString}/${changeCssFontPath(contentPath)}`
 }
