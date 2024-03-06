@@ -75,6 +75,8 @@ const fetchHandler = async ({ path, request }: FetchHandlerArg): Promise<Respons
   try {
     const { id, protocol } = getSubdomainParts(request.url)
     const verifiedFetchUrl = getVerifiedFetchUrl({id, protocol, path})
+    log('verifiedFetch for ', verifiedFetchUrl)
+
     return await heliaFetch({ verifiedFetch, verifiedFetchUrl, signal: abortController, headers: request.headers, })
   } catch (err: unknown) {
     const errorMessages: string[] = []

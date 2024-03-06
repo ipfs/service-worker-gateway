@@ -7,6 +7,7 @@ import { Collapsible } from './collapsible'
 import LocalStorageInput from './local-storage-input.tsx'
 import { LocalStorageToggle } from './local-storage-toggle'
 import { ServiceWorkerReadyButton } from './sw-ready-button.tsx'
+import { log } from '../lib/logger.ts'
 
 const channel = new HeliaServiceWorkerCommsChannel('WINDOW')
 

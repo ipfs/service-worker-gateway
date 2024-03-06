@@ -74,7 +74,6 @@ function changeCssFontPath (path: string): string {
  *
  */
 export async function heliaFetch ({ verifiedFetch, verifiedFetchUrl, signal, headers }: HeliaFetchOptions): Promise<Response> {
-  log('verifiedFetch for ', verifiedFetchUrl)
   const response = await verifiedFetch(verifiedFetchUrl, {
     signal,
     headers,
