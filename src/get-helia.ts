@@ -1,4 +1,3 @@
-
 import { createVerifiedFetch, type VerifiedFetch } from '@helia/verified-fetch'
 import { getConfig } from './lib/config-db.ts'
 import { trace } from './lib/logger.ts'
