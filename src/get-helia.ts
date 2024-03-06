@@ -1,8 +1,8 @@
+import { dnsJsonOverHttps } from '@helia/ipns/dns-resolvers'
 import { createVerifiedFetch, type VerifiedFetch } from '@helia/verified-fetch'
 import { getConfig } from './lib/config-db.ts'
-import { log, trace } from './lib/logger.ts'
-import { dnsJsonOverHttps } from '@helia/ipns/dns-resolvers'
 import { contentTypeParser } from './lib/content-type-parser.ts'
+import { log } from './lib/logger.ts'
 
 export async function getVerifiedFetch (): Promise<VerifiedFetch> {
   const config = await getConfig()

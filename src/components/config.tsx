@@ -7,7 +7,6 @@ import { Collapsible } from './collapsible'
 import LocalStorageInput from './local-storage-input.tsx'
 import { LocalStorageToggle } from './local-storage-toggle'
 import { ServiceWorkerReadyButton } from './sw-ready-button.tsx'
-import { log } from '../lib/logger.ts'
 
 const channel = new HeliaServiceWorkerCommsChannel('WINDOW')
 
@@ -48,7 +47,8 @@ export default (): JSX.Element | null => {
     // TODO: why we need this origin here? where is targetOrigin used?
     const targetOrigin = decodeURIComponent(window.location.hash.split('@origin=')[1])
     const config = await getConfig()
-    console.log(`config-page: postMessage config to origin `, config, origin)
+    // eslint-disable-next-line no-console
+    console.log('config-page: postMessage config to origin ', config, origin)
     /**
      * The reload page in the parent window is listening for this message, and then it passes a RELOAD_CONFIG message to the service worker
      */

@@ -1,5 +1,5 @@
 import { type VerifiedFetch } from '@helia/verified-fetch'
-import { trace, log } from './logger.ts'
+import { trace } from './logger.ts'
 
 export interface HeliaFetchOptions {
   verifiedFetch: VerifiedFetch
@@ -86,15 +86,13 @@ export async function heliaFetch ({ verifiedFetch, verifiedFetchUrl, signal, hea
   return response
 }
 
-
 export interface GetVerifiedFetchUrlOptions {
   protocol?: string | null
   id?: string | null
   path: string
 }
 
-
-export function getVerifiedFetchUrl({ protocol, id, path }: GetVerifiedFetchUrlOptions): string {
+export function getVerifiedFetchUrl ({ protocol, id, path }: GetVerifiedFetchUrlOptions): string {
   if (id != null && protocol != null) {
     return `${protocol}://${id}${path}`
   }
