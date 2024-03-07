@@ -19,6 +19,11 @@ self.addEventListener('install', (event) => {
 const channel = new HeliaServiceWorkerCommsChannel('SW')
 
 self.addEventListener('activate', () => {
+  // Set verified fetch initially
+  void getVerifiedFetch().then((newVerifiedFetch) => {
+    verifiedFetch = newVerifiedFetch
+  })
+
   channel.onmessagefrom('WINDOW', async (message: MessageEvent<ChannelMessage<'WINDOW', null>>) => {
     const { action } = message.data
     switch (action) {
