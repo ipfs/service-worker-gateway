@@ -11,32 +11,34 @@ declare let self: ServiceWorkerGlobalScope
 
 let verifiedFetch: VerifiedFetch
 
+const updateVerifiedFetch = async (): Promise<void> => {
+  verifiedFetch = await getVerifiedFetch()
+}
+
 self.addEventListener('install', (event) => {
   // 👇 When a new version of the SW is installed, activate immediately
   void self.skipWaiting()
+  event.waitUntil(updateVerifiedFetch())
 })
 
-const channel = new HeliaServiceWorkerCommsChannel('SW')
-
-self.addEventListener('activate', () => {
-  // Set verified fetch initially
-  void getVerifiedFetch().then((newVerifiedFetch) => {
-    verifiedFetch = newVerifiedFetch
-  })
-
+self.addEventListener('activate', (event) => {
   channel.onmessagefrom('WINDOW', async (message: MessageEvent<ChannelMessage<'WINDOW', null>>) => {
     const { action } = message.data
+
     switch (action) {
       case 'RELOAD_CONFIG':
-        void getVerifiedFetch().then((newVerifiedFetch) => {
-          verifiedFetch = newVerifiedFetch
-        })
+        event.waitUntil(updateVerifiedFetch().then(() => {
+          channel.postMessage({ action: 'RELOAD_CONFIG_SUCCESS' })
+          trace('sw: RELOAD_CONFIG_SUCCESS')
+        }))
         break
       default:
         log('unknown action: ', action)
     }
   })
 })
+
+const channel = new HeliaServiceWorkerCommsChannel('SW')
 
 /**
  * Not available in ServiceWorkerGlobalScope
@@ -133,7 +135,7 @@ function isSubdomainRequest (event: FetchEvent): boolean {
 const isValidRequestForSW = (event: FetchEvent): boolean =>
   isSubdomainRequest(event) || isRootRequestForContent(event) || isReferrerPreviouslyIntercepted(event)
 
-self.addEventListener('fetch', event => {
+self.addEventListener('fetch', (event) => {
   const request = event.request
   const urlString = request.url
   const url = new URL(urlString)
