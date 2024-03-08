@@ -50,15 +50,11 @@ const updateVerifiedFetch = async (): Promise<void> => {
 self.addEventListener('install', (event) => {
   // 👇 When a new version of the SW is installed, activate immediately
   void self.skipWaiting()
+  // ensure verifiedFetch is ready for use
   event.waitUntil(updateVerifiedFetch())
 })
 
-self.addEventListener('activate', (event) => {
-  // Set verified fetch initially
-  void getVerifiedFetch().then((newVerifiedFetch) => {
-    verifiedFetch = newVerifiedFetch
-  })
-
+self.addEventListener('activate', () => {
   channel.onmessagefrom('WINDOW', async (message: MessageEvent<ChannelMessage<'WINDOW', null>>) => {
     const { action } = message.data
     switch (action) {
@@ -143,6 +139,12 @@ function getVerifiedFetchUrl ({ protocol, id, path }: GetVerifiedFetchUrlOptions
 }
 
 async function fetchHandler ({ path, request }: FetchHandlerArg): Promise<Response> {
+  /**
+   * > Any global variables you set will be lost if the service worker shuts down.
+   *
+   * @see https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle
+   */
+  verifiedFetch = verifiedFetch ?? await getVerifiedFetch()
   // test and enforce origin isolation before anything else is executed
   const originLocation = await findOriginIsolationRedirect(new URL(request.url))
   if (originLocation !== null) {
