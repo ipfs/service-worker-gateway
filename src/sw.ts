@@ -38,6 +38,9 @@ declare let self: ServiceWorkerGlobalScope
 let verifiedFetch: VerifiedFetch
 const channel = new HeliaServiceWorkerCommsChannel('SW')
 const urlInterceptRegex = [new RegExp(`${self.location.origin}/ip(n|f)s/`)]
+const updateVerifiedFetch = async (): Promise<void> => {
+  verifiedFetch = await getVerifiedFetch()
+}
 
 /**
  ******************************************************
@@ -47,20 +50,26 @@ const urlInterceptRegex = [new RegExp(`${self.location.origin}/ip(n|f)s/`)]
 self.addEventListener('install', (event) => {
   // 👇 When a new version of the SW is installed, activate immediately
   void self.skipWaiting()
+  // ensure verifiedFetch is ready for use
+  event.waitUntil(updateVerifiedFetch())
 })
 
-self.addEventListener('activate', () => {
-  // Set verified fetch initially
-  void getVerifiedFetch().then((newVerifiedFetch) => {
-    verifiedFetch = newVerifiedFetch
-  })
-
+self.addEventListener('activate', (event) => {
+  /**
+   * 👇 Claim all clients immediately. This handles the case when subdomain is
+   * loaded for the first time, and config is updated and then a pre-fetch is
+   * sent (await fetch(window.location.href, { method: 'GET' })) to start
+   * loading the content prior the user reloading or clicking the "load content"
+   * button.
+   */
+  event.waitUntil(self.clients.claim())
   channel.onmessagefrom('WINDOW', async (message: MessageEvent<ChannelMessage<'WINDOW', null>>) => {
     const { action } = message.data
     switch (action) {
       case 'RELOAD_CONFIG':
-        void getVerifiedFetch().then((newVerifiedFetch) => {
-          verifiedFetch = newVerifiedFetch
+        void updateVerifiedFetch().then(() => {
+          channel.postMessage({ action: 'RELOAD_CONFIG_SUCCESS' })
+          trace('sw: RELOAD_CONFIG_SUCCESS for %s', self.location.origin)
         })
         break
       default:
@@ -69,7 +78,7 @@ self.addEventListener('activate', () => {
   })
 })
 
-self.addEventListener('fetch', event => {
+self.addEventListener('fetch', (event) => {
   const request = event.request
   const urlString = request.url
   const url = new URL(urlString)
@@ -138,6 +147,12 @@ function getVerifiedFetchUrl ({ protocol, id, path }: GetVerifiedFetchUrlOptions
 }
 
 async function fetchHandler ({ path, request }: FetchHandlerArg): Promise<Response> {
+  /**
+   * > Any global variables you set will be lost if the service worker shuts down.
+   *
+   * @see https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle
+   */
+  verifiedFetch = verifiedFetch ?? await getVerifiedFetch()
   // test and enforce origin isolation before anything else is executed
   const originLocation = await findOriginIsolationRedirect(new URL(request.url))
   if (originLocation !== null) {
