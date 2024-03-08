@@ -71,8 +71,9 @@ export async function loadConfigFromLocalStorage (): Promise<void> {
 }
 
 export async function setConfig (config: ConfigDb): Promise<void> {
-  log('config-debug: setting config', config)
-  debugLib.enable(config.debug ?? '')
+  debugLib.enable(config.debug ?? '') // set debug level first.
+  log('config-debug: setting config %O for domain %s', config, window.location.origin)
+
   const db = await openDatabase()
   await setInDatabase(db, 'gateways', config.gateways)
   await setInDatabase(db, 'routers', config.routers)

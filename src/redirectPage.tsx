@@ -4,7 +4,7 @@ import { ServiceWorkerContext } from './context/service-worker-context.tsx'
 import { HeliaServiceWorkerCommsChannel } from './lib/channel.ts'
 import { setConfig, type ConfigDb } from './lib/config-db.ts'
 import { getSubdomainParts } from './lib/get-subdomain-parts'
-import { error } from './lib/logger.ts'
+import { error, trace } from './lib/logger.ts'
 
 const ConfigIframe = (): JSX.Element => {
   const { parentDomain } = getSubdomainParts(window.location.href)
@@ -27,11 +27,13 @@ export default function RedirectPage (): JSX.Element {
     async function doWork (config: ConfigDb): Promise<void> {
       try {
         await setConfig(config)
+        // TODO: show spinner / disable buttons while waiting for response
         await channel.messageAndWaitForResponse('SW', { target: 'SW', action: 'RELOAD_CONFIG' })
+        trace('redirect-page: RELOAD_CONFIG_SUCCESS on %s', window.location.origin)
         // try to preload the content
         await fetch(window.location.href, { method: 'GET' })
       } catch (err) {
-        error('config-debug: error setting config on subdomain', err)
+        error('redirect-page: error setting config on subdomain', err)
       }
 
       if (config.autoReload) {
@@ -40,6 +42,7 @@ export default function RedirectPage (): JSX.Element {
     }
     const listener = (event: MessageEvent): void => {
       if (event.data?.source === 'helia-sw-config-iframe') {
+        trace('redirect-page: received RELOAD_CONFIG message from iframe', event.data)
         const config = event.data?.config
         if (config != null) {
           void doWork(config as ConfigDb)

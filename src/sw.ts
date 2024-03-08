@@ -69,7 +69,7 @@ self.addEventListener('activate', (event) => {
       case 'RELOAD_CONFIG':
         void updateVerifiedFetch().then(() => {
           channel.postMessage({ action: 'RELOAD_CONFIG_SUCCESS' })
-          trace('sw: RELOAD_CONFIG_SUCCESS')
+          trace('sw: RELOAD_CONFIG_SUCCESS for %s', self.location.origin)
         })
         break
       default:

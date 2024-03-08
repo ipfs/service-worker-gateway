@@ -72,7 +72,7 @@ export default (): JSX.Element | null => {
       // update the BASE_URL service worker
       await channel.messageAndWaitForResponse('SW', { target: 'SW', action: 'RELOAD_CONFIG' })
       // base_domain service worker is updated
-      trace('config-page: RELOAD_CONFIG_SUCCESS')
+      trace('config-page: RELOAD_CONFIG_SUCCESS for %s', window.location.origin)
       // update the <subdomain>.<namespace>.BASE_URL service worker
       await postFromIframeToParentSw()
       setConfigExpanded(false)
