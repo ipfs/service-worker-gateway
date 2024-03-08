@@ -54,7 +54,15 @@ self.addEventListener('install', (event) => {
   event.waitUntil(updateVerifiedFetch())
 })
 
-self.addEventListener('activate', () => {
+self.addEventListener('activate', (event) => {
+  /**
+   * 👇 Claim all clients immediately. This handles the case when subdomain is
+   * loaded for the first time, and config is updated and then a pre-fetch is
+   * sent (await fetch(window.location.href, { method: 'GET' })) to start
+   * loading the content prior the user reloading or clicking the "load content"
+   * button.
+   */
+  event.waitUntil(self.clients.claim())
   channel.onmessagefrom('WINDOW', async (message: MessageEvent<ChannelMessage<'WINDOW', null>>) => {
     const { action } = message.data
     switch (action) {
