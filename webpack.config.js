@@ -39,7 +39,7 @@ const prod = {
   output: {
     path: paths.build,
     publicPath: '/',
-    filename: '[name].js'
+    filename: 'ipfs-sw-[name].js'
   },
   performance: {
     hints: false,
@@ -74,6 +74,11 @@ const prod = {
           test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom)[\\/]/,
           name: 'vendor-react',
           chunks: 'all'
+        },
+        default: {
+          name: 'commons',
+          priority: -20,
+          reuseExistingChunk: true
         }
       }
     }

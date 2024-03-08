@@ -8,13 +8,19 @@ import RedirectPage from './redirectPage.tsx'
 
 function App (): JSX.Element {
   const { isConfigExpanded, setConfigExpanded } = useContext(ConfigContext)
+  const isRequestToViewConfigPage = isConfigPage(window.location.hash)
+  const isSubdomainRender = isPathOrSubdomainRequest(window.location)
 
-  if (isConfigPage()) {
+  if (isRequestToViewConfigPage) {
+    if (isSubdomainRender) {
+      return <RedirectPage />
+    }
+
     setConfigExpanded(true)
     return <Config />
   }
 
-  if (isPathOrSubdomainRequest(window.location)) {
+  if (isSubdomainRender) {
     return (<RedirectPage />)
   }
 
