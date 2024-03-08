@@ -65,7 +65,18 @@ const prod = {
           })
         })
       }
-    }
+    },
+    new CompressionPlugin({
+      algorithm: 'gzip',
+      test: /\.(js|css|svg)$/,
+      exclude: /.map$/,
+      compressionOptions: {
+        level: 9,
+        numiterations: 15,
+        minRatio: 0.8
+      },
+      deleteOriginalAssets: true
+    })
   ],
   optimization: {
     splitChunks: {
@@ -186,17 +197,6 @@ const common = {
     }),
     new webpack.EnvironmentPlugin({
       BASE_URL: process.env.BASE_URL ?? 'helia-sw-gateway.localhost'
-    }),
-    new CompressionPlugin({
-      algorithm: 'gzip',
-      test: /\.(js|css|html|svg)$/,
-      exclude: /.map$/,
-      compressionOptions: {
-        level: 9,
-        numiterations: 15,
-        minRatio: 0.8,
-        deleteOriginalAssets: true
-      }
     })
   ],
 
