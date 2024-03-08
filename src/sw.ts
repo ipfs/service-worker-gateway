@@ -63,10 +63,10 @@ self.addEventListener('activate', (event) => {
     const { action } = message.data
     switch (action) {
       case 'RELOAD_CONFIG':
-        event.waitUntil(updateVerifiedFetch().then(() => {
+        void updateVerifiedFetch().then(() => {
           channel.postMessage({ action: 'RELOAD_CONFIG_SUCCESS' })
           trace('sw: RELOAD_CONFIG_SUCCESS')
-        }))
+        })
         break
       default:
         log('unknown action: ', action)
