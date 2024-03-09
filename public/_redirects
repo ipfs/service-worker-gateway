@@ -1,2 +1,17 @@
 /config /#/config 302
+
+/vendor-react.js /vendor-react.js.gz 301
+/main.js /main.js.gz 301
+/main /main.js.gz 301
+/576.js /576.js.gz 301
+/961.js /961.js.gz 301
+/sw.js /sw.js.gz 301
+
+vendor-react.js /vendor-react.js.gz 301
+main.js /main.js.gz 301
+main /main.js.gz 301
+576.js /576.js.gz 301
+961.js /961.js.gz 301
+sw.js /sw.js.gz 301
+
 /* /?helia-sw=/:splat 302
