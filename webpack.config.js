@@ -6,6 +6,7 @@ import CopyWebpackPlugin from 'copy-webpack-plugin'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
 import NodePolyfillPlugin from 'node-polyfill-webpack-plugin'
 import webpack from 'webpack'
+import BundleAnalyzerPlugin from 'webpack-bundle-analyzer'
 import { merge } from 'webpack-merge'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -262,6 +263,15 @@ export default (cmd) => {
     const testConfig = merge(common, test)
     testConfig.entry = test.entry
     return testConfig
+  } else if (cmd.analyze) {
+    config = prod
+    prod.plugins.push(
+      new BundleAnalyzerPlugin.BundleAnalyzerPlugin({
+        analyzerMode: 'static',
+        reportFilename: 'report.html',
+        openAnalyzer: true
+      })
+    )
   } else if (!production) {
     config = dev
   }
