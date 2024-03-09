@@ -54,8 +54,8 @@ export async function loadConfigFromLocalStorage (): Promise<void> {
   if (typeof globalThis.localStorage !== 'undefined') {
     const db = await openDatabase()
     const localStorage = globalThis.localStorage
-    const localStorageGatewaysString = localStorage.getItem(LOCAL_STORAGE_KEYS.config.gateways) ?? '[]'
-    const localStorageRoutersString = localStorage.getItem(LOCAL_STORAGE_KEYS.config.routers) ?? '[]'
+    const localStorageGatewaysString = localStorage.getItem(LOCAL_STORAGE_KEYS.config.gateways) ?? '["https://trustless-gateway.link"]'
+    const localStorageRoutersString = localStorage.getItem(LOCAL_STORAGE_KEYS.config.routers) ?? '["https://delegated-ipfs.dev"]'
     const autoReload = localStorage.getItem(LOCAL_STORAGE_KEYS.config.autoReload) === 'true'
     const debug = localStorage.getItem(LOCAL_STORAGE_KEYS.config.debug) ?? ''
     const gateways = JSON.parse(localStorageGatewaysString)
@@ -71,8 +71,9 @@ export async function loadConfigFromLocalStorage (): Promise<void> {
 }
 
 export async function setConfig (config: ConfigDb): Promise<void> {
-  log('config-debug: setting config', config)
-  debugLib.enable(config.debug ?? '')
+  debugLib.enable(config.debug ?? '') // set debug level first.
+  log('config-debug: setting config %O for domain %s', config, window.location.origin)
+
   const db = await openDatabase()
   await setInDatabase(db, 'gateways', config.gateways)
   await setInDatabase(db, 'routers', config.routers)
@@ -84,8 +85,8 @@ export async function setConfig (config: ConfigDb): Promise<void> {
 export async function getConfig (): Promise<ConfigDb> {
   const db = await openDatabase()
 
-  const gateways = await getFromDatabase(db, 'gateways') ?? []
-  const routers = await getFromDatabase(db, 'routers') ?? []
+  const gateways = await getFromDatabase(db, 'gateways') ?? ['https://trustless-gateway.link']
+  const routers = await getFromDatabase(db, 'routers') ?? ['https://delegated-ipfs.dev']
   const autoReload = await getFromDatabase(db, 'autoReload') ?? false
   const debug = await getFromDatabase(db, 'debug') ?? ''
   debugLib.enable(debug)
