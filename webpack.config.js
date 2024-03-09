@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import CompressionPlugin from 'compression-webpack-plugin'
 import CopyWebpackPlugin from 'copy-webpack-plugin'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
-import NodePolyfillPlugin from 'node-polyfill-webpack-plugin'
+import TerserPlugin from 'terser-webpack-plugin'
 import webpack from 'webpack'
 import BundleAnalyzerPlugin from 'webpack-bundle-analyzer'
 import { merge } from 'webpack-merge'
@@ -80,6 +80,25 @@ const prod = {
     })
   ],
   optimization: {
+    innerGraph: true,
+    mergeDuplicateChunks: true,
+    minimize: true,
+    minimizer: [
+      new TerserPlugin({
+        parallel: true,
+        extractComments: 'all',
+        exclude: /\\.js$/,
+        terserOptions: {
+          ie8: false,
+          safari10: false,
+          // ecma: 2020
+          compress: {
+            drop_console: true
+          }
+          // https://github.com/webpack-contrib/terser-webpack-plugin#terseroptions
+        }
+      })
+    ],
     splitChunks: {
       cacheGroups: {
         reactVendor: {
@@ -172,8 +191,6 @@ const common = {
       ]
     }),
 
-    // fixes Module not found: Error: Can't resolve 'stream' in '.../node_modules/nofilter/lib'
-    new NodePolyfillPlugin(),
     // Note: stream-browserify has assumption about `Buffer` global in its
     // dependencies causing runtime errors. This is a workaround to provide
     // global `Buffer` until https://github.com/isaacs/core-util-is/issues/29
