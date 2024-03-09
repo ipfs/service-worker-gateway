@@ -75,8 +75,8 @@ const prod = {
         level: 9,
         numiterations: 15,
         minRatio: 0.8
-      },
-      deleteOriginalAssets: true
+      }
+      // deleteOriginalAssets: true // temporarily disabled until we come to conclusion about always serving .gz files...
     })
   ],
   optimization: {
