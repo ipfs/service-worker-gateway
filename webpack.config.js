@@ -11,6 +11,43 @@ import { merge } from 'webpack-merge'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
+const splitChunks = {
+  chunks: 'async',
+  minSize: 20000,
+  minRemainingSize: 0,
+  minChunks: 1,
+  maxAsyncRequests: 30,
+  maxInitialRequests: 30,
+  enforceSizeThreshold: 1024,
+  name: (module, chunks, cacheGroupKey) => {
+    const moduleFileName = module.identifier().split('/').reduceRight(item => item)
+    const allChunksNames = chunks.map((item) => item.name).join('~')
+    // eslint-disable-next-line no-console
+    console.log(`splitChunks.name: ${allChunksNames}-${cacheGroupKey}-${moduleFileName}`)
+    // return `${allChunksNames}-${cacheGroupKey}-${moduleFileName.replace('.js', '')}`
+    return cacheGroupKey
+  },
+  cacheGroups: {
+    defaultVendors: {
+      name: 'vendor-rest',
+      test: /[\\/]node_modules[\\/]/,
+      priority: -10,
+      chunks: 'all'
+    },
+    sw: {
+      test: /[\\/]src[\\/]sw.ts/,
+      name: 'sw',
+      priority: -100,
+      chunks: 'all'
+    },
+    reactVendor: {
+      test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom)[\\/]/,
+      name: 'vendor-react',
+      chunks: 'all'
+    }
+  }
+}
+
 /**
  * HMR/Live Reloading broken after Webpack 5 rc.0 -> rc.1 update
  * https://github.com/webpack/webpack-dev-server/issues/2758
@@ -81,13 +118,12 @@ const prod = {
   ],
   optimization: {
     innerGraph: true,
-    mergeDuplicateChunks: true,
+    mergeDuplicateChunks: false,
     minimize: true,
     minimizer: [
       new TerserPlugin({
         parallel: true,
         extractComments: 'all',
-        exclude: /\\.js$/,
         terserOptions: {
           ie8: false,
           safari10: false,
@@ -99,15 +135,7 @@ const prod = {
         }
       })
     ],
-    splitChunks: {
-      cacheGroups: {
-        reactVendor: {
-          test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom)[\\/]/,
-          name: 'vendor-react',
-          chunks: 'all'
-        }
-      }
-    }
+    splitChunks
   }
 }
 
@@ -147,7 +175,10 @@ const dev = {
   plugins: [
     // Only update what has changed on hot reload
     new webpack.HotModuleReplacementPlugin()
-  ]
+  ],
+  optimization: {
+    splitChunks
+  }
 }
 
 /**
@@ -175,8 +206,7 @@ const test = {
 const common = {
 // Where webpack looks to start building the bundle
   entry: {
-    main: paths.src + '/index.tsx',
-    sw: paths.src + '/sw.ts'
+    main: paths.src + '/index.tsx'
   },
 
   // Customize the webpack build process
@@ -191,18 +221,10 @@ const common = {
       ]
     }),
 
-    // Note: stream-browserify has assumption about `Buffer` global in its
-    // dependencies causing runtime errors. This is a workaround to provide
-    // global `Buffer` until https://github.com/isaacs/core-util-is/issues/29
-    // is fixed.
-    new webpack.ProvidePlugin({
-      Buffer: ['buffer', 'Buffer'],
-      process: 'process/browser'
-    }),
-
     // Generates an HTML file from a template
     // Generates deprecation warning: https://github.com/jantimon/html-webpack-plugin/issues/1501
     new HtmlWebpackPlugin({
+      excludeChunks: ['sw'],
       title: 'Helia service worker gateway',
       favicon: paths.public + '/favicon.ico',
       template: paths.public + '/index.html', // template file
@@ -212,9 +234,6 @@ const common = {
 
     new webpack.DefinePlugin({
       window: 'globalThis' // attempt to naively replace all "window" keywords with "globalThis"
-    }),
-    new webpack.EnvironmentPlugin({
-      BASE_URL: process.env.BASE_URL ?? 'helia-sw-gateway.localhost'
     })
   ],
 
