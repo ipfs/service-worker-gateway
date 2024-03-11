@@ -11,14 +11,7 @@ import { merge } from 'webpack-merge'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const splitChunks = {
-  chunks: 'async',
-  minSize: 20000,
-  minRemainingSize: 0,
-  minChunks: 1,
-  maxAsyncRequests: 30,
-  maxInitialRequests: 30,
-  enforceSizeThreshold: 1024,
-  name: (module, chunks, cacheGroupKey) => {
+  name: (_module, _chunks, cacheGroupKey) => {
     return cacheGroupKey // we only want to name the chunks based on the cache group key
   },
   cacheGroups: {
