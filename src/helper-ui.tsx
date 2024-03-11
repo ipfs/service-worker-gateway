@@ -19,7 +19,7 @@ export default function (): JSX.Element {
     <>
       <Header />
       <main className='pa4-l bg-snow mw7 mv5 center pa4'>
-        <h1 className='pa0 f2 ma0 mb4 aqua tc'>Fetch content from IPFS using Helia in a SW</h1>
+        <h1 className='pa0 f2 ma0 mb4 aqua tc'>Fetch & Verify IPFS content with a Service Worker</h1>
         <Form
           handleSubmit={handleSubmit}
           requestPath={requestPath}
