@@ -37,6 +37,7 @@ interface GetVerifiedFetchUrlOptions {
 declare let self: ServiceWorkerGlobalScope
 let verifiedFetch: VerifiedFetch
 const channel = new HeliaServiceWorkerCommsChannel('SW')
+const IPFS_CACHE = 'IPFS_CACHE'
 const urlInterceptRegex = [new RegExp(`${self.location.origin}/ip(n|f)s/`)]
 const updateVerifiedFetch = async (): Promise<void> => {
   verifiedFetch = await getVerifiedFetch()
@@ -94,7 +95,27 @@ self.addEventListener('fetch', (event) => {
     // intercept and do our own stuff...
     event.respondWith(fetchHandler({ path: url.pathname, request }))
   } else if (isSubdomainRequest(event)) {
-    event.respondWith(fetchHandler({ path: url.pathname, request }))
+    // const { id, protocol } = getSubdomainParts(request.url)
+    // const cacheKey = `${protocol}://${id}${url.pathname}`
+    // log(`cache key:`, cacheKey)
+    event.respondWith(
+      caches.open(IPFS_CACHE).then((cache) => {
+        return cache.match(event.request).then(async (response) => {
+          if (response) {
+            // If there is an entry in the cache for event.request,
+            // then response will be defined and we can just return it.
+            // Note that in this example, only font resources are cached.
+            log('helia-ws: found response in cache:', response)
+            return response
+          }
+          // const verifiedFetchUrl = getVerifiedFetchUrl({ id, protocol, path })
+          response = await fetchHandler({ path: url.pathname, request })
+
+          cache.put(event.request, response.clone())
+          return response
+        })
+      }),
+    )
   }
 })
 
