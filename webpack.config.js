@@ -76,7 +76,7 @@ const prod = {
   output: {
     path: paths.build,
     publicPath: '/',
-    filename: '[name].js'
+    filename: 'ipfs-sw-[name].js'
   },
   performance: {
     hints: false,
