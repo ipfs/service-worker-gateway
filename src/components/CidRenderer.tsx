@@ -67,7 +67,7 @@ export default function CidRenderer ({ requestPath }: { requestPath: string }): 
       <ValidationMessage pathNamespacePrefix={pathNamespacePrefix} cid={cid} requestPath={requestPath}>
 
         <a className="db" href={swPath} target="_blank">
-          <button id="load-directly" className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load CID</button>
+          <button id="load-directly" className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load content</button>
         </a>
 
       </ValidationMessage>
