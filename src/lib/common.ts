@@ -7,4 +7,5 @@ export enum COLORS {
 
 export enum ChannelActions {
   RELOAD_CONFIG = 'RELOAD_CONFIG',
+  RELOAD_CONFIG_SUCCESS = 'RELOAD_CONFIG_SUCCESS'
 }

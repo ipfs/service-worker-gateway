@@ -1,14 +1,39 @@
 import { readdirSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import CompressionPlugin from 'compression-webpack-plugin'
 import CopyWebpackPlugin from 'copy-webpack-plugin'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
-import NodePolyfillPlugin from 'node-polyfill-webpack-plugin'
+import TerserPlugin from 'terser-webpack-plugin'
 import webpack from 'webpack'
+import BundleAnalyzerPlugin from 'webpack-bundle-analyzer'
 import { merge } from 'webpack-merge'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+const splitChunks = {
+  name: (_module, _chunks, cacheGroupKey) => {
+    return cacheGroupKey // we only want to name the chunks based on the cache group key
+  },
+  cacheGroups: {
+    defaultVendors: { // everything not specified in other cache groups
+      name: 'vendor-rest',
+      test: /[\\/]node_modules[\\/]/,
+      priority: -10,
+      chunks: 'all'
+    },
+    sw: {
+      test: /[\\/]src[\\/]sw.ts/,
+      name: 'sw',
+      priority: 100, // anything the sw needs should be in the sw chunk
+      chunks: 'all'
+    },
+    reactVendor: {
+      test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom)[\\/]/,
+      name: 'vendor-react',
+      chunks: 'all'
+    }
+  }
+}
 
 /**
  * HMR/Live Reloading broken after Webpack 5 rc.0 -> rc.1 update
@@ -36,11 +61,6 @@ const paths = {
 const prod = {
   mode: 'production',
   devtool: 'inline-source-map',
-  output: {
-    path: paths.build,
-    publicPath: '/',
-    filename: 'ipfs-sw-[name].js'
-  },
   performance: {
     hints: false,
     maxEntrypointSize: 512000,
@@ -68,20 +88,25 @@ const prod = {
     }
   ],
   optimization: {
-    splitChunks: {
-      cacheGroups: {
-        reactVendor: {
-          test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom)[\\/]/,
-          name: 'vendor-react',
-          chunks: 'all'
-        },
-        default: {
-          name: 'commons',
-          priority: -20,
-          reuseExistingChunk: true
+    innerGraph: true,
+    mergeDuplicateChunks: false,
+    minimize: true,
+    minimizer: [
+      new TerserPlugin({
+        parallel: true,
+        extractComments: 'all',
+        terserOptions: {
+          ie8: false,
+          safari10: false,
+          // ecma: 2020
+          compress: {
+            drop_console: true
+          }
+          // https://github.com/webpack-contrib/terser-webpack-plugin#terseroptions
         }
-      }
-    }
+      })
+    ],
+    splitChunks
   }
 }
 
@@ -94,13 +119,6 @@ const dev = {
 
   // Control how source maps are generated
   devtool: 'inline-source-map',
-
-  // Where webpack outputs the assets and bundles
-  output: {
-    path: paths.build,
-    filename: '[name].bundle.js',
-    publicPath: '/'
-  },
 
   // Spin up a server for quick development
   devServer: {
@@ -121,7 +139,10 @@ const dev = {
   plugins: [
     // Only update what has changed on hot reload
     new webpack.HotModuleReplacementPlugin()
-  ]
+  ],
+  optimization: {
+    splitChunks
+  }
 }
 
 /**
@@ -149,8 +170,12 @@ const test = {
 const common = {
 // Where webpack looks to start building the bundle
   entry: {
-    main: paths.src + '/index.tsx',
-    sw: paths.src + '/sw.ts'
+    main: paths.src + '/index.tsx'
+  },
+  output: {
+    path: paths.build,
+    publicPath: '/',
+    filename: 'ipfs-sw-[name].js'
   },
 
   // Customize the webpack build process
@@ -165,20 +190,10 @@ const common = {
       ]
     }),
 
-    // fixes Module not found: Error: Can't resolve 'stream' in '.../node_modules/nofilter/lib'
-    new NodePolyfillPlugin(),
-    // Note: stream-browserify has assumption about `Buffer` global in its
-    // dependencies causing runtime errors. This is a workaround to provide
-    // global `Buffer` until https://github.com/isaacs/core-util-is/issues/29
-    // is fixed.
-    new webpack.ProvidePlugin({
-      Buffer: ['buffer', 'Buffer'],
-      process: 'process/browser'
-    }),
-
     // Generates an HTML file from a template
     // Generates deprecation warning: https://github.com/jantimon/html-webpack-plugin/issues/1501
     new HtmlWebpackPlugin({
+      excludeChunks: ['sw'],
       title: 'Helia service worker gateway',
       favicon: paths.public + '/favicon.ico',
       template: paths.public + '/index.html', // template file
@@ -188,20 +203,6 @@ const common = {
 
     new webpack.DefinePlugin({
       window: 'globalThis' // attempt to naively replace all "window" keywords with "globalThis"
-    }),
-    new webpack.EnvironmentPlugin({
-      BASE_URL: process.env.BASE_URL ?? 'helia-sw-gateway.localhost'
-    }),
-    new CompressionPlugin({
-      algorithm: 'gzip',
-      test: /\.(js|css|html|svg)$/,
-      exclude: /.map$/,
-      compressionOptions: {
-        level: 9,
-        numiterations: 15,
-        minRatio: 0.8,
-        deleteOriginalAssets: true
-      }
     })
   ],
 
@@ -267,6 +268,15 @@ export default (cmd) => {
     const testConfig = merge(common, test)
     testConfig.entry = test.entry
     return testConfig
+  } else if (cmd.analyze) {
+    config = prod
+    prod.plugins.push(
+      new BundleAnalyzerPlugin.BundleAnalyzerPlugin({
+        analyzerMode: 'static',
+        reportFilename: 'report.html',
+        openAnalyzer: true
+      })
+    )
   } else if (!production) {
     config = dev
   }
