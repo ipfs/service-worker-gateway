@@ -95,27 +95,32 @@ self.addEventListener('fetch', (event) => {
     // intercept and do our own stuff...
     event.respondWith(fetchHandler({ path: url.pathname, request }))
   } else if (isSubdomainRequest(event)) {
-    // const { id, protocol } = getSubdomainParts(request.url)
-    // const cacheKey = `${protocol}://${id}${url.pathname}`
-    // log(`cache key:`, cacheKey)
-    event.respondWith(
-      caches.open(IPFS_CACHE).then((cache) => {
-        return cache.match(event.request).then(async (response) => {
-          if (response) {
-            // If there is an entry in the cache for event.request,
-            // then response will be defined and we can just return it.
-            // Note that in this example, only font resources are cached.
-            log('helia-ws: found response in cache:', response)
-            return response
-          }
-          // const verifiedFetchUrl = getVerifiedFetchUrl({ id, protocol, path })
-          response = await fetchHandler({ path: url.pathname, request })
+    const cacheKey = event.request.url
+    log(`helia-sw: cache key:`, cacheKey.toString())
 
-          cache.put(event.request, response.clone())
-          return response
-        })
-      }),
-    )
+    event.respondWith((async () => {
+      const cache = await caches.open(IPFS_CACHE)
+      const cachedResponse = await cache.match(cacheKey)
+
+      if (cachedResponse) {
+        // If there is an entry in the cache for event.request,
+        // then response will be defined and we can just return it.
+        // Note that in this example, only font resources are cached.
+        log('helia-ws: cached response for %s found in cache: %o', cacheKey, cachedResponse)
+        return cachedResponse
+      }
+
+      // 👇 fetch because no cached response was found
+      const response = await fetchHandler({ path: url.pathname, request })
+
+      if(response.ok) {
+        // 👇 only cache successful responses
+        log('helia-ws: storing cache key %s in cache', cacheKey)
+        // Clone the response since streams can only be consumed once.
+        cache.put(cacheKey, response.clone())
+      }
+      return response
+    })())
   }
 })
 
