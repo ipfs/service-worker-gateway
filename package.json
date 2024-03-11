@@ -62,7 +62,7 @@
     "webpack": "^5.77.0",
     "webpack-bundle-analyzer": "^4.10.1",
     "webpack-cli": "^5.1.4",
-    "webpack-dev-server": "^4.15.1",
+    "webpack-dev-server": "^5.0.2",
     "webpack-merge": "^5.8.0"
   },
   "sideEffects": false
