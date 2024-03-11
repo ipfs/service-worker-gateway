@@ -19,15 +19,10 @@ const splitChunks = {
   maxInitialRequests: 30,
   enforceSizeThreshold: 1024,
   name: (module, chunks, cacheGroupKey) => {
-    const moduleFileName = module.identifier().split('/').reduceRight(item => item)
-    const allChunksNames = chunks.map((item) => item.name).join('~')
-    // eslint-disable-next-line no-console
-    console.log(`splitChunks.name: ${allChunksNames}-${cacheGroupKey}-${moduleFileName}`)
-    // return `${allChunksNames}-${cacheGroupKey}-${moduleFileName.replace('.js', '')}`
-    return cacheGroupKey
+    return cacheGroupKey // we only want to name the chunks based on the cache group key
   },
   cacheGroups: {
-    defaultVendors: {
+    defaultVendors: { // everything not specified in other cache groups
       name: 'vendor-rest',
       test: /[\\/]node_modules[\\/]/,
       priority: -10,
@@ -36,7 +31,7 @@ const splitChunks = {
     sw: {
       test: /[\\/]src[\\/]sw.ts/,
       name: 'sw',
-      priority: -100,
+      priority: 100, // anything the sw needs should be in the sw chunk
       chunks: 'all'
     },
     reactVendor: {
