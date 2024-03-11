@@ -1,9 +1,11 @@
-import { getVerifiedFetch } from './get-helia.ts'
+import { dnsJsonOverHttps } from '@helia/ipns/dns-resolvers'
+import { createVerifiedFetch, type VerifiedFetch } from '@helia/verified-fetch'
 import { HeliaServiceWorkerCommsChannel, type ChannelMessage } from './lib/channel.ts'
+import { getConfig } from './lib/config-db.ts'
+import { contentTypeParser } from './lib/content-type-parser.ts'
 import { getSubdomainParts } from './lib/get-subdomain-parts.ts'
 import { error, log, trace } from './lib/logger.ts'
 import { findOriginIsolationRedirect } from './lib/path-or-subdomain.ts'
-import type { VerifiedFetch } from '@helia/verified-fetch'
 
 /**
  ******************************************************
@@ -103,6 +105,21 @@ self.addEventListener('fetch', (event) => {
  * Functions
  ******************************************************
  */
+async function getVerifiedFetch (): Promise<VerifiedFetch> {
+  const config = await getConfig()
+  log(`config-debug: got config for sw location ${self.location.origin}`, config)
+
+  const verifiedFetch = await createVerifiedFetch({
+    gateways: config.gateways ?? ['https://trustless-gateway.link'],
+    routers: config.routers ?? ['https://delegated-ipfs.dev'],
+    dnsResolvers: ['https://delegated-ipfs.dev/dns-query'].map(dnsJsonOverHttps)
+  }, {
+    contentTypeParser
+  })
+
+  return verifiedFetch
+}
+
 function isRootRequestForContent (event: FetchEvent): boolean {
   const urlIsPreviouslyIntercepted = urlInterceptRegex.some(regex => regex.test(event.request.url))
   const isRootRequest = urlIsPreviouslyIntercepted

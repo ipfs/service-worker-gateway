@@ -1,7 +1,7 @@
 import { log } from './lib/logger.ts'
 
 export async function registerServiceWorker (): Promise<ServiceWorkerRegistration> {
-  const swRegistration = await navigator.serviceWorker.register(new URL('sw.ts', import.meta.url))
+  const swRegistration = await navigator.serviceWorker.register(new URL(/* webpackChunkName: "sw" */'sw.ts', import.meta.url))
   return new Promise((resolve, reject) => {
     swRegistration.addEventListener('updatefound', () => {
       const newWorker = swRegistration.installing
