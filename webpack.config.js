@@ -73,11 +73,6 @@ const paths = {
 const prod = {
   mode: 'production',
   devtool: 'inline-source-map',
-  output: {
-    path: paths.build,
-    publicPath: '/',
-    filename: 'ipfs-sw-[name].js'
-  },
   performance: {
     hints: false,
     maxEntrypointSize: 512000,
@@ -137,13 +132,6 @@ const dev = {
   // Control how source maps are generated
   devtool: 'inline-source-map',
 
-  // Where webpack outputs the assets and bundles
-  output: {
-    path: paths.build,
-    filename: '[name].bundle.js',
-    publicPath: '/'
-  },
-
   // Spin up a server for quick development
   devServer: {
     historyApiFallback: true,
@@ -195,6 +183,11 @@ const common = {
 // Where webpack looks to start building the bundle
   entry: {
     main: paths.src + '/index.tsx'
+  },
+  output: {
+    path: paths.build,
+    publicPath: '/',
+    filename: 'ipfs-sw-[name].js'
   },
 
   // Customize the webpack build process
