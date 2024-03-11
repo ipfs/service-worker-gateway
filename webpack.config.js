@@ -1,7 +1,6 @@
 import { readdirSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import CompressionPlugin from 'compression-webpack-plugin'
 import CopyWebpackPlugin from 'copy-webpack-plugin'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
 import TerserPlugin from 'terser-webpack-plugin'
@@ -103,18 +102,7 @@ const prod = {
           })
         })
       }
-    },
-    new CompressionPlugin({
-      algorithm: 'gzip',
-      test: /\.(js|css|svg)$/,
-      exclude: /.map$/,
-      compressionOptions: {
-        level: 9,
-        numiterations: 15,
-        minRatio: 0.8
-      }
-      // deleteOriginalAssets: true // temporarily disabled until we come to conclusion about always serving .gz files...
-    })
+    }
   ],
   optimization: {
     innerGraph: true,
