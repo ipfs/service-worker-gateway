@@ -3,6 +3,7 @@ import { createVerifiedFetch, type VerifiedFetch } from '@helia/verified-fetch'
 import { HeliaServiceWorkerCommsChannel, type ChannelMessage } from './lib/channel.ts'
 import { getConfig } from './lib/config-db.ts'
 import { contentTypeParser } from './lib/content-type-parser.ts'
+import { getRedirectUrl, isDeregisterRequest } from './lib/deregister-request.ts'
 import { getSubdomainParts } from './lib/get-subdomain-parts.ts'
 import { isConfigPage } from './lib/is-config-page.ts'
 import { error, log, trace } from './lib/logger.ts'
@@ -86,7 +87,10 @@ self.addEventListener('fetch', (event) => {
   const urlString = request.url
   const url = new URL(urlString)
 
-  if (isConfigPageRequest(url) || isSwAssetRequest(event)) {
+  if (isDeregisterRequest(event.request.url)) {
+    event.waitUntil(deregister(event))
+    return
+  } else if (isConfigPageRequest(url) || isSwAssetRequest(event)) {
     // get the assets from the server
     trace('helia-sw: config page or js asset request, ignoring ', urlString)
     return
@@ -123,6 +127,25 @@ async function getVerifiedFetch (): Promise<VerifiedFetch> {
   })
 
   return verifiedFetch
+}
+
+// potential race condition
+async function deregister (event): Promise<void> {
+  if (!isSubdomainRequest(event)) {
+    // if we are at the root, we need to ignore this request due to race conditions with the UI
+    return
+  }
+  await self.registration.unregister()
+  const clients = await self.clients.matchAll({ type: 'window' })
+
+  for (const client of clients) {
+    const newUrl = getRedirectUrl(client.url)
+    try {
+      await client.navigate(newUrl)
+    } catch (e) {
+      error('error navigating client to ', newUrl, e)
+    }
+  }
 }
 
 function isRootRequestForContent (event: FetchEvent): boolean {
