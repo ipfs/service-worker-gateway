@@ -10,7 +10,7 @@ export const ConfigContext = createContext({
 
 export const ConfigProvider = ({ children, expanded = isLoadedInIframe }: { children: JSX.Element[] | JSX.Element, expanded?: boolean }): JSX.Element => {
   const [isConfigExpanded, setConfigExpanded] = useState(expanded)
-  const isExplicitlyLoadedConfigPage = isConfigPage()
+  const isExplicitlyLoadedConfigPage = isConfigPage(window.location.hash)
 
   const setConfigExpandedWrapped = (value: boolean): void => {
     if (isLoadedInIframe || isExplicitlyLoadedConfigPage) {

@@ -4,6 +4,7 @@ import { HeliaServiceWorkerCommsChannel, type ChannelMessage } from './lib/chann
 import { getConfig } from './lib/config-db.ts'
 import { contentTypeParser } from './lib/content-type-parser.ts'
 import { getSubdomainParts } from './lib/get-subdomain-parts.ts'
+import { isConfigPage } from './lib/is-config-page.ts'
 import { error, log, trace } from './lib/logger.ts'
 import { findOriginIsolationRedirect } from './lib/path-or-subdomain.ts'
 
@@ -52,11 +53,11 @@ const updateVerifiedFetch = async (): Promise<void> => {
 self.addEventListener('install', (event) => {
   // 👇 When a new version of the SW is installed, activate immediately
   void self.skipWaiting()
-  // ensure verifiedFetch is ready for use
-  event.waitUntil(updateVerifiedFetch())
 })
 
 self.addEventListener('activate', (event) => {
+  // ensure verifiedFetch is ready for use
+  event.waitUntil(updateVerifiedFetch())
   /**
    * 👇 Claim all clients immediately. This handles the case when subdomain is
    * loaded for the first time, and config is updated and then a pre-fetch is
@@ -85,7 +86,11 @@ self.addEventListener('fetch', (event) => {
   const urlString = request.url
   const url = new URL(urlString)
 
-  if (!isValidRequestForSW(event)) {
+  if (isConfigPageRequest(url) || isSwAssetRequest(event)) {
+    // get the assets from the server
+    trace('helia-sw: config page or js asset request, ignoring ', urlString)
+    return
+  } else if (!isValidRequestForSW(event)) {
     trace('helia-sw: not a valid request for helia-sw, ignoring ', urlString)
     return
   } else {
@@ -134,6 +139,10 @@ function isSubdomainRequest (event: FetchEvent): boolean {
   return id != null && protocol != null
 }
 
+function isConfigPageRequest (url: URL): boolean {
+  return isConfigPage(url.hash)
+}
+
 function isValidRequestForSW (event: FetchEvent): boolean {
   return isSubdomainRequest(event) || isRootRequestForContent(event)
 }
@@ -161,6 +170,11 @@ function getVerifiedFetchUrl ({ protocol, id, path }: GetVerifiedFetchUrlOptions
   const pathRootString = pathParts[pathPartIndex++]
   const contentPath = pathParts.slice(pathPartIndex++).join('/')
   return `${namespaceString}://${pathRootString}/${contentPath}`
+}
+
+function isSwAssetRequest (event: FetchEvent): boolean {
+  const isActualSwAsset = /^.+\/(?:ipfs-sw-).+\.js$/.test(event.request.url)
+  return isActualSwAsset
 }
 
 async function fetchHandler ({ path, request }: FetchHandlerArg): Promise<Response> {
