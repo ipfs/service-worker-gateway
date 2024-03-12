@@ -1,8 +1,8 @@
 import { getVerifiedFetch } from './get-helia.ts'
 import { HeliaServiceWorkerCommsChannel, type ChannelMessage } from './lib/channel.ts'
 import { getSubdomainParts } from './lib/get-subdomain-parts.ts'
-import { error, log, trace } from './lib/sw-logger.ts'
 import { findOriginIsolationRedirect } from './lib/path-or-subdomain.ts'
+import { error, log, trace } from './lib/sw-logger.ts'
 import type { VerifiedFetch } from '@helia/verified-fetch'
 
 /**
