@@ -57,6 +57,7 @@ const updateVerifiedFetch = async (): Promise<void> => {
   verifiedFetch = await getVerifiedFetch()
 }
 let swIdb: GenericIDB<LocalSwConfig>
+let firstInstallTime: number
 const getSwConfig = (): GenericIDB<LocalSwConfig> => {
   return swIdb ?? new GenericIDB<LocalSwConfig>('helia-sw-unique', 'config')
 }
@@ -99,7 +100,15 @@ self.addEventListener('activate', (event) => {
 })
 
 self.addEventListener('fetch', (event) => {
-  event.waitUntil(requestRouting(event))
+  const request = event.request
+  const urlString = request.url
+  const url = new URL(urlString)
+
+  event.waitUntil(requestRouting(event, url).then(async (shouldHandle) => {
+    if (shouldHandle) {
+      event.respondWith(fetchHandler({ path: url.pathname, request }))
+    }
+  }))
 })
 
 /**
@@ -107,33 +116,27 @@ self.addEventListener('fetch', (event) => {
  * Functions
  ******************************************************
  */
-
-/**
- * async function called immediately for 'fetch' events on the service worker. All
- * routing logic is handled here.
- */
-async function requestRouting (event: FetchEvent): Promise<void> {
-  const request = event.request
-  const urlString = request.url
-  const url = new URL(urlString)
-
-  if (isDeregisterRequest(event.request.url) || await isTimebombExpired()) {
+async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
+  if (await isTimebombExpired()) {
+    trace('helia-sw: timebomb expired, deregistering service worker')
+    event.waitUntil(deregister(event, false))
+    return false
+  } else if (isDeregisterRequest(event.request.url)) {
     event.waitUntil(deregister(event))
-    return
+    return false
   } else if (isConfigPageRequest(url) || isSwAssetRequest(event)) {
     // get the assets from the server
-    trace('helia-sw: config page or js asset request, ignoring ', urlString)
-    return
+    trace('helia-sw: config page or js asset request, ignoring ', event.request.url)
+    return false
   } else if (!isValidRequestForSW(event)) {
-    trace('helia-sw: not a valid request for helia-sw, ignoring ', urlString)
-    return
+    trace('helia-sw: not a valid request for helia-sw, ignoring ', event.request.url)
+    return false
   }
 
-  log('helia-sw: valid request for helia-sw: ', urlString)
   if (isRootRequestForContent(event) || isSubdomainRequest(event)) {
-    // intercept and do our own stuff...
-    event.respondWith(fetchHandler({ path: url.pathname, request }))
+    return true
   }
+  return false
 }
 
 async function getVerifiedFetch (): Promise<VerifiedFetch> {
@@ -152,7 +155,7 @@ async function getVerifiedFetch (): Promise<VerifiedFetch> {
 }
 
 // potential race condition
-async function deregister (event): Promise<void> {
+async function deregister (event, redirectToConfig = true): Promise<void> {
   if (!isSubdomainRequest(event)) {
     // if we are at the root, we need to ignore this request due to race conditions with the UI
     return
@@ -161,7 +164,7 @@ async function deregister (event): Promise<void> {
   const clients = await self.clients.matchAll({ type: 'window' })
 
   for (const client of clients) {
-    const newUrl = getRedirectUrl(client.url)
+    const newUrl = redirectToConfig ? getRedirectUrl(client.url) : client.url
     try {
       await client.navigate(newUrl)
     } catch (e) {
@@ -285,19 +288,35 @@ async function fetchHandler ({ path, request }: FetchHandlerArg): Promise<Respon
 }
 
 async function isTimebombExpired (): Promise<boolean> {
-  const swidb = getSwConfig()
-  await swidb.open()
-  const installTimestamp = await swidb.get('installTimestamp')
-  swidb.close()
+  firstInstallTime = firstInstallTime ?? await getInstallTimestamp()
   const now = Date.now()
-  const timebomb = 24 * 60 * 60 * 1000 // max life (for now) is 24 hours
-  return now - installTimestamp > timebomb
+  // max life (for now) is 24 hours
+  const timebomb = 24 * 60 * 60 * 1000
+  return now - firstInstallTime > timebomb
+}
+
+async function getInstallTimestamp (): Promise<number> {
+  try {
+    const swidb = getSwConfig()
+    await swidb.open()
+    firstInstallTime = await swidb.get('installTimestamp')
+    swidb.close()
+    return firstInstallTime
+  } catch (e) {
+    error('getInstallTimestamp error: ', e)
+    return 0
+  }
 }
 
 async function addInstallTimestampToConfig (): Promise<void> {
-  const timestamp = Date.now()
-  const swidb = getSwConfig()
-  await swidb.open()
-  await swidb.put('installTimestamp', timestamp)
-  swidb.close()
+  try {
+    const timestamp = Date.now()
+    firstInstallTime = timestamp
+    const swidb = getSwConfig()
+    await swidb.open()
+    await swidb.put('installTimestamp', timestamp)
+    swidb.close()
+  } catch (e) {
+    error('addInstallTimestampToConfig error: ', e)
+  }
 }
