@@ -45,7 +45,7 @@ const splitChunks = {
 const paths = {
   // Source files
   src: path.resolve(__dirname, './src'),
-  testSrc: path.resolve(__dirname, './tests'),
+  testSrc: path.resolve(__dirname, './webpack-tests'),
   testBuild: path.resolve(__dirname, './test-build'),
 
   // Production build files

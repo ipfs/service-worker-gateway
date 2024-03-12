@@ -1,7 +1,7 @@
 /** @type {import('aegir').PartialOptions} */
 export default {
   lint: {
-    files: ['src/**/*.ts', 'src/**/*.tsx', 'tests/**/*']
+    files: ['src/**/*.ts', 'src/**/*.tsx', 'tests/**/*', 'test/**/*.js']
   },
   dependencyCheck: {
     ignore: [
