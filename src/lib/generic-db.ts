@@ -63,8 +63,6 @@ export class GenericIDB<T extends BaseDbConfig> {
     if (this.db != null) {
       this.db.close()
       this.db = null
-    } else {
-      throw new Error('Database not opened')
     }
   }
 }
