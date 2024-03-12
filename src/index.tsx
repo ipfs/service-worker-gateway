@@ -17,7 +17,7 @@ const root = ReactDOMClient.createRoot(container)
 root.render(
   <React.StrictMode>
     <ServiceWorkerProvider>
-      <ConfigProvider expanded={isConfigPage()}>
+      <ConfigProvider expanded={isConfigPage(window.location.hash)}>
           <App />
       </ConfigProvider>
     </ServiceWorkerProvider>

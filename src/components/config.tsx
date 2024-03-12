@@ -45,7 +45,6 @@ export default (): JSX.Element | null => {
       return
     }
     // we get the iframe origin from a query parameter called 'origin', if this is loaded in an iframe
-    // TODO: why we need this origin here? where is targetOrigin used?
     const targetOrigin = decodeURIComponent(window.location.hash.split('@origin=')[1])
     const config = await getConfig()
     trace('config-page: postMessage config to origin ', config, origin)

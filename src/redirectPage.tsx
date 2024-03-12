@@ -4,13 +4,14 @@ import { ServiceWorkerContext } from './context/service-worker-context.tsx'
 import { HeliaServiceWorkerCommsChannel } from './lib/channel.ts'
 import { setConfig, type ConfigDb } from './lib/config-db.ts'
 import { getSubdomainParts } from './lib/get-subdomain-parts'
+import { isConfigPage } from './lib/is-config-page'
 import { error, trace } from './lib/logger.ts'
 
 const ConfigIframe = (): JSX.Element => {
   const { parentDomain } = getSubdomainParts(window.location.href)
 
   const portString = window.location.port === '' ? '' : `:${window.location.port}`
-  const iframeSrc = `${window.location.protocol}//${parentDomain}${portString}#/config@origin=${encodeURIComponent(window.location.origin)}`
+  const iframeSrc = `${window.location.protocol}//${parentDomain}${portString}#/ipfs-sw-config@origin=${encodeURIComponent(window.location.origin)}`
 
   return (
     <iframe id="redirect-config-iframe" src={iframeSrc} style={{ width: '100vw', height: '100vh', border: 'none' }} />
@@ -55,11 +56,16 @@ export default function RedirectPage (): JSX.Element {
     }
   }, [])
 
+  let reloadUrl = window.location.href
+  if (isConfigPage(window.location.hash)) {
+    reloadUrl = window.location.href.replace('#/ipfs-sw-config', '')
+  }
+
   const displayString = useMemo(() => {
     if (!isServiceWorkerRegistered) {
       return 'Registering Helia service worker...'
     }
-    if (isAutoReloadEnabled) {
+    if (isAutoReloadEnabled && !isConfigPage(window.location.hash)) {
       return 'Redirecting you because Auto Reload is enabled.'
     }
 
@@ -67,7 +73,7 @@ export default function RedirectPage (): JSX.Element {
   }, [isAutoReloadEnabled, isServiceWorkerRegistered])
 
   useEffect(() => {
-    if (isAutoReloadEnabled && isServiceWorkerRegistered) {
+    if (isAutoReloadEnabled && isServiceWorkerRegistered && !isConfigPage(window.location.hash)) {
       window.location.reload()
     }
   }, [isAutoReloadEnabled, isServiceWorkerRegistered])
@@ -76,7 +82,7 @@ export default function RedirectPage (): JSX.Element {
     <div className="redirect-page">
       <div className="pa4-l mw7 mv5 center pa4">
         <h3 className="">{displayString}</h3>
-        <ServiceWorkerReadyButton id="load-content" label='Load content' waitingLabel='Waiting for service worker registration...' onClick={() => { window.location.reload() }} />
+        <ServiceWorkerReadyButton id="load-content" label='Load content' waitingLabel='Waiting for service worker registration...' onClick={() => { window.location.href = reloadUrl }} />
       </div>
       <ConfigIframe />
     </div>
