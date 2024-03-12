@@ -4,6 +4,7 @@ import { HeliaServiceWorkerCommsChannel, type ChannelMessage } from './lib/chann
 import { getConfig } from './lib/config-db.ts'
 import { contentTypeParser } from './lib/content-type-parser.ts'
 import { getRedirectUrl, isDeregisterRequest } from './lib/deregister-request.ts'
+import { GenericIDB } from './lib/generic-db'
 import { getSubdomainParts } from './lib/get-subdomain-parts.ts'
 import { isConfigPage } from './lib/is-config-page.ts'
 import { error, log, trace } from './lib/logger.ts'
@@ -34,6 +35,16 @@ interface GetVerifiedFetchUrlOptions {
 }
 
 /**
+ * IndexedDB schema for each registered service worker
+ *
+ * NOTE: this is not intended to be shared between service workers, unlike the
+ * default used by config-db.ts
+ */
+interface LocalSwConfig {
+  installTimestamp: number
+}
+
+/**
  ******************************************************
  * "globals"
  ******************************************************
@@ -45,6 +56,10 @@ const urlInterceptRegex = [new RegExp(`${self.location.origin}/ip(n|f)s/`)]
 const updateVerifiedFetch = async (): Promise<void> => {
   verifiedFetch = await getVerifiedFetch()
 }
+let swIdb: GenericIDB<LocalSwConfig>
+const getSwConfig = (): GenericIDB<LocalSwConfig> => {
+  return swIdb ?? new GenericIDB<LocalSwConfig>('helia-sw-unique', 'config')
+}
 
 /**
  ******************************************************
@@ -54,6 +69,7 @@ const updateVerifiedFetch = async (): Promise<void> => {
 self.addEventListener('install', (event) => {
   // 👇 When a new version of the SW is installed, activate immediately
   void self.skipWaiting()
+  event.waitUntil(addInstallTimestampToConfig())
 })
 
 self.addEventListener('activate', (event) => {
@@ -83,11 +99,25 @@ self.addEventListener('activate', (event) => {
 })
 
 self.addEventListener('fetch', (event) => {
+  event.waitUntil(requestRouting(event))
+})
+
+/**
+ ******************************************************
+ * Functions
+ ******************************************************
+ */
+
+/**
+ * async function called immediately for 'fetch' events on the service worker. All
+ * routing logic is handled here.
+ */
+async function requestRouting (event: FetchEvent): Promise<void> {
   const request = event.request
   const urlString = request.url
   const url = new URL(urlString)
 
-  if (isDeregisterRequest(event.request.url)) {
+  if (isDeregisterRequest(event.request.url) || await isTimebombExpired()) {
     event.waitUntil(deregister(event))
     return
   } else if (isConfigPageRequest(url) || isSwAssetRequest(event)) {
@@ -97,23 +127,15 @@ self.addEventListener('fetch', (event) => {
   } else if (!isValidRequestForSW(event)) {
     trace('helia-sw: not a valid request for helia-sw, ignoring ', urlString)
     return
-  } else {
-    log('helia-sw: valid request for helia-sw: ', urlString)
   }
 
-  if (isRootRequestForContent(event)) {
+  log('helia-sw: valid request for helia-sw: ', urlString)
+  if (isRootRequestForContent(event) || isSubdomainRequest(event)) {
     // intercept and do our own stuff...
     event.respondWith(fetchHandler({ path: url.pathname, request }))
-  } else if (isSubdomainRequest(event)) {
-    event.respondWith(fetchHandler({ path: url.pathname, request }))
   }
-})
+}
 
-/**
- ******************************************************
- * Functions
- ******************************************************
- */
 async function getVerifiedFetch (): Promise<VerifiedFetch> {
   const config = await getConfig()
   log(`config-debug: got config for sw location ${self.location.origin}`, config)
@@ -260,4 +282,22 @@ async function fetchHandler ({ path, request }: FetchHandlerArg): Promise<Respon
     }
     return new Response('heliaFetch error: ' + errorMessage, { status: 500 })
   }
+}
+
+async function isTimebombExpired (): Promise<boolean> {
+  const swidb = getSwConfig()
+  await swidb.open()
+  const installTimestamp = await swidb.get('installTimestamp')
+  swidb.close()
+  const now = Date.now()
+  const timebomb = 24 * 60 * 60 * 1000 // max life (for now) is 24 hours
+  return now - installTimestamp > timebomb
+}
+
+async function addInstallTimestampToConfig (): Promise<void> {
+  const timestamp = Date.now()
+  const swidb = getSwConfig()
+  await swidb.open()
+  await swidb.put('installTimestamp', timestamp)
+  swidb.close()
 }
