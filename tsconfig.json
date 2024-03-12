@@ -19,7 +19,7 @@
   },
   "include": [
     "src",
-    "tests",
+    "webpack-tests",
     "types/svg.d.ts"
   ]
 }
