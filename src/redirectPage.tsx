@@ -1,11 +1,11 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
-import { ServiceWorkerReadyButton } from './components/sw-ready-button.tsx'
-import { ServiceWorkerContext } from './context/service-worker-context.tsx'
-import { HeliaServiceWorkerCommsChannel } from './lib/channel.ts'
-import { setConfig, type ConfigDb } from './lib/config-db.ts'
-import { getSubdomainParts } from './lib/get-subdomain-parts'
+import { ServiceWorkerReadyButton } from './components/sw-ready-button.jsx'
+import { ServiceWorkerContext } from './context/service-worker-context.jsx'
+import { HeliaServiceWorkerCommsChannel } from './lib/channel.js'
+import { setConfig, type ConfigDb } from './lib/config-db.js'
+import { getSubdomainParts } from './lib/get-subdomain-parts.js'
 import { isConfigPage } from './lib/is-config-page'
-import { error, trace } from './lib/logger.ts'
+import { error, trace } from './lib/logger.js'
 
 const ConfigIframe = (): JSX.Element => {
   const { parentDomain } = getSubdomainParts(window.location.href)

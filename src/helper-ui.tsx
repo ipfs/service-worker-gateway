@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import CidRenderer from './components/CidRenderer.tsx'
-import Form from './components/Form.tsx'
-import Header from './components/Header.tsx'
-import { LOCAL_STORAGE_KEYS } from './lib/local-storage.ts'
+import CidRenderer from './components/CidRenderer.jsx'
+import Form from './components/Form.jsx'
+import Header from './components/Header.jsx'
+import { LOCAL_STORAGE_KEYS } from './lib/local-storage.js'
 
 export default function (): JSX.Element {
   const [requestPath, setRequestPath] = useState(localStorage.getItem(LOCAL_STORAGE_KEYS.forms.requestPath) ?? '')

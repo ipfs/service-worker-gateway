@@ -13,11 +13,11 @@
  * 1. The page being loaded using some /ip[fn]s/<path> url, but subdomain isolation is supported, so we need to redirect to the isolated origin
  */
 import React, { createContext, useEffect, useState } from 'react'
-import { getRedirectUrl, isDeregisterRequest } from '../lib/deregister-request.ts'
-import { translateIpfsRedirectUrl } from '../lib/ipfs-hosted-redirect-utils.ts'
-import { error, trace } from '../lib/logger.ts'
-import { findOriginIsolationRedirect } from '../lib/path-or-subdomain.ts'
-import { registerServiceWorker } from '../service-worker-utils.ts'
+import { getRedirectUrl, isDeregisterRequest } from '../lib/deregister-request.js'
+import { translateIpfsRedirectUrl } from '../lib/ipfs-hosted-redirect-utils.js'
+import { error, trace } from '../lib/logger.js'
+import { findOriginIsolationRedirect } from '../lib/path-or-subdomain.js'
+import { registerServiceWorker } from '../service-worker-utils.js'
 
 export const ServiceWorkerContext = createContext({
   isServiceWorkerRegistered: false

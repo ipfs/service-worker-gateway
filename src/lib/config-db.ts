@@ -1,5 +1,5 @@
 import debugLib from 'debug'
-import { LOCAL_STORAGE_KEYS } from './local-storage.ts'
+import { LOCAL_STORAGE_KEYS } from './local-storage.js'
 import { log } from './logger'
 
 export interface ConfigDb {

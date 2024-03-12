@@ -1,4 +1,4 @@
-import { trace } from './logger.ts'
+import { trace } from './logger.js'
 
 // things are wonky with hash routes for deregistering.
 export function isDeregisterRequest (url: string): boolean {

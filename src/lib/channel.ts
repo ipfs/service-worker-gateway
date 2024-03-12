@@ -1,5 +1,5 @@
-import { error } from './logger.ts'
-import type { ChannelActions } from './common.ts'
+import { error } from './logger.js'
+import type { ChannelActions } from './common.js'
 
 export enum ChannelUsers {
   SW = 'SW',

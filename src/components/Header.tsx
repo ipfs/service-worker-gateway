@@ -1,5 +1,5 @@
 import React, { useContext } from 'react'
-import { ConfigContext } from '../context/config-context.tsx'
+import { ConfigContext } from '../context/config-context.jsx'
 import gearIcon from '../gear-icon.svg'
 import ipfsLogo from '../ipfs-logo.svg'
 

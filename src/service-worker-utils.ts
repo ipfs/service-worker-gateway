@@ -1,4 +1,4 @@
-import { log } from './lib/logger.ts'
+import { log } from './lib/logger.js'
 
 export async function registerServiceWorker (): Promise<ServiceWorkerRegistration> {
   const swRegistration = await navigator.serviceWorker.register(new URL(/* webpackChunkName: "sw" */'sw.ts', import.meta.url))

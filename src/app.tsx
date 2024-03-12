@@ -1,10 +1,10 @@
 import React, { useContext } from 'react'
-import Config from './components/config.tsx'
-import { ConfigContext } from './context/config-context.tsx'
-import HelperUi from './helper-ui.tsx'
-import { isConfigPage } from './lib/is-config-page.ts'
-import { isPathOrSubdomainRequest } from './lib/path-or-subdomain.ts'
-import RedirectPage from './redirectPage.tsx'
+import Config from './components/config.jsx'
+import { ConfigContext } from './context/config-context.jsx'
+import HelperUi from './helper-ui.jsx'
+import { isConfigPage } from './lib/is-config-page.js'
+import { isPathOrSubdomainRequest } from './lib/path-or-subdomain.js'
+import RedirectPage from './redirectPage.jsx'
 
 function App (): JSX.Element {
   const { isConfigExpanded, setConfigExpanded } = useContext(ConfigContext)
