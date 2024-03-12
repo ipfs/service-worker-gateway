@@ -3,7 +3,7 @@ import { createVerifiedFetch, type VerifiedFetch } from '@helia/verified-fetch'
 import { HeliaServiceWorkerCommsChannel, type ChannelMessage } from './lib/channel.ts'
 import { getConfig } from './lib/config-db.ts'
 import { contentTypeParser } from './lib/content-type-parser.ts'
-import { getSubdomainParts } from './lib/get-subdomain-parts.ts'
+import { getSubdomainParts, type UrlParts } from './lib/get-subdomain-parts.ts'
 import { isConfigPage } from './lib/is-config-page.ts'
 import { error, log, trace } from './lib/logger.ts'
 import { findOriginIsolationRedirect } from './lib/path-or-subdomain.ts'
@@ -40,7 +40,8 @@ interface GetVerifiedFetchUrlOptions {
 declare let self: ServiceWorkerGlobalScope
 let verifiedFetch: VerifiedFetch
 const channel = new HeliaServiceWorkerCommsChannel('SW')
-const IPFS_CACHE = 'IPFS_CACHE'
+const IMMUTABLE_CACHE = 'IMMUTABLE_CACHE'
+const MUTABLE_CACHE = 'MUTABLE_CACHE'
 const urlInterceptRegex = [new RegExp(`${self.location.origin}/ip(n|f)s/`)]
 const updateVerifiedFetch = async (): Promise<void> => {
   verifiedFetch = await getVerifiedFetch()
@@ -86,6 +87,8 @@ self.addEventListener('fetch', (event) => {
   const request = event.request
   const urlString = request.url
   const url = new URL(urlString)
+  const { protocol, id } = getSubdomainParts(event.request.url)
+  log('helia-sw: incoming request url: %s:', event.request.url, protocol, id)
 
   if (isConfigPageRequest(url) || isSwAssetRequest(event)) {
     // get the assets from the server
@@ -102,30 +105,44 @@ self.addEventListener('fetch', (event) => {
     // intercept and do our own stuff...
     event.respondWith(fetchHandler({ path: url.pathname, request }))
   } else if (isSubdomainRequest(event)) {
-    const cacheKey = event.request.url
-    log(`helia-sw: cache key:`, cacheKey.toString())
+    const isMutable = protocol === 'ipns'
+    const cacheKey = `${event.request.url}-${event.request.headers.get('Accept') ?? ''}`
+    const cacheName = isMutable ? MUTABLE_CACHE : IMMUTABLE_CACHE
+    log('helia-sw: cache name: %s | key: %s', cacheName, cacheKey)
 
     event.respondWith((async () => {
-      const cache = await caches.open(IPFS_CACHE)
+      const cache = await caches.open(cacheName)
       const cachedResponse = await cache.match(cacheKey)
 
-      if (cachedResponse) {
+      if ((cachedResponse != null) && !hasExpired(cachedResponse)) {
         // If there is an entry in the cache for event.request,
         // then response will be defined and we can just return it.
-        // Note that in this example, only font resources are cached.
-        log('helia-ws: cached response for %s found in cache: %o', cacheKey, cachedResponse)
+        log('helia-ws: cached response HIT for %s (expires: %s) %o', cacheKey, cachedResponse.headers.get('Expires'), cachedResponse)
+
+        trace('helia-ws: updating cache for %s in the background', cacheKey)
+        // 👇 update cache in the background wihtout awaiting
+        fetchHandler({ path: url.pathname, request })
+
         return cachedResponse
       }
 
       // 👇 fetch because no cached response was found
       const response = await fetchHandler({ path: url.pathname, request })
 
-      if(response.ok) {
+      if (response.ok) {
         // 👇 only cache successful responses
         log('helia-ws: storing cache key %s in cache', cacheKey)
         // Clone the response since streams can only be consumed once.
-        cache.put(cacheKey, response.clone())
+        const respToCache = response.clone()
+
+        if (isMutable) {
+          // 👇 Set expires header to an hour from now for mutable (ipns://) resources
+          setExpiryHeader(respToCache, 3600)
+        }
+
+        cache.put(cacheKey, respToCache)
       }
+
       return response
     })())
   }
@@ -201,6 +218,37 @@ function getVerifiedFetchUrl ({ protocol, id, path }: GetVerifiedFetchUrlOptions
 function isSwAssetRequest (event: FetchEvent): boolean {
   const isActualSwAsset = /^.+\/(?:ipfs-sw-).+\.js$/.test(event.request.url)
   return isActualSwAsset
+}
+
+/**
+ * Set the expires header with a timestamp base
+ */
+function setExpiryHeader (response: Response, ttlSeconds: number = 3600): Response {
+  const expirationTime = new Date(Date.now() + ttlSeconds * 1000)
+
+  response.headers.set('Expires', expirationTime.toUTCString())
+  return response
+}
+
+/**
+ * Checks whether a cached response object has expired by looking at the expires header
+ * Note that this ignores the Cache-Control header since the expires header is set by us
+ */
+function hasExpired (response: Response): boolean {
+  const expiresHeader = response.headers.get('Expires')
+
+  if (!expiresHeader) {
+    return false
+  }
+
+  const expires = new Date(expiresHeader)
+  const now = new Date()
+
+  if (expires < now) {
+    return true
+  }
+
+  return false
 }
 
 async function fetchHandler ({ path, request }: FetchHandlerArg): Promise<Response> {
