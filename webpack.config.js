@@ -194,7 +194,7 @@ const common = {
     // Generates deprecation warning: https://github.com/jantimon/html-webpack-plugin/issues/1501
     new HtmlWebpackPlugin({
       excludeChunks: ['sw'],
-      title: 'Helia service worker gateway',
+      title: 'IPFS Service Worker Gateway',
       favicon: paths.public + '/favicon.ico',
       template: paths.public + '/index.html', // template file
       filename: 'index.html', // output file,
