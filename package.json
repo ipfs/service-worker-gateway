@@ -13,6 +13,7 @@
     "lint": "aegir lint",
     "lint:fix": "aegir lint --fix",
     "build": "run-s dep-check lint build:webpack",
+    "postbuild": "aegir test --build=false",
     "build:webpack": "webpack --env production",
     "serve": "webpack serve --mode=development",
     "serve:prod": "webpack serve --mode=production",
