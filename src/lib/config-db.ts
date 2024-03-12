@@ -28,6 +28,7 @@ export async function loadConfigFromLocalStorage (): Promise<void> {
     await configDb.put('routers', routers)
     await configDb.put('autoReload', autoReload)
     await configDb.put('debug', debug)
+    configDb.close()
   }
 }
 
