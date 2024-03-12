@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "@helia/ipns": "^6.0.1",
-    "@helia/verified-fetch": "^1.1.0",
+    "@helia/verified-fetch": "^1.1.2",
     "@libp2p/logger": "^4.0.6",
     "@sgtpooki/file-type": "^1.0.1",
     "debug": "^4.3.4",
