@@ -32,7 +32,7 @@ export default function RedirectPage (): JSX.Element {
         await channel.messageAndWaitForResponse('SW', { target: 'SW', action: 'RELOAD_CONFIG' })
         trace('redirect-page: RELOAD_CONFIG_SUCCESS on %s', window.location.origin)
         // try to preload the content
-        await fetch(window.location.href, { method: 'GET' })
+        // await fetch(window.location.href, { method: 'GET' })
       } catch (err) {
         error('redirect-page: error setting config on subdomain', err)
       }
