@@ -334,16 +334,20 @@ jobs:
           name: dist_${{ github.sha }}.car
       - name: Import CAR to local Kubo
         run: ipfs dag import --offline dist_${{ github.sha }}.car
-      - name: Create Remote Pin with Scaleway
+      - name: Set up and check Scaleway
+        id: scaleway
         run: |
           ipfs pin remote service add scaleway "$SCALEWAY_URL" "$SCALEWAY_SECRET"
-          already_pinned=$(ipfs pin remote ls --service=scaleway --cid=$CID)
-          [ -n "$already_pinned" ] && exit 0
-          ipfs pin remote add --service=scaleway --name="${{ github.repository }}/${{ github.sha }}" $CID
+          echo "existing-pin=$(ipfs pin remote ls --service=scaleway --name=$CID)" >> $GITHUB_OUTPUT # using --name because --cid does not work with Scaleway (2024-Q1)
         env:
           CID: ${{ needs.publish-to-ipfs.outputs.cid }}
           SCALEWAY_SECRET: ${{ secrets.SCALEWAY_SECRET }}
           SCALEWAY_URL: ${{ secrets.SCALEWAY_URL }}
+      - name: Pin to Scaleway
+        if: ${{ steps.scaleway.outputs.existing-pin == '' }}
+        run: ipfs pin remote add --service=scaleway --name=$CID $CID # using --name because --cid does not work with Scaleway (2024-Q1)
+        env:
+          CID: ${{ needs.publish-to-ipfs.outputs.cid }}
 
   smoke-test-http: # basic smoke test that lets us know when eother caching or content routing does not work
     if: ${{ success() && needs.publish-to-ipfs.outputs.cid }}
