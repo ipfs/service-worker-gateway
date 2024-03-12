@@ -8,6 +8,9 @@ on:
       - '**'
   workflow_dispatch:
 
+env:
+  KUBO_VER: 'v0.27.0'       # kubo daemon used for publishing to IPFS
+  CLUSTER_CTL_VER: 'v1.0.8' # ipfs-cluster-ctl used by publish-to-ipfs
 
 jobs:
 
@@ -165,7 +168,7 @@ jobs:
 
   publish-to-ipfs:
     # TODO: make this run also on release
-    if: github.ref == 'refs/heads/main'
+    # TODO if: github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
     environment: Deploy # CF and Clusteer secrets
@@ -173,9 +176,6 @@ jobs:
       # only one job runs at a time == DNSLinks are updated in-order
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
-    env:
-      KUBO_VER: 'v0.26.0'       # kubo daemon used for publishing to IPFS
-      CLUSTER_CTL_VER: 'v1.0.8' # ipfs-cluster-ctl used for pinning
     outputs:
       cid: ${{ steps.ipfs-import.outputs.cid }}
     steps:
@@ -311,6 +311,36 @@ jobs:
           # W3_PRINCIPAL env name is expected by w3cli tool: https://github.com/web3-storage/w3cli#w3_principal
           W3_PRINCIPAL: ${{ secrets.W3_AGENT_PRINCIPAL }}
           W3CLI_SPACE_DELEGATION_PROOF_BASE64_STRING: ${{ secrets.W3CLI_SPACE_DELEGATION_PROOF_BASE64_STRING }}
+
+  pin-to-scaleway:
+    if: ${{ success() && needs.publish-to-ipfs.outputs.cid }}
+    needs: publish-to-ipfs
+    runs-on: ubuntu-latest
+    environment: Scaleway
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ipfs/download-ipfs-distribution-action@v1
+        with:
+          name: kubo
+          version: "${{ env.KUBO_VER }}"
+      - name: Init IPFS daemon
+        run: ipfs init --profile flatfs,server,randomports,lowpower
+      - uses: ipfs/start-ipfs-daemon-action@v1
+        with:
+          args: --enable-gc=false
+      - name: Retrieve CAR produced by publish-to-ipfs job
+        uses: actions/download-artifact@v4
+        with:
+          name: dist_${{ github.sha }}.car
+      - name: Pin with Scaleway
+        run: |
+          ipfs dag import --offline dist_${{ github.sha }}.car
+          ipfs pin remote service add scaleway "$SCALEWAY_URL" "$SCALEWAY_SECRET"
+          ipfs pin remote rm --service=scaleway --force --cid=${{ needs.publish-to-ipfs.outputs.cid }}
+          ipfs pin remote add --service=scaleway --name=inbrowser-sw-gw-${{ github.sha }} ${{ needs.publish-to-ipfs.outputs.cid }}
+        env:
+          SCALEWAY_SECRET: ${{ secrets.SCALEWAY_SECRET }}
+          SCALEWAY_URL: ${{ secrets.SCALEWAY_URL }}
 
   smoke-test--http: # basic smoke test that lets us know when eother caching or content routing does not work
     if: ${{ success() && needs.publish-to-ipfs.outputs.cid }}
