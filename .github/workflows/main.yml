@@ -168,7 +168,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
-    environment: Deploy # dependency on 'Deploy' env means 'publish-to-ipfs' only runs when it is present
+    environment: Deploy # CF and Clusteer secrets
     concurrency:
       # only one job runs at a time == DNSLinks are updated in-order
       group: ${{ github.workflow }}-${{ github.ref }}
@@ -176,6 +176,8 @@ jobs:
     env:
       KUBO_VER: 'v0.26.0'       # kubo daemon used for publishing to IPFS
       CLUSTER_CTL_VER: 'v1.0.8' # ipfs-cluster-ctl used for pinning
+    outputs:
+      cid: ${{ steps.ipfs-import.outputs.cid }}
     steps:
       - uses: actions/checkout@v4
       - name: Retrieve ./dist produced by build job
@@ -272,3 +274,53 @@ jobs:
           ZONE_ID: ${{ secrets.CF_INBROWSERLINK_ZONE_ID }}
           RECORD_ID:  ${{ secrets.CF_INBROWSERLINK_RECORD_ID }}
           AUTH_TOKEN: ${{ secrets.CF_INBROWSERLINK_AUTH_TOKEN }}
+
+  pin-to-w3: # ported from ipfs/ipfs-webui
+    if: ${{ success() && needs.publish-to-ipfs.outputs.cid }}
+    needs: publish-to-ipfs
+    runs-on: ubuntu-latest
+    environment: web3.storage
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - name: Retrieve CAR produced by publish-to-ipfs job
+        uses: actions/download-artifact@v4
+        with:
+          name: dist_${{ github.sha }}.car
+      - name: Pin with @web3-storage/w3cli
+        run: |
+          # ensure whoami
+          npx -y --package=@web3-storage/w3cli@latest -- w3 whoami
+
+          # convert base64 env var to file
+          echo $W3CLI_SPACE_DELEGATION_PROOF_BASE64_STRING | base64 -d > ipfs-webui-ci-space.ucan.proof
+
+          # Add space
+          export W3CLI_SPACE_DID=$(npx -y --package=@web3-storage/w3cli@latest -- w3 space add ipfs-webui-ci-space.ucan.proof)
+
+          # use space
+          npx -y --package=@web3-storage/w3cli@latest -- w3 space use $W3CLI_SPACE_DID
+
+          # upload car
+          npx -y --package=@web3-storage/w3cli@latest -- w3 up --no-wrap --car dist_${{ github.sha }}.car
+        env:
+          W3_STORE_NAME: ${{ secrets.W3_STORE_NAME }}
+          W3_AGENT_DID: ${{ secrets.W3_AGENT_DID }}
+          # W3_PRINCIPAL env name is expected by w3cli tool: https://github.com/web3-storage/w3cli#w3_principal
+          W3_PRINCIPAL: ${{ secrets.W3_AGENT_PRINCIPAL }}
+          W3CLI_SPACE_DELEGATION_PROOF_BASE64_STRING: ${{ secrets.W3CLI_SPACE_DELEGATION_PROOF_BASE64_STRING }}
+
+  smoke-test--http: # basic smoke test that lets us know when eother caching or content routing does not work
+    if: ${{ success() && needs.publish-to-ipfs.outputs.cid }}
+    needs: publish-to-ipfs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Smoke-test instant (cached) /ipfs-sw-main.js at inbrowser.link
+        run: curl --retry 3 --retry-delay 61 -s -D - -o /dev/null https://inbrowser.link/ipfs-sw-main.js
+      - name: Smoke-test instant (cached) /ipfs-sw-main.js at inbrowser.dev
+        run: curl --retry 3 --retry-delay 61 -s -D - -o /dev/null https://inbrowser.dev/ipfs-sw-main.js
+      - name: Smoke-test fetching full DAG as CAR from trustless-gateway.link
+        run: curl --retry 3 --retry-delay 61 -s -D - -o /dev/null "https://trustless-gateway.link/ipfs/${{ needs.publish-to-ipfs.outputs.cid }}?format=car"
+
