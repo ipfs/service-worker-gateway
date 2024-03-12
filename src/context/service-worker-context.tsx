@@ -68,14 +68,10 @@ export const ServiceWorkerProvider = ({ children }): JSX.Element => {
       const registration = await navigator.serviceWorker.getRegistration()
 
       if (registration != null) {
-        // service worker already registered
-        // attempt to update it
-        await registration.update()
         setIsServiceWorkerRegistered(true)
       } else {
         try {
-          const registration = await registerServiceWorker()
-          await registration.update()
+          await registerServiceWorker()
           setIsServiceWorkerRegistered(true)
         } catch (err) {
           error('error registering service worker', err)
