@@ -6,7 +6,7 @@
     "noImplicitAny": false, // todo: update
     "module": "es2022",
     "target": "es2022",
-    "jsx": "react",
+    "jsx": "preserve",
     "lib": ["WebWorker", "ES6", "DOM"],
     "strictNullChecks": true,
 

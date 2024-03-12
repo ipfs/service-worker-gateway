@@ -1,6 +1,6 @@
 /* eslint-env mocha */
 import { expect } from 'aegir/chai'
-import { isPathOrSubdomainRequest } from '../src/lib/path-or-subdomain.ts'
+import { isPathOrSubdomainRequest } from '../src/lib/path-or-subdomain.js'
 
 describe('isPathOrSubdomainRequest', () => {
   it('returns true for path-based request', () => {

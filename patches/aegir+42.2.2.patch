@@ -1,0 +1,13 @@
+diff --git a/node_modules/aegir/src/build/index.js b/node_modules/aegir/src/build/index.js
+index 54537df..52e15cc 100644
+--- a/node_modules/aegir/src/build/index.js
++++ b/node_modules/aegir/src/build/index.js
+@@ -48,7 +48,7 @@ const build = async (argv) => {
+       banner: { js: umdPre },
+       footer: { js: umdPost },
+       metafile: argv.bundlesize,
+-      outfile,
++      outfile: argv.fileConfig.build.config.outfile == null ? undefined : outfile,
+       define: {
+         global: 'globalThis',
+         'process.env.NODE_ENV': '"production"'
