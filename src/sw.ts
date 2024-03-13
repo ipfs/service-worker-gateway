@@ -3,7 +3,7 @@ import { createVerifiedFetch, type VerifiedFetch } from '@helia/verified-fetch'
 import { HeliaServiceWorkerCommsChannel, type ChannelMessage } from './lib/channel.ts'
 import { getConfig } from './lib/config-db.ts'
 import { contentTypeParser } from './lib/content-type-parser.ts'
-import { getSubdomainParts, type UrlParts } from './lib/get-subdomain-parts.ts'
+import { getSubdomainParts } from './lib/get-subdomain-parts.ts'
 import { isConfigPage } from './lib/is-config-page.ts'
 import { error, log, trace } from './lib/logger.ts'
 import { findOriginIsolationRedirect } from './lib/path-or-subdomain.ts'
@@ -120,8 +120,8 @@ self.addEventListener('fetch', (event) => {
         log('helia-ws: cached response HIT for %s (expires: %s) %o', cacheKey, cachedResponse.headers.get('Expires'), cachedResponse)
 
         trace('helia-ws: updating cache for %s in the background', cacheKey)
-        // 👇 update cache in the background wihtout awaiting
-        fetchHandler({ path: url.pathname, request })
+        // 👇 update cache in the background (don't await)
+        void fetchHandler({ path: url.pathname, request })
 
         return cachedResponse
       }
@@ -131,16 +131,18 @@ self.addEventListener('fetch', (event) => {
 
       if (response.ok) {
         // 👇 only cache successful responses
-        log('helia-ws: storing cache key %s in cache', cacheKey)
         // Clone the response since streams can only be consumed once.
         const respToCache = response.clone()
 
         if (isMutable) {
+          trace('helia-ws: setting expires header on response key %s before storing in cache', cacheKey)
+
           // 👇 Set expires header to an hour from now for mutable (ipns://) resources
-          setExpiryHeader(respToCache, 3600)
+          setExpiresHeader(respToCache, 3600)
         }
 
-        cache.put(cacheKey, respToCache)
+        log('helia-ws: storing cache key %s in cache', cacheKey)
+        void cache.put(cacheKey, respToCache)
       }
 
       return response
@@ -221,13 +223,12 @@ function isSwAssetRequest (event: FetchEvent): boolean {
 }
 
 /**
- * Set the expires header with a timestamp base
+ * Set the expires header on a response object to a timestamp based on the passed ttl interval
  */
-function setExpiryHeader (response: Response, ttlSeconds: number = 3600): Response {
+function setExpiresHeader (response: Response, ttlSeconds: number = 3600): void {
   const expirationTime = new Date(Date.now() + ttlSeconds * 1000)
 
   response.headers.set('Expires', expirationTime.toUTCString())
-  return response
 }
 
 /**
@@ -237,7 +238,7 @@ function setExpiryHeader (response: Response, ttlSeconds: number = 3600): Respon
 function hasExpired (response: Response): boolean {
   const expiresHeader = response.headers.get('Expires')
 
-  if (!expiresHeader) {
+  if (expiresHeader == null) {
     return false
   }
 
