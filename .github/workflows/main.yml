@@ -355,9 +355,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Smoke-test instant (cached) /ipfs-sw-main.js at inbrowser.link
-        run: curl --retry 3 --retry-delay 61 -s -D - -o /dev/null https://inbrowser.link/ipfs-sw-main.js
+        run: curl --retry 3 --retry-delay 61 --retry-all-errors -v https://inbrowser.link/ipfs-sw-main.js > /dev/null
       - name: Smoke-test instant (cached) /ipfs-sw-main.js at inbrowser.dev
-        run: curl --retry 3 --retry-delay 61 -s -D - -o /dev/null https://inbrowser.dev/ipfs-sw-main.js
+        run: curl --retry 3 --retry-delay 61 --retry-all-errors -v https://inbrowser.dev/ipfs-sw-main.js > /dev/null
       - name: Smoke-test fetching full DAG as CAR from trustless-gateway.link
-        run: curl --retry 3 --retry-delay 61 -s -D - -o /dev/null "https://trustless-gateway.link/ipfs/${{ needs.publish-to-ipfs.outputs.cid }}?format=car"
+        run: curl --retry 3 --retry-delay 61 --retry-all-errors -v -H "Accept: application/vnd.ipld.car" "https://trustless-gateway.link/ipfs/${{ needs.publish-to-ipfs.outputs.cid }}?format=car" > /dev/null
 
