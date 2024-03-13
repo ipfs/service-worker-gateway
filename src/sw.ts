@@ -221,7 +221,7 @@ async function getResponseFromCacheOrFetch (event: FetchEvent): Promise<Response
   const url = new URL(event.request.url)
   const isMutable = protocol === 'ipns'
   const cacheKey = `${event.request.url}-${event.request.headers.get('Accept') ?? ''}`
-  log('helia-sw: cache key: %s', cacheKey)
+  trace('helia-sw: cache key: %s', cacheKey)
   const cache = await caches.open(isMutable ? MUTABLE_CACHE : IMMUTABLE_CACHE)
   const cachedResponse = await cache.match(cacheKey)
 
