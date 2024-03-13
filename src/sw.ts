@@ -273,12 +273,6 @@ async function storeReponseInCache ({ response, isMutable, cache, cacheKey }: St
 }
 
 async function fetchHandler ({ path, request }: FetchHandlerArg): Promise<Response> {
-  /**
-   * > Any global variables you set will be lost if the service worker shuts down.
-   *
-   * @see https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle
-   */
-  verifiedFetch = verifiedFetch ?? await getVerifiedFetch()
   // test and enforce origin isolation before anything else is executed
   const originLocation = await findOriginIsolationRedirect(new URL(request.url))
   if (originLocation !== null) {
@@ -291,6 +285,13 @@ async function fetchHandler ({ path, request }: FetchHandlerArg): Promise<Respon
       }
     })
   }
+
+  /**
+   * > Any global variables you set will be lost if the service worker shuts down.
+   *
+   * @see https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle
+   */
+  verifiedFetch = verifiedFetch ?? await getVerifiedFetch()
 
   /**
    * Note that there are existing bugs regarding service worker signal handling:
