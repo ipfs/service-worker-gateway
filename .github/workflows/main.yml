@@ -8,6 +8,9 @@ on:
       - '**'
   workflow_dispatch:
 
+env:
+  KUBO_VER: 'v0.27.0'       # kubo daemon used for publishing to IPFS
+  CLUSTER_CTL_VER: 'v1.0.8' # ipfs-cluster-ctl used by publish-to-ipfs
 
 jobs:
 
@@ -173,9 +176,6 @@ jobs:
       # only one job runs at a time == DNSLinks are updated in-order
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
-    env:
-      KUBO_VER: 'v0.26.0'       # kubo daemon used for publishing to IPFS
-      CLUSTER_CTL_VER: 'v1.0.8' # ipfs-cluster-ctl used for pinning
     outputs:
       cid: ${{ steps.ipfs-import.outputs.cid }}
     steps:
@@ -312,15 +312,52 @@ jobs:
           W3_PRINCIPAL: ${{ secrets.W3_AGENT_PRINCIPAL }}
           W3CLI_SPACE_DELEGATION_PROOF_BASE64_STRING: ${{ secrets.W3CLI_SPACE_DELEGATION_PROOF_BASE64_STRING }}
 
-  smoke-test--http: # basic smoke test that lets us know when eother caching or content routing does not work
+  pin-to-scaleway:
     if: ${{ success() && needs.publish-to-ipfs.outputs.cid }}
     needs: publish-to-ipfs
     runs-on: ubuntu-latest
+    environment: Scaleway
     steps:
-      - name: Smoke-test instant (cached) /ipfs-sw-main.js at inbrowser.link
-        run: curl --retry 3 --retry-delay 61 -s -D - -o /dev/null https://inbrowser.link/ipfs-sw-main.js
-      - name: Smoke-test instant (cached) /ipfs-sw-main.js at inbrowser.dev
-        run: curl --retry 3 --retry-delay 61 -s -D - -o /dev/null https://inbrowser.dev/ipfs-sw-main.js
-      - name: Smoke-test fetching full DAG as CAR from trustless-gateway.link
-        run: curl --retry 3 --retry-delay 61 -s -D - -o /dev/null "https://trustless-gateway.link/ipfs/${{ needs.publish-to-ipfs.outputs.cid }}?format=car"
+      - uses: actions/checkout@v4
+      - uses: ipfs/download-ipfs-distribution-action@v1
+        with:
+          name: kubo
+          version: "${{ env.KUBO_VER }}"
+      - name: Init IPFS daemon
+        run: ipfs init --profile flatfs,server,randomports,lowpower
+      - uses: ipfs/start-ipfs-daemon-action@v1
+        with:
+          args: --enable-gc=false
+      - name: Retrieve CAR produced by publish-to-ipfs job
+        uses: actions/download-artifact@v4
+        with:
+          name: dist_${{ github.sha }}.car
+      - name: Import CAR to local Kubo
+        run: ipfs dag import --offline dist_${{ github.sha }}.car
+      - name: Set up and check Scaleway
+        id: scaleway
+        run: |
+          ipfs pin remote service add scaleway "$SCALEWAY_URL" "$SCALEWAY_SECRET"
+          echo "existing-pin=$(ipfs pin remote ls --service=scaleway --name=$CID)" >> $GITHUB_OUTPUT # using --name because --cid does not work with Scaleway (2024-Q1)
+        env:
+          CID: ${{ needs.publish-to-ipfs.outputs.cid }}
+          SCALEWAY_SECRET: ${{ secrets.SCALEWAY_SECRET }}
+          SCALEWAY_URL: ${{ secrets.SCALEWAY_URL }}
+      - name: Pin to Scaleway
+        if: ${{ steps.scaleway.outputs.existing-pin == '' }}
+        run: ipfs pin remote add --service=scaleway --name=$CID $CID # using --name because --cid does not work with Scaleway (2024-Q1)
+        env:
+          CID: ${{ needs.publish-to-ipfs.outputs.cid }}
+
+  smoke-test-http: # basic smoke test that lets us know when eother caching or content routing does not work
+    if: ${{ success() && needs.publish-to-ipfs.outputs.cid }}
+    needs: [ publish-to-ipfs, pin-to-scaleway, pin-to-w3 ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Smoke-test instant (cached, stale-while-revalidate) /ipfs-sw-main.js at inbrowser.link
+        run: curl --retry 3 --retry-delay 61 --retry-all-errors -v https://inbrowser.link/ipfs-sw-main.js > /dev/null
+      - name: Smoke-test instant (cached, stale-while-revalidate) /ipfs-sw-main.js at inbrowser.dev
+        run: curl --retry 3 --retry-delay 61 --retry-all-errors -v https://inbrowser.dev/ipfs-sw-main.js > /dev/null
+      - name: Smoke-test fetching the new CID as CAR from trustless-gateway.link
+        run: curl --retry 3 --retry-delay 61 --retry-all-errors -v "https://trustless-gateway.link/ipfs/${{ needs.publish-to-ipfs.outputs.cid }}?format=car" > /dev/null
 
