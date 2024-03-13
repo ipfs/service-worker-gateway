@@ -168,7 +168,7 @@ jobs:
 
   publish-to-ipfs:
     # TODO: make this run also on release
-    # TODO if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
     environment: Deploy # CF and Clusteer secrets
