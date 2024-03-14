@@ -32,6 +32,12 @@ interface GetVerifiedFetchUrlOptions {
   path: string
 }
 
+interface StoreReponseInCacheOptions {
+  response: Response
+  cacheKey: string
+  isMutable: boolean
+}
+
 /**
  ******************************************************
  * "globals"
@@ -40,6 +46,9 @@ interface GetVerifiedFetchUrlOptions {
 declare let self: ServiceWorkerGlobalScope
 let verifiedFetch: VerifiedFetch
 const channel = new HeliaServiceWorkerCommsChannel('SW')
+const IMMUTABLE_CACHE = 'IMMUTABLE_CACHE'
+const MUTABLE_CACHE = 'MUTABLE_CACHE'
+const ONE_HOUR_IN_SECONDS = 3600
 const urlInterceptRegex = [new RegExp(`${self.location.origin}/ip(n|f)s/`)]
 const updateVerifiedFetch = async (): Promise<void> => {
   verifiedFetch = await getVerifiedFetch()
@@ -85,6 +94,7 @@ self.addEventListener('fetch', (event) => {
   const request = event.request
   const urlString = request.url
   const url = new URL(urlString)
+  log('helia-sw: incoming request url: %s:', event.request.url)
 
   if (isConfigPageRequest(url) || isSwAssetRequest(event)) {
     // get the assets from the server
@@ -98,10 +108,9 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (isRootRequestForContent(event)) {
-    // intercept and do our own stuff...
     event.respondWith(fetchHandler({ path: url.pathname, request }))
   } else if (isSubdomainRequest(event)) {
-    event.respondWith(fetchHandler({ path: url.pathname, request }))
+    event.respondWith(getResponseFromCacheOrFetch(event))
   }
 })
 
@@ -177,13 +186,99 @@ function isSwAssetRequest (event: FetchEvent): boolean {
   return isActualSwAsset
 }
 
+/**
+ * Set the expires header on a response object to a timestamp based on the passed ttl interval
+ * Defaults to
+ */
+function setExpiresHeader (response: Response, ttlSeconds: number = ONE_HOUR_IN_SECONDS): void {
+  const expirationTime = new Date(Date.now() + ttlSeconds * 1000)
+
+  response.headers.set('sw-cache-expires', expirationTime.toUTCString())
+}
+
+/**
+ * Checks whether a cached response object has expired by looking at the expires header
+ * Note that this ignores the Cache-Control header since the expires header is set by us
+ */
+function hasExpired (response: Response): boolean {
+  const expiresHeader = response.headers.get('sw-cache-expires')
+
+  if (expiresHeader == null) {
+    return false
+  }
+
+  const expires = new Date(expiresHeader)
+  const now = new Date()
+
+  return expires < now
+}
+
+function getCacheKey (event: FetchEvent): string {
+  return `${event.request.url}-${event.request.headers.get('Accept') ?? ''}`
+}
+
+async function fetchAndUpdateCache (event: FetchEvent, url: URL, cacheKey: string): Promise<Response> {
+  const response = await fetchHandler({ path: url.pathname, request: event.request })
+  try {
+    await storeReponseInCache({ response, isMutable: true, cacheKey })
+    trace('helia-ws: updated cache for %s', cacheKey)
+  } catch (err) {
+    error('helia-ws: failed updating response in cache for %s', cacheKey, err)
+  }
+  return response
+}
+
+async function getResponseFromCacheOrFetch (event: FetchEvent): Promise<Response> {
+  const { protocol } = getSubdomainParts(event.request.url)
+  const url = new URL(event.request.url)
+  const isMutable = protocol === 'ipns'
+  const cacheKey = getCacheKey(event)
+  trace('helia-sw: cache key: %s', cacheKey)
+  const cache = await caches.open(isMutable ? MUTABLE_CACHE : IMMUTABLE_CACHE)
+  const cachedResponse = await cache.match(cacheKey)
+  const validCacheHit = cachedResponse != null && !hasExpired(cachedResponse)
+
+  if (validCacheHit) {
+    log('helia-ws: cached response HIT for %s (expires: %s) %o', cacheKey, cachedResponse.headers.get('sw-cache-expires'), cachedResponse)
+
+    if (isMutable) {
+      // If the response is mutable, update the cache in the background.
+      void fetchAndUpdateCache(event, url, cacheKey)
+    }
+
+    return cachedResponse
+  }
+
+  log('helia-ws: cached response MISS for %s', cacheKey)
+
+  return fetchAndUpdateCache(event, url, cacheKey)
+}
+
+async function storeReponseInCache ({ response, isMutable, cacheKey }: StoreReponseInCacheOptions): Promise<void> {
+  // 👇 only cache successful responses
+  if (!response.ok) {
+    return
+  }
+  trace('helia-ws: updating cache for %s in the background', cacheKey)
+
+  const cache = await caches.open(isMutable ? MUTABLE_CACHE : IMMUTABLE_CACHE)
+
+  // Clone the response since streams can only be consumed once.
+  const respToCache = response.clone()
+
+  if (isMutable) {
+    trace('helia-ws: setting expires header on response key %s before storing in cache', cacheKey)
+    // 👇 Set expires header to an hour from now for mutable (ipns://) resources
+    // Note that this technically breaks HTTP semantics, whereby the cache-control max-age takes precendence
+    // Setting this header is only used by the service worker using a mechanism similar to stale-while-revalidate
+    setExpiresHeader(respToCache, ONE_HOUR_IN_SECONDS)
+  }
+
+  log('helia-ws: storing response for key %s in cache', cacheKey)
+  await cache.put(cacheKey, respToCache)
+}
+
 async function fetchHandler ({ path, request }: FetchHandlerArg): Promise<Response> {
-  /**
-   * > Any global variables you set will be lost if the service worker shuts down.
-   *
-   * @see https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle
-   */
-  verifiedFetch = verifiedFetch ?? await getVerifiedFetch()
   // test and enforce origin isolation before anything else is executed
   const originLocation = await findOriginIsolationRedirect(new URL(request.url))
   if (originLocation !== null) {
@@ -196,6 +291,13 @@ async function fetchHandler ({ path, request }: FetchHandlerArg): Promise<Respon
       }
     })
   }
+
+  /**
+   * > Any global variables you set will be lost if the service worker shuts down.
+   *
+   * @see https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle
+   */
+  verifiedFetch = verifiedFetch ?? await getVerifiedFetch()
 
   /**
    * Note that there are existing bugs regarding service worker signal handling:
