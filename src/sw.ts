@@ -48,6 +48,7 @@ let verifiedFetch: VerifiedFetch
 const channel = new HeliaServiceWorkerCommsChannel('SW')
 const IMMUTABLE_CACHE = 'IMMUTABLE_CACHE'
 const MUTABLE_CACHE = 'MUTABLE_CACHE'
+const ONE_HOUR_IN_SECONDS = 3600
 const urlInterceptRegex = [new RegExp(`${self.location.origin}/ip(n|f)s/`)]
 const updateVerifiedFetch = async (): Promise<void> => {
   verifiedFetch = await getVerifiedFetch()
@@ -187,8 +188,9 @@ function isSwAssetRequest (event: FetchEvent): boolean {
 
 /**
  * Set the expires header on a response object to a timestamp based on the passed ttl interval
+ * Defaults to
  */
-function setExpiresHeader (response: Response, ttlSeconds: number = 3600): void {
+function setExpiresHeader (response: Response, ttlSeconds: number = ONE_HOUR_IN_SECONDS): void {
   const expirationTime = new Date(Date.now() + ttlSeconds * 1000)
 
   response.headers.set('sw-cache-expires', expirationTime.toUTCString())
@@ -269,7 +271,7 @@ async function storeReponseInCache ({ response, isMutable, cacheKey }: StoreRepo
     // 👇 Set expires header to an hour from now for mutable (ipns://) resources
     // Note that this technically breaks HTTP semantics, whereby the cache-control max-age takes precendence
     // Setting this header is only used by the service worker using a mechanism similar to stale-while-revalidate
-    setExpiresHeader(respToCache, 3600)
+    setExpiresHeader(respToCache, ONE_HOUR_IN_SECONDS)
   }
 
   log('helia-ws: storing response for key %s in cache', cacheKey)
