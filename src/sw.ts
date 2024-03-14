@@ -212,11 +212,7 @@ function hasExpired (response: Response): boolean {
   const expires = new Date(expiresHeader)
   const now = new Date()
 
-  if (expires < now) {
-    return true
-  }
-
-  return false
+  return expires < now
 }
 
 function getCacheKey (event: FetchEvent): string {
