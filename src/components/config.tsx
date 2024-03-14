@@ -47,7 +47,7 @@ export default (): JSX.Element | null => {
     // we get the iframe origin from a query parameter called 'origin', if this is loaded in an iframe
     const targetOrigin = decodeURIComponent(window.location.hash.split('@origin=')[1])
     const config = await getConfig()
-    trace('config-page: postMessage config to origin ', config, origin)
+    trace('config-page: postMessage config to origin ', config, targetOrigin)
     /**
      * The reload page in the parent window is listening for this message, and then it passes a RELOAD_CONFIG message to the service worker
      */

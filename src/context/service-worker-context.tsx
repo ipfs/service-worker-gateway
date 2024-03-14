@@ -13,8 +13,9 @@
  * 1. The page being loaded using some /ip[fn]s/<path> url, but subdomain isolation is supported, so we need to redirect to the isolated origin
  */
 import React, { createContext, useEffect, useState } from 'react'
+import { getRedirectUrl, isDeregisterRequest } from '../lib/deregister-request.ts'
 import { translateIpfsRedirectUrl } from '../lib/ipfs-hosted-redirect-utils.ts'
-import { error } from '../lib/logger.ts'
+import { error, trace } from '../lib/logger.ts'
 import { findOriginIsolationRedirect } from '../lib/path-or-subdomain.ts'
 import { registerServiceWorker } from '../service-worker-utils.ts'
 
@@ -54,17 +55,23 @@ export const ServiceWorkerProvider = ({ children }): JSX.Element => {
       return
     }
     async function doWork (): Promise<void> {
+      if (isDeregisterRequest(window.location.href)) {
+        trace('UI: deregistering service worker')
+        const registration = await navigator.serviceWorker.getRegistration()
+        if (registration != null) {
+          await registration.unregister()
+          window.location.replace(getRedirectUrl(window.location.href).href)
+        } else {
+          error('UI: service worker not registered, cannot deregister')
+        }
+      }
       const registration = await navigator.serviceWorker.getRegistration()
 
       if (registration != null) {
-        // service worker already registered
-        // attempt to update it
-        await registration.update()
         setIsServiceWorkerRegistered(true)
       } else {
         try {
-          const registration = await registerServiceWorker()
-          await registration.update()
+          await registerServiceWorker()
           setIsServiceWorkerRegistered(true)
         } catch (err) {
           error('error registering service worker', err)
