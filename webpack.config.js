@@ -3,6 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import CopyWebpackPlugin from 'copy-webpack-plugin'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
+import MiniCssExtractPlugin from 'mini-css-extract-plugin'
 import TerserPlugin from 'terser-webpack-plugin'
 import webpack from 'webpack'
 import BundleAnalyzerPlugin from 'webpack-bundle-analyzer'
@@ -12,15 +13,29 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const splitChunks = {
   name: (_module, _chunks, cacheGroupKey) => {
+    // eslint-disable-next-line no-console
+    // console.log(`{_module}-{_chunks}-{cacheGroupKey}: ${_module}-${_chunks}-${cacheGroupKey}`)
     return cacheGroupKey // we only want to name the chunks based on the cache group key
   },
   cacheGroups: {
     defaultVendors: { // everything not specified in other cache groups
       name: 'vendor-rest',
-      test: /[\\/]node_modules[\\/]/,
-      priority: -10,
+      test: /[\\/]node_modules[\\/](.(?!.*\.css$))*/,
+      priority: -20,
       chunks: 'all'
     },
+    // cssAssets: { // everything not specified in other cache groups
+    //   name: 'css',
+    //   test: /\.css/,
+    //   priority: -10, // higher than default
+    //   chunks: 'all'
+    // },
+    // styles: {
+    //   name: 'styles',
+    //   type: 'css/mini-extract',
+    //   chunks: 'all',
+    //   enforce: true
+    // },
     sw: {
       test: /[\\/]src[\\/]sw.ts/,
       name: 'sw',
@@ -28,7 +43,7 @@ const splitChunks = {
       chunks: 'all'
     },
     reactVendor: {
-      test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom)[\\/]/,
+      test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom)[\\/](.(?!.*\.css$))*/,
       name: 'vendor-react',
       chunks: 'all'
     }
@@ -203,12 +218,21 @@ const common = {
 
     new webpack.DefinePlugin({
       window: 'globalThis' // attempt to naively replace all "window" keywords with "globalThis"
+    }),
+
+    new MiniCssExtractPlugin({
+      filename: 'ipfs-sw-[name].css',
+      chunkFilename: 'ipfs-sw-[id].css'
     })
   ],
 
   // Determine how modules within the project are treated
   module: {
     rules: [
+      {
+        test: /\.css$/,
+        use: [MiniCssExtractPlugin.loader, 'css-loader']
+      },
       // JavaScript: Use Babel to transpile JavaScript files
       {
         test: /\.[jt]sx?$/,
@@ -237,8 +261,21 @@ const common = {
 
       // Fonts and SVGs: Inline files
       { test: /\.(woff(2)?|eot|ttf|otf|svg|)$/, type: 'asset/inline' },
+      {
+        test: /\\.css$/,
+        use: [
+          'style-loader',
+          {
+            loader: 'css-loader',
+            options: {
+              importLoaders: 1,
+              modules: true
+            }
+          }
+        ]
+      }
 
-      { test: /\.(css)$/, use: ['style-loader', 'css-loader'] }
+      // { test: /\.(css)$/, use: ['style-loader', 'css-loader'] }
     ]
   },
 

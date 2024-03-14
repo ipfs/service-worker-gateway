@@ -2,7 +2,9 @@
   Inspiration from https://dev.to/codebubb/create-a-simple-on-off-slide-toggle-with-css-db8
  */
 import React, { useState } from 'react'
-import './local-storage-toggle.css'
+import * as styles from './local-storage-toggle.css'
+// eslint-disable-next-line no-console
+console.log('styles', styles)
 
 interface LocalStorageToggleProps {
   localStorageKey: string
