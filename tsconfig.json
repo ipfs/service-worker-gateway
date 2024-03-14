@@ -1,7 +1,7 @@
 {
   "extends": "./node_modules/aegir/src/config/tsconfig.aegir.json",
   "compilerOptions": {
-    "outDir": "dist",
+    "outDir": "dist-tsc",
     "allowJs": true,
     "noImplicitAny": false, // todo: update
     "module": "es2022",

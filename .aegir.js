@@ -1,4 +1,12 @@
-import { readFile } from "fs/promises"
+import { readFile } from 'fs/promises'
+import { copy } from 'esbuild-plugin-copy'
+
+// Define paths
+const paths = {
+  src: 'dist-tsc',
+  public: 'public',
+  dist: 'dist-esbuild'
+}
 
 /**
  * @type {import ('esbuild').Plugin}
@@ -13,23 +21,32 @@ export const CSSMinifyPlugin = {
         })
     }
 }
+// Copy plugin configuration
+const copyPlugin = copy({
+  assets: {
+    from: [`${paths.public}/_redirects`, `${paths.public}/favicon.ico`, `${paths.public}/index.html`, `${paths.public}/**/*.svg`, `${paths.public}/**/*.css`],
+    to: ['./public']
+  }
+})
 
 /** @type {import('aegir').PartialOptions} */
 export default {
   build: {
     config: {
-      // TSC is done first, so inputs to esbuild is dist/src/*
-      entryPoints: ['dist/src/index.jsx', 'dist/src/sw.js'],
-      // outfile: null,
-      outdir: 'dist',
-      // minify: true,
-      chunkNames: 'ipfs-sw-[name]',
+      entryPoints: [`${paths.src}/src/index.jsx`, `${paths.src}/src/sw.js`],
+      bundle: true,
       splitting: true,
+      format: 'esm',
+      outdir: paths.dist,
       loader: {
         '.svg': 'dataurl'
       },
-      format: 'esm',
-      plugins: [CSSMinifyPlugin]
+      chunkNames: 'ipfs-sw-[name]',
+      minify: true,
+      sourcemap: true,
+      target: 'esnext',
+      plugins: [copyPlugin],
+      define: { 'process.env.NODE_ENV': '"production"' }
     }
   },
   test: {

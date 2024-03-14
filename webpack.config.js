@@ -52,16 +52,17 @@ const splitChunks = {
 
 const paths = {
   // Source files
-  src: path.resolve(__dirname, './src'),
-  testSrc: path.resolve(__dirname, './webpack-tests'),
+  src: path.resolve(__dirname, './dist-esbuild'),
+  // testSrc: path.resolve(__dirname, './webpack-tests'),
   testBuild: path.resolve(__dirname, './test-build'),
 
   // Production build files
-  build: path.resolve(__dirname, './dist'),
+  build: path.resolve(__dirname, './dist')
 
-  // Static files that get copied to build folder
-  public: path.resolve(__dirname, './public')
+  // public: path.resolve(__dirname, './public')
 }
+// Static files that get copied to build folder
+paths.public = path.resolve(paths.src, './public')
 
 /**
  * @type {import('webpack').Configuration}
@@ -153,24 +154,24 @@ const dev = {
   }
 }
 
-/**
- * @type {import('webpack').Configuration}
- */
-const test = {
-  mode: 'development',
-  devtool: 'inline-source-map',
-  output: {
-    path: paths.testBuild,
-    filename: 'tests.js'
-  },
-  entry: {
-    tests: readdirSync(paths.testSrc).filter(function (file) {
-      return file.match(/.*\.ts$/)
-    }).map(function (file) {
-      return path.join(paths.testSrc, file)
-    })
-  }
-}
+// /**
+//  * @type {import('webpack').Configuration}
+//  */
+// const test = {
+//   mode: 'development',
+//   devtool: 'inline-source-map',
+//   output: {
+//     path: paths.testBuild,
+//     filename: 'tests.js'
+//   },
+//   entry: {
+//     tests: readdirSync(paths.testSrc).filter(function (file) {
+//       return file.match(/.*\.ts$/)
+//     }).map(function (file) {
+//       return path.join(paths.testSrc, file)
+//     })
+//   }
+// }
 
 /**
  * @type {import('webpack').Configuration}
@@ -178,7 +179,7 @@ const test = {
 const common = {
 // Where webpack looks to start building the bundle
   entry: {
-    main: paths.src + '/index.tsx'
+    main: paths.src + '/index.js'
   },
   output: {
     path: paths.build,
@@ -223,27 +224,27 @@ const common = {
   module: {
     rules: [
       // JavaScript: Use Babel to transpile JavaScript files
-      {
-        test: /\.[jt]sx?$/,
-        exclude: /node_modules/,
-        use: {
-          loader: 'babel-loader',
-          options: {
-            presets: [
-              '@babel/preset-typescript',
-              [
-                '@babel/preset-env',
-                {
-                  targets: {
-                    esmodules: true
-                  }
-                }
-              ],
-              '@babel/preset-react'
-            ]
-          }
-        }
-      },
+      // {
+      //   test: /\.[j]s?$/,
+      //   exclude: /node_modules/,
+      //   use: {
+      //     loader: 'babel-loader',
+      //     options: {
+      //       presets: [
+      //         '@babel/preset-typescript',
+      //         [
+      //           '@babel/preset-env',
+      //           {
+      //             targets: {
+      //               esmodules: true
+      //             }
+      //           }
+      //         ],
+      //         '@babel/preset-react'
+      //       ]
+      //     }
+      //   }
+      // },
 
       // Images: Copy image files to build folder
       { test: /\.(?:ico|gif|png|jpg|jpeg)$/i, type: 'asset/resource' },
@@ -281,12 +282,13 @@ const common = {
 export default (cmd) => {
   const production = cmd.production
   let config = prod
-  if (cmd.test) {
-    config = test
-    const testConfig = merge(common, test)
-    testConfig.entry = test.entry
-    return testConfig
-  } else if (cmd.analyze) {
+  // if (cmd.test) {
+  //   config = test
+  //   const testConfig = merge(common, test)
+  //   testConfig.entry = test.entry
+  //   return testConfig
+  // } else
+  if (cmd.analyze) {
     config = prod
     prod.plugins.push(
       new BundleAnalyzerPlugin.BundleAnalyzerPlugin({

@@ -5,7 +5,7 @@ import { copy } from 'esbuild-plugin-copy'
 const paths = {
   src: 'src',
   public: 'public',
-  dist: 'dist'
+  dist: 'dist-esbuild'
 }
 
 // Copy plugin configuration
