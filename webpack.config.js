@@ -1,5 +1,6 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { execSync } from 'child_process'
 import CopyWebpackPlugin from 'copy-webpack-plugin'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
 import MiniCssExtractPlugin from 'mini-css-extract-plugin'
@@ -143,7 +144,7 @@ const dev = {
       'access-control-allow-origin': '*',
       'access-control-allow-methods': 'GET'
     },
-    allowedHosts: ['helia-sw-gateway.localhost', 'localhost']
+    allowedHosts: ['swig.localhost', 'helia-sw-gateway.localhost', 'localhost']
   },
 
   plugins: [
@@ -153,6 +154,16 @@ const dev = {
   optimization: {
     splitChunks
   }
+}
+
+/**
+ * Retrieves the Git branch and short SHA of the current commit.
+ * @returns {string} A string representing the Git branch and short SHA.
+ */
+const gitRevision = () => {
+  const ref = execSync('git rev-parse --abbrev-ref HEAD').toString().trim()
+  const sha = execSync('git rev-parse --short HEAD').toString().trim()
+  return `${ref}@${sha}`
 }
 
 /**
@@ -187,6 +198,7 @@ const common = {
     new HtmlWebpackPlugin({
       excludeChunks: ['sw'],
       title: 'IPFS Service Worker Gateway',
+      version: gitRevision(),
       favicon: paths.public + '/favicon.ico',
       template: paths.public + '/index.html', // template file
       filename: 'index.html', // output file,
