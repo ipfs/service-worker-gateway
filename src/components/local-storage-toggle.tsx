@@ -24,6 +24,7 @@ export const LocalStorageToggle: React.FC<LocalStorageToggleProps> = ({ localSto
 
   return (
     <>
+      <span>test</span>
     <div className="local-storage-toggle input-reset bn black-80 w-100 mb3">
       <input className="status" style={{ display: 'none' }} id={localStorageKey} type="checkbox" name="status" checked={isChecked} onChange={handleChange} />
       <label htmlFor={localStorageKey} className="w-100 h-100">
