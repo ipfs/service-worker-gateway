@@ -191,7 +191,7 @@ function isSwAssetRequest (event: FetchEvent): boolean {
 function setExpiresHeader (response: Response, ttlSeconds: number = 3600): void {
   const expirationTime = new Date(Date.now() + ttlSeconds * 1000)
 
-  response.headers.set('Expires', expirationTime.toUTCString())
+  response.headers.set('sw-cache-expires', expirationTime.toUTCString())
 }
 
 function isValidCacheResponse (cachedResponse?: Response): cachedResponse is Response {
@@ -203,7 +203,7 @@ function isValidCacheResponse (cachedResponse?: Response): cachedResponse is Res
  * Note that this ignores the Cache-Control header since the expires header is set by us
  */
 function hasExpired (response: Response): boolean {
-  const expiresHeader = response.headers.get('Expires')
+  const expiresHeader = response.headers.get('sw-cache-expires')
 
   if (expiresHeader == null) {
     return false
@@ -238,7 +238,7 @@ async function getResponseFromCacheOrFetch (event: FetchEvent): Promise<Response
    * update the cache entry in the background.
    */
   if (isValidCacheResponse(cachedResponse)) {
-    log('helia-ws: cached response HIT for %s (expires: %s) %o', cacheKey, cachedResponse.headers.get('Expires'), cachedResponse)
+    log('helia-ws: cached response HIT for %s (expires: %s) %o', cacheKey, cachedResponse.headers.get('sw-cache-expires'), cachedResponse)
     return cachedResponse
   }
 
