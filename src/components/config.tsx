@@ -84,9 +84,11 @@ export default (): JSX.Element | null => {
     return null
   }
 
+  const isInIframe = window.self !== window.top
+
   return (
     <main className='pa4-l bg-snow mw7 center pa4'>
-      <Collapsible collapsedLabel="View config" expandedLabel='Hide config' collapsed={true}>
+      <Collapsible collapsedLabel="View config" expandedLabel='Hide config' collapsed={isInIframe}>
         <LocalStorageInput localStorageKey={LOCAL_STORAGE_KEYS.config.gateways} label='Gateways' validationFn={urlValidationFn} defaultValue='[]' />
         <LocalStorageInput localStorageKey={LOCAL_STORAGE_KEYS.config.routers} label='Routers' validationFn={urlValidationFn} defaultValue='[]'/>
         <LocalStorageToggle localStorageKey={LOCAL_STORAGE_KEYS.config.autoReload} onLabel='Auto Reload' offLabel='Show Config' />
