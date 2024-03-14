@@ -52,6 +52,7 @@ const splitChunks = {
 const paths = {
   // Source files
   distTsc: path.resolve(__dirname, './dist-tsc/src'),
+  devSrc: path.resolve(__dirname, './src'),
   // testSrc: path.resolve(__dirname, './webpack-tests'),
   testBuild: path.resolve(__dirname, './test-build'),
 
@@ -123,6 +124,9 @@ const prod = {
 const dev = {
   // Set the mode to development or production
   mode: 'development',
+  entry: {
+    main: paths.devSrc + '/index.tsx'
+  },
 
   // Control how source maps are generated
   devtool: 'inline-source-map',
@@ -206,7 +210,8 @@ const common = {
       // aegir has already built the JS for us with tsc & esbuild
       // { test: /\.[j]s?$/,},
       {
-        test: /\.jsx$/,
+        // test: /\.jsx$/,
+        test: /\.[jt]sx?$/,
         exclude: /node_modules/,
         use: {
           loader: 'babel-loader',
@@ -244,7 +249,13 @@ const common = {
 
   resolve: {
     modules: [paths.distTsc, 'node_modules'],
-    extensions: ['.js', '.jsx', '.json', '.ts', '.tsx']
+    extensions: ['.js', '.jsx', '.json', '.ts', '.tsx'],
+    extensionAlias: {
+      '.js': ['.js', '.ts'],
+      '.jsx': ['.jsx', '.tsx'],
+      '.cjs': ['.cjs', '.cts'],
+      '.mjs': ['.mjs', '.mts']
+    }
   },
 
   // fix: https://github.com/webpack/webpack-dev-server/issues/2758
