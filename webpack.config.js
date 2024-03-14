@@ -1,4 +1,3 @@
-import { readdirSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import CopyWebpackPlugin from 'copy-webpack-plugin'
@@ -30,7 +29,7 @@ const splitChunks = {
       enforce: true
     },
     sw: {
-      test: /[\\/]src[\\/]sw.ts/,
+      test: /[\\/]src[\\/]sw.js/,
       name: 'sw',
       priority: 100, // anything the sw needs should be in the sw chunk
       chunks: 'all'
@@ -154,25 +153,6 @@ const dev = {
   }
 }
 
-// /**
-//  * @type {import('webpack').Configuration}
-//  */
-// const test = {
-//   mode: 'development',
-//   devtool: 'inline-source-map',
-//   output: {
-//     path: paths.testBuild,
-//     filename: 'tests.js'
-//   },
-//   entry: {
-//     tests: readdirSync(paths.testSrc).filter(function (file) {
-//       return file.match(/.*\.ts$/)
-//     }).map(function (file) {
-//       return path.join(paths.testSrc, file)
-//     })
-//   }
-// }
-
 /**
  * @type {import('webpack').Configuration}
  */
@@ -282,12 +262,6 @@ const common = {
 export default (cmd) => {
   const production = cmd.production
   let config = prod
-  // if (cmd.test) {
-  //   config = test
-  //   const testConfig = merge(common, test)
-  //   testConfig.entry = test.entry
-  //   return testConfig
-  // } else
   if (cmd.analyze) {
     config = prod
     prod.plugins.push(

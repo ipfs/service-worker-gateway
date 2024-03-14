@@ -1,13 +1,42 @@
 diff --git a/node_modules/aegir/src/build/index.js b/node_modules/aegir/src/build/index.js
-index 54537df..52e15cc 100644
+index 54537df..6df4c61 100644
 --- a/node_modules/aegir/src/build/index.js
 +++ b/node_modules/aegir/src/build/index.js
-@@ -48,7 +48,7 @@ const build = async (argv) => {
-       banner: { js: umdPre },
-       footer: { js: umdPost },
+@@ -36,26 +36,31 @@ const build = async (argv) => {
+     entryPoint = fromRoot('dist', 'src', 'index.js')
+   }
+ 
+-  const result = await esbuild.build(defaults(
++  const config = defaults(
+     {
+       entryPoints: [entryPoint],
+       bundle: true,
+-      format: 'iife',
++      format: argv.fileConfig.build.config.format ?? 'iife',
+       conditions: ['production'],
+       sourcemap: argv.bundlesize,
+       minify: true,
+       globalName,
+-      banner: { js: umdPre },
+-      footer: { js: umdPost },
++      banner: argv.fileConfig.build.config.banner ?? { js: umdPre },
++      footer: argv.fileConfig.build.config.footer ?? { js: umdPost },
        metafile: argv.bundlesize,
 -      outfile,
 +      outfile: argv.fileConfig.build.config.outfile == null ? undefined : outfile,
        define: {
          global: 'globalThis',
          'process.env.NODE_ENV': '"production"'
+       }
+     },
+     argv.fileConfig.build.config
+-  ))
++  )
++  if (config.outdir) {
++    delete config.outfile
++  }
++
++  const result = await esbuild.build(config)
+ 
+   if (result.metafile) {
+     fs.writeJSONSync(path.join(paths.dist, 'stats.json'), result.metafile)

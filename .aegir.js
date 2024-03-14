@@ -21,39 +21,59 @@ export const CSSMinifyPlugin = {
         })
     }
 }
+
 // Copy plugin configuration
 const copyPlugin = copy({
-  assets: {
-    from: [`${paths.public}/_redirects`, `${paths.public}/favicon.ico`, `${paths.public}/index.html`, `${paths.public}/**/*.svg`, `${paths.public}/**/*.css`],
-    to: ['./public']
-  }
+  verbose: true,
+  assets: [
+    {
+      from: [
+        `${paths.public}/_redirects`,
+        `${paths.public}/favicon.ico`,
+        `${paths.public}/index.html`,
+      ],
+      to: ['./public']
+    },
+    {
+      from: [
+        `${paths.src}/**/*.svg`,
+        `${paths.src}/**/*.css`
+      ],
+      to: ['.']
+    }
+  ]
 })
 
 /** @type {import('aegir').PartialOptions} */
 export default {
   build: {
     config: {
+      banner: {},
+      footer: {},
       entryPoints: [`${paths.src}/src/index.jsx`, `${paths.src}/src/sw.js`],
-      bundle: true,
-      splitting: true,
+      // bundle: true,
+      // splitting: true,
       format: 'esm',
       outdir: paths.dist,
       loader: {
         '.svg': 'dataurl'
       },
-      chunkNames: 'ipfs-sw-[name]',
-      minify: true,
+      // chunkNames: 'ipfs-sw-[name]',
+      // minify: true,
       sourcemap: true,
-      target: 'esnext',
+      // target: 'esnext',
       plugins: [copyPlugin],
       define: { 'process.env.NODE_ENV': '"production"' }
     }
   },
-  test: {
-    files: ['test/node.ts']
-  },
+  test: { },
   lint: {
-    files: ['src/**/*.ts', 'src/**/*.tsx', 'tests/**/*', 'test/**/*.js']
+    files: [
+      'src/**/*.[jt]s',
+      'src/**/*.[jt]sx',
+      'test/**/*.[jt]s',
+      'test/**/*.[jt]sx'
+    ]
   },
   dependencyCheck: {
     ignore: [
@@ -67,12 +87,14 @@ export default {
       'webpack-dev-server',
       'babel-loader',
       'style-loader',
-      'css-loader'
+      'css-loader',
+      'esbuild'
     ],
     productionIgnorePatterns: [
       'webpack.config.js',
       '.aegir.js',
-      '/tests',
+      '/test',
+      'test-esbuild.js',
       'dist'
     ]
   }

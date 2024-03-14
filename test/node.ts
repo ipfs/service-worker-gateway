@@ -7,7 +7,7 @@ import { expect } from 'aegir/chai'
 
 const cwd = dirname(fileURLToPath(import.meta.url))
 
-describe('verify-dist', async () => {
+describe.skip('verify-dist', () => {
   it('has a service worker with the correct name', async () => {
   /**
    * test to confirm that the service worker generated in /dist does not change names

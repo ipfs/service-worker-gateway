@@ -217,3 +217,5 @@ $RECYCLE.BIN/
 
 # End of https://www.toptal.com/developers/gitignore/api/macos,node,windows,linux
 .vscode
+dist-tsc
+dist-esbuild

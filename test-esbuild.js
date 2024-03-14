@@ -5,7 +5,7 @@ import { copy } from 'esbuild-plugin-copy'
 const paths = {
   src: 'src',
   public: 'public',
-  dist: 'dist-esbuild'
+  dist: 'dist-esbuild2'
 }
 
 // Copy plugin configuration
@@ -21,8 +21,8 @@ const build = async () => {
   // Build the main application
   await esbuild.build({
     entryPoints: [`${paths.src}/index.tsx`],
-    bundle: true,
-    splitting: true,
+    // bundle: true,
+    // splitting: true,
     format: 'esm',
     outdir: paths.dist,
     loader: {

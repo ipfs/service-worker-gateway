@@ -12,14 +12,14 @@
 
     "moduleResolution": "bundler",
 
-    "ignoreDeprecations": "5.0", // needed due to deprecated usage in tsconfig.aegir.json
+    "ignoreDeprecations": "5.0" // needed due to deprecated usage in tsconfig.aegir.json
     // "allowImportingTsExtensions": true,
     // "declaration": true,
     // "emitDeclarationOnly": true
   },
   "include": [
     "src",
-    "webpack-tests",
-    "types/svg.d.ts"
+    "types/svg.d.ts",
+    "test"
   ]
 }
