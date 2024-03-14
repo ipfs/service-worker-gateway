@@ -215,6 +215,17 @@ function getCacheKey (event: FetchEvent): string {
   return `${event.request.url}-${event.request.headers.get('Accept') ?? ''}`
 }
 
+async function fetchAndUpdateCache (event: FetchEvent, url: URL, cacheKey: string): Promise<Response> {
+  const response = await fetchHandler({ path: url.pathname, request: event.request })
+  try {
+    await storeReponseInCache({ response, isMutable: true, cacheKey })
+    trace('helia-ws: updated cache for %s', cacheKey)
+  } catch (err) {
+    error('helia-ws: failed updating response in cache for %s', cacheKey, err)
+  }
+  return response
+}
+
 async function getResponseFromCacheOrFetch (event: FetchEvent): Promise<Response> {
   const { protocol } = getSubdomainParts(event.request.url)
   const url = new URL(event.request.url)
@@ -223,28 +234,22 @@ async function getResponseFromCacheOrFetch (event: FetchEvent): Promise<Response
   trace('helia-sw: cache key: %s', cacheKey)
   const cache = await caches.open(isMutable ? MUTABLE_CACHE : IMMUTABLE_CACHE)
   const cachedResponse = await cache.match(cacheKey)
-  const shouldUseCache = cachedResponse != null && !hasExpired(cachedResponse)
+  const validCacheHit = cachedResponse != null && !hasExpired(cachedResponse)
 
-  /**
-   * If there is an entry in the cache for event.request, then cachedResponse
-   * will be defined and we will return it. There is no need to
-   * update the cache entry in the background.
-   */
-  if (shouldUseCache) {
+  if (validCacheHit) {
     log('helia-ws: cached response HIT for %s (expires: %s) %o', cacheKey, cachedResponse.headers.get('sw-cache-expires'), cachedResponse)
+
+    if (isMutable) {
+      // If the response is mutable, update the cache in the background.
+      void fetchAndUpdateCache(event, url, cacheKey)
+    }
+
     return cachedResponse
-  } else {
-    log('helia-ws: cached response MISS for %s', cacheKey)
   }
-  const response = fetchHandler({ path: url.pathname, request: event.request })
 
-  await response
-    .then(async response => storeReponseInCache({ response, isMutable, cacheKey }))
-    .catch(err => {
-      error('helia-ws: failed updating response in cache for %s in the background', cacheKey, err)
-    })
+  log('helia-ws: cached response MISS for %s', cacheKey)
 
-  return response
+  return fetchAndUpdateCache(event, url, cacheKey)
 }
 
 async function storeReponseInCache ({ response, isMutable, cacheKey }: StoreReponseInCacheOptions): Promise<void> {
@@ -267,7 +272,7 @@ async function storeReponseInCache ({ response, isMutable, cacheKey }: StoreRepo
     setExpiresHeader(respToCache, 3600)
   }
 
-  log('helia-ws: storing cache key %s in cache', cacheKey)
+  log('helia-ws: storing response for key %s in cache', cacheKey)
   await cache.put(cacheKey, respToCache)
 }
 
