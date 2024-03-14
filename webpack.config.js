@@ -251,8 +251,6 @@ const common = {
       // Fonts and SVGs: Inline files
       { test: /\.(woff(2)?|eot|ttf|otf|svg|)$/, type: 'asset/inline' },
       {
-        // If you enable `experiments.css` or `experiments.futureDefaults`, please uncomment line below
-        // type: 'javascript/auto',
         test: /\.(sa|sc|c)ss$/i,
         use: [
           MiniCssExtractPlugin.loader,
