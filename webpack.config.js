@@ -17,7 +17,7 @@ const splitChunks = {
   cacheGroups: {
     defaultVendors: { // everything not specified in other cache groups
       name: 'vendor-rest',
-      test: /[\\/]node_modules[\\/]/,
+      // test: /[\\/]node_modules[\\/]/,
       priority: -10,
       chunks: 'all'
     },
@@ -57,8 +57,6 @@ const paths = {
 
   // Production build files
   build: path.resolve(__dirname, './dist')
-
-  // public: path.resolve(__dirname, './public')
 }
 // Static files that get copied to build folder
 paths.public = path.resolve(paths.src, './public')
@@ -181,6 +179,7 @@ const common = {
 
     // Generates an HTML file from a template
     // Generates deprecation warning: https://github.com/jantimon/html-webpack-plugin/issues/1501
+    // TODO: replace with something like https://github.com/craftamap/esbuild-plugin-html ?
     new HtmlWebpackPlugin({
       excludeChunks: ['sw'],
       title: 'IPFS Service Worker Gateway',
@@ -203,28 +202,8 @@ const common = {
   // Determine how modules within the project are treated
   module: {
     rules: [
-      // JavaScript: Use Babel to transpile JavaScript files
-      // {
-      //   test: /\.[j]s?$/,
-      //   exclude: /node_modules/,
-      //   use: {
-      //     loader: 'babel-loader',
-      //     options: {
-      //       presets: [
-      //         '@babel/preset-typescript',
-      //         [
-      //           '@babel/preset-env',
-      //           {
-      //             targets: {
-      //               esmodules: true
-      //             }
-      //           }
-      //         ],
-      //         '@babel/preset-react'
-      //       ]
-      //     }
-      //   }
-      // },
+      // aegir has already built the JS for us with tsc & esbuild
+      // { test: /\.[j]s?$/,},
 
       // Images: Copy image files to build folder
       { test: /\.(?:ico|gif|png|jpg|jpeg)$/i, type: 'asset/resource' },

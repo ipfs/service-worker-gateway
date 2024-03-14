@@ -24,7 +24,6 @@ export const CSSMinifyPlugin = {
 
 // Copy plugin configuration
 const copyPlugin = copy({
-  verbose: true,
   assets: [
     {
       from: [
@@ -51,10 +50,12 @@ export default {
       banner: {},
       footer: {},
       entryPoints: [`${paths.src}/src/index.jsx`, `${paths.src}/src/sw.js`],
+      minify: false,
       // bundle: true,
-      // splitting: true,
+      splitting: true,
       format: 'esm',
       outdir: paths.dist,
+      chunkNames: 'ipfs-sw-[name]',
       loader: {
         '.svg': 'dataurl'
       },
