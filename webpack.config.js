@@ -3,6 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import CopyWebpackPlugin from 'copy-webpack-plugin'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
+import MiniCssExtractPlugin from 'mini-css-extract-plugin'
 import TerserPlugin from 'terser-webpack-plugin'
 import webpack from 'webpack'
 import BundleAnalyzerPlugin from 'webpack-bundle-analyzer'
@@ -20,6 +21,13 @@ const splitChunks = {
       test: /[\\/]node_modules[\\/]/,
       priority: -10,
       chunks: 'all'
+    },
+    styles: {
+      minChunks: 1,
+      name: 'styles',
+      type: 'css/mini-extract',
+      chunks: 'initial',
+      enforce: true
     },
     sw: {
       test: /[\\/]src[\\/]sw.ts/,
@@ -203,6 +211,11 @@ const common = {
 
     new webpack.DefinePlugin({
       window: 'globalThis' // attempt to naively replace all "window" keywords with "globalThis"
+    }),
+
+    new MiniCssExtractPlugin({
+      filename: 'ipfs-sw-[name].css',
+      chunkFilename: 'ipfs-sw-[id].css'
     })
   ],
 
@@ -237,8 +250,13 @@ const common = {
 
       // Fonts and SVGs: Inline files
       { test: /\.(woff(2)?|eot|ttf|otf|svg|)$/, type: 'asset/inline' },
-
-      { test: /\.(css)$/, use: ['style-loader', 'css-loader'] }
+      {
+        test: /\.(sa|sc|c)ss$/i,
+        use: [
+          MiniCssExtractPlugin.loader,
+          'css-loader'
+        ]
+      }
     ]
   },
 
