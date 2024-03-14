@@ -1,17 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <!--
+
+      This HTML page initializes IPFS Service Worker Gateway.
+
+      The HTTP server behind this HTTP URL does not host this website.
+      Instead, it sends basic website code along with JavaScript. The JS sets
+      up a tool called IPFS Service Worker Gateway in the user's browser and
+      uses JavaScript version of IPFS (https://helia.io/) to get IPFS blocks
+      from content providers.
+
+      CID hash verification and data assembly happens in the browser.
+
+      Learn more about it here: https://github.com/ipfs-shipyard/helia-service-worker-gateway
+
+    -->
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
     <title><%= htmlWebpackPlugin.options.title %></title>
-
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/tachyons@4.10.0/css/tachyons.min.css"
-    />
-    <link rel="stylesheet" href="https://unpkg.com/ipfs-css@0.12.0/ipfs.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tachyons@4.12.0/css/tachyons.min.css" integrity="sha256-MgEf5i1a74lVzhT+1R6mBbWCUeUaxC8sQTaN5GY+CoI=" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ipfs-css@1.4.0/ipfs.css" integrity="sha256-tlU/gvVvLjSbTOfSZyCzuQxY8QcmHPtJJ1oTXilA9gk=" crossorigin="anonymous">
   </head>
   <body>
     <div id="root" class="montserrat f5"></div>
