@@ -243,7 +243,7 @@ async function getResponseFromCacheOrFetch (event: FetchEvent): Promise<Response
   // 👇 fetch always
   const response = fetchHandler({ path: url.pathname, request: event.request })
 
-  void response
+  await response
     .then(async response => storeReponseInCache({ response, isMutable, cacheKey }))
     .catch(err => {
       error('helia-ws: failed updating response in cache for %s in the background', cacheKey, err)
