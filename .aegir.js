@@ -36,7 +36,7 @@ export default {
     files: ['test/node.ts']
   },
   lint: {
-    files: ['src/**/*.ts', 'src/**/*.tsx', 'tests/**/*']
+    files: ['src/**/*.ts', 'src/**/*.tsx', 'tests/**/*', 'test/**/*.js']
   },
   dependencyCheck: {
     ignore: [
