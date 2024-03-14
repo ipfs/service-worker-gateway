@@ -194,10 +194,6 @@ function setExpiresHeader (response: Response, ttlSeconds: number = 3600): void 
   response.headers.set('sw-cache-expires', expirationTime.toUTCString())
 }
 
-function isValidCacheResponse (cachedResponse?: Response): cachedResponse is Response {
-  return cachedResponse != null && !hasExpired(cachedResponse)
-}
-
 /**
  * Checks whether a cached response object has expired by looking at the expires header
  * Note that this ignores the Cache-Control header since the expires header is set by us
@@ -227,18 +223,19 @@ async function getResponseFromCacheOrFetch (event: FetchEvent): Promise<Response
   trace('helia-sw: cache key: %s', cacheKey)
   const cache = await caches.open(isMutable ? MUTABLE_CACHE : IMMUTABLE_CACHE)
   const cachedResponse = await cache.match(cacheKey)
+  const shouldUseCache = cachedResponse != null && !hasExpired(cachedResponse)
 
   /**
    * If there is an entry in the cache for event.request, then cachedResponse
    * will be defined and we will return it. There is no need to
    * update the cache entry in the background.
    */
-  if (isValidCacheResponse(cachedResponse)) {
+  if (shouldUseCache) {
     log('helia-ws: cached response HIT for %s (expires: %s) %o', cacheKey, cachedResponse.headers.get('sw-cache-expires'), cachedResponse)
     return cachedResponse
+  } else {
+    log('helia-ws: cached response MISS for %s', cacheKey)
   }
-  log('helia-ws: cached response MISS for %s', cacheKey)
-
   const response = fetchHandler({ path: url.pathname, request: event.request })
 
   await response
