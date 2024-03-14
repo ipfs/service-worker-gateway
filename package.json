@@ -67,5 +67,7 @@
     "webpack-dev-server": "^4.15.1",
     "webpack-merge": "^5.8.0"
   },
-  "sideEffects": false
+  "sideEffects": [
+    "*.css"
+  ]
 }

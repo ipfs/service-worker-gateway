@@ -2,9 +2,6 @@
   Inspiration from https://dev.to/codebubb/create-a-simple-on-off-slide-toggle-with-css-db8
  */
 import React, { useState } from 'react'
-// import * as styles from './local-storage-toggle.css'
-// // eslint-disable-next-line no-console
-// console.log('styles', styles)
 import './local-storage-toggle.css'
 
 interface LocalStorageToggleProps {
@@ -27,7 +24,6 @@ export const LocalStorageToggle: React.FC<LocalStorageToggleProps> = ({ localSto
 
   return (
     <>
-      <span>test</span>
     <div className="local-storage-toggle input-reset bn black-80 w-100 mb3">
       <input className="status" style={{ display: 'none' }} id={localStorageKey} type="checkbox" name="status" checked={isChecked} onChange={handleChange} />
       <label htmlFor={localStorageKey} className="w-100 h-100">

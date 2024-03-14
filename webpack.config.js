@@ -13,23 +13,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const splitChunks = {
   name: (_module, _chunks, cacheGroupKey) => {
-    // eslint-disable-next-line no-console
-    // console.log(`{_module}-{_chunks}-{cacheGroupKey}: ${_module}-${_chunks}-${cacheGroupKey}`)
     return cacheGroupKey // we only want to name the chunks based on the cache group key
   },
   cacheGroups: {
     defaultVendors: { // everything not specified in other cache groups
       name: 'vendor-rest',
-      test: /[\\/]node_modules[\\/](.(?!.*\.css$))*/,
-      priority: -20,
+      test: /[\\/]node_modules[\\/]/,
+      priority: -10,
       chunks: 'all'
     },
-    // cssAssets: { // everything not specified in other cache groups
-    //   name: 'css',
-    //   test: /\.css/,
-    //   priority: -10, // higher than default
-    //   chunks: 'all'
-    // },
     styles: {
       minChunks: 1,
       name: 'styles',
@@ -44,7 +36,7 @@ const splitChunks = {
       chunks: 'all'
     },
     reactVendor: {
-      test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom)[\\/](.(?!.*\.css$))*/,
+      test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom)[\\/]/,
       name: 'vendor-react',
       chunks: 'all'
     }
@@ -258,40 +250,21 @@ const common = {
 
       // Fonts and SVGs: Inline files
       { test: /\.(woff(2)?|eot|ttf|otf|svg|)$/, type: 'asset/inline' },
-      // {
-      //   test: /\\.css$/,
-      //   use: [
-      //     'style-loader',
-      //     {
-      //       loader: 'css-loader',
-      //       options: {
-      //         importLoaders: 1,
-      //         modules: true
-      //       }
-      //     }
-      //   ]
-      // }
       {
         // If you enable `experiments.css` or `experiments.futureDefaults`, please uncomment line below
         // type: 'javascript/auto',
         test: /\.(sa|sc|c)ss$/i,
-        // include: paths.src,
         use: [
           MiniCssExtractPlugin.loader,
-          // 'style-loader',
           'css-loader'
-          // 'postcss-loader',
-          // 'sass-loader'
         ]
       }
-
-      // { test: /\.(css)$/, use: ['style-loader', 'css-loader'] }
     ]
   },
 
   resolve: {
     modules: [paths.src, 'node_modules'],
-    extensions: ['.js', '.jsx', '.json', '.ts', '.tsx', '.css']
+    extensions: ['.js', '.jsx', '.json', '.ts', '.tsx']
   },
 
   // fix: https://github.com/webpack/webpack-dev-server/issues/2758
@@ -303,7 +276,6 @@ const common = {
     children: true
   },
   experiments: {
-    // css: true,
     topLevelAwait: true
   }
 }
