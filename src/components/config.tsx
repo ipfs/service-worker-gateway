@@ -6,7 +6,7 @@ import { LOCAL_STORAGE_KEYS } from '../lib/local-storage.js'
 import { trace } from '../lib/logger.js'
 import { Collapsible } from './collapsible.jsx'
 import LocalStorageInput from './local-storage-input.jsx'
-import { LocalStorageToggle } from './local-storage-toggle'
+import { LocalStorageToggle } from './local-storage-toggle.jsx'
 import { ServiceWorkerReadyButton } from './sw-ready-button.jsx'
 
 const channel = new HeliaServiceWorkerCommsChannel('WINDOW')

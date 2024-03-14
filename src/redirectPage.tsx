@@ -4,7 +4,7 @@ import { ServiceWorkerContext } from './context/service-worker-context.jsx'
 import { HeliaServiceWorkerCommsChannel } from './lib/channel.js'
 import { setConfig, type ConfigDb } from './lib/config-db.js'
 import { getSubdomainParts } from './lib/get-subdomain-parts.js'
-import { isConfigPage } from './lib/is-config-page'
+import { isConfigPage } from './lib/is-config-page.js'
 import { error, trace } from './lib/logger.js'
 
 const ConfigIframe = (): JSX.Element => {
@@ -32,7 +32,7 @@ export default function RedirectPage (): JSX.Element {
         await channel.messageAndWaitForResponse('SW', { target: 'SW', action: 'RELOAD_CONFIG' })
         trace('redirect-page: RELOAD_CONFIG_SUCCESS on %s', window.location.origin)
         // try to preload the content
-        await fetch(window.location.href, { method: 'GET' })
+        // await fetch(window.location.href, { method: 'GET' })
       } catch (err) {
         error('redirect-page: error setting config on subdomain', err)
       }

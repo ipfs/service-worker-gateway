@@ -4,6 +4,7 @@ import { HeliaServiceWorkerCommsChannel, type ChannelMessage } from './lib/chann
 import { getConfig } from './lib/config-db.js'
 import { contentTypeParser } from './lib/content-type-parser.js'
 import { getRedirectUrl, isDeregisterRequest } from './lib/deregister-request.js'
+import { GenericIDB } from './lib/generic-db.js'
 import { getSubdomainParts } from './lib/get-subdomain-parts.js'
 import { isConfigPage } from './lib/is-config-page.js'
 import { error, log, trace } from './lib/logger.js'
@@ -40,6 +41,16 @@ interface StoreReponseInCacheOptions {
 }
 
 /**
+ * IndexedDB schema for each registered service worker
+ *
+ * NOTE: this is not intended to be shared between service workers, unlike the
+ * default used by config-db.ts
+ */
+interface LocalSwConfig {
+  installTimestamp: number
+}
+
+/**
  ******************************************************
  * "globals"
  ******************************************************
@@ -54,6 +65,11 @@ const urlInterceptRegex = [new RegExp(`${self.location.origin}/ip(n|f)s/`)]
 const updateVerifiedFetch = async (): Promise<void> => {
   verifiedFetch = await getVerifiedFetch()
 }
+let swIdb: GenericIDB<LocalSwConfig>
+let firstInstallTime: number
+const getSwConfig = (): GenericIDB<LocalSwConfig> => {
+  return swIdb ?? new GenericIDB<LocalSwConfig>('helia-sw-unique', 'config')
+}
 
 /**
  ******************************************************
@@ -63,6 +79,7 @@ const updateVerifiedFetch = async (): Promise<void> => {
 self.addEventListener('install', (event) => {
   // 👇 When a new version of the SW is installed, activate immediately
   void self.skipWaiting()
+  event.waitUntil(addInstallTimestampToConfig())
 })
 
 self.addEventListener('activate', (event) => {
@@ -97,25 +114,11 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(urlString)
   log('helia-sw: incoming request url: %s:', event.request.url)
 
-  if (isDeregisterRequest(event.request.url)) {
-    event.waitUntil(deregister(event))
-    return
-  } else if (isConfigPageRequest(url) || isSwAssetRequest(event)) {
-    // get the assets from the server
-    trace('helia-sw: config page or js asset request, ignoring ', urlString)
-    return
-  } else if (!isValidRequestForSW(event)) {
-    trace('helia-sw: not a valid request for helia-sw, ignoring ', urlString)
-    return
-  } else {
-    log('helia-sw: valid request for helia-sw: ', urlString)
-  }
-
-  if (isRootRequestForContent(event)) {
-    event.respondWith(fetchHandler({ path: url.pathname, request }))
-  } else if (isSubdomainRequest(event)) {
-    event.respondWith(getResponseFromCacheOrFetch(event))
-  }
+  event.waitUntil(requestRouting(event, url).then(async (shouldHandle) => {
+    if (shouldHandle) {
+      event.respondWith(getResponseFromCacheOrFetch(event))
+    }
+  }))
 })
 
 /**
@@ -123,6 +126,29 @@ self.addEventListener('fetch', (event) => {
  * Functions
  ******************************************************
  */
+async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
+  if (await isTimebombExpired()) {
+    trace('helia-sw: timebomb expired, deregistering service worker')
+    event.waitUntil(deregister(event, false))
+    return false
+  } else if (isDeregisterRequest(event.request.url)) {
+    event.waitUntil(deregister(event))
+    return false
+  } else if (isConfigPageRequest(url) || isSwAssetRequest(event)) {
+    // get the assets from the server
+    trace('helia-sw: config page or js asset request, ignoring ', event.request.url)
+    return false
+  } else if (!isValidRequestForSW(event)) {
+    trace('helia-sw: not a valid request for helia-sw, ignoring ', event.request.url)
+    return false
+  }
+
+  if (isRootRequestForContent(event) || isSubdomainRequest(event)) {
+    return true
+  }
+  return false
+}
+
 async function getVerifiedFetch (): Promise<VerifiedFetch> {
   const config = await getConfig()
   log(`config-debug: got config for sw location ${self.location.origin}`, config)
@@ -139,7 +165,7 @@ async function getVerifiedFetch (): Promise<VerifiedFetch> {
 }
 
 // potential race condition
-async function deregister (event): Promise<void> {
+async function deregister (event, redirectToConfig = true): Promise<void> {
   if (!isSubdomainRequest(event)) {
     // if we are at the root, we need to ignore this request due to race conditions with the UI
     return
@@ -148,7 +174,7 @@ async function deregister (event): Promise<void> {
   const clients = await self.clients.matchAll({ type: 'window' })
 
   for (const client of clients) {
-    const newUrl = getRedirectUrl(client.url)
+    const newUrl = redirectToConfig ? getRedirectUrl(client.url) : client.url
     try {
       await client.navigate(newUrl)
     } catch (e) {
@@ -361,5 +387,39 @@ async function fetchHandler ({ path, request }: FetchHandlerArg): Promise<Respon
       return new Response('heliaFetch error aborted due to timeout: ' + errorMessage, { status: 408 })
     }
     return new Response('heliaFetch error: ' + errorMessage, { status: 500 })
+  }
+}
+
+async function isTimebombExpired (): Promise<boolean> {
+  firstInstallTime = firstInstallTime ?? await getInstallTimestamp()
+  const now = Date.now()
+  // max life (for now) is 24 hours
+  const timebomb = 24 * 60 * 60 * 1000
+  return now - firstInstallTime > timebomb
+}
+
+async function getInstallTimestamp (): Promise<number> {
+  try {
+    const swidb = getSwConfig()
+    await swidb.open()
+    firstInstallTime = await swidb.get('installTimestamp')
+    swidb.close()
+    return firstInstallTime
+  } catch (e) {
+    error('getInstallTimestamp error: ', e)
+    return 0
+  }
+}
+
+async function addInstallTimestampToConfig (): Promise<void> {
+  try {
+    const timestamp = Date.now()
+    firstInstallTime = timestamp
+    const swidb = getSwConfig()
+    await swidb.open()
+    await swidb.put('installTimestamp', timestamp)
+    swidb.close()
+  } catch (e) {
+    error('addInstallTimestampToConfig error: ', e)
   }
 }
