@@ -16,8 +16,8 @@ describe('verify-dist', async () => {
   })
 
   it('has css file with expected content', async () => {
-    await expect(access(resolve(cwd, '../dist/ipfs-sw-main.css'), constants.F_OK)).to.not.be.rejected()
-    const contents = await readFile(resolve(cwd, '../dist/ipfs-sw-main.css'), 'utf8')
+    await expect(access(resolve(cwd, '../dist/ipfs-sw-styles.css'), constants.F_OK)).to.not.be.rejected()
+    const contents = await readFile(resolve(cwd, '../dist/ipfs-sw-styles.css'), 'utf8')
     expect(contents).to.include('47vh')
     expect(contents).to.include('.local-storage-toggle input.status')
   })

@@ -30,12 +30,13 @@ const splitChunks = {
     //   priority: -10, // higher than default
     //   chunks: 'all'
     // },
-    // styles: {
-    //   name: 'styles',
-    //   type: 'css/mini-extract',
-    //   chunks: 'all',
-    //   enforce: true
-    // },
+    styles: {
+      minChunks: 1,
+      name: 'styles',
+      type: 'css/mini-extract',
+      chunks: 'initial',
+      enforce: true
+    },
     sw: {
       test: /[\\/]src[\\/]sw.ts/,
       name: 'sw',
@@ -229,10 +230,6 @@ const common = {
   // Determine how modules within the project are treated
   module: {
     rules: [
-      {
-        test: /\.css$/,
-        use: [MiniCssExtractPlugin.loader, 'css-loader']
-      },
       // JavaScript: Use Babel to transpile JavaScript files
       {
         test: /\.[jt]sx?$/,
@@ -261,17 +258,30 @@ const common = {
 
       // Fonts and SVGs: Inline files
       { test: /\.(woff(2)?|eot|ttf|otf|svg|)$/, type: 'asset/inline' },
+      // {
+      //   test: /\\.css$/,
+      //   use: [
+      //     'style-loader',
+      //     {
+      //       loader: 'css-loader',
+      //       options: {
+      //         importLoaders: 1,
+      //         modules: true
+      //       }
+      //     }
+      //   ]
+      // }
       {
-        test: /\\.css$/,
+        // If you enable `experiments.css` or `experiments.futureDefaults`, please uncomment line below
+        // type: 'javascript/auto',
+        test: /\.(sa|sc|c)ss$/i,
+        // include: paths.src,
         use: [
-          'style-loader',
-          {
-            loader: 'css-loader',
-            options: {
-              importLoaders: 1,
-              modules: true
-            }
-          }
+          MiniCssExtractPlugin.loader,
+          // 'style-loader',
+          'css-loader'
+          // 'postcss-loader',
+          // 'sass-loader'
         ]
       }
 
@@ -281,7 +291,7 @@ const common = {
 
   resolve: {
     modules: [paths.src, 'node_modules'],
-    extensions: ['.js', '.jsx', '.json', '.ts', '.tsx']
+    extensions: ['.js', '.jsx', '.json', '.ts', '.tsx', '.css']
   },
 
   // fix: https://github.com/webpack/webpack-dev-server/issues/2758
@@ -293,6 +303,7 @@ const common = {
     children: true
   },
   experiments: {
+    // css: true,
     topLevelAwait: true
   }
 }
