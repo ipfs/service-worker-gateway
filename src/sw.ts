@@ -236,11 +236,9 @@ async function getResponseFromCacheOrFetch (event: FetchEvent): Promise<Response
   if (isValidCacheResponse(cachedResponse)) {
     log('helia-ws: cached response HIT for %s (expires: %s) %o', cacheKey, cachedResponse.headers.get('sw-cache-expires'), cachedResponse)
     return cachedResponse
-  } else {
-    log('helia-ws: cached response MISS for %s', cacheKey)
   }
+  log('helia-ws: cached response MISS for %s', cacheKey)
 
-  // 👇 fetch always
   const response = fetchHandler({ path: url.pathname, request: event.request })
 
   await response
