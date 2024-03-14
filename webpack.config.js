@@ -17,14 +17,14 @@ const splitChunks = {
   cacheGroups: {
     defaultVendors: { // everything not specified in other cache groups
       name: 'vendor-rest',
-      // test: /[\\/]node_modules[\\/]/,
+      test: /[\\/]node_modules[\\/]/,
       priority: -10,
       chunks: 'all'
     },
     styles: {
       minChunks: 1,
       name: 'styles',
-      type: 'css/mini-extract',
+      test: /.+\.css/,
       chunks: 'initial',
       enforce: true
     },
@@ -51,15 +51,16 @@ const splitChunks = {
 
 const paths = {
   // Source files
-  src: path.resolve(__dirname, './dist-esbuild'),
+  distTsc: path.resolve(__dirname, './dist-tsc/src'),
   // testSrc: path.resolve(__dirname, './webpack-tests'),
   testBuild: path.resolve(__dirname, './test-build'),
 
   // Production build files
-  build: path.resolve(__dirname, './dist')
+  build: path.resolve(__dirname, './dist'),
+
+  // Static files that get copied to build folder
+  public: path.resolve(__dirname, './public')
 }
-// Static files that get copied to build folder
-paths.public = path.resolve(paths.src, './public')
 
 /**
  * @type {import('webpack').Configuration}
@@ -157,7 +158,7 @@ const dev = {
 const common = {
 // Where webpack looks to start building the bundle
   entry: {
-    main: paths.src + '/index.js'
+    main: paths.distTsc + '/index.jsx'
   },
   output: {
     path: paths.build,
@@ -204,6 +205,27 @@ const common = {
     rules: [
       // aegir has already built the JS for us with tsc & esbuild
       // { test: /\.[j]s?$/,},
+      {
+        test: /\.jsx$/,
+        exclude: /node_modules/,
+        use: {
+          loader: 'babel-loader',
+          options: {
+            presets: [
+              '@babel/preset-typescript',
+              [
+                '@babel/preset-env',
+                {
+                  targets: {
+                    esmodules: true
+                  }
+                }
+              ],
+              '@babel/preset-react'
+            ]
+          }
+        }
+      },
 
       // Images: Copy image files to build folder
       { test: /\.(?:ico|gif|png|jpg|jpeg)$/i, type: 'asset/resource' },
@@ -221,7 +243,7 @@ const common = {
   },
 
   resolve: {
-    modules: [paths.src, 'node_modules'],
+    modules: [paths.distTsc, 'node_modules'],
     extensions: ['.js', '.jsx', '.json', '.ts', '.tsx']
   },
 
