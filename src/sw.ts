@@ -36,7 +36,6 @@ interface StoreReponseInCacheOptions {
   response: Response
   cacheKey: string
   isMutable: boolean
-  cache: Cache
 }
 
 /**
@@ -192,7 +191,7 @@ function isSwAssetRequest (event: FetchEvent): boolean {
 function setExpiresHeader (response: Response, ttlSeconds: number = 3600): void {
   const expirationTime = new Date(Date.now() + ttlSeconds * 1000)
 
-  response.headers.set('Expires', expirationTime.toUTCString())
+  response.headers.set('sw-cache-expires', expirationTime.toUTCString())
 }
 
 /**
@@ -200,7 +199,7 @@ function setExpiresHeader (response: Response, ttlSeconds: number = 3600): void 
  * Note that this ignores the Cache-Control header since the expires header is set by us
  */
 function hasExpired (response: Response): boolean {
-  const expiresHeader = response.headers.get('Expires')
+  const expiresHeader = response.headers.get('sw-cache-expires')
 
   if (expiresHeader == null) {
     return false
@@ -209,53 +208,58 @@ function hasExpired (response: Response): boolean {
   const expires = new Date(expiresHeader)
   const now = new Date()
 
-  if (expires < now) {
-    return true
-  }
+  return expires < now
+}
 
-  return false
+function getCacheKey (event: FetchEvent): string {
+  return `${event.request.url}-${event.request.headers.get('Accept') ?? ''}`
+}
+
+async function fetchAndUpdateCache (event: FetchEvent, url: URL, cacheKey: string): Promise<Response> {
+  const response = await fetchHandler({ path: url.pathname, request: event.request })
+  try {
+    await storeReponseInCache({ response, isMutable: true, cacheKey })
+    trace('helia-ws: updated cache for %s', cacheKey)
+  } catch (err) {
+    error('helia-ws: failed updating response in cache for %s', cacheKey, err)
+  }
+  return response
 }
 
 async function getResponseFromCacheOrFetch (event: FetchEvent): Promise<Response> {
   const { protocol } = getSubdomainParts(event.request.url)
   const url = new URL(event.request.url)
   const isMutable = protocol === 'ipns'
-  const cacheKey = `${event.request.url}-${event.request.headers.get('Accept') ?? ''}`
+  const cacheKey = getCacheKey(event)
   trace('helia-sw: cache key: %s', cacheKey)
   const cache = await caches.open(isMutable ? MUTABLE_CACHE : IMMUTABLE_CACHE)
   const cachedResponse = await cache.match(cacheKey)
+  const validCacheHit = cachedResponse != null && !hasExpired(cachedResponse)
 
-  if ((cachedResponse != null) && !hasExpired(cachedResponse)) {
-  // If there is an entry in the cache for event.request,
-  // then response will be defined and we can just return it.
-    log('helia-ws: cached response HIT for %s (expires: %s) %o', cacheKey, cachedResponse.headers.get('Expires'), cachedResponse)
+  if (validCacheHit) {
+    log('helia-ws: cached response HIT for %s (expires: %s) %o', cacheKey, cachedResponse.headers.get('sw-cache-expires'), cachedResponse)
 
-    trace('helia-ws: updating cache for %s in the background', cacheKey)
-    // 👇 update cache in the background (don't await)
-    fetchHandler({ path: url.pathname, request: event.request })
-      .then(async response => storeReponseInCache({ response, isMutable, cache, cacheKey }))
-      .catch(err => {
-        err('helia-ws: failed updating response in cache for %s in the background', cacheKey, err)
-      })
+    if (isMutable) {
+      // If the response is mutable, update the cache in the background.
+      void fetchAndUpdateCache(event, url, cacheKey)
+    }
 
     return cachedResponse
   }
 
-  // 👇 fetch because no cached response was found
-  const response = await fetchHandler({ path: url.pathname, request: event.request })
+  log('helia-ws: cached response MISS for %s', cacheKey)
 
-  void storeReponseInCache({ response, isMutable, cache, cacheKey }).catch(err => {
-    err('helia-ws: failed storing response in cache for %s', cacheKey, err)
-  })
-
-  return response
+  return fetchAndUpdateCache(event, url, cacheKey)
 }
 
-async function storeReponseInCache ({ response, isMutable, cache, cacheKey }: StoreReponseInCacheOptions): Promise<void> {
+async function storeReponseInCache ({ response, isMutable, cacheKey }: StoreReponseInCacheOptions): Promise<void> {
   // 👇 only cache successful responses
   if (!response.ok) {
     return
   }
+  trace('helia-ws: updating cache for %s in the background', cacheKey)
+
+  const cache = await caches.open(isMutable ? MUTABLE_CACHE : IMMUTABLE_CACHE)
 
   // Clone the response since streams can only be consumed once.
   const respToCache = response.clone()
@@ -264,12 +268,12 @@ async function storeReponseInCache ({ response, isMutable, cache, cacheKey }: St
     trace('helia-ws: setting expires header on response key %s before storing in cache', cacheKey)
     // 👇 Set expires header to an hour from now for mutable (ipns://) resources
     // Note that this technically breaks HTTP semantics, whereby the cache-control max-age takes precendence
-    // Seting this header is only used by the service worker asd a mechanism similar to stale-while-revalidate
+    // Setting this header is only used by the service worker using a mechanism similar to stale-while-revalidate
     setExpiresHeader(respToCache, 3600)
   }
 
-  log('helia-ws: storing cache key %s in cache', cacheKey)
-  void cache.put(cacheKey, respToCache)
+  log('helia-ws: storing response for key %s in cache', cacheKey)
+  await cache.put(cacheKey, respToCache)
 }
 
 async function fetchHandler ({ path, request }: FetchHandlerArg): Promise<Response> {
