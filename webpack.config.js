@@ -161,9 +161,13 @@ const dev = {
  * @returns {string} A string representing the Git branch and short SHA.
  */
 const gitRevision = () => {
-  const ref = execSync('git rev-parse --abbrev-ref HEAD').toString().trim()
-  const sha = execSync('git rev-parse --short HEAD').toString().trim()
-  return `${ref}@${sha}`
+  try {
+    const ref = execSync('git rev-parse --abbrev-ref HEAD').toString().trim()
+    const sha = execSync('git rev-parse --short HEAD').toString().trim()
+    return `${ref}@${sha}`
+  } catch (_) {
+    return `no-git-dirty@${new Date().getTime().toString()}`
+  }
 }
 
 /**
