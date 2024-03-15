@@ -26,6 +26,8 @@ export default {
     ],
     productionIgnorePatterns: [
       'webpack.config.js',
+      'playwright.config.js',
+      'test-e2e',
       '.aegir.js',
       '/test',
       'dist'
