@@ -6,6 +6,8 @@ on:
   pull_request:
     branches:
       - '**'
+  release:
+    types: [ published ]
   workflow_dispatch:
 
 env:
@@ -169,11 +171,11 @@ jobs:
           files: .coverage/*,packages/*/.coverage/*
 
   publish-to-ipfs:
-    # TODO: make this run also on release
-    if: github.ref == 'refs/heads/main'
+    # NOTE: workflow_dispatch here allows maintainer to manually run against any branch, and it will produce a CAR with CID that is pinned to our cluster
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'release' && github.event.action == 'published')
     needs: build
     runs-on: ubuntu-latest
-    environment: Deploy # CF and Clusteer secrets
+    environment: Deploy # Clusteer secrets
     concurrency:
       # only one job runs at a time == DNSLinks are updated in-order
       group: ${{ github.workflow }}-${{ github.ref }}
@@ -195,17 +197,7 @@ jobs:
         with:
           name: ipfs-cluster-ctl
           version: "${{ env.CLUSTER_CTL_VER }}"
-      - name: Init IPFS daemon
-        run: |
-          # fix resolv - DNS provided by Github is unreliable for DNSLik/dnsaddr
-          sudo sed -i -e 's/nameserver 127.0.0.*/nameserver 1.1.1.1/g' /etc/resolv.conf
-          ipfs init --profile flatfs,server,randomports,lowpower
-          # make flatfs async for faster ci
-          ipfs config --json 'Datastore.Spec.mounts' "$(ipfs config 'Datastore.Spec.mounts' | jq -c '.[0].child.sync=false')"
-        shell: bash
       - uses: ipfs/start-ipfs-daemon-action@v1
-        with:
-          args: --enable-gc=false
       - name: Preconnect to cluster peers
         run: |
           ipfs-cluster-ctl --enc=json \
@@ -251,8 +243,17 @@ jobs:
           CLUSTER_USER: ${{ secrets.CLUSTER_USER }}
           CLUSTER_PASSWORD: ${{ secrets.CLUSTER_PASSWORD }}
         timeout-minutes: 60
-      - name: Update DNSLink at inbrowser.dev (Dev Testing)
-        if: github.ref == 'refs/heads/main'
+      - name: Attach the CAR to release if building a release tag
+        if: github.event_name == 'release' && github.event.action == 'published'
+        run: |
+          curl \
+            -XPOST \
+            -H "Authorization: Bearer ${{ secrets.UCI_GITHUB_TOKEN }}" \
+            -H "Content-Type: application/octet-stream" \
+            --data-binary "@dist_${{ github.sha }}.car" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/${{ steps.get_release.outputs.release_id }}/assets?name=dist_${{ github.event.release.tag_name }}_${{ github.sha }}.car"
+      - name: Update DNSLink at inbrowser.dev (Staging for Dev Testing) if main branch was updated
+        if: (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.ref == 'refs/heads/main'
         run: |
           curl --request PUT --header "Authorization: Bearer ${AUTH_TOKEN}" --header 'Content-Type: application/json' \
             --url "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records/${RECORD_ID}" \
@@ -263,9 +264,8 @@ jobs:
           ZONE_ID: ${{ secrets.CF_INBROWSERDEV_ZONE_ID }}
           RECORD_ID:  ${{ secrets.CF_INBROWSERDEV_RECORD_ID }}
           AUTH_TOKEN: ${{ secrets.CF_INBROWSERDEV_AUTH_TOKEN }}
-      - name: Update DNSLink at inbrowser.link (Stable Production)
-        # TODO: make this run only on release
-        if: github.ref == 'refs/heads/main'
+      - name: Update DNSLink at inbrowser.link (Stable Production) if new release was published
+        if: github.event_name == 'release' && github.event.action == 'published'
         run: |
           curl --request PUT --header "Authorization: Bearer ${AUTH_TOKEN}" --header 'Content-Type: application/json'  \
             --url "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records/${RECORD_ID}" \
@@ -278,7 +278,7 @@ jobs:
           AUTH_TOKEN: ${{ secrets.CF_INBROWSERLINK_AUTH_TOKEN }}
 
   pin-to-w3: # ported from ipfs/ipfs-webui
-    if: ${{ success() && needs.publish-to-ipfs.outputs.cid }}
+    if: needs.publish-to-ipfs.outputs.cid
     needs: publish-to-ipfs
     runs-on: ubuntu-latest
     environment: web3.storage
@@ -315,7 +315,7 @@ jobs:
           W3CLI_SPACE_DELEGATION_PROOF_BASE64_STRING: ${{ secrets.W3CLI_SPACE_DELEGATION_PROOF_BASE64_STRING }}
 
   pin-to-scaleway:
-    if: ${{ success() && needs.publish-to-ipfs.outputs.cid }}
+    if: needs.publish-to-ipfs.outputs.cid
     needs: publish-to-ipfs
     runs-on: ubuntu-latest
     environment: Scaleway
@@ -328,14 +328,12 @@ jobs:
       - name: Init IPFS daemon
         run: ipfs init --profile flatfs,server,randomports,lowpower
       - uses: ipfs/start-ipfs-daemon-action@v1
-        with:
-          args: --enable-gc=false
       - name: Retrieve CAR produced by publish-to-ipfs job
         uses: actions/download-artifact@v4
         with:
           name: dist_${{ github.sha }}.car
       - name: Import CAR to local Kubo
-        run: ipfs dag import --offline dist_${{ github.sha }}.car
+        run: ipfs dag import --offline --pin-roots=true dist_${{ github.sha }}.car
       - name: Set up and check Scaleway
         id: scaleway
         run: |
@@ -351,15 +349,31 @@ jobs:
         env:
           CID: ${{ needs.publish-to-ipfs.outputs.cid }}
 
-  smoke-test-http: # basic smoke test that lets us know when eother caching or content routing does not work
-    if: ${{ success() && needs.publish-to-ipfs.outputs.cid }}
-    needs: [ publish-to-ipfs, pin-to-scaleway, pin-to-w3 ]
+  smoke-test-fresh-p2p: # basic smoke test for getting DAG with Kubo
+    if: needs.publish-to-ipfs.outputs.cid
+    needs: publish-to-ipfs
     runs-on: ubuntu-latest
     steps:
-      - name: Smoke-test instant (cached, stale-while-revalidate) /ipfs-sw-main.js at inbrowser.link
-        run: curl --retry 3 --retry-delay 61 --retry-all-errors -v https://inbrowser.link/ipfs-sw-main.js > /dev/null
-      - name: Smoke-test instant (cached, stale-while-revalidate) /ipfs-sw-main.js at inbrowser.dev
-        run: curl --retry 3 --retry-delay 61 --retry-all-errors -v https://inbrowser.dev/ipfs-sw-main.js > /dev/null
-      - name: Smoke-test fetching the new CID as CAR from trustless-gateway.link
-        run: curl --retry 3 --retry-delay 61 --retry-all-errors -v "https://trustless-gateway.link/ipfs/${{ needs.publish-to-ipfs.outputs.cid }}?format=car" > /dev/null
+      - uses: ipfs/download-ipfs-distribution-action@v1
+        with:
+          name: kubo
+          version: "${{ env.KUBO_VER }}"
+      - uses: ipfs/start-ipfs-daemon-action@v1
+      - name: Confirm Kubo can fetch published DAG
+        run: ipfs dag stat ${{ needs.publish-to-ipfs.outputs.cid }}
 
+  release-please:
+    runs-on: ubuntu-latest
+    if: (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.ref == 'refs/heads/main'
+    needs: [ build, check ]
+    permissions:
+      contents: write # to create release
+      pull-requests: write # to create release PR
+    steps:
+      - uses: google-github-actions/release-please-action@v4
+        with:
+          # NOTE: we need elevated PAT token for production DNSLink to be updated. this is because tags created by the default token
+          # will not trigger CI build, and we need publish-to-ipfs to run when a new release tag is created by this action
+          # https://github.com/google-github-actions/release-please-action?tab=readme-ov-file#github-credentials
+          token: ${{ secrets.UCI_GITHUB_TOKEN || github.token }}
+          release-type: node

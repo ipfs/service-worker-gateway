@@ -1,0 +1,71 @@
+name: DNSLink Smoke-tests
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+env:
+  KUBO_VER: 'v0.27.0'       # kubo daemon used for publishing to IPFS
+  CLUSTER_CTL_VER: 'v1.0.8' # ipfs-cluster-ctl used by publish-to-ipfs
+
+jobs:
+  smoke-test-cached-http: # basic smoke test that lets us know when stale-while-revalidate caching does not work on either env
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        dnslink:
+          - inbrowser.link
+          - inbrowser.dev
+    steps:
+      - name: Smoke-test instant (cached, stale-while-revalidate) /ipfs-sw-main.js at ${{ matrix.dnslink }}
+        run: curl --retry 3 --retry-delay 61 --retry-all-errors -v -L "https://${{ matrix.dnslink }}/ipfs-sw-main.js" > /dev/null
+
+  smoke-test-fresh-http: # basic smoke test for getting latest DNSLink DAG over HTTP gateways
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        gateway:
+          - trustless-gateway.link
+          - cloudflare-ipfs.com
+        dnslink:
+          - inbrowser.link
+          - inbrowser.dev
+    steps:
+      - uses: ipfs/download-ipfs-distribution-action@v1
+        with:
+          name: kubo
+          version: "${{ env.KUBO_VER }}"
+      - uses: ipfs/start-ipfs-daemon-action@v1
+      - name: Try fetching the new CID as CAR from ${{ matrix.gateway }}
+        run: |
+          CID=$(ipfs resolve /ipns/${{ matrix.dnslink }} | sed 's|^/ipfs/||')
+          curl --retry 6 --retry-delay 61 --retry-all-errors -v -L --http1.1 "https://${{ matrix.gateway }}/ipfs/${CID}?format=car" -o dag.car
+      - name: Confirm the CAR contains the entire DAG
+        run: ipfs dag import --offline --pin-roots=true dag.car
+
+  smoke-test-fresh-p2p: # basic smoke test for getting latest DNSLink DAG over P2P with Kubo
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        routing-type:
+          - dhtclient
+          - autoclient
+        dnslink:
+          - inbrowser.link
+          - inbrowser.dev
+    steps:
+      - uses: ipfs/download-ipfs-distribution-action@v1
+        with:
+          name: kubo
+          version: "${{ env.KUBO_VER }}"
+      - name: Init IPFS daemon
+        run: |
+          ipfs init --profile server
+          ipfs config Routing.Type ${{ matrix.routing-type }}
+      - uses: ipfs/start-ipfs-daemon-action@v1
+      - name: Confirm Kubo can fetch with Routing.Type=${{ matrix.routing-type }}
+        run: ipfs dag stat /ipns/${{ matrix.dnslink }}
