@@ -1,5 +1,5 @@
 import React, { useContext } from 'react'
-import { ConfigContext } from '../context/config-context.tsx'
+import { ConfigContext } from '../context/config-context.jsx'
 import gearIcon from '../gear-icon.svg'
 import ipfsLogo from '../ipfs-logo.svg'
 
@@ -7,12 +7,12 @@ export default function Header (): JSX.Element {
   const { isConfigExpanded, setConfigExpanded } = useContext(ConfigContext)
 
   return (
-    <header className='flex items-center pa3 bg-navy bb bw3 b--aqua justify-between'>
+    <header className='e2e-header flex items-center pa3 bg-navy bb bw3 b--aqua justify-between'>
       <a href='https://ipfs.io' title='home'>
         <img alt='IPFS logo' src={ipfsLogo} style={{ height: 50 }} className='v-top' />
       </a>
-      <span className='white f3'>IPFS Service Worker Gateway</span>
-      <button
+      <span className='e2e-header-title white f3'>IPFS Service Worker Gateway</span>
+      <button className='e2e-header-config-button'
         onClick={() => {
           setConfigExpanded(!isConfigExpanded)
         }}

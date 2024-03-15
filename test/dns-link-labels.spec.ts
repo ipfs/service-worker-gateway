@@ -1,6 +1,6 @@
 /* eslint-env mocha */
 import { expect } from 'aegir/chai'
-import { dnsLinkLabelDecoder, dnsLinkLabelEncoder } from '../src/lib/dns-link-labels.ts'
+import { dnsLinkLabelDecoder, dnsLinkLabelEncoder } from '../src/lib/dns-link-labels.js'
 
 describe('dns-link-labels', () => {
   it('should support specs-ipfs-tech', () => {

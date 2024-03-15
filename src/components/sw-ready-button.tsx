@@ -1,5 +1,5 @@
 import React, { useContext, useMemo } from 'react'
-import { ServiceWorkerContext } from '../context/service-worker-context.tsx'
+import { ServiceWorkerContext } from '../context/service-worker-context.jsx'
 type ButtonProps = JSX.IntrinsicElements['button']
 
 interface ServiceWorkerReadyButtonProps extends ButtonProps {

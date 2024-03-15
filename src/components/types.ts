@@ -1,4 +1,4 @@
-import type { COLORS } from '../lib/common.ts'
+import type { COLORS } from '../lib/common.js'
 
 export interface OutputLine {
   content: string

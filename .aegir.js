@@ -1,7 +1,14 @@
 /** @type {import('aegir').PartialOptions} */
 export default {
+  test: { },
   lint: {
-    files: ['src/**/*.ts', 'src/**/*.tsx', 'tests/**/*', 'test/**/*.js']
+    files: [
+      'src/**/*.[jt]s',
+      'src/**/*.[jt]sx',
+      'test/**/*.[jt]s',
+      'test/**/*.[jt]sx',
+      'test-e2e/**/*.[jt]s'
+    ]
   },
   dependencyCheck: {
     ignore: [
@@ -19,8 +26,10 @@ export default {
     ],
     productionIgnorePatterns: [
       'webpack.config.js',
+      'playwright.config.js',
+      'test-e2e',
       '.aegir.js',
-      '/tests',
+      '/test',
       'dist'
     ]
   }

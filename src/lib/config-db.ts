@@ -1,7 +1,7 @@
 import debugLib from 'debug'
-import { GenericIDB, type BaseDbConfig } from './generic-db'
-import { LOCAL_STORAGE_KEYS } from './local-storage.ts'
-import { log } from './logger'
+import { GenericIDB, type BaseDbConfig } from './generic-db.js'
+import { LOCAL_STORAGE_KEYS } from './local-storage.js'
+import { log } from './logger.js'
 
 export interface ConfigDb extends BaseDbConfig {
   gateways: string[]

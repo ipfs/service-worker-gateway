@@ -1,4 +1,3 @@
-import { readdirSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import CopyWebpackPlugin from 'copy-webpack-plugin'
@@ -25,12 +24,12 @@ const splitChunks = {
     styles: {
       minChunks: 1,
       name: 'styles',
-      type: 'css/mini-extract',
+      test: /.+\.css/,
       chunks: 'initial',
       enforce: true
     },
     sw: {
-      test: /[\\/]src[\\/]sw.ts/,
+      test: /[\\/]src[\\/]sw.js/,
       name: 'sw',
       priority: 100, // anything the sw needs should be in the sw chunk
       chunks: 'all'
@@ -52,8 +51,8 @@ const splitChunks = {
 
 const paths = {
   // Source files
-  src: path.resolve(__dirname, './src'),
-  testSrc: path.resolve(__dirname, './webpack-tests'),
+  distTsc: path.resolve(__dirname, './dist-tsc/src'),
+  devSrc: path.resolve(__dirname, './src'),
   testBuild: path.resolve(__dirname, './test-build'),
 
   // Production build files
@@ -124,6 +123,9 @@ const prod = {
 const dev = {
   // Set the mode to development or production
   mode: 'development',
+  entry: {
+    main: paths.devSrc + '/index.tsx'
+  },
 
   // Control how source maps are generated
   devtool: 'inline-source-map',
@@ -156,29 +158,10 @@ const dev = {
 /**
  * @type {import('webpack').Configuration}
  */
-const test = {
-  mode: 'development',
-  devtool: 'inline-source-map',
-  output: {
-    path: paths.testBuild,
-    filename: 'tests.js'
-  },
-  entry: {
-    tests: readdirSync(paths.testSrc).filter(function (file) {
-      return file.match(/.*\.ts$/)
-    }).map(function (file) {
-      return path.join(paths.testSrc, file)
-    })
-  }
-}
-
-/**
- * @type {import('webpack').Configuration}
- */
 const common = {
 // Where webpack looks to start building the bundle
   entry: {
-    main: paths.src + '/index.tsx'
+    main: paths.distTsc + '/index.jsx'
   },
   output: {
     path: paths.build,
@@ -200,6 +183,7 @@ const common = {
 
     // Generates an HTML file from a template
     // Generates deprecation warning: https://github.com/jantimon/html-webpack-plugin/issues/1501
+    // TODO: replace with something like https://github.com/craftamap/esbuild-plugin-html ?
     new HtmlWebpackPlugin({
       excludeChunks: ['sw'],
       title: 'IPFS Service Worker Gateway',
@@ -222,7 +206,7 @@ const common = {
   // Determine how modules within the project are treated
   module: {
     rules: [
-      // JavaScript: Use Babel to transpile JavaScript files
+      // aegir has already built the JS for us with tsc & esbuild
       {
         test: /\.[jt]sx?$/,
         exclude: /node_modules/,
@@ -261,8 +245,14 @@ const common = {
   },
 
   resolve: {
-    modules: [paths.src, 'node_modules'],
-    extensions: ['.js', '.jsx', '.json', '.ts', '.tsx']
+    modules: [paths.distTsc, 'node_modules'],
+    extensions: ['.js', '.jsx', '.json', '.ts', '.tsx'],
+    extensionAlias: {
+      '.js': ['.js', '.ts'],
+      '.jsx': ['.jsx', '.tsx'],
+      '.cjs': ['.cjs', '.cts'],
+      '.mjs': ['.mjs', '.mts']
+    }
   },
 
   // fix: https://github.com/webpack/webpack-dev-server/issues/2758
@@ -281,12 +271,7 @@ const common = {
 export default (cmd) => {
   const production = cmd.production
   let config = prod
-  if (cmd.test) {
-    config = test
-    const testConfig = merge(common, test)
-    testConfig.entry = test.entry
-    return testConfig
-  } else if (cmd.analyze) {
+  if (cmd.analyze) {
     config = prod
     prod.plugins.push(
       new BundleAnalyzerPlugin.BundleAnalyzerPlugin({

@@ -1,14 +1,14 @@
 import { dnsJsonOverHttps } from '@helia/ipns/dns-resolvers'
 import { createVerifiedFetch, type VerifiedFetch } from '@helia/verified-fetch'
-import { HeliaServiceWorkerCommsChannel, type ChannelMessage } from './lib/channel.ts'
-import { getConfig } from './lib/config-db.ts'
-import { contentTypeParser } from './lib/content-type-parser.ts'
-import { getRedirectUrl, isDeregisterRequest } from './lib/deregister-request.ts'
-import { GenericIDB } from './lib/generic-db'
-import { getSubdomainParts } from './lib/get-subdomain-parts.ts'
-import { isConfigPage } from './lib/is-config-page.ts'
-import { error, log, trace } from './lib/logger.ts'
-import { findOriginIsolationRedirect } from './lib/path-or-subdomain.ts'
+import { HeliaServiceWorkerCommsChannel, type ChannelMessage } from './lib/channel.js'
+import { getConfig } from './lib/config-db.js'
+import { contentTypeParser } from './lib/content-type-parser.js'
+import { getRedirectUrl, isDeregisterRequest } from './lib/deregister-request.js'
+import { GenericIDB } from './lib/generic-db.js'
+import { getSubdomainParts } from './lib/get-subdomain-parts.js'
+import { isConfigPage } from './lib/is-config-page.js'
+import { error, log, trace } from './lib/logger.js'
+import { findOriginIsolationRedirect } from './lib/path-or-subdomain.js'
 
 /**
  ******************************************************

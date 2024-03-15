@@ -1,11 +1,11 @@
 import React from 'react'
 import ReactDOMClient from 'react-dom/client'
 import './app.css'
-import App from './app.tsx'
-import { ConfigProvider } from './context/config-context.tsx'
-import { ServiceWorkerProvider } from './context/service-worker-context.tsx'
-import { loadConfigFromLocalStorage } from './lib/config-db.ts'
-import { isConfigPage } from './lib/is-config-page.ts'
+import App from './app.jsx'
+import { ConfigProvider } from './context/config-context.jsx'
+import { ServiceWorkerProvider } from './context/service-worker-context.jsx'
+import { loadConfigFromLocalStorage } from './lib/config-db.js'
+import { isConfigPage } from './lib/is-config-page.js'
 
 await loadConfigFromLocalStorage()
 

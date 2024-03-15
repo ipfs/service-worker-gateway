@@ -1,5 +1,5 @@
 import React, { createContext, useState } from 'react'
-import { isConfigPage } from '../lib/is-config-page.ts'
+import { isConfigPage } from '../lib/is-config-page.js'
 
 const isLoadedInIframe = window.self !== window.top
 
