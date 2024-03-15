@@ -219,3 +219,7 @@ $RECYCLE.BIN/
 .vscode
 dist-tsc
 dist-esbuild
+playwright-report
+.envrc
+.direnv
+*.nix

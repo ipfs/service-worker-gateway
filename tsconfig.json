@@ -20,6 +20,8 @@
   "include": [
     "src",
     "types/svg.d.ts",
-    "test"
+    "test",
+    "test-e2e",
+    "playwright.config.js"
   ]
 }
