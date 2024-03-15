@@ -51,7 +51,6 @@ export default {
       footer: {},
       entryPoints: [`${paths.src}/src/index.jsx`, `${paths.src}/src/sw.js`],
       minify: false,
-      // bundle: true,
       splitting: true,
       format: 'esm',
       outdir: paths.dist,
@@ -59,10 +58,7 @@ export default {
       loader: {
         '.svg': 'dataurl'
       },
-      // chunkNames: 'ipfs-sw-[name]',
-      // minify: true,
       sourcemap: true,
-      // target: 'esnext',
       plugins: [copyPlugin],
       define: { 'process.env.NODE_ENV': '"production"' }
     }
@@ -73,7 +69,8 @@ export default {
       'src/**/*.[jt]s',
       'src/**/*.[jt]sx',
       'test/**/*.[jt]s',
-      'test/**/*.[jt]sx'
+      'test/**/*.[jt]sx',
+      'test-e2e/**/*.[jt]s'
     ]
   },
   dependencyCheck: {
@@ -88,14 +85,12 @@ export default {
       'webpack-dev-server',
       'babel-loader',
       'style-loader',
-      'css-loader',
-      'esbuild'
+      'css-loader'
     ],
     productionIgnorePatterns: [
       'webpack.config.js',
       '.aegir.js',
       '/test',
-      'test-esbuild.js',
       'dist'
     ]
   }
