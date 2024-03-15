@@ -8,7 +8,7 @@
   "license": "MIT",
   "scripts": {
     "analyze-bundle": "webpack --env analyze",
-    "clean": "aegir clean dist dist-tsc dist-esbuild",
+    "clean": "aegir clean dist dist-tsc",
     "dep-check": "aegir dep-check",
     "lint": "aegir lint",
     "lint:fix": "aegir lint --fix",
