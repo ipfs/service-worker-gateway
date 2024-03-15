@@ -251,7 +251,7 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.UCI_GITHUB_TOKEN }}" \
             -H "Content-Type: application/octet-stream" \
             --data-binary "@dist_${{ github.sha }}.car" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/${{ steps.get_release.outputs.release_id }}/assets?name=dist_${{ github.event.release.tag_name }}_${{ github.sha }}.car"
+            "https://api.github.com/repos/${{ github.repository }}/releases/${{ github.event.release.id }}/assets?name=dist_${{ github.event.release.tag_name }}_${{ github.sha }}.car"
       - name: Update DNSLink at inbrowser.dev (Staging for Dev Testing) if main branch was updated
         if: (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.ref == 'refs/heads/main'
         run: |
