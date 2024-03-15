@@ -33,17 +33,4 @@ describe(`verify-dist at ${distRoot}`, () => {
     })
   })
 
-  // it('has a service worker with the correct name', async () => {
-  // /**
-  //  * test to confirm that the service worker generated in /dist does not change names
-  //  */
-  //   await expect(access(resolve(distRoot, 'ipfs-sw-sw.js'), constants.F_OK)).to.not.be.rejected()
-  // })
-
-  // it('has css file with expected content', async () => {
-  //   await expect(access(resolve(distRoot, 'ipfs-sw-styles.css'), constants.F_OK)).to.not.be.rejected()
-  //   const contents = await readFile(resolve(distRoot, 'ipfs-sw-styles.css'), 'utf8')
-  //   expect(contents).to.include('47vh')
-  //   expect(contents).to.include('.local-storage-toggle input.status')
-  // })
 })

@@ -53,7 +53,6 @@ const paths = {
   // Source files
   distTsc: path.resolve(__dirname, './dist-tsc/src'),
   devSrc: path.resolve(__dirname, './src'),
-  // testSrc: path.resolve(__dirname, './webpack-tests'),
   testBuild: path.resolve(__dirname, './test-build'),
 
   // Production build files
@@ -208,9 +207,7 @@ const common = {
   module: {
     rules: [
       // aegir has already built the JS for us with tsc & esbuild
-      // { test: /\.[j]s?$/,},
       {
-        // test: /\.jsx$/,
         test: /\.[jt]sx?$/,
         exclude: /node_modules/,
         use: {
