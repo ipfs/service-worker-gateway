@@ -32,5 +32,4 @@ describe(`verify-dist at ${distRoot}`, () => {
       }
     })
   })
-
 })
