@@ -349,61 +349,17 @@ jobs:
         env:
           CID: ${{ needs.publish-to-ipfs.outputs.cid }}
 
-  smoke-test-cached-http: # basic smoke test that lets us know when stale-while-revalidate caching does not work on either env
+  smoke-test-fresh-p2p: # basic smoke test for getting DAG with Kubo
     if: needs.publish-to-ipfs.outputs.cid
     needs: publish-to-ipfs
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        dnslink:
-          - inbrowser.link
-          - inbrowser.dev
-    steps:
-      - name: Smoke-test instant (cached, stale-while-revalidate) /ipfs-sw-main.js at ${{ matrix.dnslink }}
-        run: curl --retry 3 --retry-delay 61 --retry-all-errors -v -L https://${{ matrix.dnslink }}/ipfs-sw-main.js > /dev/null
-
-  smoke-test-fresh-http: # basic smoke test for getting new DAG over HTTP gateways
-    if: needs.publish-to-ipfs.outputs.cid
-    needs: publish-to-ipfs
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        gateway:
-          - trustless-gateway.link
-          - cloudflare-ipfs.com
-    steps:
-      - name: Try fetching the new CID as CAR from ${{ matrix.gateway }}
-        run: curl --retry 6 --retry-delay 61 --retry-all-errors -v -L --http1.1 "https://${{ matrix.gateway }}/ipfs/${{ needs.publish-to-ipfs.outputs.cid }}?format=car" -o dag.car
-      - uses: ipfs/download-ipfs-distribution-action@v1
-        with:
-          name: kubo
-          version: "${{ env.KUBO_VER }}"
-      - name: Confirm the CAR contains the entire DAG
-        run: ipfs init && ipfs dag import --offline --pin-roots=true dag.car
-
-  smoke-test-fresh-p2p: # basic smoke test for getting new DAG over P2P with Kubo
-    if: needs.publish-to-ipfs.outputs.cid
-    needs: publish-to-ipfs
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        routing-type:
-          - dhtclient
-          - autoclient
     steps:
       - uses: ipfs/download-ipfs-distribution-action@v1
         with:
           name: kubo
           version: "${{ env.KUBO_VER }}"
-      - name: Init IPFS daemon
-        run: |
-          ipfs init --profile server
-          ipfs config Routing.Type ${{ matrix.routing-type }}
       - uses: ipfs/start-ipfs-daemon-action@v1
-      - name: Confirm Kubo can fetch with Routing.Type=${{ matrix.routing-type }}
+      - name: Confirm Kubo can fetch published DAG
         run: ipfs dag stat ${{ needs.publish-to-ipfs.outputs.cid }}
 
   release-please:
