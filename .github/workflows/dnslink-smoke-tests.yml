@@ -4,32 +4,12 @@ on:
   schedule:
     - cron: '0 * * * *'
   workflow_dispatch:
-  pull_request:
-    branches:
-      - '**'
 
 env:
   KUBO_VER: 'v0.27.0'       # kubo daemon used for publishing to IPFS
   CLUSTER_CTL_VER: 'v1.0.8' # ipfs-cluster-ctl used by publish-to-ipfs
 
 jobs:
-  dnslink:
-    runs-on: ubuntu-latest
-    outputs:
-      link: ${{ steps.dnslink.link }}
-      dev: ${{ steps.dnslink.dev }}
-    steps:
-      - uses: ipfs/download-ipfs-distribution-action@v1
-        with:
-          name: kubo
-          version: "${{ env.KUBO_VER }}"
-      - uses: ipfs/start-ipfs-daemon-action@v1
-      - name: Read CID from DNSLink at inbrowser.link|dev
-        id: dnslink
-        run: |
-          echo "link=$(ipfs resolve /ipns/inbrowser.link | sed 's|^/ipfs/||')" >> $GITHUB_OUTPUT
-          echo "dev=$(ipfs resolve /ipns/inbrowser.dev | sed 's|^/ipfs/||')" >> $GITHUB_OUTPUT
-
   smoke-test-cached-http: # basic smoke test that lets us know when stale-while-revalidate caching does not work on either env
     runs-on: ubuntu-latest
     strategy:
@@ -43,7 +23,6 @@ jobs:
         run: curl --retry 3 --retry-delay 61 --retry-all-errors -v -L "https://${{ matrix.dnslink }}/ipfs-sw-main.js" > /dev/null
 
   smoke-test-fresh-http: # basic smoke test for getting latest DNSLink DAG over HTTP gateways
-    needs: dnslink
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -68,7 +47,6 @@ jobs:
         run: ipfs dag import --offline --pin-roots=true dag.car
 
   smoke-test-fresh-p2p: # basic smoke test for getting latest DNSLink DAG over P2P with Kubo
-    needs: dnslink
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

@@ -171,8 +171,8 @@ jobs:
           files: .coverage/*,packages/*/.coverage/*
 
   publish-to-ipfs:
-    # NOTE: workflow_dispatch here allows maintainer to manually run against any branch, and it will produce a CAR with CID that is pinned
-    # TODO: if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'release' && github.event.action == 'published')
+    # NOTE: workflow_dispatch here allows maintainer to manually run against any branch, and it will produce a CAR with CID that is pinned to our cluster
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'release' && github.event.action == 'published')
     needs: build
     runs-on: ubuntu-latest
     environment: Deploy # Clusteer secrets
