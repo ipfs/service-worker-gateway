@@ -305,9 +305,10 @@ async function getResponseFromCacheOrFetch (event: FetchEvent): Promise<Response
   return fetchAndUpdateCache(event, url, cacheKey)
 }
 
+const invalidOkResponseCodesForCache = [206]
 async function storeReponseInCache ({ response, isMutable, cacheKey }: StoreReponseInCacheOptions): Promise<void> {
   // 👇 only cache successful responses
-  if (!response.ok) {
+  if (!response.ok || invalidOkResponseCodesForCache.some(code => code === response.status)) {
     return
   }
   trace('helia-ws: updating cache for %s in the background', cacheKey)
