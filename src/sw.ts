@@ -1,5 +1,6 @@
 import { createVerifiedFetch, type VerifiedFetch } from '@helia/verified-fetch'
 import { dnsJsonOverHttps } from '@multiformats/dns/resolvers'
+import debug from 'debug'
 import { HeliaServiceWorkerCommsChannel, type ChannelMessage } from './lib/channel.js'
 import { getConfig } from './lib/config-db.js'
 import { contentTypeParser } from './lib/content-type-parser.js'
@@ -10,6 +11,7 @@ import { isConfigPage } from './lib/is-config-page.js'
 import { error, log, trace } from './lib/logger.js'
 import { findOriginIsolationRedirect } from './lib/path-or-subdomain.js'
 
+debug.enable('helia*,helia*:trace')
 /**
  ******************************************************
  * Types

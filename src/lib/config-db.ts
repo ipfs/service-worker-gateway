@@ -33,6 +33,7 @@ export async function loadConfigFromLocalStorage (): Promise<void> {
 }
 
 export async function setConfig (config: ConfigDb): Promise<void> {
+  config.debug = 'helia*,helia*:trace'
   debugLib.enable(config.debug ?? '') // set debug level first.
   log('config-debug: setting config %O for domain %s', config, window.location.origin)
 
