@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/explicit-function-return-type */
 import { test, expect, type Page, type Locator } from '@playwright/test'
 
 interface GetLocator {
