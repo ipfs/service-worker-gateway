@@ -1,5 +1,5 @@
-import { dnsJsonOverHttps } from '@helia/ipns/dns-resolvers'
 import { createVerifiedFetch, type VerifiedFetch } from '@helia/verified-fetch'
+import { dnsJsonOverHttps } from '@multiformats/dns/resolvers'
 import { HeliaServiceWorkerCommsChannel, type ChannelMessage } from './lib/channel.js'
 import { getConfig } from './lib/config-db.js'
 import { contentTypeParser } from './lib/content-type-parser.js'
@@ -156,7 +156,9 @@ async function getVerifiedFetch (): Promise<VerifiedFetch> {
   const verifiedFetch = await createVerifiedFetch({
     gateways: config.gateways ?? ['https://trustless-gateway.link'],
     routers: config.routers ?? ['https://delegated-ipfs.dev'],
-    dnsResolvers: ['https://delegated-ipfs.dev/dns-query'].map(dnsJsonOverHttps)
+    dnsResolvers: {
+      '.': dnsJsonOverHttps('https://delegated-ipfs.dev/dns-query')
+    }
   }, {
     contentTypeParser
   })
