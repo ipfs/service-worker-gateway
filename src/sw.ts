@@ -56,10 +56,30 @@ interface LocalSwConfig {
  ******************************************************
  */
 declare let self: ServiceWorkerGlobalScope
+
+/**
+ * This is one best practice that can be followed in general to keep track of
+ * multiple caches used by a given service worker, and keep them all versioned.
+ * It maps a shorthand identifier for a cache to a specific, versioned cache name.
+ *
+ * Note that since global state is discarded in between service worker restarts, these
+ * variables will be reinitialized each time the service worker handles an event, and you
+ * should not attempt to change their values inside an event handler. (Treat them as constants.)
+ *
+ * If at any point you want to force pages that use this service worker to start using a fresh
+ * cache, then increment the CACHE_VERSION value. It will kick off the service worker update
+ * flow and the old cache(s) will be purged as part of the activate event handler when the
+ * updated service worker is activated.
+ *
+ * @see https://googlechrome.github.io/samples/service-worker/prefetch-video/
+ */
+const CACHE_VERSION = 1
+const CURRENT_CACHES = Object.freeze({
+  mutable: `mutable-cache-v${CACHE_VERSION}`,
+  immutable: `immutable-cache-v${CACHE_VERSION}`
+})
 let verifiedFetch: VerifiedFetch
 const channel = new HeliaServiceWorkerCommsChannel('SW')
-const IMMUTABLE_CACHE = 'IMMUTABLE_CACHE'
-const MUTABLE_CACHE = 'MUTABLE_CACHE'
 const ONE_HOUR_IN_SECONDS = 3600
 const urlInterceptRegex = [new RegExp(`${self.location.origin}/ip(n|f)s/`)]
 const updateVerifiedFetch = async (): Promise<void> => {
@@ -106,6 +126,25 @@ self.addEventListener('activate', (event) => {
         log('unknown action: ', action)
     }
   })
+
+  // Delete all caches that aren't named in CURRENT_CACHES.
+  const expectedCacheNames = Object.keys(CURRENT_CACHES).map(function (key) {
+    return CURRENT_CACHES[key]
+  })
+
+  event.waitUntil(
+    caches.keys().then(async function (cacheNames) {
+      return Promise.all(
+        cacheNames.map(async function (cacheName) {
+          if (!expectedCacheNames.includes(cacheName)) {
+            // If this cache name isn't present in the array of "expected" cache names, then delete it.
+            log('helia-sw: deleting out of date cache:', cacheName)
+            return caches.delete(cacheName)
+          }
+        })
+      )
+    })
+  )
 })
 
 self.addEventListener('fetch', (event) => {
@@ -285,7 +324,7 @@ async function getResponseFromCacheOrFetch (event: FetchEvent): Promise<Response
   const isMutable = protocol === 'ipns'
   const cacheKey = getCacheKey(event)
   trace('helia-sw: cache key: %s', cacheKey)
-  const cache = await caches.open(isMutable ? MUTABLE_CACHE : IMMUTABLE_CACHE)
+  const cache = await caches.open(isMutable ? CURRENT_CACHES.mutable : CURRENT_CACHES.immutable)
   const cachedResponse = await cache.match(cacheKey)
   const validCacheHit = cachedResponse != null && !hasExpired(cachedResponse)
 
@@ -313,7 +352,7 @@ async function storeReponseInCache ({ response, isMutable, cacheKey }: StoreRepo
   }
   trace('helia-ws: updating cache for %s in the background', cacheKey)
 
-  const cache = await caches.open(isMutable ? MUTABLE_CACHE : IMMUTABLE_CACHE)
+  const cache = await caches.open(isMutable ? CURRENT_CACHES.mutable : CURRENT_CACHES.immutable)
 
   // Clone the response since streams can only be consumed once.
   const respToCache = response.clone()
