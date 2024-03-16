@@ -196,8 +196,10 @@ async function getVerifiedFetch (): Promise<VerifiedFetch> {
   log(`config-debug: got config for sw location ${self.location.origin}`, config)
 
   const verifiedFetch = await createVerifiedFetch({
-    gateways: config.gateways ?? ['https://trustless-gateway.link'],
-    routers: config.routers ?? ['https://delegated-ipfs.dev'],
+    // gateways: config.gateways ?? ['https://trustless-gateway.link'],
+    // routers: config.routers ?? ['https://delegated-ipfs.dev'],
+    gateways: ['http://127.0.0.1:8081'],
+    routers: ['http://127.0.0.1:8081'],
     dnsResolvers: {
       '.': dnsJsonOverHttps('https://delegated-ipfs.dev/dns-query')
     }
@@ -310,6 +312,8 @@ function getCacheKey (event: FetchEvent): string {
   return `${event.request.url}-${event.request.headers.get('Accept') ?? ''}`
 }
 
+// @ts-expect-error - unused temporarily
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function getValuesFromResponseHeader (rangeHeader: string | null): { start: number, end: number, total: number } | null {
   if (rangeHeader == null) {
     return null
@@ -352,32 +356,47 @@ async function fetchAndUpdateCache (event: FetchEvent, url: URL, cacheKey: strin
    * access-control-expose-headers: X-Stream-Output
    * cache-control: public, max-age=29030400, immutable
    */
-  response.headers.set('Access-Control-Allow-Headers', '*')
-  response.headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS')
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type')
+  response.headers.append('Access-Control-Allow-Headers', 'Range')
+  response.headers.append('Access-Control-Allow-Headers', 'User-Agent')
+  response.headers.append('Access-Control-Allow-Headers', 'X-Requested-With')
+  response.headers.set('Access-Control-Allow-Methods', 'GET')
+  response.headers.append('Access-Control-Allow-Methods', 'HEAD')
+  response.headers.append('Access-Control-Allow-Methods', 'OPTIONS')
   response.headers.set('Access-Control-Allow-Origin', '*')
-  response.headers.set('Access-Control-Expose-Headers', 'Content-Length, Content-Range, X-Chunked-Output, X-Ipfs-Path, X-Ipfs-Roots, X-Stream-Output')
-  // response.headers.set('Content-Length', response.headers.get('Content-Length') ?? '0')
-  const rangeRequestHeader = event.request.headers.get('range')
-  const rangeResponseHeader = response.headers.get('range')
-  const values = getValuesFromResponseHeader(rangeResponseHeader)
+  response.headers.set('Access-Control-Expose-Headers', 'Content-Length')
+  // Content-Range, X-Chunked-Output, X-Ipfs-Path, X-Ipfs-Roots, X-Stream-Output')
+  response.headers.append('Access-Control-Expose-Headers', 'Content-Range')
+  response.headers.append('Access-Control-Expose-Headers', 'X-Chunked-Output')
+  response.headers.append('Access-Control-Expose-Headers', 'X-Ipfs-Path')
+  response.headers.append('Access-Control-Expose-Headers', 'X-Ipfs-Roots')
+  response.headers.append('Access-Control-Expose-Headers', 'X-Stream-Output')
+  response.headers.set('Date', new Date().toUTCString())
+  // const rangeRequestHeader = event.request.headers.get('range')
+  // log('helia-sw: request header range: %s', rangeRequestHeader)
+  // const rangeResponseHeader = response.headers.get('range')
+  // const values = getValuesFromResponseHeader(rangeResponseHeader)
 
-  // content-length should be the range length
-  if (rangeRequestHeader != null && values != null) {
-    response.headers.set('content-length', String(values.end - values.start + 1))
-  }
-  // log all of the headers:
-  response.headers.forEach((value, key) => {
-    log('helia-sw: response header %s: %s', key, value)
-  })
+  // // content-length should be the range length
+  // if (rangeRequestHeader != null && values != null) {
+  //   response.headers.set('content-length', String(values.end - values.start + 1))
+  // }
+  // // log all of the headers:
+  // response.headers.forEach((value, key) => {
+  //   log('helia-sw: response header %s: %s', key, value)
+  // })
 
   log('helia-sw: response range header value: "%s"', response.headers.get('content-range'))
 
-  try {
-    await storeReponseInCache({ response, isMutable: true, cacheKey })
-    trace('helia-ws: updated cache for %s', cacheKey)
-  } catch (err) {
-    error('helia-ws: failed updating response in cache for %s', cacheKey, err)
-  }
+  log('helia-sw: response status: %s', response.status)
+
+  // try {
+  //   await storeReponseInCache({ response, isMutable: true, cacheKey })
+  //   trace('helia-ws: updated cache for %s', cacheKey)
+  // } catch (err) {
+  //   error('helia-ws: failed updating response in cache for %s', cacheKey, err)
+  // }
+
   return response
 }
 
@@ -408,6 +427,8 @@ async function getResponseFromCacheOrFetch (event: FetchEvent): Promise<Response
 }
 
 const invalidOkResponseCodesForCache = [206]
+// @ts-expect-error - unused temporarily
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function storeReponseInCache ({ response, isMutable, cacheKey }: StoreReponseInCacheOptions): Promise<void> {
   // 👇 only cache successful responses
   if (!response.ok || invalidOkResponseCodesForCache.some(code => code === response.status)) {
