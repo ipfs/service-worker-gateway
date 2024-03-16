@@ -154,6 +154,7 @@ self.addEventListener('fetch', (event) => {
   const urlString = request.url
   const url = new URL(urlString)
   log('helia-sw: incoming request url: %s:', event.request.url)
+  log('helia-sw: request range header value: "%s"', event.request.headers.get('range'))
 
   event.waitUntil(requestRouting(event, url).then(async (shouldHandle) => {
     if (shouldHandle) {
@@ -309,8 +310,68 @@ function getCacheKey (event: FetchEvent): string {
   return `${event.request.url}-${event.request.headers.get('Accept') ?? ''}`
 }
 
+function getValuesFromResponseHeader (rangeHeader: string | null): { start: number, end: number, total: number } | null {
+  if (rangeHeader == null) {
+    return null
+  }
+  /**
+   * Range: bytes=<start>-<end> | bytes=<start2>- | bytes=-<end2>
+   */
+  const match = rangeHeader.match(/^bytes (?<start>\d+)?-(?<end>\d+)\/(?<total>\d+)?$/)
+  if (match?.groups == null) {
+    // throw new Error('Invalid range request')
+    return null
+  }
+
+  const { start, end, total } = match.groups
+
+  return { start: Number(start), end: Number(end), total: Number(total) }
+}
+
 async function fetchAndUpdateCache (event: FetchEvent, url: URL, cacheKey: string): Promise<Response> {
   const response = await fetchHandler({ path: url.pathname, request: event.request })
+
+  /**
+   * We need to make sure all the below headers are set. These were obtained with
+   * `curl -sD - 'https://ipfs.io/ipfs/bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq'`
+   * content-type: video/webm
+   * content-length: 151323
+   * access-control-allow-headers: Content-Type
+   * access-control-allow-headers: Range
+   * access-control-allow-headers: User-Agent
+   * access-control-allow-headers: X-Requested-With
+   * access-control-allow-methods: GET
+   * access-control-allow-methods: HEAD
+   * access-control-allow-methods: OPTIONS
+   * access-control-allow-origin: *
+   * access-control-expose-headers: Content-Length
+   * access-control-expose-headers: Content-Range
+   * access-control-expose-headers: X-Chunked-Output
+   * access-control-expose-headers: X-Ipfs-Path
+   * access-control-expose-headers: X-Ipfs-Roots
+   * access-control-expose-headers: X-Stream-Output
+   * cache-control: public, max-age=29030400, immutable
+   */
+  response.headers.set('Access-Control-Allow-Headers', '*')
+  response.headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS')
+  response.headers.set('Access-Control-Allow-Origin', '*')
+  response.headers.set('Access-Control-Expose-Headers', 'Content-Length, Content-Range, X-Chunked-Output, X-Ipfs-Path, X-Ipfs-Roots, X-Stream-Output')
+  // response.headers.set('Content-Length', response.headers.get('Content-Length') ?? '0')
+  const rangeRequestHeader = event.request.headers.get('range')
+  const rangeResponseHeader = response.headers.get('range')
+  const values = getValuesFromResponseHeader(rangeResponseHeader)
+
+  // content-length should be the range length
+  if (rangeRequestHeader != null && values != null) {
+    response.headers.set('content-length', String(values.end - values.start + 1))
+  }
+  // log all of the headers:
+  response.headers.forEach((value, key) => {
+    log('helia-sw: response header %s: %s', key, value)
+  })
+
+  log('helia-sw: response range header value: "%s"', response.headers.get('content-range'))
+
   try {
     await storeReponseInCache({ response, isMutable: true, cacheKey })
     trace('helia-ws: updated cache for %s', cacheKey)
@@ -405,6 +466,8 @@ async function fetchHandler ({ path, request }: FetchHandlerArg): Promise<Respon
     log('verifiedFetch for ', verifiedFetchUrl)
 
     const headers = request.headers
+    log('fetchHandler: headers: ', headers)
+
     return await verifiedFetch(verifiedFetchUrl, {
       signal,
       headers,
