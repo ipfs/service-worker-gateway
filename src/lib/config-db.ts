@@ -16,8 +16,8 @@ export async function loadConfigFromLocalStorage (): Promise<void> {
   if (typeof globalThis.localStorage !== 'undefined') {
     await configDb.open()
     const localStorage = globalThis.localStorage
-    const localStorageGatewaysString = localStorage.getItem(LOCAL_STORAGE_KEYS.config.gateways) ?? '["http://127.0.0.1:8081"]'
-    const localStorageRoutersString = localStorage.getItem(LOCAL_STORAGE_KEYS.config.routers) ?? '["http://127.0.0.1:8081"]'
+    const localStorageGatewaysString = localStorage.getItem(LOCAL_STORAGE_KEYS.config.gateways) ?? '["https://trustless-gateway.link"]'
+    const localStorageRoutersString = localStorage.getItem(LOCAL_STORAGE_KEYS.config.routers) ?? '["https://delegated-ipfs.dev"]'
     const autoReload = localStorage.getItem(LOCAL_STORAGE_KEYS.config.autoReload) === 'true'
     const debug = localStorage.getItem(LOCAL_STORAGE_KEYS.config.debug) ?? ''
     const gateways = JSON.parse(localStorageGatewaysString)
@@ -48,10 +48,8 @@ export async function setConfig (config: ConfigDb): Promise<void> {
 export async function getConfig (): Promise<ConfigDb> {
   await configDb.open()
 
-  // const gateways = await configDb.get('gateways') ?? ['https://trustless-gateway.link']
-  // const routers = await configDb.get('routers') ?? ['https://delegated-ipfs.dev']
-  const gateways = ['http://127.0.0.1:8081']
-  const routers = ['http://127.0.0.1:8081']
+  const gateways = await configDb.get('gateways') ?? ['https://trustless-gateway.link']
+  const routers = await configDb.get('routers') ?? ['https://delegated-ipfs.dev']
   const autoReload = await configDb.get('autoReload') ?? false
   const debug = await configDb.get('debug') ?? ''
   configDb.close()
