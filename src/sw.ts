@@ -1,6 +1,5 @@
 import { createVerifiedFetch, type VerifiedFetch } from '@helia/verified-fetch'
 import { dnsJsonOverHttps } from '@multiformats/dns/resolvers'
-import debug from 'debug'
 import { HeliaServiceWorkerCommsChannel, type ChannelMessage } from './lib/channel.js'
 import { getConfig } from './lib/config-db.js'
 import { contentTypeParser } from './lib/content-type-parser.js'
@@ -11,7 +10,6 @@ import { isConfigPage } from './lib/is-config-page.js'
 import { error, log, trace } from './lib/logger.js'
 import { findOriginIsolationRedirect } from './lib/path-or-subdomain.js'
 
-debug.enable('helia*,helia*:trace')
 /**
  ******************************************************
  * Types
@@ -310,101 +308,17 @@ function getCacheKey (event: FetchEvent): string {
   return `${event.request.url}-${event.request.headers.get('Accept') ?? ''}`
 }
 
-// @ts-expect-error - not using right now... might use again, maybe delete.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function getValuesFromResponseHeader (rangeHeader: string | null): { start: number, end: number, total: number } | null {
-  if (rangeHeader == null) {
-    return null
-  }
-  /**
-   * Range: bytes=<start>-<end> | bytes=<start2>- | bytes=-<end2>
-   */
-  const match = rangeHeader.match(/^bytes (?<start>\d+)?-(?<end>\d+)\/(?<total>\d+)?$/)
-  if (match?.groups == null) {
-    // throw new Error('Invalid range request')
-    return null
-  }
-
-  const { start, end, total } = match.groups
-
-  return { start: Number(start), end: Number(end), total: Number(total) }
-}
-
 async function fetchAndUpdateCache (event: FetchEvent, url: URL, cacheKey: string): Promise<Response> {
   const response = await fetchHandler({ path: url.pathname, request: event.request })
 
-  /**
-   * We need to make sure all the below headers are set. These were obtained with
-   * `curl -sD - 'https://ipfs.io/ipfs/bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq'`
-   * content-type: video/webm
-   * content-length: 151323
-   * access-control-allow-headers: Content-Type
-   * access-control-allow-headers: Range
-   * access-control-allow-headers: User-Agent
-   * access-control-allow-headers: X-Requested-With
-   * access-control-allow-methods: GET
-   * access-control-allow-methods: HEAD
-   * access-control-allow-methods: OPTIONS
-   * access-control-allow-origin: *
-   * access-control-expose-headers: Content-Length
-   * access-control-expose-headers: Content-Range
-   * access-control-expose-headers: X-Chunked-Output
-   * access-control-expose-headers: X-Ipfs-Path
-   * access-control-expose-headers: X-Ipfs-Roots
-   * access-control-expose-headers: X-Stream-Output
-   * cache-control: public, max-age=29030400, immutable
-   */
-  // response.headers.set('Access-Control-Allow-Headers', 'Content-Type')
-  // response.headers.append('Access-Control-Allow-Headers', 'Range')
-  // response.headers.append('Access-Control-Allow-Headers', 'User-Agent')
-  // response.headers.append('Access-Control-Allow-Headers', 'X-Requested-With')
-  // response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Range, User-Agent, X-Requested-With')
-  // // response.headers.set('Access-Control-Allow-Methods', 'GET')
-  // // response.headers.append('Access-Control-Allow-Methods', 'HEAD')
-  // // response.headers.append('Access-Control-Allow-Methods', 'OPTIONS')
-  // response.headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS')
-  // response.headers.set('Access-Control-Allow-Origin', '*')
-  // // response.headers.set('Access-Control-Expose-Headers', 'Content-Length')
-  // // response.headers.append('Access-Control-Expose-Headers', 'Content-Range')
-  // // response.headers.append('Access-Control-Expose-Headers', 'X-Chunked-Output')
-  // // response.headers.append('Access-Control-Expose-Headers', 'X-Ipfs-Path')
-  // // response.headers.append('Access-Control-Expose-Headers', 'X-Ipfs-Roots')
-  // // response.headers.append('Access-Control-Expose-Headers', 'X-Stream-Output')
-  // response.headers.set('Access-Control-Expose-Headers', 'Content-Length, Content-Range, X-Chunked-Output, X-Ipfs-Path, X-Ipfs-Roots, X-Stream-Output')
-  // response.headers.set('Date', new Date().toUTCString())
-  // response.headers.set('Cache-Control', 'public, max-age=30')
-  // response.headers.set('Expires', new Date(Date.now() + 30 * 1000).toUTCString())
-  // response.headers.set('Vary', 'Origin')
-  // // response.headers.set('X-Ipfs-Path', url.pathname)
-  // // response.headers.set('X-Ipfs-Roots', response.headers.get('X-Ipfs-Roots') ?? url.pathname)
-  // response.headers.set('X-Stream-Output', '1')
-  // response.headers.set('X-Chunked-Output', '1')
-  // response.headers.set('Content-Type', response.headers.get('content-type') ?? 'application/octet-stream')
-  // // response.keepalive = true
-  // // set keepalive header
-  // response.headers.set('Connection', 'keep-alive')
-  // const rangeRequestHeader = event.request.headers.get('range')
-  // // log('helia-sw: request header range: %s', rangeRequestHeader)
-  // const rangeResponseHeader = response.headers.get('range')
-  // const values = getValuesFromResponseHeader(rangeResponseHeader)
-
-  // // log all of the headers:
+  // log all of the headers:
   response.headers.forEach((value, key) => {
-    log('helia-sw: response headers: %s: %s', key, value)
+    log.trace('helia-sw: response headers: %s: %s', key, value)
   })
 
   log('helia-sw: response range header value: "%s"', response.headers.get('content-range'))
 
   log('helia-sw: response status: %s', response.status)
-  // // content-length should be the range length
-  // if (rangeRequestHeader != null && values != null) {
-  // //   response.headers.set('content-length', String(values.end - values.start + 1))
-  //   // return new Response(response.body, {
-  //   //   status: 206,
-  //   //   statusText: 'Partial Content',
-  //   //   headers: response.headers
-  //   // })
-  // }
 
   try {
     await storeReponseInCache({ response, isMutable: true, cacheKey })
@@ -455,6 +369,8 @@ async function storeReponseInCache ({ response, isMutable, cacheKey }: StoreRepo
 
   // Clone the response since streams can only be consumed once.
   const respToCache = response.clone()
+  // make sure the response content is resolved before storing it in the cache
+  // await respToCache.arrayBuffer()
 
   if (isMutable) {
     trace('helia-ws: setting expires header on response key %s before storing in cache', cacheKey)
