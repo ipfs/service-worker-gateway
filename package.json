@@ -22,9 +22,9 @@
     "start": "npm run serve",
     "test": "run-s test:iso 'test:node -- -b false'",
     "test:iso": "aegir test -f dist-tsc/test/**/*.spec.js",
-    "test:browsers": "playwright test -c playwright.config.js",
-    "test:chrome": "playwright test -c playwright.config.js --project chromium",
-    "test:firefox": "playwright test -c playwright.config.js --project firefox",
+    "test:browsers": "npm run build && playwright test -c playwright.config.js",
+    "test:chrome": "npm run build && playwright test -c playwright.config.js --project chromium",
+    "test:firefox": "npm run build && playwright test -c playwright.config.js --project firefox",
     "test:node": "aegir test -t node -f dist-tsc/test/node.js --cov",
     "postinstall": "patch-package"
   },

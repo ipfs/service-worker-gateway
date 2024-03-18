@@ -39,7 +39,8 @@ export default defineConfig({
     }
   ],
   webServer: {
-    command: 'npm run start',
+    // need to use built assets due to service worker loading issue.
+    command: 'npx http-server -p 3000 -s -c-1 dist',
     port: 3000,
     timeout: 120 * 1000,
     reuseExistingServer: !process.env.CI
