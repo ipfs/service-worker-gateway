@@ -369,8 +369,6 @@ async function storeReponseInCache ({ response, isMutable, cacheKey }: StoreRepo
 
   // Clone the response since streams can only be consumed once.
   const respToCache = response.clone()
-  // make sure the response content is resolved before storing it in the cache
-  // await respToCache.arrayBuffer()
 
   if (isMutable) {
     trace('helia-ws: setting expires header on response key %s before storing in cache', cacheKey)
@@ -419,13 +417,12 @@ async function fetchHandler ({ path, request }: FetchHandlerArg): Promise<Respon
 
     const headers = request.headers
     headers.forEach((value, key) => {
-      log('fetchHandler: request headers: %s: %s', key, value)
+      log.trace('fetchHandler: request headers: %s: %s', key, value)
     })
 
     return await verifiedFetch(verifiedFetchUrl, {
       signal,
       headers,
-      // redirect: 'manual',
       // TODO redirect: 'manual', // enable when http urls are supported by verified-fetch: https://github.com/ipfs-shipyard/helia-service-worker-gateway/issues/62#issuecomment-1977661456
       onProgress: (e) => {
         trace(`${e.type}: `, e.detail)

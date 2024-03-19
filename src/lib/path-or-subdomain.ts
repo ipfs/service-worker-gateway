@@ -37,13 +37,13 @@ export const findOriginIsolationRedirect = async (location: Pick<Location, 'prot
 
 const isSubdomainIsolationSupported = async (location: Pick<Location, 'protocol' | 'host' | 'pathname'>): Promise<boolean> => {
   // TODO: do this test once and expose it as cookie / config flag somehow
-  // const testUrl = `${location.protocol}//bafkqaaa.ipfs.${location.host}`
-  // try {
-  //   const response: Response = await fetch(testUrl)
-  //   return response.status === 200
-  // } catch (_) {
-  return false
-  // }
+  const testUrl = `${location.protocol}//bafkqaaa.ipfs.${location.host}`
+  try {
+    const response: Response = await fetch(testUrl)
+    return response.status === 200
+  } catch (_) {
+    return false
+  }
 }
 
 const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' | 'pathname' | 'search' | 'hash'>): string => {
