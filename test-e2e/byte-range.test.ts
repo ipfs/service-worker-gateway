@@ -1,10 +1,8 @@
 import { test, expect } from '@playwright/test'
 
 test.describe('byte-ranges', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('http://localhost:3000', { waitUntil: 'networkidle' })
-  })
   test('should be able to get a single character', async ({ page }) => {
+    await page.goto('http://localhost:3000', { waitUntil: 'networkidle' })
     // wait for service worker to load
     await page.evaluate(async () => {
       const registration = await window.navigator.serviceWorker.getRegistration()
