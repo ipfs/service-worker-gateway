@@ -357,7 +357,6 @@ async function getResponseFromCacheOrFetch (event: FetchEvent): Promise<Response
 }
 
 const invalidOkResponseCodesForCache = [206]
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function storeReponseInCache ({ response, isMutable, cacheKey }: StoreReponseInCacheOptions): Promise<void> {
   // 👇 only cache successful responses
   if (!response.ok || invalidOkResponseCodesForCache.some(code => code === response.status)) {
