@@ -15,7 +15,7 @@ export default defineConfig({
    */
   workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'html',
+  // reporter: 'html', // Uncomment to generate HTML report
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
     baseURL: 'http://127.0.0.1:3000',
@@ -39,7 +39,9 @@ export default defineConfig({
     }
   ],
   webServer: {
-    command: 'npm run start',
+    // need to use built assets due to service worker loading issue.
+    // TODO: figure out how to get things working with npm run start
+    command: 'npm run build && npx http-server --silent -p 3000 dist',
     port: 3000,
     timeout: 120 * 1000,
     reuseExistingServer: !process.env.CI

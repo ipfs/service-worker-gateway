@@ -7,6 +7,7 @@
   "keywords": [],
   "license": "MIT",
   "scripts": {
+    "reset": "npm run clean -- **/node_modules **/package-lock.json",
     "analyze-bundle": "webpack --env analyze",
     "clean": "aegir clean dist dist-tsc",
     "dep-check": "aegir dep-check",
@@ -39,9 +40,9 @@
     }
   },
   "dependencies": {
-    "@helia/ipns": "^6.0.1",
-    "@helia/verified-fetch": "^1.1.0",
+    "@helia/verified-fetch": "^1.2.1",
     "@libp2p/logger": "^4.0.6",
+    "@multiformats/dns": "^1.0.5",
     "@sgtpooki/file-type": "^1.0.1",
     "debug": "^4.3.4",
     "multiformats": "^11.0.2",
