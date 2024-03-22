@@ -26,8 +26,9 @@ interface AggregateError extends Error {
 interface FetchHandlerArg {
   path: string
   request: Request
-
+  event: FetchEvent
 }
+
 interface GetVerifiedFetchUrlOptions {
   protocol?: string | null
   id?: string | null
@@ -38,6 +39,7 @@ interface StoreReponseInCacheOptions {
   response: Response
   cacheKey: string
   isMutable: boolean
+  event: FetchEvent
 }
 
 /**
@@ -80,6 +82,7 @@ const CURRENT_CACHES = Object.freeze({
 })
 let verifiedFetch: VerifiedFetch
 const channel = new HeliaServiceWorkerCommsChannel('SW')
+const timeoutAbortEventType = 'verified-fetch-timeout'
 const ONE_HOUR_IN_SECONDS = 3600
 const urlInterceptRegex = [new RegExp(`${self.location.origin}/ip(n|f)s/`)]
 const updateVerifiedFetch = async (): Promise<void> => {
@@ -309,19 +312,17 @@ function getCacheKey (event: FetchEvent): string {
 }
 
 async function fetchAndUpdateCache (event: FetchEvent, url: URL, cacheKey: string): Promise<Response> {
-  const response = await fetchHandler({ path: url.pathname, request: event.request })
+  const response = await fetchHandler({ path: url.pathname, request: event.request, event })
 
   // log all of the headers:
   response.headers.forEach((value, key) => {
     log.trace('helia-sw: response headers: %s: %s', key, value)
   })
 
-  log('helia-sw: response range header value: "%s"', response.headers.get('content-range'))
-
   log('helia-sw: response status: %s', response.status)
 
   try {
-    await storeReponseInCache({ response, isMutable: true, cacheKey })
+    await storeReponseInCache({ response, isMutable: true, cacheKey, event })
     trace('helia-ws: updated cache for %s', cacheKey)
   } catch (err) {
     error('helia-ws: failed updating response in cache for %s', cacheKey, err)
@@ -356,10 +357,25 @@ async function getResponseFromCacheOrFetch (event: FetchEvent): Promise<Response
   return fetchAndUpdateCache(event, url, cacheKey)
 }
 
-const invalidOkResponseCodesForCache = [206]
-async function storeReponseInCache ({ response, isMutable, cacheKey }: StoreReponseInCacheOptions): Promise<void> {
-  // 👇 only cache successful responses
-  if (!response.ok || invalidOkResponseCodesForCache.some(code => code === response.status)) {
+function shouldCacheResponse ({ event, response }: { event: FetchEvent, response: Response }): boolean {
+  if (!response.ok) {
+    return false
+  }
+  const statusCodesToNotCache = [206]
+  if (statusCodesToNotCache.some(code => code === response.status)) {
+    log('helia-sw: not caching response with status %s', response.status)
+    return false
+  }
+  if (event.request.headers.get('pragma') === 'no-cache' || event.request.headers.get('cache-control') === 'no-cache') {
+    log('helia-sw: request indicated no-cache, not caching')
+    return false
+  }
+
+  return true
+}
+
+async function storeReponseInCache ({ response, isMutable, cacheKey, event }: StoreReponseInCacheOptions): Promise<void> {
+  if (!shouldCacheResponse({ event, response })) {
     return
   }
   trace('helia-ws: updating cache for %s in the background', cacheKey)
@@ -378,10 +394,11 @@ async function storeReponseInCache ({ response, isMutable, cacheKey }: StoreRepo
   }
 
   log('helia-ws: storing response for key %s in cache', cacheKey)
-  await cache.put(cacheKey, respToCache)
+  // do not await this.. large responses will delay [TTFB](https://web.dev/articles/ttfb) and [TTI](https://web.dev/articles/tti)
+  void cache.put(cacheKey, respToCache)
 }
 
-async function fetchHandler ({ path, request }: FetchHandlerArg): Promise<Response> {
+async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise<Response> {
   // test and enforce origin isolation before anything else is executed
   const originLocation = await findOriginIsolationRedirect(new URL(request.url))
   if (originLocation !== null) {
@@ -407,8 +424,29 @@ async function fetchHandler ({ path, request }: FetchHandlerArg): Promise<Respon
    * * https://bugs.chromium.org/p/chromium/issues/detail?id=823697
    * * https://bugzilla.mozilla.org/show_bug.cgi?id=1394102
    */
-  // 5 minute timeout
-  const signal = AbortSignal.timeout(5 * 60 * 1000)
+  const abortController = new AbortController()
+  const signal = abortController.signal
+  const abortFn = (event: Pick<AbortSignalEventMap['abort'], 'type'>): void => {
+    clearTimeout(signalAbortTimeout)
+    if (event?.type === timeoutAbortEventType) {
+      log.trace('helia-sw: timeout waiting for response from @helia/verified-fetch')
+      abortController.abort('timeout')
+    } else {
+      log.trace('helia-sw: request signal aborted')
+      abortController.abort('request signal aborted')
+    }
+  }
+  /**
+   * five minute delay to get the initial response.
+   *
+   * @todo reduce to 2 minutes?
+   */
+  const signalAbortTimeout = setTimeout(() => {
+    abortFn({ type: timeoutAbortEventType })
+  }, 5 * 60 * 1000)
+  // if the fetch event is aborted, we need to abort the signal we give to @helia/verified-fetch
+  event.request.signal.addEventListener('abort', abortFn)
+
   try {
     const { id, protocol } = getSubdomainParts(request.url)
     const verifiedFetchUrl = getVerifiedFetchUrl({ id, protocol, path })
@@ -419,7 +457,7 @@ async function fetchHandler ({ path, request }: FetchHandlerArg): Promise<Respon
       log.trace('fetchHandler: request headers: %s: %s', key, value)
     })
 
-    return await verifiedFetch(verifiedFetchUrl, {
+    const response = await verifiedFetch(verifiedFetchUrl, {
       signal,
       headers,
       // TODO redirect: 'manual', // enable when http urls are supported by verified-fetch: https://github.com/ipfs-shipyard/helia-service-worker-gateway/issues/62#issuecomment-1977661456
@@ -427,6 +465,17 @@ async function fetchHandler ({ path, request }: FetchHandlerArg): Promise<Respon
         trace(`${e.type}: `, e.detail)
       }
     })
+    /**
+     * Now that we've got a response back from Helia, don't abort the promise since any additional networking calls
+     * that may performed by Helia would be dropped.
+     *
+     * If `event.request.signal` is aborted, that would cancel any underlying network requests.
+     *
+     * Note: we haven't awaited the arrayBuffer, blob, json, etc. `await verifiedFetch` only awaits the construction of
+     * the response object, regardless of it's inner content
+     */
+    clearTimeout(signalAbortTimeout)
+    return response
   } catch (err: unknown) {
     const errorMessages: string[] = []
     if (isAggregateError(err)) {
