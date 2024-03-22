@@ -361,7 +361,7 @@ function shouldCacheResponse ({ event, response }: { event: FetchEvent, response
     return false
   }
   const statusCodesToNotCache = [206]
-  if (invalidOkResponseCodesForCache.some(code => code === response.status)) {
+  if (statusCodesToNotCache.some(code => code === response.status)) {
     log('helia-sw: not caching response with status %s', response.status)
     return false
   }
