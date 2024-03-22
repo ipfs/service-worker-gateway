@@ -39,6 +39,7 @@ interface StoreReponseInCacheOptions {
   response: Response
   cacheKey: string
   isMutable: boolean
+  event: FetchEvent
 }
 
 /**
@@ -317,12 +318,10 @@ async function fetchAndUpdateCache (event: FetchEvent, url: URL, cacheKey: strin
     log.trace('helia-sw: response headers: %s: %s', key, value)
   })
 
-  log('helia-sw: response range header value: "%s"', response.headers.get('content-range'))
-
   log('helia-sw: response status: %s', response.status)
 
   try {
-    await storeReponseInCache({ response, isMutable: true, cacheKey })
+    await storeReponseInCache({ response, isMutable: true, cacheKey, event })
     trace('helia-ws: updated cache for %s', cacheKey)
   } catch (err) {
     error('helia-ws: failed updating response in cache for %s', cacheKey, err)
@@ -357,10 +356,25 @@ async function getResponseFromCacheOrFetch (event: FetchEvent): Promise<Response
   return fetchAndUpdateCache(event, url, cacheKey)
 }
 
-const invalidOkResponseCodesForCache = [206]
-async function storeReponseInCache ({ response, isMutable, cacheKey }: StoreReponseInCacheOptions): Promise<void> {
-  // 👇 only cache successful responses
-  if (!response.ok || invalidOkResponseCodesForCache.some(code => code === response.status)) {
+function shouldCacheResponse ({ event, response }: { event: FetchEvent, response: Response }): boolean {
+  if (!response.ok) {
+    return false
+  }
+  const invalidOkResponseCodesForCache = [206]
+  if (invalidOkResponseCodesForCache.some(code => code === response.status)) {
+    log('helia-sw-cache-debug: not caching response with status %s', response.status)
+    return false
+  }
+  if (event.request.headers.get('pragma') === 'no-cache' || event.request.headers.get('cache-control') === 'no-cache') {
+    log('helia-sw-cache-debug: request indicated no-cache, not caching')
+    return false
+  }
+
+  return true
+}
+
+async function storeReponseInCache ({ response, isMutable, cacheKey, event }: StoreReponseInCacheOptions): Promise<void> {
+  if (!shouldCacheResponse({ event, response })) {
     return
   }
   trace('helia-ws: updating cache for %s in the background', cacheKey)
@@ -379,7 +393,8 @@ async function storeReponseInCache ({ response, isMutable, cacheKey }: StoreRepo
   }
 
   log('helia-ws: storing response for key %s in cache', cacheKey)
-  await cache.put(cacheKey, respToCache)
+  // do not await this.. large responses will delay [TTFB](https://web.dev/articles/ttfb) and [TTI](https://web.dev/articles/tti)
+  void cache.put(cacheKey, respToCache)
 }
 
 async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise<Response> {
