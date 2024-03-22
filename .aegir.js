@@ -13,8 +13,6 @@ export default {
   dependencyCheck: {
     ignore: [
       // .jsx files aren't checked properly.
-      'multiformats',
-
       'react-dom',
 
       // required by webpack
