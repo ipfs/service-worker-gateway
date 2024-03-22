@@ -82,6 +82,7 @@ const CURRENT_CACHES = Object.freeze({
 })
 let verifiedFetch: VerifiedFetch
 const channel = new HeliaServiceWorkerCommsChannel('SW')
+const timeoutAbortEventType = 'verified-fetch-timeout'
 const ONE_HOUR_IN_SECONDS = 3600
 const urlInterceptRegex = [new RegExp(`${self.location.origin}/ip(n|f)s/`)]
 const updateVerifiedFetch = async (): Promise<void> => {
@@ -427,7 +428,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
   const signal = abortController.signal
   const abortFn = (event: Pick<AbortSignalEventMap['abort'], 'type'>): void => {
     clearTimeout(signalAbortTimeout)
-    if (event?.type !== 'verified-fetch-timeout') {
+    if (event?.type !== timeoutAbortEventType) {
       log.trace('helia-sw: request signal aborted')
       abortController.abort('request signal aborted')
     } else {
@@ -441,7 +442,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
    * @todo reduce to 2 minutes?
    */
   const signalAbortTimeout = setTimeout(() => {
-    abortFn({ type: 'verified-fetch-timeout' })
+    abortFn({ type: timeoutAbortEventType })
   }, 5 * 60 * 1000)
   // if the fetch event is aborted, we need to abort the signal we give to @helia/verified-fetch
   event.request.signal.addEventListener('abort', abortFn)
