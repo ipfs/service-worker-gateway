@@ -428,12 +428,12 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
   const signal = abortController.signal
   const abortFn = (event: Pick<AbortSignalEventMap['abort'], 'type'>): void => {
     clearTimeout(signalAbortTimeout)
-    if (event?.type !== timeoutAbortEventType) {
-      log.trace('helia-sw: request signal aborted')
-      abortController.abort('request signal aborted')
-    } else {
+    if (event?.type === timeoutAbortEventType) {
       log.trace('helia-sw: timeout waiting for response from @helia/verified-fetch')
       abortController.abort('timeout')
+    } else {
+      log.trace('helia-sw: request signal aborted')
+      abortController.abort('request signal aborted')
     }
   }
   /**
