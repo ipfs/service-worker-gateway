@@ -45,7 +45,7 @@
     "@multiformats/dns": "^1.0.5",
     "@sgtpooki/file-type": "^1.0.1",
     "debug": "^4.3.4",
-    "multiformats": "^11.0.2",
+    "multiformats": "^13.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
