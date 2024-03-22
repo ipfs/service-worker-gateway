@@ -362,11 +362,11 @@ function shouldCacheResponse ({ event, response }: { event: FetchEvent, response
   }
   const invalidOkResponseCodesForCache = [206]
   if (invalidOkResponseCodesForCache.some(code => code === response.status)) {
-    log('helia-sw-cache-debug: not caching response with status %s', response.status)
+    log('helia-sw: not caching response with status %s', response.status)
     return false
   }
   if (event.request.headers.get('pragma') === 'no-cache' || event.request.headers.get('cache-control') === 'no-cache') {
-    log('helia-sw-cache-debug: request indicated no-cache, not caching')
+    log('helia-sw: request indicated no-cache, not caching')
     return false
   }
 
