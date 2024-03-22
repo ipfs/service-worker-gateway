@@ -456,7 +456,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
       log.trace('fetchHandler: request headers: %s: %s', key, value)
     })
 
-    const response = verifiedFetch(verifiedFetchUrl, {
+    const response = await verifiedFetch(verifiedFetchUrl, {
       signal,
       headers,
       // TODO redirect: 'manual', // enable when http urls are supported by verified-fetch: https://github.com/ipfs-shipyard/helia-service-worker-gateway/issues/62#issuecomment-1977661456
@@ -474,7 +474,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
      * the response object, regardless of it's inner content
      */
     clearTimeout(signalAbortTimeout)
-    return await response
+    return response
   } catch (err: unknown) {
     const errorMessages: string[] = []
     if (isAggregateError(err)) {
