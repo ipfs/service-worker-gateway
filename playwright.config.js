@@ -18,13 +18,15 @@ export default defineConfig({
   // reporter: 'html', // Uncomment to generate HTML report
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: 'http://127.0.0.1:3000',
+    baseURL: 'http://127.0.0.1:3333',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
 
     // 'allow' serviceWorkers is the default, but we want to be explicit
-    serviceWorkers: 'allow'
+    serviceWorkers: 'allow',
+
+    ignoreHTTPSErrors: true
   },
   globalSetup: './test-e2e/global-setup.js',
 
@@ -38,12 +40,22 @@ export default defineConfig({
       use: { ...devices['Desktop Firefox'] }
     }
   ],
-  webServer: {
-    // need to use built assets due to service worker loading issue.
-    // TODO: figure out how to get things working with npm run start
-    command: 'npm run build && npx http-server --silent -p 3000 dist',
-    port: 3000,
-    timeout: 120 * 1000,
-    reuseExistingServer: !process.env.CI
-  }
+  webServer: [
+    {
+      command: 'node test-e2e/reverse-proxy.js',
+      timeout: 5 * 1000,
+      env: {
+        BACKEND_PORT: '3000',
+        PROXY_PORT: '3333'
+      }
+    },
+    {
+      // need to use built assets due to service worker loading issue.
+      // TODO: figure out how to get things working with npm run start
+      command: 'npm run build && npx http-server --silent -p 3000 dist',
+      port: 3000,
+      timeout: 120 * 1000,
+      reuseExistingServer: !process.env.CI
+    }
+  ]
 })
