@@ -184,6 +184,11 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
   } else if (!isValidRequestForSW(event)) {
     trace('helia-sw: not a valid request for helia-sw, ignoring ', event.request.url)
     return false
+  } else if (url.href.includes('bafkqaaa.ipfs')) {
+    // TODO: we shouldn't need to do this, but sometimes verified-fetch will attempt to fetch this.
+    // `bafkqaaa` is an empty inline CID, so this response *is* valid.
+    event.respondWith(new Response('', { status: 200 }))
+    return false
   }
 
   if (isRootRequestForContent(event) || isSubdomainRequest(event)) {
@@ -460,7 +465,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
     const response = await verifiedFetch(verifiedFetchUrl, {
       signal,
       headers,
-      // TODO redirect: 'manual', // enable when http urls are supported by verified-fetch: https://github.com/ipfs-shipyard/helia-service-worker-gateway/issues/62#issuecomment-1977661456
+      redirect: 'manual',
       onProgress: (e) => {
         trace(`${e.type}: `, e.detail)
       }
