@@ -120,8 +120,8 @@ self.addEventListener('activate', (event) => {
     const { action } = message.data
     switch (action) {
       case 'RELOAD_CONFIG':
-        void updateVerifiedFetch().then(() => {
-          channel.postMessage({ action: 'RELOAD_CONFIG_SUCCESS' })
+        void updateVerifiedFetch().then(async () => {
+          channel.postMessage<any>({ action: 'RELOAD_CONFIG_SUCCESS', data: {config: await getConfig()} })
           trace('sw: RELOAD_CONFIG_SUCCESS for %s', self.location.origin)
         })
         break

@@ -1,14 +1,5 @@
-import { test, expect, type Page, type Locator } from '@playwright/test'
-
-interface GetLocator {
-  (page: Page): Locator
-}
-const getHeader: GetLocator = (page) => page.locator('.e2e-header')
-const getHeaderTitle: GetLocator = (page) => page.locator('.e2e-header-title')
-const getConfigButton: GetLocator = (page) => page.locator('.e2e-header-config-button')
-const getConfigPage: GetLocator = (page) => page.locator('.e2e-config-page')
-const getConfigPageInput: GetLocator = (page) => page.locator('.e2e-config-page-input')
-const getConfigPageButton: GetLocator = (page) => page.locator('.e2e-config-page-button')
+import { test, expect } from '@playwright/test'
+import { getConfigButton, getConfigPage, getConfigPageButton, getConfigPageInput, getHeader, getHeaderTitle } from './fixtures/locators.js'
 
 test.describe('smoketests', () => {
   test.beforeEach(async ({ page }) => {
