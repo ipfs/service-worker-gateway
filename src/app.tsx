@@ -12,7 +12,7 @@ function App (): JSX.Element {
   const isSubdomainRender = isPathOrSubdomainRequest(window.location)
 
   if (isRequestToViewConfigPage) {
-    if (isSubdomainRender) {
+    if (isSubdomainRender && window.self === window.top) {
       return <RedirectPage />
     }
 
