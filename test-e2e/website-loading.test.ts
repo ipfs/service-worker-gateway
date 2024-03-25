@@ -27,16 +27,11 @@ test.describe('website-loading', () => {
     await waitForServiceWorker(page)
   })
 
-  // TODO: fix https://github.com/ipfs-shipyard/helia-service-worker-gateway/issues/62
-  test.skip('ensure unixfs directory trailing slash is added', async ({ page }) => {
-    const response = await page.goto('http://127.0.0.1:3000/ipfs/bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q', { waitUntil: 'commit' })
+  test('ensure unixfs directory trailing slash is added', async ({ page }) => {
+    const response = await page.goto('http://127.0.0.1:3000/ipfs/bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q')
 
-    // await page.waitForURL('http://127.0.0.1:3000/ipfs/bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q/')
+    // playwright follows redirects so we won't see the 301
     expect(response?.status()).toBe(200)
-
-    const headers = await response?.allHeaders()
-    expect(headers?.location).toBe('http://localhost:3000/ipfs/bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q/')
-
     expect(response?.url()).toBe('http://127.0.0.1:3000/ipfs/bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q/')
   })
 
