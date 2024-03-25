@@ -29,12 +29,6 @@ interface FetchHandlerArg {
   event: FetchEvent
 }
 
-interface GetVerifiedFetchUrlOptions {
-  protocol?: string | null
-  id?: string | null
-  path: string
-}
-
 interface StoreReponseInCacheOptions {
   response: Response
   cacheKey: string
@@ -262,27 +256,6 @@ function isAggregateError (err: unknown): err is AggregateError {
   return err instanceof Error && (err as AggregateError).errors != null
 }
 
-function getVerifiedFetchUrl ({ protocol, id, path }: GetVerifiedFetchUrlOptions): string {
-  if (id != null && protocol != null) {
-    return `${protocol}://${id}${path}`
-  }
-
-  const pathParts = path.split('/')
-
-  let pathPartIndex = 0
-  let namespaceString = pathParts[pathPartIndex++]
-  if (namespaceString === '') {
-  // we have a prefixed '/' in the path, use the new index instead
-    namespaceString = pathParts[pathPartIndex++]
-  }
-  if (namespaceString !== 'ipfs' && namespaceString !== 'ipns') {
-    throw new Error(`only /ipfs or /ipns namespaces supported got ${namespaceString}`)
-  }
-  const pathRootString = pathParts[pathPartIndex++]
-  const contentPath = pathParts.slice(pathPartIndex++).join('/')
-  return `${namespaceString}://${pathRootString}/${contentPath}`
-}
-
 function isSwAssetRequest (event: FetchEvent): boolean {
   const isActualSwAsset = /^.+\/(?:ipfs-sw-).+\.js$/.test(event.request.url)
   return isActualSwAsset
@@ -456,16 +429,14 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
   event.request.signal.addEventListener('abort', abortFn)
 
   try {
-    const { id, protocol } = getSubdomainParts(request.url)
-    const verifiedFetchUrl = getVerifiedFetchUrl({ id, protocol, path })
-    log('verifiedFetch for ', verifiedFetchUrl)
+    log('verifiedFetch for ', event.request.url)
 
     const headers = request.headers
     headers.forEach((value, key) => {
       log.trace('fetchHandler: request headers: %s: %s', key, value)
     })
 
-    const response = await verifiedFetch(verifiedFetchUrl, {
+    const response = await verifiedFetch(event.request.url, {
       signal,
       headers,
       redirect: 'manual',
