@@ -185,8 +185,10 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
     trace('helia-sw: not a valid request for helia-sw, ignoring ', event.request.url)
     return false
   } else if (url.href.includes('bafkqaaa.ipfs')) {
-    // TODO: we shouldn't need to do this, but sometimes verified-fetch will attempt to fetch this.
-    // `bafkqaaa` is an empty inline CID, so this response *is* valid.
+    /**
+     * `bafkqaaa` is an empty inline CID, so this response *is* valid, and prevents additional network calls.
+     * @see https://github.com/ipfs-shipyard/helia-service-worker-gateway/pull/151#discussion_r1536562347
+     */
     event.respondWith(new Response('', { status: 200 }))
     return false
   }
