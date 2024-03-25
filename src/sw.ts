@@ -120,8 +120,8 @@ self.addEventListener('activate', (event) => {
     const { action } = message.data
     switch (action) {
       case 'RELOAD_CONFIG':
-        void updateVerifiedFetch().then(() => {
-          channel.postMessage({ action: 'RELOAD_CONFIG_SUCCESS' })
+        void updateVerifiedFetch().then(async () => {
+          channel.postMessage<any>({ action: 'RELOAD_CONFIG_SUCCESS', data: { config: await getConfig() } })
           trace('sw: RELOAD_CONFIG_SUCCESS for %s', self.location.origin)
         })
         break
@@ -183,6 +183,14 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
     return false
   } else if (!isValidRequestForSW(event)) {
     trace('helia-sw: not a valid request for helia-sw, ignoring ', event.request.url)
+    return false
+  } else if (url.href.includes('bafkqaaa.ipfs')) {
+    /**
+     * `bafkqaaa` is an empty inline CID, so this response *is* valid, and prevents additional network calls.
+     *
+     * @see https://github.com/ipfs-shipyard/helia-service-worker-gateway/pull/151#discussion_r1536562347
+     */
+    event.respondWith(new Response('', { status: 200 }))
     return false
   }
 
@@ -460,7 +468,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
     const response = await verifiedFetch(verifiedFetchUrl, {
       signal,
       headers,
-      // TODO redirect: 'manual', // enable when http urls are supported by verified-fetch: https://github.com/ipfs-shipyard/helia-service-worker-gateway/issues/62#issuecomment-1977661456
+      redirect: 'manual',
       onProgress: (e) => {
         trace(`${e.type}: `, e.detail)
       }

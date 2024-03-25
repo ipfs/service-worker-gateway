@@ -3,7 +3,7 @@ import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
 
 test.describe('byte-ranges', () => {
   test('should be able to get a single character', async ({ page }) => {
-    await page.goto('http://localhost:3000', { waitUntil: 'networkidle' })
+    await page.goto('/', { waitUntil: 'networkidle' })
     // wait for service worker to load
     await waitForServiceWorker(page)
 
