@@ -187,6 +187,7 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
   } else if (url.href.includes('bafkqaaa.ipfs')) {
     /**
      * `bafkqaaa` is an empty inline CID, so this response *is* valid, and prevents additional network calls.
+     *
      * @see https://github.com/ipfs-shipyard/helia-service-worker-gateway/pull/151#discussion_r1536562347
      */
     event.respondWith(new Response('', { status: 200 }))
