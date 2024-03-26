@@ -2,11 +2,39 @@ import { test as base, type Page } from '@playwright/test'
 import { setConfig, setSubdomainConfig } from './set-sw-config.js'
 import { waitForServiceWorker } from './wait-for-service-worker.js'
 
+const rootDomain = async ({ baseURL }, use): Promise<void> => {
+  const url = new URL(baseURL)
+  await use(url.host)
+}
+
+export const test = base.extend<{ rootDomain: string, baseURL: string }>({
+  rootDomain: [rootDomain, { scope: 'test' }],
+  page: async ({ page, baseURL }, use) => {
+    await page.goto(baseURL, { waitUntil: 'networkidle' })
+    await waitForServiceWorker(page)
+    await setConfig({
+      page,
+      config: {
+        gateways: [process.env.KUBO_GATEWAY as string],
+        routers: [process.env.KUBO_GATEWAY as string]
+      }
+    })
+
+    await use(page)
+  }
+})
+
 /**
  * You should use this fixture instead of the `test` fixture from `@playwright/test` when testing path routing via the service worker.
  */
-export const testPathRouting = base.extend({
-  page: async ({ page }, use) => {
+export const testPathRouting = base.extend<{ rootDomain: string, baseURL: string }>({
+  rootDomain: [rootDomain, { scope: 'test' }],
+  page: async ({ page, rootDomain }, use) => {
+    if (!rootDomain.includes('localhost')) {
+      // for non localhost tests, we skip path routing tests
+      testPathRouting.skip()
+      return
+    }
     await page.goto('http://127.0.0.1:3333', { waitUntil: 'networkidle' })
     await waitForServiceWorker(page)
     await setConfig({
@@ -39,9 +67,10 @@ export const testPathRouting = base.extend({
  * })
  * ```
  */
-export const testSubdomainRouting = base.extend({
-  page: async ({ page }, use) => {
-    await page.goto('http://localhost:3333', { waitUntil: 'networkidle' })
+export const testSubdomainRouting = base.extend<{ rootDomain: string, baseURL: string }>({
+  rootDomain: [rootDomain, { scope: 'test' }],
+  page: async ({ page, baseURL }, use) => {
+    await page.goto(baseURL, { waitUntil: 'networkidle' })
     await waitForServiceWorker(page)
 
     const oldPageGoto = page.goto.bind(page)
