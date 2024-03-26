@@ -4,13 +4,53 @@
  *
  * Note that this was only tested and confirmed working for subdomain pages.
  */
+import { getConfigAutoReloadInput, getConfigAutoReloadInputIframe, getConfigButton, getConfigButtonIframe, getConfigGatewaysInput, getConfigGatewaysInputIframe, getConfigPage, getConfigPageButton, getConfigPageButtonIframe, getConfigRoutersInput, getConfigRoutersInputIframe } from './locators.js'
 import { waitForServiceWorker } from './wait-for-service-worker.js'
 import type { ConfigDb } from '../../src/lib/config-db.js'
 import type { Page } from '@playwright/test'
 
+export async function setConfigViaUiSubdomain ({ page, config }: { page: Page, config: Partial<ConfigDb> }): Promise<void> {
+  await waitForServiceWorker(page)
+
+  await getConfigButtonIframe(page).isVisible()
+  await getConfigButtonIframe(page).click()
+
+  for (const [key] of Object.entries(config)) {
+    if (key === 'autoReload') {
+      await getConfigAutoReloadInputIframe(page).click()
+    }
+  }
+  await getConfigGatewaysInputIframe(page).locator('input').fill(JSON.stringify([process.env.KUBO_GATEWAY]))
+  await getConfigRoutersInputIframe(page).locator('input').fill(JSON.stringify([process.env.KUBO_GATEWAY]))
+
+  await getConfigPageButtonIframe(page).click()
+
+  await getConfigPage(page).isHidden()
+}
+
+export async function setConfigViaUi ({ page, config }: { page: Page, config: Partial<ConfigDb> }): Promise<void> {
+  await waitForServiceWorker(page)
+
+  await getConfigButton(page).isVisible()
+  await getConfigButton(page).click()
+  await getConfigPage(page).isVisible()
+
+  for (const [key] of Object.entries(config)) {
+    if (key === 'autoReload') {
+      await getConfigAutoReloadInput(page).click()
+    }
+  }
+
+  await getConfigGatewaysInput(page).locator('input').fill(JSON.stringify([process.env.KUBO_GATEWAY]))
+  await getConfigRoutersInput(page).locator('input').fill(JSON.stringify([process.env.KUBO_GATEWAY]))
+
+  await getConfigPageButton(page).click()
+
+  await getConfigPage(page).isHidden()
+}
+
 // TODO: ensure that the config can be set on root and loaded properly by subdomains with playwright
 export async function setConfig ({ page, config }: { page: Page, config: Partial<ConfigDb> }): Promise<void> {
-  await waitForServiceWorker(page)
   // we can't pass through functions we already have defined, so many of these things are copied over from <root>/src/lib/generic-db.ts
   await page.evaluate(async (configInPage) => {
     const dbName = 'helia-sw'
@@ -58,7 +98,22 @@ export async function setConfig ({ page, config }: { page: Page, config: Partial
     })
     channel.postMessage({ target: 'SW', action: 'RELOAD_CONFIG', source: 'WINDOW' })
     await swResponsePromise
+  }, {
+    gateways: [process.env.KUBO_GATEWAY],
+    routers: [process.env.KUBO_GATEWAY],
+    ...config
+  })
+}
+
+export async function setSubdomainConfig ({ page, config }: { page: Page, config: Partial<ConfigDb> }): Promise<void> {
+  await waitForServiceWorker(page)
+
+  await page.evaluate(async (configInPage) => {
     // TODO: we shouldn't need this. We should be able to just post a message to the service worker to reload it's config.
     window.postMessage({ source: 'helia-sw-config-iframe', target: 'PARENT', action: 'RELOAD_CONFIG', config: configInPage }, { targetOrigin: window.location.origin })
-  }, config)
+  }, {
+    gateways: [process.env.KUBO_GATEWAY],
+    routers: [process.env.KUBO_GATEWAY],
+    ...config
+  })
 }

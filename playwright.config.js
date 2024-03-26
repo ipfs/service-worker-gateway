@@ -9,11 +9,7 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   /* Retry on CI only */
   retries: (process.env.CI != null) ? 2 : 0,
-  /**
-   * Opt out of parallel tests by setting workers to 1.
-   * We don't want to bombard Helia gateway with parallel requests, it's not ready for that yet.
-   */
-  workers: 1,
+
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   // reporter: 'html', // Uncomment to generate HTML report
   use: {
@@ -28,7 +24,9 @@ export default defineConfig({
 
     ignoreHTTPSErrors: true
   },
-  globalSetup: './test-e2e/global-setup.js',
+
+  globalSetup: './test-e2e/global-setup.ts',
+  globalTeardown: './test-e2e/global-teardown.ts',
 
   projects: [
     {

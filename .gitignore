@@ -224,3 +224,5 @@ playwright-report
 .direnv
 *.nix
 .coverage
+test-e2e/fixtures/data/test-repo
+test-e2e/fixtures/data/gateway-conformance-fixtures
