@@ -11,6 +11,6 @@ export async function createKuboNode (): Promise<Controller> {
     ipfsOptions: {
       repo: kuboRepoDir
     },
-    args: ['--enable-pubsub-experiment', '--enable-namesys-pubsub']
+    args: []
   })
 }
