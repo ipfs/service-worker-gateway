@@ -1,15 +1,6 @@
-# helia-service-worker-gateway
+# Developer Notes
 
 This example shows how to use Helia in a Service Worker to handle fetching and verifying CIDs in the browser.
-
-## Table of Contents
-
-- [Table of Contents](#table-of-contents)
-  - [Prerequisites](#prerequisites)
-  - [Installation and Running example](#installation-and-running-example)
-- [Examples](#examples)
-- [Usage](#usage)
-- [Demo links](#demo-links)
 
 ## Getting Started
 
