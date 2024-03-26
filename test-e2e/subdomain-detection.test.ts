@@ -1,4 +1,3 @@
-// import { test } from '@playwright/test'
 import { test, testSubdomainRouting, expect } from './fixtures/config-test-fixtures.js'
 import { setConfig, setSubdomainConfig } from './fixtures/set-sw-config.js'
 import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
