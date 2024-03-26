@@ -69,8 +69,12 @@ async function attemptKuboInit (): Promise<void> {
 async function configureKubo (): Promise<void> {
   const execaOptions = getExecaOptions()
   try {
+    // some of the same things as https://github.com/ipfs/kubo/blob/62eb1439157ea8de385671cb513e8ece10e43baf/config/profile.go#L73
     await $(execaOptions)`npx -y kubo config Addresses.Gateway /ip4/127.0.0.1/tcp/0`
     await $(execaOptions)`npx -y kubo config Addresses.API /ip4/127.0.0.1/tcp/0`
+    await $(execaOptions)`npx -y kubo config --json Bootstrap '[]'`
+    await $(execaOptions)`npx -y kubo config --json Swarm.DisableNatPortMap true`
+    await $(execaOptions)`npx -y kubo config --json Discovery.MDNS.Enabled false`
     await $(execaOptions)`npx -y kubo config --json Gateway.NoFetch true`
     await $(execaOptions)`npx -y kubo config --json Gateway.ExposeRoutingAPI true`
     await $(execaOptions)`npx -y kubo config --json Gateway.HTTPHeaders.Access-Control-Allow-Origin '["*"]'`
