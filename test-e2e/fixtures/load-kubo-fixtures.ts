@@ -9,10 +9,10 @@
  */
 
 import { readFile } from 'node:fs/promises'
-import { dirname, basename, relative, resolve } from 'node:path'
+import { dirname, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { logger } from '@libp2p/logger'
-import { $, type Options } from 'execa'
+import { $ } from 'execa'
 import { glob } from 'glob'
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -37,7 +37,7 @@ export async function loadKuboFixtures (): Promise<void> {
   await loadFixtures()
 }
 
-function getExecaOptions ({ cwd, ipfsNsMap }: { cwd?: string, ipfsNsMap?: string } = {}): Options {
+function getExecaOptions ({ cwd, ipfsNsMap }: { cwd?: string, ipfsNsMap?: string } = {}): { cwd: string, env: Record<string, string | undefined> } {
   return {
     cwd: cwd ?? __dirname,
     env: {
@@ -80,12 +80,14 @@ async function configureKubo (): Promise<void> {
   }
 }
 
-async function downloadFixtures (): Promise<void> {
+async function downloadFixtures (force = false): Promise<void> {
+  if (!force) {
   // if the fixtures are already downloaded, we don't need to download them again
-  const allFixtures = await glob([`${GWC_FIXTURES_PATH}/**/*.car`, `${GWC_FIXTURES_PATH}/**/*.ipns-record`, `${GWC_FIXTURES_PATH}/dnslinks.json`])
-  if (allFixtures.length > 0) {
-    log('Fixtures already downloaded')
-    return
+    const allFixtures = await glob([`${GWC_FIXTURES_PATH}/**/*.car`, `${GWC_FIXTURES_PATH}/**/*.ipns-record`, `${GWC_FIXTURES_PATH}/dnslinks.json`])
+    if (allFixtures.length > 0) {
+      log('Fixtures already downloaded')
+      return
+    }
   }
 
   log('Downloading fixtures')
@@ -105,13 +107,14 @@ async function loadFixtures (): Promise<string> {
     stdout.split('\n').forEach(log)
   }
 
-  for (const ipnsRecord of await glob([`${GWC_FIXTURES_PATH}/**/*.ipns-record`])) {
-    const key = basename(ipnsRecord, '.ipns-record')
-    const relativePath = relative(GWC_FIXTURES_PATH, ipnsRecord)
-    log('Loading *.ipns-record fixture %s', relativePath)
-    const { stdout } = await $(({ ...execaOptions }))`cd ${GWC_FIXTURES_PATH} && npx -y kubo routing put --allow-offline "/ipns/${key}" "${relativePath}"`
-    stdout.split('\n').forEach(log)
-  }
+  // TODO: re-enable this when we resolve CI issue: see https://github.com/ipfs-shipyard/service-worker-gateway/actions/runs/8442583023/job/23124336180?pr=159#step:6:13
+  // for (const ipnsRecord of await glob([`${GWC_FIXTURES_PATH}/**/*.ipns-record`])) {
+  //   const key = basename(ipnsRecord, '.ipns-record')
+  //   const relativePath = relative(GWC_FIXTURES_PATH, ipnsRecord)
+  //   log('Loading *.ipns-record fixture %s', relativePath)
+  //   const { stdout } = await $(({ ...execaOptions }))`cd ${GWC_FIXTURES_PATH} && npx -y kubo routing put --allow-offline "/ipns/${key}" "${relativePath}"`
+  //   stdout.split('\n').forEach(log)
+  // }
 
   const json = await readFile(`${GWC_FIXTURES_PATH}/dnslinks.json`, 'utf-8')
   const { subdomains, domains } = JSON.parse(json)

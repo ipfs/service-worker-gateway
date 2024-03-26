@@ -3,8 +3,9 @@ import { createKuboNode } from './fixtures/create-kubo-node.js'
 import { loadKuboFixtures } from './fixtures/load-kubo-fixtures.js'
 
 export default async function globalSetup (config: Config): Promise<void> {
+  await loadKuboFixtures()
   const controller = await createKuboNode()
-  await Promise.all([controller.start(), loadKuboFixtures()])
+  await controller.start()
 
   process.env.KUBO_PID = `${await controller.pid()}`
   const gateway = `http://${controller.api.gatewayHost}:${controller.api.gatewayPort}`
