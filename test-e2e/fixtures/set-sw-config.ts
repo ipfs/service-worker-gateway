@@ -4,7 +4,6 @@
  *
  * Note that this was only tested and confirmed working for subdomain pages.
  */
-// import { getConfigAutoReloadInput, getConfigButton, getConfigGatewaysInput, getConfigPage, getConfigPageButton, getConfigRoutersInput } from './locators.js'
 import { getConfigAutoReloadInput, getConfigAutoReloadInputIframe, getConfigButton, getConfigButtonIframe, getConfigGatewaysInput, getConfigGatewaysInputIframe, getConfigPage, getConfigPageButton, getConfigPageButtonIframe, getConfigRoutersInput, getConfigRoutersInputIframe } from './locators.js'
 import { waitForServiceWorker } from './wait-for-service-worker.js'
 import type { ConfigDb } from '../../src/lib/config-db.js'
