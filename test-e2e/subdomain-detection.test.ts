@@ -1,13 +1,13 @@
-import { test, expect } from '@playwright/test'
-import { setConfig } from './fixtures/set-sw-config.js'
+import { test } from '@playwright/test'
+import { testSubdomainRouting, expect } from './fixtures/config-test-fixtures.js'
+import { setConfig, setSubdomainConfig } from './fixtures/set-sw-config.js'
 import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
 
 test.describe('subdomain-detection', () => {
-  test('path requests are redirected to subdomains', async ({ page, context }) => {
-    await page.goto('/', { waitUntil: 'networkidle' })
-    // wait for service worker to load on main url
+  test('path requests are redirected to subdomains', async ({ page }) => {
+    await page.goto('http://localhost:3333', { waitUntil: 'networkidle' })
     await waitForServiceWorker(page)
-
+    await setConfig({ page, config: { autoReload: false, gateways: [process.env.KUBO_GATEWAY as string], routers: [process.env.KUBO_GATEWAY as string] } })
     const initialResponse = await page.goto('/ipfs/bafkqablimvwgy3y', { waitUntil: 'commit' })
 
     expect(initialResponse?.url()).toBe('http://bafkqablimvwgy3y.ipfs.localhost:3333/')
@@ -25,17 +25,19 @@ test.describe('subdomain-detection', () => {
     await expect(bodyTextLocator).toContainText('hello')
   })
 
-  test('path requests are redirected to subdomains automatically with autoreload enabled', async ({ page, context }) => {
-    await page.goto('/', { waitUntil: 'networkidle' })
-    await waitForServiceWorker(page)
+  test('enabling autoreload automatically loads the subdomain', async ({ page }) => {
+    await page.goto('http://bafkqablimvwgy3y.ipfs.localhost:3333/', { waitUntil: 'networkidle' })
+    await setSubdomainConfig({ page, config: { autoReload: true, gateways: [process.env.KUBO_GATEWAY as string], routers: [process.env.KUBO_GATEWAY as string] } })
 
-    const initialResponse = await page.goto('/ipfs/bafkqablimvwgy3y', { waitUntil: 'commit' })
+    const bodyTextLocator = page.locator('body')
 
-    expect(initialResponse?.url()).toBe('http://bafkqablimvwgy3y.ipfs.localhost:3333/')
-    expect(initialResponse?.request()?.redirectedFrom()?.url()).toBe('http://localhost:3333/ipfs/bafkqablimvwgy3y')
+    await expect(bodyTextLocator).toContainText('hello')
+  })
+})
 
-    await page.waitForURL('http://bafkqablimvwgy3y.ipfs.localhost:3333')
-    await setConfig({ page, config: { autoReload: true } })
+testSubdomainRouting.describe('subdomain-detection auto fixture', () => {
+  testSubdomainRouting('loads subdomains easily', async ({ page }) => {
+    await page.goto('http://bafkqablimvwgy3y.ipfs.localhost:3333/', { waitUntil: 'networkidle' })
 
     const bodyTextLocator = page.locator('body')
 

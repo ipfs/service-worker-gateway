@@ -1,3 +1,4 @@
+// import { testPathRouting as test, expect } from './fixtures/config-test-fixtures.js'
 import { test, expect } from '@playwright/test'
 import { getConfigButton, getConfigPage, getConfigPageButton, getConfigPageInput, getHeader, getHeaderTitle } from './fixtures/locators.js'
 
