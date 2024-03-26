@@ -9,7 +9,7 @@
   "scripts": {
     "reset": "npm run clean -- **/node_modules **/package-lock.json",
     "analyze-bundle": "webpack --env analyze",
-    "clean": "aegir clean dist dist-tsc",
+    "clean": "aegir clean dist dist-tsc test-e2e/fixtures/data/gateway-conformance-fixtures test-e2e/fixtures/data/test-repo",
     "dep-check": "aegir dep-check",
     "lint": "aegir lint",
     "lint:fix": "aegir lint --fix",
