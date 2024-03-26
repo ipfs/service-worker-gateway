@@ -30,8 +30,6 @@ export async function loadKuboFixtures (): Promise<void> {
 
   await attemptKuboInit()
 
-  await configureKubo()
-
   await downloadFixtures()
 
   await loadFixtures()
@@ -52,6 +50,8 @@ async function attemptKuboInit (): Promise<void> {
   try {
     await $(execaOptions)`npx -y kubo init`
     log('Kubo initialized at %s', kuboRepoDir)
+
+    await configureKubo()
   } catch (e: any) {
     if (e.stderr?.includes('ipfs daemon is running') === true) {
       log('Kubo is already running')
