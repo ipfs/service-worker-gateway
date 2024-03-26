@@ -1,0 +1,11 @@
+{
+  "domains": {
+    "dnslink-subdomain-gw-test.example.org": "/ipfs/bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze",
+    "dnslink-test.example.com": "/ipfs/bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am"
+  },
+  "subdomains": {
+    "dnslink-enabled-on-fqdn": "/ipfs/QmYBhLYDwVFvxos9h8CGU2ibaY66QNgv8hpfewxaQrPiZj",
+    "dnslink-enabled-with-spa": "/ipfs/bafybeib5lboymwd6p2eo4qb2lkueaine577flvsjjeuevmp2nlio72xv5q",
+    "website": "/ipfs/bafybeig6ka5mlwkl4subqhaiatalkcleo4jgnr3hqwvpmsqfca27cijp3i"
+  }
+}
