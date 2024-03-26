@@ -69,7 +69,8 @@ async function attemptKuboInit (): Promise<void> {
 async function configureKubo (): Promise<void> {
   const execaOptions = getExecaOptions()
   try {
-    await $(execaOptions)`npx -y kubo config Addresses.Gateway /ip4/127.0.0.1/tcp/8180`
+    await $(execaOptions)`npx -y kubo config Addresses.Gateway /ip4/127.0.0.1/tcp/0`
+    await $(execaOptions)`npx -y kubo config Addresses.API /ip4/127.0.0.1/tcp/0`
     await $(execaOptions)`npx -y kubo config --json Gateway.NoFetch true`
     await $(execaOptions)`npx -y kubo config --json Gateway.ExposeRoutingAPI true`
     await $(execaOptions)`npx -y kubo config --json Gateway.HTTPHeaders.Access-Control-Allow-Origin '["*"]'`
