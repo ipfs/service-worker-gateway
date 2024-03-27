@@ -36,8 +36,25 @@ export default defineConfig({
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] }
+    },
+    {
+      name: 'continuous-delivery-dev',
+      use: {
+        ...devices['Desktop Chrome'],
+        ...devices['Desktop Firefox'],
+        baseURL: 'https://inbrowser.dev'
+      }
+    },
+    {
+      name: 'continuous-delivery-prod',
+      use: {
+        ...devices['Desktop Chrome'],
+        ...devices['Desktop Firefox'],
+        baseURL: 'https://inbrowser.link'
+      }
     }
   ],
+  // TODO: disable webservers when testing `continuous-delivery-dev` and `continuous-delivery-prod`
   webServer: [
     {
       command: 'node test-e2e/reverse-proxy.js',

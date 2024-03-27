@@ -25,6 +25,8 @@
     "test:browsers": "playwright test -c playwright.config.js",
     "test:chrome": "playwright test -c playwright.config.js --project chromium",
     "test:firefox": "playwright test -c playwright.config.js --project firefox",
+    "test:inbrowser-dev": "playwright test -c playwright.config.js --project continuous-delivery-dev",
+    "test:inbrowser-prod": "playwright test -c playwright.config.js --project continuous-delivery-prod",
     "test:node": "aegir test -t node -f dist-tsc/test/node.js --cov",
     "postinstall": "patch-package"
   },

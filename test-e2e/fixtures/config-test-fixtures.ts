@@ -2,11 +2,45 @@ import { test as base, type Page } from '@playwright/test'
 import { setConfig, setSubdomainConfig } from './set-sw-config.js'
 import { waitForServiceWorker } from './wait-for-service-worker.js'
 
+const rootDomain = async ({ baseURL }, use): Promise<void> => {
+  const url = new URL(baseURL)
+  await use(url.host)
+}
+const baseURLProtocol = async ({ baseURL }, use): Promise<void> => {
+  const url = new URL(baseURL)
+  await use(url.protocol)
+}
+
+export const test = base.extend<{ rootDomain: string, baseURL: string, protocol: string }>({
+  rootDomain: [rootDomain, { scope: 'test' }],
+  protocol: [baseURLProtocol, { scope: 'test' }],
+  page: async ({ page, baseURL }, use) => {
+    await page.goto(baseURL, { waitUntil: 'networkidle' })
+    await waitForServiceWorker(page)
+    await setConfig({
+      page,
+      config: {
+        gateways: [process.env.KUBO_GATEWAY as string],
+        routers: [process.env.KUBO_GATEWAY as string]
+      }
+    })
+
+    await use(page)
+  }
+})
+
 /**
  * You should use this fixture instead of the `test` fixture from `@playwright/test` when testing path routing via the service worker.
  */
-export const testPathRouting = base.extend({
-  page: async ({ page }, use) => {
+export const testPathRouting = base.extend<{ rootDomain: string, baseURL: string, protocol: string }>({
+  rootDomain: [rootDomain, { scope: 'test' }],
+  protocol: [baseURLProtocol, { scope: 'test' }],
+  page: async ({ page, rootDomain }, use) => {
+    if (!rootDomain.includes('localhost')) {
+      // for non localhost tests, we skip path routing tests
+      testPathRouting.skip()
+      return
+    }
     await page.goto('http://127.0.0.1:3333', { waitUntil: 'networkidle' })
     await waitForServiceWorker(page)
     await setConfig({
@@ -31,17 +65,19 @@ export const testPathRouting = base.extend({
  * import { testSubdomainRouting as test, expect } from './fixtures/config-test-fixtures.js'
  *
  * test.describe('subdomain-detection', () => {
- *   test('path requests are redirected to subdomains', async ({ page }) => {
- *     await page.goto('http://bafkqablimvwgy3y.ipfs.localhost:3333/', { waitUntil: 'networkidle' })
+ *   test('path requests are redirected to subdomains', async ({ page, rootDomain, protocol }) => {
+ *     await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/`, { waitUntil: 'networkidle' })
  *     const bodyTextLocator = page.locator('body')
  *     await expect(bodyTextLocator).toContainText('hello')
  *   })
  * })
  * ```
  */
-export const testSubdomainRouting = base.extend({
-  page: async ({ page }, use) => {
-    await page.goto('http://localhost:3333', { waitUntil: 'networkidle' })
+export const testSubdomainRouting = base.extend<{ rootDomain: string, baseURL: string, protocol: string }>({
+  rootDomain: [rootDomain, { scope: 'test' }],
+  protocol: [baseURLProtocol, { scope: 'test' }],
+  page: async ({ page, baseURL }, use) => {
+    await page.goto(baseURL, { waitUntil: 'networkidle' })
     await waitForServiceWorker(page)
 
     const oldPageGoto = page.goto.bind(page)
