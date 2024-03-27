@@ -6,9 +6,14 @@ const rootDomain = async ({ baseURL }, use): Promise<void> => {
   const url = new URL(baseURL)
   await use(url.host)
 }
+const baseURLProtocol = async ({ baseURL }, use): Promise<void> => {
+  const url = new URL(baseURL)
+  await use(url.protocol)
+}
 
-export const test = base.extend<{ rootDomain: string, baseURL: string }>({
+export const test = base.extend<{ rootDomain: string, baseURL: string, protocol: string }>({
   rootDomain: [rootDomain, { scope: 'test' }],
+  protocol: [baseURLProtocol, { scope: 'test' }],
   page: async ({ page, baseURL }, use) => {
     await page.goto(baseURL, { waitUntil: 'networkidle' })
     await waitForServiceWorker(page)
@@ -27,8 +32,9 @@ export const test = base.extend<{ rootDomain: string, baseURL: string }>({
 /**
  * You should use this fixture instead of the `test` fixture from `@playwright/test` when testing path routing via the service worker.
  */
-export const testPathRouting = base.extend<{ rootDomain: string, baseURL: string }>({
+export const testPathRouting = base.extend<{ rootDomain: string, baseURL: string, protocol: string }>({
   rootDomain: [rootDomain, { scope: 'test' }],
+  protocol: [baseURLProtocol, { scope: 'test' }],
   page: async ({ page, rootDomain }, use) => {
     if (!rootDomain.includes('localhost')) {
       // for non localhost tests, we skip path routing tests
@@ -59,16 +65,17 @@ export const testPathRouting = base.extend<{ rootDomain: string, baseURL: string
  * import { testSubdomainRouting as test, expect } from './fixtures/config-test-fixtures.js'
  *
  * test.describe('subdomain-detection', () => {
- *   test('path requests are redirected to subdomains', async ({ page }) => {
- *     await page.goto('http://bafkqablimvwgy3y.ipfs.localhost:3333/', { waitUntil: 'networkidle' })
+ *   test('path requests are redirected to subdomains', async ({ page, rootDomain, protocol }) => {
+ *     await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/`, { waitUntil: 'networkidle' })
  *     const bodyTextLocator = page.locator('body')
  *     await expect(bodyTextLocator).toContainText('hello')
  *   })
  * })
  * ```
  */
-export const testSubdomainRouting = base.extend<{ rootDomain: string, baseURL: string }>({
+export const testSubdomainRouting = base.extend<{ rootDomain: string, baseURL: string, protocol: string }>({
   rootDomain: [rootDomain, { scope: 'test' }],
+  protocol: [baseURLProtocol, { scope: 'test' }],
   page: async ({ page, baseURL }, use) => {
     await page.goto(baseURL, { waitUntil: 'networkidle' })
     await waitForServiceWorker(page)
