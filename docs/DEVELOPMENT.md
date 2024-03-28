@@ -1,6 +1,7 @@
 # Developer Notes
 
-This example shows how to use Helia in a Service Worker to handle fetching and verifying CIDs in the browser.
+This page shows how to set up basic development environment and how to test
+this project.
 
 ## Getting Started
 
@@ -18,46 +19,19 @@ Make sure you have installed all of the following prerequisites on your developm
 > npm start
 ```
 
-Now open your browser at `http://localhost:3000`
+Now open your browser at `http://sw.localhost:3000`
 
-## Usage
-
-In this example, you will find an example of using helia inside a service worker, that will intercept ipfs path requests (e.g. `/ipfs/*` and `/ipns/*`) and return a `Response` object. This can be used to obtain verified IPFS content instead of using a public IPFS gateway, using helia.
-
-There are two methods of loading content with this demo, each method with its own buttons:
-
-1. Load in-page - This calls heliaFetch directly. NOTE: If you're loading an HTML page (a static website) the service worker must run in order to handle redirecting the loading of content through `heliaFetch`.
-2. Load directly / download - This method is processed directly by the service worker, and is essentially an IPFS gateway in the browser via helia in a service worker.
-
-The first thing you will see will look like the below image:
-
-![image](https://user-images.githubusercontent.com/1173416/230510195-ec5dfa8c-fe91-4ecd-b534-caaabf83e11d.png)
-
-As you type in an ip(f|n)s or dnslink path, you will be shown appropriate error messaging:
-
-![image](https://user-images.githubusercontent.com/1173416/230510280-373be0a1-b65b-482b-a41b-9c4a561afe83.png)
-
-![image](https://user-images.githubusercontent.com/1173416/230510324-87139b46-d240-4688-9f27-b75191dce6d1.png)
-
-![image](https://user-images.githubusercontent.com/1173416/230510358-1e380be1-30f6-4426-855f-b0dfc83d2aa3.png)
-
-etc... When your path is valid, you will be shown buttons that will let you load the content:
-
-![image](https://user-images.githubusercontent.com/1173416/230510425-774e2b4e-d1d1-4d95-a651-4c8300360b76.png)
-
-
-**NOTE:** There is no way to confirm the validity of an `/ipns/` path without actually querying for it, which is not currently done until you attempt to load the content.
 
 ### Enabling subdomains
 
 You can enable support for subdomains with a simple nginx configuration:
 
 ```nginx
-    # simple proxy from helia-sw-gateway.localhost to localhost:3000
+    # simple proxy from sw.localhost to localhost:3000
     server {
         listen       80;
 
-        server_name ~^(?<subdomain>.+)\.ipfs\.helia-sw-gateway.localhost$ ~^(?<subdomain>.+)\.ipns\.helia-sw-gateway.localhost$ .helia-sw-gateway.localhost;
+        server_name ~^(?<subdomain>.+)\.ipfs\.sw.localhost$ ~^(?<subdomain>.+)\.ipns\.sw.localhost$ .sw.localhost;
 
         location / {
             proxy_pass http://localhost:3000;
@@ -67,7 +41,7 @@ You can enable support for subdomains with a simple nginx configuration:
     }
 ```
 
-You can then run `npm start` and your nginx server, and then visit `http://specs.ipfs.tech.ipns.helia-sw-gateway.localhost` in your browser to load the `specs.ipfs.tech` website via Helia, completely from the service worker.
+You can then run `npm start` and your nginx server, and then visit `http://specs.ipfs.tech.ipns.sw.localhost` in your browser to load the `specs.ipfs.tech` website via Helia-based verified-fetch library, completely from the Service Worker.
 
 ## Demo links
 
