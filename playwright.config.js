@@ -20,9 +20,7 @@ export default defineConfig({
     trace: 'on-first-retry',
 
     // 'allow' serviceWorkers is the default, but we want to be explicit
-    serviceWorkers: 'allow',
-
-    ignoreHTTPSErrors: true
+    serviceWorkers: 'allow'
   },
 
   globalSetup: './test-e2e/global-setup.ts',
@@ -31,11 +29,16 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] }
+      use: {
+        ...devices['Desktop Chrome']
+      }
+
     },
     {
       name: 'firefox',
-      use: { ...devices['Desktop Firefox'] }
+      use: {
+        ...devices['Desktop Firefox']
+      }
     },
     {
       name: 'continuous-delivery-dev',
@@ -62,7 +65,9 @@ export default defineConfig({
       env: {
         BACKEND_PORT: '3000',
         PROXY_PORT: '3333'
-      }
+      },
+      stdout: process.env.CI ? undefined : 'pipe',
+      stderr: process.env.CI ? undefined : 'pipe'
     },
     {
       // need to use built assets due to service worker loading issue.

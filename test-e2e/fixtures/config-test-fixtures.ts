@@ -13,20 +13,7 @@ const baseURLProtocol = async ({ baseURL }, use): Promise<void> => {
 
 export const test = base.extend<{ rootDomain: string, baseURL: string, protocol: string }>({
   rootDomain: [rootDomain, { scope: 'test' }],
-  protocol: [baseURLProtocol, { scope: 'test' }],
-  page: async ({ page, baseURL }, use) => {
-    await page.goto(baseURL, { waitUntil: 'networkidle' })
-    await waitForServiceWorker(page)
-    await setConfig({
-      page,
-      config: {
-        gateways: [process.env.KUBO_GATEWAY as string],
-        routers: [process.env.KUBO_GATEWAY as string]
-      }
-    })
-
-    await use(page)
-  }
+  protocol: [baseURLProtocol, { scope: 'test' }]
 })
 
 /**

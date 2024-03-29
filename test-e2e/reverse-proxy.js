@@ -1,33 +1,70 @@
-/**
- * This is a simple reverse proxy that makes sure that any request to localhost:3333 is forwarded to localhost:3000.
- *
- * This mimicks the type of setup you need in nginx or fronting server to the helia-service-worker-gateway in order
- * to handle subdomain requests and origin isolation.
- */
-import httpProxy from 'http-proxy'
+/* eslint-disable no-console */
+import { request, createServer } from 'node:http'
 
+const TARGET_HOST = process.env.TARGET_HOST ?? 'localhost'
 const backendPort = Number(process.env.BACKEND_PORT ?? 3000)
 const proxyPort = Number(process.env.PROXY_PORT ?? 3333)
 
-const proxy = httpProxy.createProxyServer({
-  target: {
-    host: 'localhost',
-    port: backendPort
-  }
-})
-
-proxy.on('proxyRes', (proxyRes, req, res) => {
+const setCommonHeaders = (res) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('access-control-allow-headers', 'Content-Type, Range, User-Agent, X-Requested-With')
-  res.setHeader('access-control-allow-methods', 'GET, HEAD, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range, User-Agent, X-Requested-With')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS')
+}
 
+const makeRequest = (options, req, res, attemptRootFallback = false) => {
+  options.headers.Host = TARGET_HOST
+  const clientIp = req.connection.remoteAddress
+  options.headers['X-Forwarded-For'] = clientIp
+
+  const proxyReq = request(options, proxyRes => {
+    if (proxyRes.statusCode === 404) { // poor mans attempt to implement nginx style try_files
+      if (!attemptRootFallback) {
+        // Split the path and pop the last segment
+        const pathSegments = options.path.split('/')
+        const lastSegment = pathSegments.pop() || ''
+
+        // Attempt to request the last segment at the root
+        makeRequest({ ...options, path: `/${lastSegment}` }, req, res, true)
+      } else {
+        // If already attempted a root fallback, serve index.html
+        makeRequest({ ...options, path: '/index.html' }, req, res)
+      }
+    } else {
+      setCommonHeaders(res)
+      res.writeHead(proxyRes.statusCode, proxyRes.headers)
+      proxyRes.pipe(res, { end: true })
+    }
+  })
+
+  req.pipe(proxyReq, { end: true })
+
+  proxyReq.on('error', (e) => {
+    console.error(`Problem with request: ${e.message}`)
+    setCommonHeaders(res)
+    res.writeHead(500)
+    res.end(`Internal Server Error: ${e.message}`)
+  })
+}
+
+const proxyServer = createServer((req, res) => {
   if (req.method === 'OPTIONS') {
-    res.statusCode = 200
+    setCommonHeaders(res)
+    res.writeHead(200)
     res.end()
+    return
   }
+
+  const options = {
+    hostname: TARGET_HOST,
+    port: backendPort,
+    path: req.url,
+    method: req.method,
+    headers: { ...req.headers }
+  }
+
+  makeRequest(options, req, res)
 })
 
-proxy.listen(proxyPort)
-
-// eslint-disable-next-line no-console
-console.log('reverse proxy forwarding localhost traffic from port %d to %d', proxyPort, backendPort)
+proxyServer.listen(proxyPort, () => {
+  console.log(`Proxy server listening on port ${proxyPort}`)
+})

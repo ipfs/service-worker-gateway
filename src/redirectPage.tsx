@@ -20,7 +20,7 @@ const ConfigIframe = (): JSX.Element => {
 
 const channel = new HeliaServiceWorkerCommsChannel('WINDOW')
 
-export default function RedirectPage (): JSX.Element {
+export default function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean }): JSX.Element {
   const [isAutoReloadEnabled, setIsAutoReloadEnabled] = useState(false)
   const { isServiceWorkerRegistered } = useContext(ServiceWorkerContext)
 
@@ -84,7 +84,7 @@ export default function RedirectPage (): JSX.Element {
         <h3 className="">{displayString}</h3>
         <ServiceWorkerReadyButton id="load-content" label='Load content' waitingLabel='Waiting for service worker registration...' onClick={() => { window.location.href = reloadUrl }} />
       </div>
-      <ConfigIframe />
+      {showConfigIframe && <ConfigIframe />}
     </div>
   )
 }
