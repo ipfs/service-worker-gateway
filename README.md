@@ -6,12 +6,12 @@
   <br>
 </h1>
 
-<p align="center" style="font-size: 1.2rem;">Decentralizing IPFS Gateways by running hash verification on end user's machine.</p>
+<p align="center" style="font-size: 1.2rem;">Decentralizing IPFS Gateways by verifying hashes in the user's browser.</p>
 
 <p align="center">
   <a href="https://ipfs.tech"><img src="https://img.shields.io/badge/project-IPFS-blue.svg?style=flat-square" alt="Official Part of IPFS Project"></a>
   <a href="https://discuss.ipfs.tech"><img alt="Discourse Forum" src="https://img.shields.io/discourse/posts?server=https%3A%2F%2Fdiscuss.ipfs.tech"></a>
-  <a href="https://matrix.to/#/#ipfs-space:ipfs.io"><img alt="Matrix" src="https://img.shields.io/matrix/ipfs-space%3Aipfs.io?server_fqdn=matrix.org"></a>
+  <a href="https://matrix.to/#/#ip-js:ipfs.io"><img alt="Matrix" src="https://img.shields.io/matrix/ipfs-space%3Aipfs.io?server_fqdn=matrix.org"></a>
   <a href="https://github.com/ipfs-shipyard/service-worker-gateway/actions"><img src="https://img.shields.io/github/actions/workflow/status/ipfs-shipyard/service-worker-gateway/main.yml?branch=main" alt="ci"></a>
   <a href="https://github.com/ipfs-shipyard/service-worker-gateway/releases"><img alt="GitHub release" src="https://img.shields.io/github/v/release/ipfs-shipyard/service-worker-gateway?filter=!*rc*"></a>
 </p>
@@ -30,13 +30,13 @@ to facilitate direct verified retrieval of content-addressed data.
 A Service Worker is registered on the initial page load, and then intercepts HTTP requests
 for content stored on IPFS paths such as `/ipfs/*` (immutable) and
 `/ipns/*` (mutable) and returns
-[`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response) object
+[`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response) objects
 to the browser.
 
 It functions as an IPFS gateway within the browser, offering enhanced security
 ([hash verification](https://docs.ipfs.tech/concepts/content-addressing/)
 happens on end user's machine) and reliability (ability to use multiple sources
-of content-addressed blocks) without reliance on a single HTTP server for  IPFS
+of content-addressed blocks) without reliance on a single HTTP server for IPFS
 tasks.
 
 
@@ -50,7 +50,7 @@ The main goals of this project are:
     peer-to-peer and HTTP), verifying that block hashes match the expected CID,
     and re-assembling blocks into deserialized bytes that can be rendered by
     the browser, all happens within the end user's machine.
-- **Reducing the operational costs associated with running a HTTP backend.**
+- **Reducing the operational costs associated with running an HTTP backend.**
   - By shifting the majority of data retrieval tasks to the user's browser, the
     backend hosting a website no longer needs to serve as a conduit for all of
     its data. This means that a gateway operator could potentially run a simple
@@ -64,7 +64,7 @@ The main goals of this project are:
 
 
 
-### Featureset
+### Feature Set
 
 - 🚧 **WIP:** Web interface for adjusting routing and retrieval settings.
 - 🚧 **WIP:** [Trustless](https://docs.ipfs.tech/reference/http/gateway/#trustless-verifiable-retrieval) content retrieval from multiple HTTP gateways.
@@ -74,9 +74,9 @@ The main goals of this project are:
 
 ## Usage
 
-### Try runnung on localhost
+### Running locally
 
-For now, one can build project and run it locally:
+You can build and run the project locally:
 
 
 ```console
@@ -86,13 +86,13 @@ For now, one can build project and run it locally:
 
 Now open your browser at `http://sw.localhost:3000`
 
-As you type in a content path, you will be redirected to appropriate URL.
+As you type in a content path, you will be redirected to appropriate URL (typically that means [subdomain style resolution](https://docs.ipfs.tech/how-to/gateway-best-practices/#use-subdomain-gateway-resolution-for-origin-isolation)). 
 
 For more information about local development setup, see [/docs/DEVELOPMENT.md](/docs/DEVELOPMENT.md).
 
 ### Try hosted instance
 
-- 🚧 **WIP: alpha quality** https://inbrowser.link hosts the latest release
+- 🚧 **WIP: alpha quality** https://inbrowser.link hosts the latest [release](https://github.com/ipfs-shipyard/service-worker-gateway/releases)
 - 🚧 **WIP: alpha quality** https://inbrowser.dev is used for testing, hosts the latest dev version from the `main` branch
 
 ## License
