@@ -21,7 +21,7 @@
 ## About
 
 This project demonstrates
-the use of [Helia](https://helia.io) (IPFS implementation in JS)
+the use of [Helia](https://github.com/ipfs/helia) (IPFS implementation in JS)
 and the [`verified-fetch` library](https://github.com/ipfs/helia-verified-fetch)
 ([Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) for IPFS)
 within a [Service Worker](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API)
