@@ -1,6 +1,6 @@
+import { execSync } from 'child_process'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { execSync } from 'child_process'
 import CopyWebpackPlugin from 'copy-webpack-plugin'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
 import MiniCssExtractPlugin from 'mini-css-extract-plugin'
@@ -158,6 +158,7 @@ const dev = {
 
 /**
  * Retrieves the Git branch and short SHA of the current commit.
+ *
  * @returns {string} A string representing the Git branch and short SHA.
  */
 const gitRevision = () => {
@@ -181,7 +182,14 @@ const common = {
   output: {
     path: paths.build,
     publicPath: '/',
-    filename: 'ipfs-sw-[name].js'
+    filename: 'ipfs-sw-[name]-[hash].js',
+    chunkFilename: (pathData, _assetInfo) => {
+      const name = pathData.chunk.name
+      if (name === 'sw') {
+        return 'ipfs-sw-[name].js'
+      }
+      return 'ipfs-sw-[name]-[hash].js'
+    }
   },
 
   // Customize the webpack build process
@@ -214,8 +222,8 @@ const common = {
     }),
 
     new MiniCssExtractPlugin({
-      filename: 'ipfs-sw-[name].css',
-      chunkFilename: 'ipfs-sw-[id].css'
+      filename: 'ipfs-sw-[name]-[hash].css',
+      chunkFilename: 'ipfs-sw-[id]-[hash].css'
     })
   ],
 
