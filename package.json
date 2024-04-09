@@ -43,7 +43,7 @@
   },
   "dependencies": {
     "@helia/verified-fetch": "^1.3.4",
-    "@libp2p/logger": "^4.0.8",
+    "@libp2p/logger": "^4.0.9",
     "@multiformats/dns": "^1.0.6",
     "@sgtpooki/file-type": "^1.0.1",
     "debug": "^4.3.4",
