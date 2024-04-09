@@ -182,13 +182,13 @@ const common = {
   output: {
     path: paths.build,
     publicPath: '/',
-    filename: 'ipfs-sw-[name]-[hash].js',
+    filename: 'ipfs-sw-[name]-[contenthash].js',
     chunkFilename: (pathData, _assetInfo) => {
       const name = pathData.chunk.name
       if (name === 'sw') {
         return 'ipfs-sw-[name].js'
       }
-      return 'ipfs-sw-[name]-[hash].js'
+      return 'ipfs-sw-[name]-[contenthash].js'
     }
   },
 
@@ -222,8 +222,8 @@ const common = {
     }),
 
     new MiniCssExtractPlugin({
-      filename: 'ipfs-sw-[name]-[hash].css',
-      chunkFilename: 'ipfs-sw-[id]-[hash].css'
+      filename: 'ipfs-sw-[name]-[contenthash].css',
+      chunkFilename: 'ipfs-sw-[id]-[contenthash].css'
     })
   ],
 
