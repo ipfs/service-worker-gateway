@@ -3,19 +3,17 @@ import React, { useCallback, useEffect } from 'react'
 export interface Route {
   default?: boolean
   path?: string
-  render?(): Promise<boolean>
+  shouldRender?(): Promise<boolean>
   component: React.LazyExoticComponent<(...args: any[]) => React.JSX.Element | null>
 }
 
 export const RouteContext = React.createContext<{
   // routes: Route[]
   currentRoute: Route | undefined
-  gotoPage(route: string): void
+  gotoPage(route?: string): void
 }>({ currentRoute: undefined, gotoPage: () => {} })
 
 export const RouterProvider = ({ children, routes }: { children: React.ReactNode, routes: Route[] }): JSX.Element => {
-  // eslint-disable-next-line no-console
-  console.log('RouterProvider routes:', routes)
   const [currentRoute, setCurrentRoute] = React.useState<Route | undefined>(undefined)
   /**
    * The default route is the first route in the list of routes,
@@ -24,38 +22,22 @@ export const RouterProvider = ({ children, routes }: { children: React.ReactNode
   const defaultRoute = routes.find(route => route.default) ?? routes[0]
 
   const findRouteByPath = useCallback((path: string): Route | undefined => {
-    // eslint-disable-next-line no-console
-    console.log('finding route by path', path)
     const result = routes.find(route => route.path === path)
-    // eslint-disable-next-line no-console
-    console.log('got result', result)
     return result
   }, [routes])
 
   const findRouteByRenderFn = useCallback(async (): Promise<Route | undefined> => {
-    // eslint-disable-next-line no-console
-    console.group('finding route by renderFn')
     const validRoutes: Route[] = []
     for (const route of routes) {
-      // eslint-disable-next-line no-console
-      console.log('checking route', route)
-      if (route.render == null) {
-        // eslint-disable-next-line no-console
-        console.log('route has no render function')
+      if (route.shouldRender == null) {
         continue
       }
-      const renderFuncResult = await route.render()
-      // eslint-disable-next-line no-console
-      console.log('got renderFuncResult', renderFuncResult)
+      const renderFuncResult = await route.shouldRender()
 
       if (renderFuncResult) {
         validRoutes.push(route)
       }
     }
-    // eslint-disable-next-line no-console
-    console.log('got validRoutes', validRoutes)
-    // eslint-disable-next-line no-console
-    console.groupEnd()
     return validRoutes[0] ?? undefined
   }, [routes])
 
@@ -64,20 +46,11 @@ export const RouterProvider = ({ children, routes }: { children: React.ReactNode
   }, [findRouteByPath, findRouteByRenderFn, defaultRoute])
 
   const onHashChange = useCallback((event: HashChangeEvent) => {
-    // eslint-disable-next-line no-console
-    console.log('hashchange event', event)
     const newUrl = new URL(event.newURL)
-    // void getDerivedRoute(newUrl.hash).then((route) => { setCurrentRoute(route) })
     void setDerivedRoute(newUrl.hash)
   }, [setDerivedRoute])
 
   const onPopState = useCallback((event: PopStateEvent) => {
-    // eslint-disable-next-line no-console
-    console.log('popstate event', event)
-    // const newUrl = new URL(event.newURL)
-    // setCurrentRoute(await getDerivedRoute(window.location.hash))
-
-    // void getDerivedRoute(window.location.hash).then((route) => { setCurrentRoute(route) })
     void setDerivedRoute(window.location.hash)
   }, [setDerivedRoute])
 
@@ -99,8 +72,14 @@ export const RouterProvider = ({ children, routes }: { children: React.ReactNode
     <RouteContext.Provider
       value={{
         currentRoute,
-        gotoPage: (page: string) => {
-          window.location.hash = `#${page}`
+        gotoPage: (page?: string) => {
+          if (page == null) {
+            // clear out the hash
+            window.history.pushState('', document.title, `${window.location.pathname}${window.location.search}`)
+            void setDerivedRoute('')
+          } else {
+            window.location.hash = `#${page}`
+          }
         }
       }}
     >

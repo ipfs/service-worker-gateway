@@ -116,8 +116,8 @@ const prod = {
         }
       })
     ],
-    splitChunks,
-    runtimeChunk: true
+    splitChunks
+    // runtimeChunk: true
   }
 }
 

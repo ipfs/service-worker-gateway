@@ -1,9 +1,10 @@
-import React, { useCallback, useContext, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { Collapsible } from '../components/collapsible.jsx'
 import LocalStorageInput from '../components/local-storage-input.jsx'
 import { LocalStorageToggle } from '../components/local-storage-toggle.jsx'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
-import { ConfigContext } from '../context/config-context.jsx'
+// import { ConfigContext } from '../context/config-context.jsx'
+import { RouteContext } from '../context/router-context.jsx'
 import { HeliaServiceWorkerCommsChannel } from '../lib/channel.js'
 import { getConfig, loadConfigFromLocalStorage } from '../lib/config-db.js'
 import { LOCAL_STORAGE_KEYS } from '../lib/local-storage.js'
@@ -35,7 +36,8 @@ const stringValidationFn = (value: string): Error | null => {
 }
 
 export default (): JSX.Element | null => {
-  const { isConfigExpanded, setConfigExpanded } = useContext(ConfigContext)
+  const { gotoPage } = React.useContext(RouteContext)
+  // const { isConfigExpanded, setConfigExpanded } = useContext(ConfigContext)
   const [error, setError] = useState<Error | null>(null)
 
   const isLoadedInIframe = window.self !== window.top
@@ -74,21 +76,24 @@ export default (): JSX.Element | null => {
       trace('config-page: RELOAD_CONFIG_SUCCESS for %s', window.location.origin)
       // update the <subdomain>.<namespace>.BASE_URL service worker
       await postFromIframeToParentSw()
-      setConfigExpanded(false)
+      if (!isLoadedInIframe) {
+        gotoPage()
+      }
     } catch (err) {
       setError(err as Error)
     }
   }, [])
 
-  if (!isConfigExpanded) {
-    return null
-  }
-
-  const isInIframe = window.self !== window.top
+  // if (isLoadedInIframe && !isConfigExpanded) {
+  //   /**
+  //    *
+  //    */
+  //   return null
+  // }
 
   return (
     <main className='e2e-config-page pa4-l bg-snow mw7 center pa4'>
-      <Collapsible collapsedLabel="View config" expandedLabel='Hide config' collapsed={isInIframe}>
+      <Collapsible collapsedLabel="View config" expandedLabel='Hide config' collapsed={isLoadedInIframe}>
         <LocalStorageInput className="e2e-config-page-input e2e-config-page-input-gateways" localStorageKey={LOCAL_STORAGE_KEYS.config.gateways} label='Gateways' validationFn={urlValidationFn} defaultValue='[]' />
         <LocalStorageInput className="e2e-config-page-input e2e-config-page-input-routers" localStorageKey={LOCAL_STORAGE_KEYS.config.routers} label='Routers' validationFn={urlValidationFn} defaultValue='[]'/>
         <LocalStorageToggle className="e2e-config-page-input e2e-config-page-input-autoreload" localStorageKey={LOCAL_STORAGE_KEYS.config.autoReload} onLabel='Auto Reload' offLabel='Show Config' />

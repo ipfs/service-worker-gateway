@@ -5,12 +5,10 @@ import App from './app.jsx'
 import { ConfigProvider } from './context/config-context.jsx'
 import { RouterProvider, type Route } from './context/router-context.jsx'
 import { ServiceWorkerProvider } from './context/service-worker-context.jsx'
-import { loadConfigFromLocalStorage } from './lib/config-db.js'
+// import { loadConfigFromLocalStorage } from './lib/config-db.js'
 import { shouldRenderConfigPage, shouldRenderRedirectPage } from './lib/routing-render-checks.js'
-// import type { Route } from './lib/simple-router.js'
-// import { isConfigPage } from './lib/is-config-page.js'
 
-await loadConfigFromLocalStorage()
+// await loadConfigFromLocalStorage()
 
 // SW did not trigger for this request
 const container = document.getElementById('root')
@@ -23,9 +21,8 @@ const LazyRedirectPage = React.lazy(async () => import('./pages/redirect-page.js
 
 const routes: Route[] = [
   { default: true, component: LazyHelperUi },
-  { path: '#/ipfs-sw-config', render: shouldRenderConfigPage, component: LazyConfig },
-  { render: shouldRenderRedirectPage, component: LazyRedirectPage }
-  // { path: '/about', component: AboutPage },
+  { path: '#/ipfs-sw-config', shouldRender: shouldRenderConfigPage, component: LazyConfig },
+  { shouldRender: shouldRenderRedirectPage, component: LazyRedirectPage }
 ]
 
 root.render(
