@@ -179,7 +179,14 @@ const common = {
   output: {
     path: paths.build,
     publicPath: '/',
-    filename: 'ipfs-sw-[name].js'
+    filename: 'ipfs-sw-[name]-[contenthash].js',
+    chunkFilename: (pathData, _assetInfo) => {
+      const name = pathData.chunk.name
+      if (name === 'sw') {
+        return 'ipfs-sw-[name].js'
+      }
+      return 'ipfs-sw-[name]-[contenthash].js'
+    }
   },
 
   // Customize the webpack build process
@@ -212,8 +219,8 @@ const common = {
     }),
 
     new MiniCssExtractPlugin({
-      filename: 'ipfs-sw-[name].css',
-      chunkFilename: 'ipfs-sw-[id].css'
+      filename: 'ipfs-sw-[name]-[contenthash].css',
+      chunkFilename: 'ipfs-sw-[id]-[contenthash].css'
     })
   ],
 
