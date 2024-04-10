@@ -7,7 +7,8 @@ export default {
       'src/**/*.[jt]sx',
       'test/**/*.[jt]s',
       'test/**/*.[jt]sx',
-      'test-e2e/**/*.[jt]s'
+      'test-e2e/**/*.[jt]s',
+      './*.[jt]s'
     ]
   },
   dependencyCheck: {
