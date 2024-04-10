@@ -1,5 +1,6 @@
 import React, { Suspense } from 'react'
 import { RouteContext } from './context/router-context.jsx'
+import './app.css'
 
 function App (): JSX.Element {
   const { currentRoute } = React.useContext(RouteContext)

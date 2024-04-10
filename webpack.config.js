@@ -12,37 +12,27 @@ import { merge } from 'webpack-merge'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const splitChunks = {
-  // name: (_module, _chunks, cacheGroupKey) => {
-  //   return cacheGroupKey // we only want to name the chunks based on the cache group key
-  // },
   chunks: 'all',
-  name: false
-  // cacheGroups: {
-  //   defaultVendors: { // everything not specified in other cache groups
-  //     name: 'vendor-rest',
-  //     test: /[\\/]node_modules[\\/]/,
-  //     priority: -10,
-  //     chunks: 'all'
-  //   },
-  //   styles: {
-  //     minChunks: 1,
-  //     name: 'styles',
-  //     test: /.+\.css/,
-  //     chunks: 'initial',
-  //     enforce: true
-  //   },
-  //   sw: {
-  //     test: /[\\/]src[\\/]sw.js/,
-  //     name: 'sw',
-  //     priority: 100, // anything the sw needs should be in the sw chunk
-  //     chunks: 'all'
-  //   },
-  //   reactVendor: {
-  //     test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom)[\\/]/,
-  //     name: 'vendor-react',
-  //     chunks: 'all'
-  //   }
-  // }
+  cacheGroups: {
+    styles: {
+      minChunks: 1,
+      name: 'styles',
+      test: /.+\.css/,
+      chunks: 'initial',
+      enforce: true
+    },
+    sw: {
+      test: /[\\/]src[\\/]sw.js/,
+      name: 'sw',
+      priority: 100, // anythinsg the sw needs should be in the sw chunk
+      chunks: 'async'
+    },
+    reactVendor: {
+      test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom)[\\/]/,
+      name: 'vendor-react',
+      chunks: 'initial'
+    }
+  }
 }
 
 /**

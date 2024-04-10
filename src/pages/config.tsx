@@ -3,7 +3,6 @@ import { Collapsible } from '../components/collapsible.jsx'
 import LocalStorageInput from '../components/local-storage-input.jsx'
 import { LocalStorageToggle } from '../components/local-storage-toggle.jsx'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
-// import { ConfigContext } from '../context/config-context.jsx'
 import { RouteContext } from '../context/router-context.jsx'
 import { HeliaServiceWorkerCommsChannel } from '../lib/channel.js'
 import { getConfig, loadConfigFromLocalStorage } from '../lib/config-db.js'
@@ -37,7 +36,6 @@ const stringValidationFn = (value: string): Error | null => {
 
 export default (): JSX.Element | null => {
   const { gotoPage } = React.useContext(RouteContext)
-  // const { isConfigExpanded, setConfigExpanded } = useContext(ConfigContext)
   const [error, setError] = useState<Error | null>(null)
 
   const isLoadedInIframe = window.self !== window.top
@@ -83,13 +81,6 @@ export default (): JSX.Element | null => {
       setError(err as Error)
     }
   }, [])
-
-  // if (isLoadedInIframe && !isConfigExpanded) {
-  //   /**
-  //    *
-  //    */
-  //   return null
-  // }
 
   return (
     <main className='e2e-config-page pa4-l bg-snow mw7 center pa4'>
