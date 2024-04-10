@@ -1,6 +1,6 @@
+import { execSync } from 'child_process'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { execSync } from 'child_process'
 import CopyWebpackPlugin from 'copy-webpack-plugin'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
 import MiniCssExtractPlugin from 'mini-css-extract-plugin'
@@ -12,35 +12,37 @@ import { merge } from 'webpack-merge'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const splitChunks = {
-  name: (_module, _chunks, cacheGroupKey) => {
-    return cacheGroupKey // we only want to name the chunks based on the cache group key
-  },
-  cacheGroups: {
-    defaultVendors: { // everything not specified in other cache groups
-      name: 'vendor-rest',
-      test: /[\\/]node_modules[\\/]/,
-      priority: -10,
-      chunks: 'all'
-    },
-    styles: {
-      minChunks: 1,
-      name: 'styles',
-      test: /.+\.css/,
-      chunks: 'initial',
-      enforce: true
-    },
-    sw: {
-      test: /[\\/]src[\\/]sw.js/,
-      name: 'sw',
-      priority: 100, // anything the sw needs should be in the sw chunk
-      chunks: 'all'
-    },
-    reactVendor: {
-      test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom)[\\/]/,
-      name: 'vendor-react',
-      chunks: 'all'
-    }
-  }
+  // name: (_module, _chunks, cacheGroupKey) => {
+  //   return cacheGroupKey // we only want to name the chunks based on the cache group key
+  // },
+  chunks: 'all',
+  name: false
+  // cacheGroups: {
+  //   defaultVendors: { // everything not specified in other cache groups
+  //     name: 'vendor-rest',
+  //     test: /[\\/]node_modules[\\/]/,
+  //     priority: -10,
+  //     chunks: 'all'
+  //   },
+  //   styles: {
+  //     minChunks: 1,
+  //     name: 'styles',
+  //     test: /.+\.css/,
+  //     chunks: 'initial',
+  //     enforce: true
+  //   },
+  //   sw: {
+  //     test: /[\\/]src[\\/]sw.js/,
+  //     name: 'sw',
+  //     priority: 100, // anything the sw needs should be in the sw chunk
+  //     chunks: 'all'
+  //   },
+  //   reactVendor: {
+  //     test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom)[\\/]/,
+  //     name: 'vendor-react',
+  //     chunks: 'all'
+  //   }
+  // }
 }
 
 /**
@@ -114,7 +116,8 @@ const prod = {
         }
       })
     ],
-    splitChunks
+    splitChunks,
+    runtimeChunk: true
   }
 }
 
@@ -158,6 +161,7 @@ const dev = {
 
 /**
  * Retrieves the Git branch and short SHA of the current commit.
+ *
  * @returns {string} A string representing the Git branch and short SHA.
  */
 const gitRevision = () => {

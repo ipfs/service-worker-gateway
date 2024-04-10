@@ -1,13 +1,13 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react'
+import { Collapsible } from '../components/collapsible.jsx'
+import LocalStorageInput from '../components/local-storage-input.jsx'
+import { LocalStorageToggle } from '../components/local-storage-toggle.jsx'
+import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
 import { ConfigContext } from '../context/config-context.jsx'
 import { HeliaServiceWorkerCommsChannel } from '../lib/channel.js'
 import { getConfig, loadConfigFromLocalStorage } from '../lib/config-db.js'
 import { LOCAL_STORAGE_KEYS } from '../lib/local-storage.js'
 import { trace } from '../lib/logger.js'
-import { Collapsible } from './collapsible.jsx'
-import LocalStorageInput from './local-storage-input.jsx'
-import { LocalStorageToggle } from './local-storage-toggle.jsx'
-import { ServiceWorkerReadyButton } from './sw-ready-button.jsx'
 
 const channel = new HeliaServiceWorkerCommsChannel('WINDOW')
 
