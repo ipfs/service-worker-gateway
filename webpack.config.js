@@ -31,6 +31,11 @@ const splitChunks = {
       test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom)[\\/]/,
       name: 'vendor-react',
       chunks: 'initial'
+    },
+    preactVendor: {
+      test: /[\\/]node_modules[\\/](preact)[\\/]/,
+      name: 'vendor-preact',
+      chunks: 'initial'
     }
   }
 }
@@ -107,6 +112,11 @@ const prod = {
       })
     ],
     splitChunks
+  },
+  externalsType: 'window',
+  externals: {
+    // remove preact debug on production builds
+    'preact/debug': ''
   }
 }
 
@@ -254,6 +264,12 @@ const common = {
   },
 
   resolve: {
+    alias: {
+      react: 'preact/compat',
+      'react-dom/test-utils': 'preact/test-utils',
+      'react-dom': 'preact/compat',
+      'react/jsx-runtime': 'preact/jsx-runtime'
+    },
     modules: [paths.distTsc, 'node_modules'],
     extensions: ['.js', '.jsx', '.json', '.ts', '.tsx'],
     extensionAlias: {

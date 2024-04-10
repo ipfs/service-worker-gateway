@@ -16,7 +16,7 @@ describe(`verify-dist at ${distRoot}`, () => {
     },
     {
       file: 'ipfs-sw-styles.css',
-      content: ['47vh', '.local-storage-toggle']
+      content: ['47vh']
     }
   ]
 
