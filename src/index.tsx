@@ -3,11 +3,11 @@ import ReactDOMClient from 'react-dom/client'
 import './app.css'
 import App from './app.jsx'
 import { ConfigProvider } from './context/config-context.jsx'
-import { RouterProvider } from './context/router-context.jsx'
+import { RouterProvider, type Route } from './context/router-context.jsx'
 import { ServiceWorkerProvider } from './context/service-worker-context.jsx'
 import { loadConfigFromLocalStorage } from './lib/config-db.js'
 import { shouldRenderConfigPage, shouldRenderRedirectPage } from './lib/routing-render-checks.js'
-import type { Route } from './lib/simple-router.js'
+// import type { Route } from './lib/simple-router.js'
 // import { isConfigPage } from './lib/is-config-page.js'
 
 await loadConfigFromLocalStorage()

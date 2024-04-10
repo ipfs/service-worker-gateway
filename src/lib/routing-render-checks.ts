@@ -1,7 +1,11 @@
 import { isPathOrSubdomainRequest } from './path-or-subdomain.js'
 
 export async function shouldRenderRedirectPage (): Promise<boolean> {
+  // eslint-disable-next-line no-console
+  console.log('in shouldRenderRedirectPage')
   const { isConfigPage } = await import('../lib/is-config-page.js')
+  // eslint-disable-next-line no-console
+  console.log(isConfigPage)
   // const isSubdomainRender = isSubdomainGatewayRequest(window.location)
   const isRequestToViewConfigPage = isConfigPage(window.location.hash)
   const shouldRequestBeHandledByServiceWorker = isPathOrSubdomainRequest(window.location) && !isRequestToViewConfigPage
@@ -15,6 +19,8 @@ export async function shouldRenderRedirectPage (): Promise<boolean> {
 }
 
 export async function shouldRenderConfigPage (): Promise<boolean> {
+  // eslint-disable-next-line no-console
+  console.log('in shouldRenderConfigPage')
   const { isConfigPage } = await import('../lib/is-config-page.js')
 
   const isRequestToViewConfigPage = isConfigPage(window.location.hash)

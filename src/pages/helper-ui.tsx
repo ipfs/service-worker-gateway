@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import Form from '../components/Form.jsx'
 import Header from '../components/Header.jsx'
 import CidRenderer from '../components/input-validator.jsx'
-// import Header from './components/Header.jsx'
 import { LOCAL_STORAGE_KEYS } from '../lib/local-storage.js'
 
 export default function (): JSX.Element {
@@ -18,7 +17,7 @@ export default function (): JSX.Element {
 
   return (
     <>
-    <Header />
+      <Header />
       <main className='pa4-l bg-snow mw7 mv5 center pa4'>
         <h1 className='pa0 f2 ma0 mb4 aqua tc'>Fetch & Verify IPFS content with a Service Worker</h1>
         <Form
