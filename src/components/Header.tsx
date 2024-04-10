@@ -13,9 +13,6 @@ export default function Header (): JSX.Element {
       <span className='e2e-header-title white f3'>IPFS Service Worker Gateway</span>
       <button className='e2e-header-config-button'
         onClick={() => {
-          // window.history.pushState(null, '', '/#/ipfs-sw-config')
-          // window.location.hash = '#/ipfs-sw-config'
-          // window.location.reload()
           gotoPage('/ipfs-sw-config')
         }}
         style={{ border: 'none', background: 'none', cursor: 'pointer' }}

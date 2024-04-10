@@ -24,7 +24,7 @@ const splitChunks = {
     sw: {
       test: /[\\/]src[\\/]sw.js/,
       name: 'sw',
-      priority: 100, // anythinsg the sw needs should be in the sw chunk
+      priority: 100, // anything the sw needs should be in the sw chunk
       chunks: 'async'
     },
     reactVendor: {

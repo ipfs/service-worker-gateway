@@ -59,6 +59,7 @@ export default function InputValidator ({ requestPath }: { requestPath: string }
    * * `http[s]://${cid}.ipfs.example.com[/${path}]`
    * * `http[s]://${dnsLinkDomain}.ipns.example.com[/${path}]`
    * * `http[s]://${peerId}.ipns.example.com[/${path}]`
+   * TODO: https://github.com/ipfs-shipyard/service-worker-gateway/issues/66
    */
   const requestPathParts = requestPath.split('/')
   const pathNamespacePrefix = requestPathParts[1]
