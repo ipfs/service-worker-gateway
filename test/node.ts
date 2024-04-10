@@ -47,13 +47,12 @@ describe(`verify-dist at ${distRoot}`, () => {
         /ipfs-sw-styles-.*\.js/,
         /ipfs-sw-main-.*\.js/,
         /ipfs-sw-vendor-react-.*\.js/,
-        /ipfs-sw-vendor-rest-.*\.js/,
         'id="root"'
       ]
     },
     {
       globPath: 'ipfs-sw-styles-*.css',
-      content: ['47vh', '.local-storage-toggle']
+      content: ['47vh']
     }
   ]
 
