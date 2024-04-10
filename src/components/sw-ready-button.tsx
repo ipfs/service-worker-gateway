@@ -7,7 +7,7 @@ interface ServiceWorkerReadyButtonProps extends ButtonProps {
   waitingLabel?: string
 }
 
-export const ServiceWorkerReadyButton = ({ className, label, waitingLabel, ...props }: ServiceWorkerReadyButtonProps): JSX.Element => {
+export const ServiceWorkerReadyButton = ({ className, label, waitingLabel, ...props }: ServiceWorkerReadyButtonProps): React.JSX.Element => {
   const { isServiceWorkerRegistered } = useContext(ServiceWorkerContext)
 
   const buttonClasses = new Set(['button-reset', 'pv3', 'tc', 'bn', 'white', 'w-100', 'cursor-disabled', 'bg-gray'])

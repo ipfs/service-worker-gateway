@@ -1,6 +1,6 @@
 import React from 'preact/compat'
 
-export default ({ handleSubmit, requestPath, setRequestPath }): JSX.Element => (
+export default ({ handleSubmit, requestPath, setRequestPath }): React.JSX.Element => (
   <form id='add-file' onSubmit={handleSubmit}>
     <label htmlFor='inputContent' className='f5 ma0 pb2 aqua fw4 db'>CID (and path)</label>
     <input

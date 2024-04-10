@@ -16,7 +16,7 @@ const defaultValidationFunction = (value: string): Error | null => {
     return err as Error
   }
 }
-export default ({ localStorageKey, label, placeholder, validationFn, defaultValue, ...props }: LocalStorageInputProps): JSX.Element => {
+export default ({ localStorageKey, label, placeholder, validationFn, defaultValue, ...props }: LocalStorageInputProps): React.JSX.Element => {
   const [value, setValue] = useState(localStorage.getItem(localStorageKey) ?? defaultValue)
   const [error, setError] = useState<null | Error>(null)
 

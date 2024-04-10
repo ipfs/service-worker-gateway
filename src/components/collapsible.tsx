@@ -7,7 +7,7 @@ export interface CollapsibleProps {
   collapsed: boolean
 }
 
-export function Collapsible ({ children, collapsedLabel, expandedLabel, collapsed }: CollapsibleProps): JSX.Element {
+export function Collapsible ({ children, collapsedLabel, expandedLabel, collapsed }: CollapsibleProps): React.JSX.Element {
   const [cId] = useState(Math.random().toString(36).substring(7))
   const [isCollapsed, setCollapsed] = useState(collapsed)
 

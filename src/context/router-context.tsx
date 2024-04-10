@@ -13,7 +13,7 @@ export const RouteContext = React.createContext<{
   gotoPage(route?: string): void
 }>({ currentRoute: undefined, gotoPage: () => {} })
 
-export const RouterProvider = ({ children, routes }: { children: React.ReactNode, routes: Route[] }): JSX.Element => {
+export const RouterProvider = ({ children, routes }: { children: React.ReactNode, routes: Route[] }): React.JSX.Element => {
   const [currentRoute, setCurrentRoute] = React.useState<Route | undefined>(undefined)
   /**
    * The default route is the first route in the list of routes,

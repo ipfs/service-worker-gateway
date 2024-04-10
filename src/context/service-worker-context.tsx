@@ -23,7 +23,7 @@ export const ServiceWorkerContext = createContext({
   isServiceWorkerRegistered: false
 })
 
-export const ServiceWorkerProvider = ({ children }): JSX.Element => {
+export const ServiceWorkerProvider = ({ children }): React.JSX.Element => {
   const [isServiceWorkerRegistered, setIsServiceWorkerRegistered] = useState(false)
 
   const windowLocation = translateIpfsRedirectUrl(window.location.href)

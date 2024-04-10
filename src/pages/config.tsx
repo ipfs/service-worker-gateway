@@ -34,7 +34,7 @@ const stringValidationFn = (value: string): Error | null => {
   return null
 }
 
-export default (): JSX.Element | null => {
+export default (): React.JSX.Element | null => {
   const { gotoPage } = React.useContext(RouteContext)
   const [error, setError] = useState<Error | null>(null)
 

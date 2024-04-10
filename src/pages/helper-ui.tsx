@@ -4,7 +4,7 @@ import Header from '../components/Header.jsx'
 import CidRenderer from '../components/input-validator.jsx'
 import { LOCAL_STORAGE_KEYS } from '../lib/local-storage.js'
 
-export default function (): JSX.Element {
+export default function (): React.JSX.Element {
   const [requestPath, setRequestPath] = useState(localStorage.getItem(LOCAL_STORAGE_KEYS.forms.requestPath) ?? '')
 
   useEffect(() => {
