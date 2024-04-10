@@ -27,11 +27,6 @@ const splitChunks = {
       priority: 100, // anythinsg the sw needs should be in the sw chunk
       chunks: 'async'
     },
-    reactVendor: {
-      test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom)[\\/]/,
-      name: 'vendor-react',
-      chunks: 'initial'
-    },
     preactVendor: {
       test: /[\\/]node_modules[\\/](preact)[\\/]/,
       name: 'vendor-preact',
@@ -264,12 +259,6 @@ const common = {
   },
 
   resolve: {
-    alias: {
-      react: 'preact/compat',
-      'react-dom/test-utils': 'preact/test-utils',
-      'react-dom': 'preact/compat',
-      'react/jsx-runtime': 'preact/jsx-runtime'
-    },
     modules: [paths.distTsc, 'node_modules'],
     extensions: ['.js', '.jsx', '.json', '.ts', '.tsx'],
     extensionAlias: {

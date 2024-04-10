@@ -1,4 +1,4 @@
-import React from 'react'
+import React from 'preact/compat'
 import { RouteContext } from '../context/router-context.jsx'
 import gearIcon from '../gear-icon.svg'
 import ipfsLogo from '../ipfs-logo.svg'

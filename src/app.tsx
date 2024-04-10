@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react'
+import React, { Suspense } from 'preact/compat'
 import { RouteContext } from './context/router-context.jsx'
 import './app.css'
 

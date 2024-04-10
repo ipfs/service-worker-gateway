@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState } from 'preact/compat'
 
 export interface CollapsibleProps {
   children: React.ReactNode

@@ -1,10 +1,10 @@
-import React, { useCallback, useEffect } from 'react'
+import React, { useCallback, useEffect } from 'preact/compat'
 
 export interface Route {
   default?: boolean
   path?: string
   shouldRender?(): Promise<boolean>
-  component: React.LazyExoticComponent<(...args: any[]) => React.JSX.Element | null>
+  component(...args: any[]): React.JSX.Element | null
 }
 
 export const RouteContext = React.createContext<{

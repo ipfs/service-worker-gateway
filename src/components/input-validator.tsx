@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/strict-boolean-expressions */
 import { CID } from 'multiformats/cid'
-import React from 'react'
+import React from 'preact/compat'
 
 /**
  * Test files:

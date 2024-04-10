@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useState } from 'react'
+import React, { useContext, useEffect, useMemo, useState } from 'preact/compat'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
 import { ServiceWorkerContext } from '../context/service-worker-context.jsx'
 import { HeliaServiceWorkerCommsChannel } from '../lib/channel.js'

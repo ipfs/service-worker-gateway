@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'preact/compat'
 import { Collapsible } from '../components/collapsible.jsx'
 import LocalStorageInput from '../components/local-storage-input.jsx'
 import { LocalStorageToggle } from '../components/local-storage-toggle.jsx'

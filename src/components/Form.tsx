@@ -1,4 +1,4 @@
-import React from 'react'
+import React from 'preact/compat'
 
 export default ({ handleSubmit, requestPath, setRequestPath }): JSX.Element => (
   <form id='add-file' onSubmit={handleSubmit}>
@@ -10,7 +10,7 @@ export default ({ handleSubmit, requestPath, setRequestPath }): JSX.Element => (
       type='text'
       placeholder='/ipfs/bafk.../path/to/file'
       required
-      value={requestPath} onChange={(e) => setRequestPath(e.target.value)}
+      value={requestPath} onChange={(e) => setRequestPath(e.currentTarget.value)}
     />
   </form>
 )

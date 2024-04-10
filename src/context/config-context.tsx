@@ -1,4 +1,4 @@
-import React, { createContext, useState } from 'react'
+import React, { createContext, useState } from 'preact/compat'
 import { isConfigPage } from '../lib/is-config-page.js'
 
 const isLoadedInIframe = window.self !== window.top

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'preact/compat'
 import Form from '../components/Form.jsx'
 import Header from '../components/Header.jsx'
 import CidRenderer from '../components/input-validator.jsx'

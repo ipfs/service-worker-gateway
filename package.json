@@ -48,9 +48,7 @@
     "@sgtpooki/file-type": "^1.0.1",
     "debug": "^4.3.4",
     "multiformats": "^13.1.0",
-    "preact": "^10.20.2",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "preact": "^10.20.2"
   },
   "devDependencies": {
     "@babel/core": "^7.24.3",
@@ -58,7 +56,7 @@
     "@babel/preset-react": "^7.24.1",
     "@babel/preset-typescript": "^7.24.1",
     "@playwright/test": "^1.42.1",
-    "@types/react": "^18.2.74",
+    "@types/react": "^18.2.75",
     "aegir": "^42.2.5",
     "babel-loader": "^9.1.3",
     "copy-webpack-plugin": "^12.0.2",
