@@ -215,7 +215,7 @@ jobs:
       - name: IPFS import of ./dist
         id: ipfs-import
         run: |
-          root_cid=$(ipfs add --cid-version 1 --inline --chunker size-1048576 -Q -r --offline ./dist)
+          root_cid=$(ipfs add --cid-version 1 --inline --chunker size-262144 -Q -r --offline ./dist)
           echo "cid=$root_cid" >> $GITHUB_OUTPUT
       - name: ℹ️  Generated DAG and CID
         run: ipfs dag stat --progress=false ${{ steps.ipfs-import.outputs.cid }}
@@ -234,8 +234,6 @@ jobs:
               --basic-auth "${CLUSTER_USER}:${CLUSTER_PASSWORD}" \
               pin add \
               --name "${{ github.repository }}/${{ github.sha }}" \
-              --replication-min 2 \
-              --replication-max 6 \
               --wait \
               "$PIN_CID"
         env:
