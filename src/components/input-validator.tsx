@@ -49,12 +49,17 @@ function ValidationMessage ({ cid, requestPath, pathNamespacePrefix, children })
   </>
 }
 
-export default function CidRenderer ({ requestPath }: { requestPath: string }): JSX.Element {
+export default function InputValidator ({ requestPath }: { requestPath: string }): JSX.Element {
   /**
    * requestPath may be any of the following formats:
    *
-   * * `/ipfs/${cid}/${path}`
-   * * `/ipfs/${cid}`
+   * * `/ipfs/${cid}[/${path}]`
+   * * `/ipns/${dnsLinkDomain}[/${path}]`
+   * * `/ipns/${peerId}[/${path}]`
+   * * `http[s]://${cid}.ipfs.example.com[/${path}]`
+   * * `http[s]://${dnsLinkDomain}.ipns.example.com[/${path}]`
+   * * `http[s]://${peerId}.ipns.example.com[/${path}]`
+   * TODO: https://github.com/ipfs-shipyard/service-worker-gateway/issues/66
    */
   const requestPathParts = requestPath.split('/')
   const pathNamespacePrefix = requestPathParts[1]

@@ -1,11 +1,10 @@
-import React, { useContext } from 'react'
-import { ConfigContext } from '../context/config-context.jsx'
+import React from 'react'
+import { RouteContext } from '../context/router-context.jsx'
 import gearIcon from '../gear-icon.svg'
 import ipfsLogo from '../ipfs-logo.svg'
 
 export default function Header (): JSX.Element {
-  const { isConfigExpanded, setConfigExpanded } = useContext(ConfigContext)
-
+  const { gotoPage } = React.useContext(RouteContext)
   return (
     <header className='e2e-header flex items-center pa3 bg-navy bb bw3 b--aqua justify-between'>
       <a href='https://ipfs.io' title='home'>
@@ -14,7 +13,7 @@ export default function Header (): JSX.Element {
       <span className='e2e-header-title white f3'>IPFS Service Worker Gateway</span>
       <button className='e2e-header-config-button'
         onClick={() => {
-          setConfigExpanded(!isConfigExpanded)
+          gotoPage('/ipfs-sw-config')
         }}
         style={{ border: 'none', background: 'none', cursor: 'pointer' }}
       >

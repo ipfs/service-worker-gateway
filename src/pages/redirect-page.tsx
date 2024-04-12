@@ -1,17 +1,17 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
-import { ServiceWorkerReadyButton } from './components/sw-ready-button.jsx'
-import { ServiceWorkerContext } from './context/service-worker-context.jsx'
-import { HeliaServiceWorkerCommsChannel } from './lib/channel.js'
-import { setConfig, type ConfigDb } from './lib/config-db.js'
-import { getSubdomainParts } from './lib/get-subdomain-parts.js'
-import { isConfigPage } from './lib/is-config-page.js'
-import { error, trace } from './lib/logger.js'
+import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
+import { ServiceWorkerContext } from '../context/service-worker-context.jsx'
+import { HeliaServiceWorkerCommsChannel } from '../lib/channel.js'
+import { setConfig, type ConfigDb } from '../lib/config-db.js'
+import { getSubdomainParts } from '../lib/get-subdomain-parts.js'
+import { isConfigPage } from '../lib/is-config-page.js'
+import { error, trace } from '../lib/logger.js'
 
 const ConfigIframe = (): JSX.Element => {
   const { parentDomain } = getSubdomainParts(window.location.href)
 
   const portString = window.location.port === '' ? '' : `:${window.location.port}`
-  const iframeSrc = `${window.location.protocol}//${parentDomain}${portString}#/ipfs-sw-config@origin=${encodeURIComponent(window.location.origin)}`
+  const iframeSrc = `${window.location.protocol}//${parentDomain}${portString}/#/ipfs-sw-config@origin=${encodeURIComponent(window.location.origin)}`
 
   return (
     <iframe id="redirect-config-iframe" src={iframeSrc} style={{ width: '100vw', height: '100vh', border: 'none' }} />
