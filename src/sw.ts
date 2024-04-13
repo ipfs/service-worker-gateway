@@ -1,7 +1,7 @@
 import { createVerifiedFetch, type VerifiedFetch } from '@helia/verified-fetch'
 import { dnsJsonOverHttps } from '@multiformats/dns/resolvers'
 import { HeliaServiceWorkerCommsChannel, type ChannelMessage } from './lib/channel.js'
-import { getConfig } from './lib/config-db.js'
+import { getConfig, type ConfigDb } from './lib/config-db.js'
 import { contentTypeParser } from './lib/content-type-parser.js'
 import { getRedirectUrl, isDeregisterRequest } from './lib/deregister-request.js'
 import { GenericIDB } from './lib/generic-db.js'
@@ -456,7 +456,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
     clearTimeout(signalAbortTimeout)
     if (!response.ok) {
       log.error('fetchHandler: response not ok: ', response)
-      return await errorPageResponse(new Error(`fetchHandler: response not ok: ${response.status}`))
+      return await errorPageResponse(response)
     }
     return response
   } catch (err: unknown) {
@@ -480,20 +480,79 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
   }
 }
 
-async function errorPageResponse (error: Error): Promise<Response> {
+/**
+ * TODO: better styling
+ * TODO: more error details from @helia/verified-fetch
+ */
+async function errorPageResponse (fetchResponse: Response): Promise<Response> {
+  const responseContentType = fetchResponse.headers.get('Content-Type')
+  let json: Record<string, any> | null = null
+  let text: string | null = null
+  if (responseContentType != null) {
+    if (responseContentType.includes('text/html')) {
+      return fetchResponse
+    } else if (responseContentType.includes('application/json')) {
+      // we may eventually provide error messaging from @helia/verified-fetch
+      json = await fetchResponse.json()
+    } else {
+      text = await fetchResponse.text()
+      json = { error: { message: fetchResponse.statusText, stack: text } }
+    }
+  }
+  if (json == null) {
+    json = { error: { message: fetchResponse.statusText, stack: (new Error()).stack } }
+  }
+
+  /**
+   * TODO: output configuration
+   */
   return new Response(`
       <h1>Oops! Something went wrong inside of Service Worker IPFS Gateway.</h1>
-      <p><button onclick="window.location.reload(true);">Click here to retry</button>.</p>
-      <p>Error details:</p>
-      <p>${error.message}</p>
-      <pre>${error.stack}</pre>
+      <p><button onclick="window.location.reload(true);">Click here to retry</button></p>
+      <p>
+        <p>Error details:</p>
+        <p>${json.error.message}</p>
+        <pre>${json.error.stack}</pre>
+      </p>
+      <p>
+        <p>Response details:</p>
+        <pre>${JSON.stringify(json, null, 2)}</pre>
+      </p>
+      ${/** TODO: more service worker details */''}
+      <p>
+        <p>Service worker details:</p>
+        <pre>${JSON.stringify(await getServiceWorkerDetails(), null, 2)}</pre>
+      </p>
     `, {
-    status: 500,
-    statusText: 'Internal Service Worker Gateway Error',
+    status: fetchResponse.status,
+    statusText: fetchResponse.statusText,
     headers: new Headers({
       'Content-Type': 'text/html'
     })
   })
+}
+
+interface ServiceWorkerDetails {
+  config: ConfigDb
+  crossOriginIsolated: boolean
+  installTime: string
+  origin: string
+  scope: string
+  state: string
+}
+
+async function getServiceWorkerDetails (): Promise<ServiceWorkerDetails> {
+  const registration = self.registration
+  const state = registration.installing?.state ?? registration.waiting?.state ?? registration.active?.state ?? 'unknown'
+
+  return {
+    config: await getConfig(),
+    crossOriginIsolated: self.crossOriginIsolated,
+    installTime: (new Date(firstInstallTime)).toISOString(),
+    origin: self.location.origin,
+    scope: registration.scope,
+    state
+  }
 }
 
 async function isTimebombExpired (): Promise<boolean> {
