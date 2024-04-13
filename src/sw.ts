@@ -454,6 +454,10 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
      * the response object, regardless of it's inner content
      */
     clearTimeout(signalAbortTimeout)
+    if (!response.ok) {
+      log.error('fetchHandler: response not ok: ', response)
+      return await errorPageResponse(new Error(`fetchHandler: response not ok: ${response.status}`))
+    }
     return response
   } catch (err: unknown) {
     const errorMessages: string[] = []
@@ -474,6 +478,22 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
     }
     return new Response('heliaFetch error: ' + errorMessage, { status: 500 })
   }
+}
+
+async function errorPageResponse (error: Error): Promise<Response> {
+  return new Response(`
+      <h1>Oops! Something went wrong inside of Service Worker IPFS Gateway.</h1>
+      <p><button onclick="window.location.reload(true);">Click here to retry</button>.</p>
+      <p>Error details:</p>
+      <p>${error.message}</p>
+      <pre>${error.stack}</pre>
+    `, {
+    status: 500,
+    statusText: 'Internal Service Worker Gateway Error',
+    headers: new Headers({
+      'Content-Type': 'text/html'
+    })
+  })
 }
 
 async function isTimebombExpired (): Promise<boolean> {
