@@ -518,7 +518,6 @@ async function errorPageResponse (fetchResponse: Response): Promise<Response> {
         <p>Response details:</p>
         <pre>${JSON.stringify(json, null, 2)}</pre>
       </p>
-      ${/** TODO: more service worker details */''}
       <p>
         <p>Service worker details:</p>
         <pre>${JSON.stringify(await getServiceWorkerDetails(), null, 2)}</pre>
@@ -541,6 +540,9 @@ interface ServiceWorkerDetails {
   state: string
 }
 
+/**
+ * TODO: more service worker details
+ */
 async function getServiceWorkerDetails (): Promise<ServiceWorkerDetails> {
   const registration = self.registration
   const state = registration.installing?.state ?? registration.waiting?.state ?? registration.active?.state ?? 'unknown'
