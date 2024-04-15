@@ -11,7 +11,15 @@ export async function shouldRenderRedirectPage (): Promise<boolean> {
 
 export async function shouldRenderConfigPage (): Promise<boolean> {
   const { isConfigPage } = await import('../lib/is-config-page.js')
+  const url = new URL(window.location.href)
+  const heliaSw = url.searchParams.get('helia-sw')
 
   const isRequestToViewConfigPage = isConfigPage(window.location.hash)
-  return isRequestToViewConfigPage
+  return isRequestToViewConfigPage || heliaSw != null
+}
+
+export async function shouldRenderRedirectsInterstitial (): Promise<boolean> {
+  const url = new URL(window.location.href)
+  const heliaSw = url.searchParams.get('helia-sw')
+  return heliaSw != null
 }
