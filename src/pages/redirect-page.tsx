@@ -7,7 +7,7 @@ import { getSubdomainParts } from '../lib/get-subdomain-parts.js'
 import { isConfigPage } from '../lib/is-config-page.js'
 import { error, trace } from '../lib/logger.js'
 
-const ConfigIframe = (): JSX.Element | null => {
+const ConfigIframe = (): JSX.Element => {
   const { parentDomain } = getSubdomainParts(window.location.href)
   let iframeSrc
   if (parentDomain == null || parentDomain === window.location.href) {
