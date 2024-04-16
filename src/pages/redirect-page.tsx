@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useState } from 'react'
+import React, { useContext, useEffect, useMemo, useState } from 'preact/compat'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
 import { ServiceWorkerContext } from '../context/service-worker-context.jsx'
 import { HeliaServiceWorkerCommsChannel } from '../lib/channel.js'
@@ -7,7 +7,7 @@ import { getSubdomainParts } from '../lib/get-subdomain-parts.js'
 import { isConfigPage } from '../lib/is-config-page.js'
 import { error, trace } from '../lib/logger.js'
 
-const ConfigIframe = (): JSX.Element => {
+const ConfigIframe = (): React.JSX.Element => {
   const { parentDomain } = getSubdomainParts(window.location.href)
   let iframeSrc
   if (parentDomain == null || parentDomain === window.location.href) {
@@ -27,7 +27,7 @@ const ConfigIframe = (): JSX.Element => {
 
 const channel = new HeliaServiceWorkerCommsChannel('WINDOW')
 
-export default function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean }): JSX.Element {
+export default function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean }): React.JSX.Element {
   const [isAutoReloadEnabled, setIsAutoReloadEnabled] = useState(false)
   const { isServiceWorkerRegistered } = useContext(ServiceWorkerContext)
 

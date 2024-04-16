@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/strict-boolean-expressions */
 import { CID } from 'multiformats/cid'
-import React from 'react'
+import React from 'preact/compat'
 
 /**
  * Test files:
@@ -22,8 +22,8 @@ import React from 'react'
  *
  */
 
-function ValidationMessage ({ cid, requestPath, pathNamespacePrefix, children }): JSX.Element {
-  let errorElement: JSX.Element | null = null
+function ValidationMessage ({ cid, requestPath, pathNamespacePrefix, children }): React.JSX.Element {
+  let errorElement: React.JSX.Element | null = null
   if (requestPath == null || requestPath === '') {
     errorElement = <span>Nothing to render yet. Enter an IPFS Path</span> // bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq
   } else if (pathNamespacePrefix !== 'ipfs' && pathNamespacePrefix !== 'ipns') {
@@ -49,7 +49,7 @@ function ValidationMessage ({ cid, requestPath, pathNamespacePrefix, children })
   </>
 }
 
-export default function InputValidator ({ requestPath }: { requestPath: string }): JSX.Element {
+export default function InputValidator ({ requestPath }: { requestPath: string }): React.JSX.Element {
   /**
    * requestPath may be any of the following formats:
    *

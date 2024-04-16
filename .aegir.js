@@ -14,7 +14,7 @@ export default {
   dependencyCheck: {
     ignore: [
       // .jsx files aren't checked properly.
-      'react-dom',
+      'preact',
 
       // required by webpack
       'webpack-cli',
