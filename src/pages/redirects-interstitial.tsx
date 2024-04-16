@@ -1,10 +1,10 @@
-import React from 'react'
+import React from 'preact'
 
 /**
  * This page is only used to capture the ?helia-sw=/ip[fn]s/blah query parameter that
  * is used by IPFS hosted versions of the service-worker-gateway when non-existent paths are requested.
  */
-export default function RedirectsInterstitial (): JSX.Element {
+export default function RedirectsInterstitial (): React.JSX.Element {
   const windowLocation = translateIpfsRedirectUrl(window.location.href)
   if (windowLocation.href !== window.location.href) {
   /**
