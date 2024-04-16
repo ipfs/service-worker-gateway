@@ -5,22 +5,35 @@ import { nativeProtocolRegex, pathRegex, subdomainRegex, type IpfsUriParts } fro
 function FormatHelp (): JSX.Element {
   return (
     <p>
-      <span>Not a valid IPFS or IPNS path. Use one of the following formats:</span>
-      <ul>
-        <li><pre className="di">/ipfs/cid/path</pre></li>
-        <li><pre className="di">/ipns/peerId/path</pre></li>
-        <li><pre className="di">/ipns/dnsLink/path</pre></li>
-        <li><pre className="di">https?://example.com/ipfs/cid/path</pre></li>
-        <li><pre className="di">https?://example.com/ipns/peerId/path</pre></li>
-        <li><pre className="di">https?://example.com/ipns/dnsLink/path</pre></li>
-        <li><pre className="di">https?://cid.ipfs.example.com/path</pre></li>
-        <li><pre className="di">https?://peerId.ipns.example.com/path</pre></li>
-        <li><pre className="di">https?://encodedDnsLink.ipns.example.com/path</pre></li>
-        <li><pre className="di">cid.ipfs.example.com/path</pre></li>
-        <li><pre className="di">peerId.ipns.example.com/path</pre></li>
-        <li><pre className="di">encodedDnsLink.ipns.example.com/path</pre></li>
-      </ul>
-      <span>Note that <pre className="di">/path</pre> is optional.</span>
+      <p>Not a valid IPFS or IPNS path. Use one of the following formats:</p>
+      <table>
+        <thead>
+          <tr>
+            <th style={{ textAlign: 'left' }}>Type</th>
+            <th style={{ textAlign: 'left' }}>Example</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Native protocol</td>
+            <td><pre className="di">ip[fn]s://contentId</pre></td>
+          </tr>
+          <tr>
+            <td>Path only</td>
+            <td><pre className="di">/ip[fn]s/contentId</pre></td>
+          </tr>
+          <tr>
+            <td>Url (or schemeless)</td>
+            <td><pre className="di">https?://example.com/ip[fn]s/contentId</pre></td>
+          </tr>
+          <tr>
+            <td>Subdomain host</td>
+            <td><pre className="di">contentId.ip[fn]s.example.com</pre></td>
+          </tr>
+        </tbody>
+      </table>
+      <p>Note that a <pre className="di">contentId</pre> is any of: CID, PeerId, DnsLink.</p>
+      <p>Note that a <pre className="di">/path</pre> can be postfixed to any url.</p>
     </p>
   )
 }
