@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'preact/compat'
 import { Collapsible } from '../components/collapsible.jsx'
 import LocalStorageInput from '../components/local-storage-input.jsx'
 import { LocalStorageToggle } from '../components/local-storage-toggle.jsx'
@@ -34,7 +34,7 @@ const stringValidationFn = (value: string): Error | null => {
   return null
 }
 
-export default (): JSX.Element | null => {
+export default (): React.JSX.Element | null => {
   const { gotoPage } = React.useContext(RouteContext)
   const [error, setError] = useState<Error | null>(null)
 
