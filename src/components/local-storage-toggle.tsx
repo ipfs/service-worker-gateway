@@ -1,7 +1,7 @@
 /**
   Inspiration from https://dev.to/codebubb/create-a-simple-on-off-slide-toggle-with-css-db8
  */
-import React, { useState } from 'react'
+import React, { useState } from 'preact/compat'
 import './local-storage-toggle.css'
 
 interface LocalStorageToggleProps extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
@@ -17,7 +17,7 @@ export const LocalStorageToggle: React.FC<LocalStorageToggleProps> = ({ localSto
   })
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
-    const newValue = event.target.checked
+    const newValue = event.currentTarget.checked
     setIsChecked(newValue)
     localStorage.setItem(localStorageKey, String(newValue))
   }
