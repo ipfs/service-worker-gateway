@@ -1,6 +1,6 @@
 /* eslint-env mocha */
 import { expect } from 'aegir/chai'
-import { pathRegex, subdomainRegex } from '../src/lib/regex.js'
+import { nativeProtocolRegex, pathRegex, subdomainRegex } from '../src/lib/regex.js'
 
 const validPathUrls = [
   // IPFS paths without domain
@@ -43,6 +43,20 @@ const validSubdomainUrls = [
   ['http://specs-ipfs-tech.ipns.example.com/path/to/file', 'ipns', 'specs-ipfs-tech', '/path/to/file']
 ]
 
+const validNativeProtocolUrls = [
+  ['ipfs://bafyFoo', 'ipfs', 'bafyFoo', ''],
+  ['ipfs://bafyFoo/', 'ipfs', 'bafyFoo', '/'],
+  ['ipfs://bafyFoo/path/to/file', 'ipfs', 'bafyFoo', '/path/to/file'],
+
+  ['ipns://specs.ipfs.tech', 'ipns', 'specs.ipfs.tech', ''],
+  ['ipns://specs.ipfs.tech/', 'ipns', 'specs.ipfs.tech', '/'],
+  ['ipns://specs.ipfs.tech/path/to/file', 'ipns', 'specs.ipfs.tech', '/path/to/file']
+]
+
+const invalidUrls = [
+  'http://localhost/notipfs/bafyFoo/path/to/file'
+]
+
 describe('regex', () => {
   describe('paths', () => {
     validPathUrls.forEach(([url, protocol, cidOrPeerIdOrDnslink, path]) => {
@@ -72,10 +86,27 @@ describe('regex', () => {
     })
   })
 
-  it('should return null for non-matching urls', () => {
-    const url = 'http://localhost/notipfs/bafyFoo/path/to/file'
-    const match = url.match(pathRegex)
+  describe('native protocols', () => {
+    validNativeProtocolUrls.forEach(([url, protocol, cidOrPeerIdOrDnslink, path]) => {
+      it(`should correctly match "${url}"`, () => {
+        const match = url.match(nativeProtocolRegex)
 
-    expect(match).to.be.null()
+        expect(match).not.to.be.null()
+        expect(match?.groups).to.be.ok()
+        expect(match?.groups?.protocol).to.equal(protocol)
+        expect(match?.groups?.cidOrPeerIdOrDnslink).to.equal(cidOrPeerIdOrDnslink)
+        expect(match?.groups?.path).to.equal(path)
+      })
+    })
+  })
+
+  describe('invalid urls', () => {
+    invalidUrls.forEach(url => {
+      it(`should return null for "${url}"`, () => {
+        const match = url.match(pathRegex)
+
+        expect(match).to.be.null()
+      })
+    })
   })
 })

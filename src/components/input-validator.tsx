@@ -1,6 +1,6 @@
 import { CID } from 'multiformats/cid'
 import React from 'react'
-import { pathRegex, subdomainRegex, type IpfsUriParts } from '../lib/regex.js'
+import { nativeProtocolRegex, pathRegex, subdomainRegex, type IpfsUriParts } from '../lib/regex.js'
 
 function FormatHelp (): JSX.Element {
   return (
@@ -54,7 +54,7 @@ function ValidationMessage ({ cidOrPeerIdOrDnslink, requestPath, protocol, child
 }
 
 const parseInput = (uri: string): Partial<IpfsUriParts> => {
-  const uriMatch = uri.match(pathRegex) ?? uri.match(subdomainRegex)
+  const uriMatch = uri.match(pathRegex) ?? uri.match(subdomainRegex) ?? uri.match(nativeProtocolRegex)
   if (uriMatch?.groups != null) {
     const { protocol, cidOrPeerIdOrDnslink, path } = uriMatch.groups as unknown as IpfsUriParts
     return { protocol, cidOrPeerIdOrDnslink, path: path?.trim() ?? undefined }

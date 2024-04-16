@@ -18,3 +18,8 @@ export const subdomainRegex = /^(?:https?:\/\/)?(?<cidOrPeerIdOrDnslink>[^/]+)\.
  * `/ipns/${peerId}[/${path}]`
  */
 export const pathRegex = /^.*\/(?<protocol>ip[fn]s)\/(?<cidOrPeerIdOrDnslink>[^/]*)(?<path>.*)$/
+
+/**
+ * `ip[fn]s://${cidOrPeerIdOrDnslink}${path}`
+ */
+export const nativeProtocolRegex = /^(?<protocol>ip[fn]s):\/\/(?<cidOrPeerIdOrDnslink>[^/]*)(?<path>.*)$/
