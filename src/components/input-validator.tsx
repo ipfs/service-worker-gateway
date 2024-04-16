@@ -4,37 +4,26 @@ import { nativeProtocolRegex, pathRegex, subdomainRegex, type IpfsUriParts } fro
 
 function FormatHelp (): React.JSX.Element {
   return (
-    <p>
-      <p>Not a valid IPFS or IPNS path. Use one of the following formats:</p>
+    <>
+      <p>Invalid address, correct it and try again. For reference, accepted formats are:</p>
       <table>
-        <thead>
-          <tr>
-            <th style={{ textAlign: 'left' }}>Type</th>
-            <th style={{ textAlign: 'left' }}>Example</th>
-          </tr>
-        </thead>
         <tbody>
           <tr>
-            <td>Native protocol</td>
-            <td><pre className="di">ip[fn]s://contentId</pre></td>
+            <td>UNIX-like Content Path</td>
+            <td><pre className="di">/ipfs/cid/..</pre></td>
           </tr>
           <tr>
-            <td>Path only</td>
-            <td><pre className="di">/ip[fn]s/contentId</pre></td>
+            <td>HTTP Gateway URL</td>
+            <td><pre className="di">https://ipfs.io/ipfs/cid..</pre></td>
           </tr>
           <tr>
-            <td>Url (or schemeless)</td>
-            <td><pre className="di">https?://example.com/ip[fn]s/contentId</pre></td>
-          </tr>
-          <tr>
-            <td>Subdomain host</td>
-            <td><pre className="di">contentId.ip[fn]s.example.com</pre></td>
+            <td>Native IPFS URL</td>
+            <td><pre className="di">ipfs://cid/..</pre></td>
           </tr>
         </tbody>
       </table>
-      <p>Note that a <pre className="di">contentId</pre> is any of: CID, PeerId, DnsLink.</p>
-      <p>Note that a <pre className="di">/path</pre> can be postfixed to any url.</p>
-    </p>
+      <p>Learn more at <a target="_blank" href="https://docs.ipfs.tech/how-to/address-ipfs-on-web">Addressing IPFS on the Web</a></p>
+    </>
   )
 }
 
