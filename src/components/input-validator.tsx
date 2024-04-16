@@ -1,38 +1,42 @@
-/* eslint-disable @typescript-eslint/strict-boolean-expressions */
 import { CID } from 'multiformats/cid'
 import React from 'react'
+import { pathRegex, subdomainRegex, type IpfsUriParts } from '../lib/regex.js'
 
-/**
- * Test files:
- * bafkreienxxjqg3jomg5b75k7547dgf7qlbd3qpxy2kbg537ck3rol4mcve  - text            - https://bafkreienxxjqg3jomg5b75k7547dgf7qlbd3qpxy2kbg537ck3rol4mcve.ipfs.w3s.link/?filename=test.txt
- * bafkreicafxt3zr4cshf7qteztjzl62ouxqrofu647e44wt7s2iaqjn7bra  - image/jpeg      - http://127.0.0.1:8080/ipfs/bafkreicafxt3zr4cshf7qteztjzl62ouxqrofu647e44wt7s2iaqjn7bra?filename=bafkreicafxt3zr4cshf7qteztjzl62ouxqrofu647e44wt7s2iaqjn7bra
- * bafkreif4ufrfpfcmqn5ltjvmeisgv4k7ykqz2mjygpngtwt4bijxosidqa  - image/svg+xml   - https://bafkreif4ufrfpfcmqn5ltjvmeisgv4k7ykqz2mjygpngtwt4bijxosidqa.ipfs.dweb.link/?filename=Web3.Storage-logo.svg
- * bafybeiekildl23opzqcsufewlbadhbabs6pyqg35tzpfavgtjyhchyikxa  - video/quicktime - https://bafybeiekildl23opzqcsufewlbadhbabs6pyqg35tzpfavgtjyhchyikxa.ipfs.dweb.link
- * bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq  - video/webm (147.78 KiB)    - https://bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq.ipfs.dweb.link
- * bafybeierkpfmf4vhtdiujgahfptiyriykoetxf3rmd3vcxsdemincpjoyu  - video/mp4 (2.80 MiB)    - https://bafybeierkpfmf4vhtdiujgahfptiyriykoetxf3rmd3vcxsdemincpjoyu.ipfs.dweb.link
- * QmbGtJg23skhvFmu9mJiePVByhfzu5rwo74MEkVDYAmF5T - video (160MiB)
- * /ipns/k51qzi5uqu5dlvj2baxnqndepeb86cbk3ng7n3i46uzyxzyqj2xjonzllnv0v8 -
- * /ipns/libp2p.io/
- */
+function FormatHelp (): JSX.Element {
+  return (
+    <p>
+      <span>Not a valid IPFS or IPNS path. Use one of the following formats:</span>
+      <ul>
+        <li><pre className="di">/ipfs/cid/path</pre></li>
+        <li><pre className="di">/ipns/peerId/path</pre></li>
+        <li><pre className="di">/ipns/dnsLink/path</pre></li>
+        <li><pre className="di">https?://example.com/ipfs/cid/path</pre></li>
+        <li><pre className="di">https?://example.com/ipns/peerId/path</pre></li>
+        <li><pre className="di">https?://example.com/ipns/dnsLink/path</pre></li>
+        <li><pre className="di">https?://cid.ipfs.example.com/path</pre></li>
+        <li><pre className="di">https?://peerId.ipns.example.com/path</pre></li>
+        <li><pre className="di">https?://encodedDnsLink.ipns.example.com/path</pre></li>
+        <li><pre className="di">cid.ipfs.example.com/path</pre></li>
+        <li><pre className="di">peerId.ipns.example.com/path</pre></li>
+        <li><pre className="di">encodedDnsLink.ipns.example.com/path</pre></li>
+      </ul>
+      <span>Note that <pre className="di">/path</pre> is optional.</span>
+    </p>
+  )
+}
 
-/**
- *
- * Test CIDs
- * QmbGtJg23skhvFmu9mJiePVByhfzu5rwo74MEkVDYAmF5T
- *
- */
-
-function ValidationMessage ({ cid, requestPath, pathNamespacePrefix, children }): JSX.Element {
+function ValidationMessage ({ cidOrPeerIdOrDnslink, requestPath, protocol, children }): JSX.Element {
   let errorElement: JSX.Element | null = null
   if (requestPath == null || requestPath === '') {
-    errorElement = <span>Nothing to render yet. Enter an IPFS Path</span> // bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq
-  } else if (pathNamespacePrefix !== 'ipfs' && pathNamespacePrefix !== 'ipns') {
-    errorElement = <span>Not a valid IPFS or IPNS path. Use the format <pre className="di">/ip(f|n)s/cid/path</pre>, where /path is optional</span>
-  } else if (cid == null || cid === '') {
-    errorElement = <span>Nothing to render yet. Add a CID to your path</span> // bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq
-  } else if (pathNamespacePrefix === 'ipfs') {
+    errorElement = <span>Enter a valid IPFS/IPNS path.</span>
+  } else if (protocol !== 'ipfs' && protocol !== 'ipns') {
+    errorElement = <FormatHelp />
+  } else if (cidOrPeerIdOrDnslink == null || cidOrPeerIdOrDnslink === '') {
+    const contentType = protocol === 'ipfs' ? 'CID' : 'PeerId or DnsLink'
+    errorElement = <span>Content identifier missing. Add a {contentType} to your path</span>
+  } else if (protocol === 'ipfs') {
     try {
-      CID.parse(cid)
+      CID.parse(cidOrPeerIdOrDnslink)
     } catch {
       errorElement = <span>Invalid CID</span>
     }
@@ -49,32 +53,26 @@ function ValidationMessage ({ cid, requestPath, pathNamespacePrefix, children })
   </>
 }
 
+const parseInput = (uri: string): Partial<IpfsUriParts> => {
+  const uriMatch = uri.match(pathRegex) ?? uri.match(subdomainRegex)
+  if (uriMatch?.groups != null) {
+    const { protocol, cidOrPeerIdOrDnslink, path } = uriMatch.groups as unknown as IpfsUriParts
+    return { protocol, cidOrPeerIdOrDnslink, path: path?.trim() ?? undefined }
+  }
+
+  return {}
+}
+
 export default function InputValidator ({ requestPath }: { requestPath: string }): JSX.Element {
-  /**
-   * requestPath may be any of the following formats:
-   *
-   * * `/ipfs/${cid}[/${path}]`
-   * * `/ipns/${dnsLinkDomain}[/${path}]`
-   * * `/ipns/${peerId}[/${path}]`
-   * * `http[s]://${cid}.ipfs.example.com[/${path}]`
-   * * `http[s]://${dnsLinkDomain}.ipns.example.com[/${path}]`
-   * * `http[s]://${peerId}.ipns.example.com[/${path}]`
-   * TODO: https://github.com/ipfs-shipyard/service-worker-gateway/issues/66
-   */
-  const requestPathParts = requestPath.split('/')
-  const pathNamespacePrefix = requestPathParts[1]
-  const cid = requestPathParts[2]
-  const cidPath = requestPathParts[3] ? `/${requestPathParts.slice(3).join('/')}` : ''
-  const swPath = `/${pathNamespacePrefix}/${cid ?? ''}${cidPath ?? ''}`
+  const { protocol, cidOrPeerIdOrDnslink, path } = parseInput(requestPath)
+  const swPath = `/${protocol}/${cidOrPeerIdOrDnslink}${path ?? ''}`
 
   return (
     <div>
-      <ValidationMessage pathNamespacePrefix={pathNamespacePrefix} cid={cid} requestPath={requestPath}>
-
+      <ValidationMessage protocol={protocol} cidOrPeerIdOrDnslink={cidOrPeerIdOrDnslink} requestPath={requestPath}>
         <a className="db" href={swPath} target="_blank">
           <button id="load-directly" className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load content</button>
         </a>
-
       </ValidationMessage>
     </div>
   )
