@@ -23,6 +23,18 @@ test.describe('first-hit ipfs-hosted', () => {
       // then we should be redirected to the IPFS path
       await page.waitForURL('http://127.0.0.1:3333/ipfs/bafkqablimvwgy3y')
 
+      // and then the normal redirectPage logic:
+      await waitForServiceWorker(page)
+      const bodyTextLocator = page.locator('body')
+      await expect(bodyTextLocator).toContainText('Please save your changes to the config to apply them')
+
+      // it should render the config iframe
+      await expect(page.locator('#redirect-config-iframe')).toBeAttached({ timeout: 1 })
+
+      // wait for the service worker to be registered, and click load content.
+      const loadContent = await page.waitForSelector('#load-content', { state: 'visible' })
+      await loadContent.click()
+
       // and we verify the content was returned
       const text = await page.innerText('body')
       expect(text).toBe('hello')
@@ -40,12 +52,15 @@ test.describe('first-hit ipfs-hosted', () => {
       expect(headers?.['content-type']).toContain('text/html')
 
       // then we should be redirected to the IPFS path
-      await page.waitForURL(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}`)
       const bodyTextLocator = page.locator('body')
+      await page.waitForURL(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}`)
       await expect(bodyTextLocator).toContainText('Registering Helia service worker')
 
       await waitForServiceWorker(page)
       await expect(bodyTextLocator).toContainText('Please save your changes to the config to apply them')
+
+      // it should render the config iframe
+      await expect(page.locator('#redirect-config-iframe')).toBeAttached({ timeout: 1 })
 
       await page.reload()
 
@@ -81,6 +96,9 @@ test.describe('first-hit direct-hosted', () => {
       const bodyTextLocator = page.locator('body')
       await expect(bodyTextLocator).toContainText('Please save your changes to the config to apply them')
 
+      // it should render the config iframe
+      await expect(page.locator('#redirect-config-iframe')).toBeAttached({ timeout: 1 })
+
       // wait for the service worker to be registered, and click load content.
       const loadContent = await page.waitForSelector('#load-content', { state: 'visible' })
       await loadContent.click()
@@ -109,6 +127,9 @@ test.describe('first-hit direct-hosted', () => {
 
       await waitForServiceWorker(page)
       await expect(bodyTextLocator).toContainText('Please save your changes to the config to apply them')
+
+      // it should render the config iframe
+      await expect(page.locator('#redirect-config-iframe')).toBeAttached({ timeout: 1 })
 
       const loadContent = await page.waitForSelector('#load-content', { state: 'visible' })
       await loadContent.click()
