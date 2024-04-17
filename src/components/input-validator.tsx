@@ -62,6 +62,14 @@ const parseInput = (uri: string): Partial<IpfsUriParts> => {
     return { protocol, cidOrPeerIdOrDnslink, path: path?.trim() ?? undefined }
   }
 
+  // it may be just a CID
+  try {
+    CID.parse(uri)
+    return { protocol: 'ipfs', cidOrPeerIdOrDnslink: uri }
+  } catch (_) {
+    // ignore.
+  }
+
   return {}
 }
 
