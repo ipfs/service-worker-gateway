@@ -7,6 +7,9 @@ export interface GetFrameLocator {
   (page: Page | FrameLocator): FrameLocator
 }
 
+/**
+ * Page parts
+ */
 export const getHeader: GetLocator = (page) => page.locator('.e2e-header')
 export const getHeaderTitle: GetLocator = (page) => page.locator('.e2e-header-title')
 export const getConfigButton: GetLocator = (page) => page.locator('.e2e-header-config-button')
@@ -18,6 +21,9 @@ export const getConfigGatewaysInput: GetLocator = (page) => page.locator('.e2e-c
 export const getConfigRoutersInput: GetLocator = (page) => page.locator('.e2e-config-page-input-routers')
 export const getConfigAutoReloadInput: GetLocator = (page) => page.locator('.e2e-config-page-input-autoreload')
 
+/**
+ * Iframe page parts
+ */
 export const getConfigButtonIframe: GetLocator = (page) => getIframeLocator(page).locator('.e2e-collapsible-button')
 export const getConfigGatewaysInputIframe: GetLocator = (page) => getConfigGatewaysInput(getIframeLocator(page))
 export const getConfigRoutersInputIframe: GetLocator = (page) => getConfigRoutersInput(getIframeLocator(page))
