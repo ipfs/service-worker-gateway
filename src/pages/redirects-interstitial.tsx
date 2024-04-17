@@ -1,4 +1,4 @@
-import React from 'preact'
+import React from 'preact/compat'
 
 /**
  * This page is only used to capture the ?helia-sw=/ip[fn]s/blah query parameter that
