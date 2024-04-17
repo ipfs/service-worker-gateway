@@ -15,3 +15,9 @@ export async function shouldRenderConfigPage (): Promise<boolean> {
   const isRequestToViewConfigPage = isConfigPage(window.location.hash)
   return isRequestToViewConfigPage
 }
+
+export async function shouldRenderRedirectsInterstitial (): Promise<boolean> {
+  const url = new URL(window.location.href)
+  const heliaSw = url.searchParams.get('helia-sw')
+  return heliaSw != null
+}

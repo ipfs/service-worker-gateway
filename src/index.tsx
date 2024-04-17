@@ -17,11 +17,13 @@ if (container == null) {
 const LazyConfig = React.lazy(async () => import('./pages/config.jsx'))
 const LazyHelperUi = React.lazy(async () => import('./pages/helper-ui.jsx'))
 const LazyRedirectPage = React.lazy(async () => import('./pages/redirect-page.jsx'))
+const LazyInterstitial = React.lazy(async () => import('./pages/redirects-interstitial.jsx'))
 
 const routes: Route[] = [
   { default: true, component: LazyHelperUi },
-  { path: '#/ipfs-sw-config', shouldRender: async () => (await import('./lib/routing-render-checks')).shouldRenderConfigPage(), component: LazyConfig },
-  { shouldRender: async () => (await import('./lib/routing-render-checks')).shouldRenderRedirectPage(), component: LazyRedirectPage }
+  { shouldRender: async () => (await import('./lib/routing-render-checks.js')).shouldRenderRedirectsInterstitial(), component: LazyInterstitial },
+  { path: '#/ipfs-sw-config', shouldRender: async () => (await import('./lib/routing-render-checks.js')).shouldRenderConfigPage(), component: LazyConfig },
+  { shouldRender: async () => (await import('./lib/routing-render-checks.js')).shouldRenderRedirectPage(), component: LazyRedirectPage }
 ]
 
 render(
