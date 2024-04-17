@@ -454,7 +454,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
      * the response object, regardless of it's inner content
      */
     clearTimeout(signalAbortTimeout)
-    if (!response.ok) {
+    if (response.status >= 400) {
       log.error('fetchHandler: response not ok: ', response)
       return await errorPageResponse(response)
     }
