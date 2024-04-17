@@ -1,38 +1,44 @@
-/* eslint-disable @typescript-eslint/strict-boolean-expressions */
 import { CID } from 'multiformats/cid'
 import React from 'preact/compat'
+import { nativeProtocolRegex, pathRegex, subdomainRegex, type IpfsUriParts } from '../lib/regex.js'
 
-/**
- * Test files:
- * bafkreienxxjqg3jomg5b75k7547dgf7qlbd3qpxy2kbg537ck3rol4mcve  - text            - https://bafkreienxxjqg3jomg5b75k7547dgf7qlbd3qpxy2kbg537ck3rol4mcve.ipfs.w3s.link/?filename=test.txt
- * bafkreicafxt3zr4cshf7qteztjzl62ouxqrofu647e44wt7s2iaqjn7bra  - image/jpeg      - http://127.0.0.1:8080/ipfs/bafkreicafxt3zr4cshf7qteztjzl62ouxqrofu647e44wt7s2iaqjn7bra?filename=bafkreicafxt3zr4cshf7qteztjzl62ouxqrofu647e44wt7s2iaqjn7bra
- * bafkreif4ufrfpfcmqn5ltjvmeisgv4k7ykqz2mjygpngtwt4bijxosidqa  - image/svg+xml   - https://bafkreif4ufrfpfcmqn5ltjvmeisgv4k7ykqz2mjygpngtwt4bijxosidqa.ipfs.dweb.link/?filename=Web3.Storage-logo.svg
- * bafybeiekildl23opzqcsufewlbadhbabs6pyqg35tzpfavgtjyhchyikxa  - video/quicktime - https://bafybeiekildl23opzqcsufewlbadhbabs6pyqg35tzpfavgtjyhchyikxa.ipfs.dweb.link
- * bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq  - video/webm (147.78 KiB)    - https://bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq.ipfs.dweb.link
- * bafybeierkpfmf4vhtdiujgahfptiyriykoetxf3rmd3vcxsdemincpjoyu  - video/mp4 (2.80 MiB)    - https://bafybeierkpfmf4vhtdiujgahfptiyriykoetxf3rmd3vcxsdemincpjoyu.ipfs.dweb.link
- * QmbGtJg23skhvFmu9mJiePVByhfzu5rwo74MEkVDYAmF5T - video (160MiB)
- * /ipns/k51qzi5uqu5dlvj2baxnqndepeb86cbk3ng7n3i46uzyxzyqj2xjonzllnv0v8 -
- * /ipns/libp2p.io/
- */
+function FormatHelp (): React.JSX.Element {
+  return (
+    <>
+      <p>Invalid address, correct it and try again. For reference, accepted formats are:</p>
+      <table>
+        <tbody>
+          <tr>
+            <td>UNIX-like Content Path</td>
+            <td><pre className="di">/ipfs/cid/..</pre></td>
+          </tr>
+          <tr>
+            <td>HTTP Gateway URL</td>
+            <td><pre className="di">https://ipfs.io/ipfs/cid..</pre></td>
+          </tr>
+          <tr>
+            <td>Native IPFS URL</td>
+            <td><pre className="di">ipfs://cid/..</pre></td>
+          </tr>
+        </tbody>
+      </table>
+      <p>Learn more at <a target="_blank" href="https://docs.ipfs.tech/how-to/address-ipfs-on-web">Addressing IPFS on the Web</a></p>
+    </>
+  )
+}
 
-/**
- *
- * Test CIDs
- * QmbGtJg23skhvFmu9mJiePVByhfzu5rwo74MEkVDYAmF5T
- *
- */
-
-function ValidationMessage ({ cid, requestPath, pathNamespacePrefix, children }): React.JSX.Element {
+function ValidationMessage ({ cidOrPeerIdOrDnslink, requestPath, protocol, children }): React.JSX.Element {
   let errorElement: React.JSX.Element | null = null
   if (requestPath == null || requestPath === '') {
-    errorElement = <span>Nothing to render yet. Enter an IPFS Path</span> // bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq
-  } else if (pathNamespacePrefix !== 'ipfs' && pathNamespacePrefix !== 'ipns') {
-    errorElement = <span>Not a valid IPFS or IPNS path. Use the format <pre className="di">/ip(f|n)s/cid/path</pre>, where /path is optional</span>
-  } else if (cid == null || cid === '') {
-    errorElement = <span>Nothing to render yet. Add a CID to your path</span> // bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq
-  } else if (pathNamespacePrefix === 'ipfs') {
+    errorElement = <span>Enter a valid IPFS/IPNS path.</span>
+  } else if (protocol !== 'ipfs' && protocol !== 'ipns') {
+    errorElement = <FormatHelp />
+  } else if (cidOrPeerIdOrDnslink == null || cidOrPeerIdOrDnslink === '') {
+    const contentType = protocol === 'ipfs' ? 'CID' : 'PeerId or DnsLink'
+    errorElement = <span>Content identifier missing. Add a {contentType} to your path</span>
+  } else if (protocol === 'ipfs') {
     try {
-      CID.parse(cid)
+      CID.parse(cidOrPeerIdOrDnslink)
     } catch {
       errorElement = <span>Invalid CID</span>
     }
@@ -49,32 +55,34 @@ function ValidationMessage ({ cid, requestPath, pathNamespacePrefix, children })
   </>
 }
 
+const parseInput = (uri: string): Partial<IpfsUriParts> => {
+  const uriMatch = uri.match(pathRegex) ?? uri.match(subdomainRegex) ?? uri.match(nativeProtocolRegex)
+  if (uriMatch?.groups != null) {
+    const { protocol, cidOrPeerIdOrDnslink, path } = uriMatch.groups as unknown as IpfsUriParts
+    return { protocol, cidOrPeerIdOrDnslink, path: path?.trim() ?? undefined }
+  }
+
+  // it may be just a CID
+  try {
+    CID.parse(uri)
+    return { protocol: 'ipfs', cidOrPeerIdOrDnslink: uri }
+  } catch (_) {
+    // ignore.
+  }
+
+  return {}
+}
+
 export default function InputValidator ({ requestPath }: { requestPath: string }): React.JSX.Element {
-  /**
-   * requestPath may be any of the following formats:
-   *
-   * * `/ipfs/${cid}[/${path}]`
-   * * `/ipns/${dnsLinkDomain}[/${path}]`
-   * * `/ipns/${peerId}[/${path}]`
-   * * `http[s]://${cid}.ipfs.example.com[/${path}]`
-   * * `http[s]://${dnsLinkDomain}.ipns.example.com[/${path}]`
-   * * `http[s]://${peerId}.ipns.example.com[/${path}]`
-   * TODO: https://github.com/ipfs-shipyard/service-worker-gateway/issues/66
-   */
-  const requestPathParts = requestPath.split('/')
-  const pathNamespacePrefix = requestPathParts[1]
-  const cid = requestPathParts[2]
-  const cidPath = requestPathParts[3] ? `/${requestPathParts.slice(3).join('/')}` : ''
-  const swPath = `/${pathNamespacePrefix}/${cid ?? ''}${cidPath ?? ''}`
+  const { protocol, cidOrPeerIdOrDnslink, path } = parseInput(requestPath)
+  const swPath = `/${protocol}/${cidOrPeerIdOrDnslink}${path ?? ''}`
 
   return (
     <div>
-      <ValidationMessage pathNamespacePrefix={pathNamespacePrefix} cid={cid} requestPath={requestPath}>
-
+      <ValidationMessage protocol={protocol} cidOrPeerIdOrDnslink={cidOrPeerIdOrDnslink} requestPath={requestPath}>
         <a className="db" href={swPath} target="_blank">
           <button id="load-directly" className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load content</button>
         </a>
-
       </ValidationMessage>
     </div>
   )
