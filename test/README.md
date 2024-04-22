@@ -1,5 +1,5 @@
 # Tests
 
-These tests are ran using `aegir test`.
+Tests with the name `*.spec.ts` are ran using `npm run test:iso`.
 
-Since we don't use aegir for building our dist folder, we need all tests in this directory to be javascript files. This is a temporary solution until we can use aegir for building our dist folder.
+There is one file without a `.spec.ts` suffix that verifies our dist folder ran with `npm run test:node`, and no further test files without `.spec.ts` suffix should be added.

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'preact/compat'
 
 export interface LocalStorageInputProps extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
   localStorageKey: string
@@ -16,7 +16,7 @@ const defaultValidationFunction = (value: string): Error | null => {
     return err as Error
   }
 }
-export default ({ localStorageKey, label, placeholder, validationFn, defaultValue, ...props }: LocalStorageInputProps): JSX.Element => {
+export default ({ localStorageKey, label, placeholder, validationFn, defaultValue, ...props }: LocalStorageInputProps): React.JSX.Element => {
   const [value, setValue] = useState(localStorage.getItem(localStorageKey) ?? defaultValue)
   const [error, setError] = useState<null | Error>(null)
 
@@ -47,7 +47,7 @@ export default ({ localStorageKey, label, placeholder, validationFn, defaultValu
         type='text'
         placeholder={placeholder}
         value={value}
-        onChange={(e) => { setValue(e.target.value) }}
+        onChange={(e) => { setValue(e.currentTarget.value) }}
       />
       {error != null && <span style={{ color: 'red' }}>{error.message}</span>}
     </div>

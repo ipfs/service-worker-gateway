@@ -7,13 +7,14 @@ export default {
       'src/**/*.[jt]sx',
       'test/**/*.[jt]s',
       'test/**/*.[jt]sx',
-      'test-e2e/**/*.[jt]s'
+      'test-e2e/**/*.[jt]s',
+      './*.[jt]s'
     ]
   },
   dependencyCheck: {
     ignore: [
       // .jsx files aren't checked properly.
-      'react-dom',
+      'preact',
 
       // required by webpack
       'webpack-cli',

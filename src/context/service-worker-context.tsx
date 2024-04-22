@@ -6,15 +6,13 @@
  *
  * Before the Service Worker is registered (e.g. first requests to root hosted domain or subdomains):
  *
- * 1. Being redirected from _redirects file to a ?helia-sw= url
- * 2. The app is loaded because service worker is not yet registered, we need to reload the page so the service worker intercepts the request
+ * 1. The app is loaded because service worker is not yet registered, we need to reload the page so the service worker intercepts the request
  *
  * After the service worker is loaded. Usually any react code isn't loaded, but some edge cases are:
  * 1. The page being loaded using some /ip[fn]s/<path> url, but subdomain isolation is supported, so we need to redirect to the isolated origin
  */
-import React, { createContext, useEffect, useState } from 'react'
+import React, { createContext, useEffect, useState } from 'preact/compat'
 import { getRedirectUrl, isDeregisterRequest } from '../lib/deregister-request.js'
-import { translateIpfsRedirectUrl } from '../lib/ipfs-hosted-redirect-utils.js'
 import { error, trace } from '../lib/logger.js'
 import { findOriginIsolationRedirect } from '../lib/path-or-subdomain.js'
 import { registerServiceWorker } from '../service-worker-utils.js'
@@ -23,32 +21,17 @@ export const ServiceWorkerContext = createContext({
   isServiceWorkerRegistered: false
 })
 
-export const ServiceWorkerProvider = ({ children }): JSX.Element => {
+export const ServiceWorkerProvider = ({ children }): React.JSX.Element => {
   const [isServiceWorkerRegistered, setIsServiceWorkerRegistered] = useState(false)
-
-  const windowLocation = translateIpfsRedirectUrl(window.location.href)
 
   useEffect(() => {
     if (isServiceWorkerRegistered) {
-      /**
-       * The service worker is registered, now we need to check for "helia-sw" and origin isolation support
-       */
-      if (windowLocation.href !== window.location.href) {
-      /**
-       * We're at a domain with ?helia-sw=, we can reload the page so the service worker will
-       * capture the request
-       */
-        window.location.replace(windowLocation.href)
-      } else {
-        /**
-         * ?helia-sw= url handling is done, now we can check for origin isolation redirects
-         */
-        void findOriginIsolationRedirect(windowLocation).then((originRedirect) => {
-          if (originRedirect !== null) {
-            window.location.replace(originRedirect)
-          }
-        })
-      }
+      void findOriginIsolationRedirect(window.location).then((originRedirect) => {
+        if (originRedirect !== null) {
+          window.location.replace(originRedirect)
+        }
+      })
+
       /**
        * The service worker is registered, we don't need to do any more work
        */

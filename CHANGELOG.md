@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.1.0](https://github.com/ipfs-shipyard/service-worker-gateway/compare/v1.0.0...v1.1.0) (2024-04-19)
+
+
+### Features
+
+* code split & dynamic imports ([#188](https://github.com/ipfs-shipyard/service-worker-gateway/issues/188)) ([bdc2979](https://github.com/ipfs-shipyard/service-worker-gateway/commit/bdc2979e02e934b4a3fc696e79ecefe202f059d7))
+* helper-ui input-validator update ([#202](https://github.com/ipfs-shipyard/service-worker-gateway/issues/202)) ([e95e70e](https://github.com/ipfs-shipyard/service-worker-gateway/commit/e95e70efdf84fc70c95956138f6bf32382f69e44))
+* http range support ([#122](https://github.com/ipfs-shipyard/service-worker-gateway/issues/122)) ([b064d20](https://github.com/ipfs-shipyard/service-worker-gateway/commit/b064d20b4d9b67ba33690ee115cbf6a2d78d3d1b))
+* migrate to preact/compat ([#190](https://github.com/ipfs-shipyard/service-worker-gateway/issues/190)) ([8c98f57](https://github.com/ipfs-shipyard/service-worker-gateway/commit/8c98f579b95992072474f02fe39865fda825379d))
+* quick TTFB & TTI for large content ([#138](https://github.com/ipfs-shipyard/service-worker-gateway/issues/138)) ([b3c08d1](https://github.com/ipfs-shipyard/service-worker-gateway/commit/b3c08d1df385fb7a27d6420c7d93ba20c598b84f))
+
+
+### Bug Fixes
+
+* **ci:** attach car to published release ([41d2cff](https://github.com/ipfs-shipyard/service-worker-gateway/commit/41d2cffcff5bc3061212fe13aadb5df9c1a3f64c))
+* first-hit handling renders redirect page correctly ([#163](https://github.com/ipfs-shipyard/service-worker-gateway/issues/163)) ([a961662](https://github.com/ipfs-shipyard/service-worker-gateway/commit/a961662aa606b835fc535b9ed3612142ef1d4886))
+* fix unixfs directory redirects ([#156](https://github.com/ipfs-shipyard/service-worker-gateway/issues/156)) ([4304333](https://github.com/ipfs-shipyard/service-worker-gateway/commit/4304333846c1af45fb7375adcc14768b439eb473))
+* redirect page and first-hit normalization ([#201](https://github.com/ipfs-shipyard/service-worker-gateway/issues/201)) ([8c85b6f](https://github.com/ipfs-shipyard/service-worker-gateway/commit/8c85b6ffe80685617b00ba51af3547f67a39fdf0))
+
 ## 1.0.0 (2024-03-15)
 
 

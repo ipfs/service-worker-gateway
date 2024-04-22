@@ -2,10 +2,7 @@ import { base32 } from 'multiformats/bases/base32'
 import { base36 } from 'multiformats/bases/base36'
 import { CID } from 'multiformats/cid'
 import { dnsLinkLabelEncoder } from './dns-link-labels.js'
-
-// TODO: dry, this is same regex code  as in  getSubdomainParts
-const subdomainRegex = /^(?<id>[^/]+)\.(?<protocol>ip[fn]s)\.[^/]+$/
-const pathRegex = /^\/(?<protocol>ip[fn]s)\/(?<path>.*)$/
+import { pathRegex, subdomainRegex } from './regex.js'
 
 export const isPathOrSubdomainRequest = (location: Pick<Location, 'host' | 'pathname'>): boolean => {
   return isPathGatewayRequest(location) || isSubdomainGatewayRequest(location)

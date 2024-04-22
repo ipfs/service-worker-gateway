@@ -1,117 +1,104 @@
-# helia-service-worker-gateway
+<h1 align="center">
+  <br>
+  <img src="https://github.com/ipfs-shipyard/service-worker-gateway/assets/157609/4931e739-a899-4b18-91f2-2a2bcafb5c33" alt="logo" title="logo" width="200"></a>
+  <br>
+  Service Worker IPFS Gateway
+  <br>
+</h1>
 
-This example shows how to use Helia in a Service Worker to handle fetching and verifying CIDs in the browser.
+<p align="center" style="font-size: 1.2rem;">Decentralizing IPFS Gateways by verifying hashes in the user's browser.</p>
 
-## Table of Contents
+<p align="center">
+  <a href="https://ipfs.tech"><img src="https://img.shields.io/badge/project-IPFS-blue.svg?style=flat-square" alt="Official Part of IPFS Project"></a>
+  <a href="https://discuss.ipfs.tech"><img alt="Discourse Forum" src="https://img.shields.io/discourse/posts?server=https%3A%2F%2Fdiscuss.ipfs.tech"></a>
+  <a href="https://matrix.to/#/#ip-js:ipfs.io"><img alt="Matrix" src="https://img.shields.io/matrix/ipfs-space%3Aipfs.io?server_fqdn=matrix.org"></a>
+  <a href="https://github.com/ipfs-shipyard/service-worker-gateway/actions"><img src="https://img.shields.io/github/actions/workflow/status/ipfs-shipyard/service-worker-gateway/main.yml?branch=main" alt="ci"></a>
+  <a href="https://github.com/ipfs-shipyard/service-worker-gateway/releases"><img alt="GitHub release" src="https://img.shields.io/github/v/release/ipfs-shipyard/service-worker-gateway?filter=!*rc*"></a>
+</p>
 
-- [Table of Contents](#table-of-contents)
-  - [Prerequisites](#prerequisites)
-  - [Installation and Running example](#installation-and-running-example)
-- [Examples](#examples)
-- [Usage](#usage)
-- [Demo links](#demo-links)
+<hr />
 
-## Getting Started
+## About
 
-### Prerequisites
+This project demonstrates
+the use of [Helia](https://github.com/ipfs/helia) (IPFS implementation in JS)
+and the [`verified-fetch` library](https://github.com/ipfs/helia-verified-fetch)
+([Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) for IPFS)
+within a [Service Worker](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API)
+to facilitate direct verified retrieval of content-addressed data.
 
-Make sure you have installed all of the following prerequisites on your development machine:
+A Service Worker is registered on the initial page load, and then intercepts HTTP requests
+for content stored on IPFS paths such as `/ipfs/*` (immutable) and
+`/ipns/*` (mutable) and returns
+[`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response) objects
+to the browser.
 
-- Git - [Download & Install Git](https://git-scm.com/downloads). OSX and Linux machines typically have this already installed.
-- Node.js - [Download & Install Node.js](https://nodejs.org/en/download/) and the npm package manager.
+It functions as an IPFS gateway within the browser, offering enhanced security
+([hash verification](https://docs.ipfs.tech/concepts/content-addressing/)
+happens on end user's machine) and reliability (ability to use multiple sources
+of content-addressed blocks) without reliance on a single HTTP server for IPFS
+tasks.
 
-### Installation and Running example
 
-```console
-> npm install
-> npm start
-```
+### Goals
 
-Now open your browser at `http://localhost:3000`
+The main goals of this project are:
+
+- **Enhancing the robustness of IPFS-based web hosting by eliminating reliance
+  on a single HTTP backend.**
+  - Tasks such as fetching blocks from IPFS content providers (both
+    peer-to-peer and HTTP), verifying that block hashes match the expected CID,
+    and re-assembling blocks into deserialized bytes that can be rendered by
+    the browser, all happens within the end user's machine.
+- **Reducing the operational costs associated with running an HTTP backend.**
+  - By shifting the majority of data retrieval tasks to the user's browser, the
+    backend hosting a website no longer needs to serve as a conduit for all of
+    its data. This means that a gateway operator could potentially run a simple
+    HTTP server on a Raspberry Pi, serving only small static HTML+JS files
+    (<10MiB), while allowing all other operations to occur within the user's
+    browser, with data fetched either peer-to-peer or from remote HTTP
+    trustless gateways.
+- **Improving JS tooling, IPFS specifications, and gateway-conformance tests.**
+   - By having to implement gateway semantics end-to-end we identify bugs and
+     gaps, and improve quality of libraries, specifications, and interop tests.
+
+
+
+### Feature Set
+
+- 🚧 **WIP:** Web interface for adjusting routing and retrieval settings.
+- 🚧 **WIP:** [Trustless](https://docs.ipfs.tech/reference/http/gateway/#trustless-verifiable-retrieval) content retrieval from multiple HTTP gateways.
+- 🚧 **WIP:** Support for [Web Gateway](https://specs.ipfs.tech/http-gateways/) feature set for website hosting (`index.html`, [web pathing](https://github.com/ipfs/specs/issues/432), `_redirects`).
+- 🚧 **Future:** [HTTP Routing V1](https://specs.ipfs.tech/routing/http-routing-v1/) (`/routing/v1`) client for discovering additional direct content providers.
+- 🚧 **Future:** [Denylist](https://specs.ipfs.tech/compact-denylist-format/) support for operators of public nodes.
 
 ## Usage
 
-In this example, you will find an example of using helia inside a service worker, that will intercept ipfs path requests (e.g. `/ipfs/*` and `/ipns/*`) and return a `Response` object. This can be used to obtain verified IPFS content instead of using a public IPFS gateway, using helia.
+### Running locally
 
-There are two methods of loading content with this demo, each method with its own buttons:
-
-1. Load in-page - This calls heliaFetch directly. NOTE: If you're loading an HTML page (a static website) the service worker must run in order to handle redirecting the loading of content through `heliaFetch`.
-2. Load directly / download - This method is processed directly by the service worker, and is essentially an IPFS gateway in the browser via helia in a service worker.
-
-The first thing you will see will look like the below image:
-
-![image](https://user-images.githubusercontent.com/1173416/230510195-ec5dfa8c-fe91-4ecd-b534-caaabf83e11d.png)
-
-As you type in an ip(f|n)s or dnslink path, you will be shown appropriate error messaging:
-
-![image](https://user-images.githubusercontent.com/1173416/230510280-373be0a1-b65b-482b-a41b-9c4a561afe83.png)
-
-![image](https://user-images.githubusercontent.com/1173416/230510324-87139b46-d240-4688-9f27-b75191dce6d1.png)
-
-![image](https://user-images.githubusercontent.com/1173416/230510358-1e380be1-30f6-4426-855f-b0dfc83d2aa3.png)
-
-etc... When your path is valid, you will be shown buttons that will let you load the content:
-
-![image](https://user-images.githubusercontent.com/1173416/230510425-774e2b4e-d1d1-4d95-a651-4c8300360b76.png)
+You can build and run the project locally:
 
 
-**NOTE:** There is no way to confirm the validity of an `/ipns/` path without actually querying for it, which is not currently done until you attempt to load the content.
-
-### Enabling subdomains
-
-You can enable support for subdomains with a simple nginx configuration:
-
-```nginx
-    # simple proxy from helia-sw-gateway.localhost to localhost:3000
-    server {
-        listen       80;
-
-        server_name ~^(?<subdomain>.+)\.ipfs\.helia-sw-gateway.localhost$ ~^(?<subdomain>.+)\.ipns\.helia-sw-gateway.localhost$ .helia-sw-gateway.localhost;
-
-        location / {
-            proxy_pass http://localhost:3000;
-            proxy_set_header Host $host;
-            proxy_set_header X-Forwarded-For $remote_addr;
-        }
-    }
+```console
+> npm ci
+> npm start
 ```
 
-You can then run `npm start` and your nginx server, and then visit `http://specs.ipfs.tech.ipns.helia-sw-gateway.localhost` in your browser to load the `specs.ipfs.tech` website via Helia, completely from the service worker.
+Now open your browser at `http://sw.localhost:3000`
 
-## Demo links
+As you type in a content path, you will be redirected to appropriate URL (typically that means [subdomain style resolution](https://docs.ipfs.tech/how-to/gateway-best-practices/#use-subdomain-gateway-resolution-for-origin-isolation)). 
 
-### Pre-reqs
+For more information about local development setup, see [/docs/DEVELOPMENT.md](/docs/DEVELOPMENT.md).
 
-You have to visit the [hosted site](https://helia-service-worker-gateway.on.fleek.co/) first, and make sure the SW is loaded. Once it is, the below links should work for you.
+### Try hosted instance
 
-Notes:
-- ⚠️ Deployment at `helia-service-worker-gateway.on.fleek.co` is for testing purposes only. It does not provide [Origin isolation](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway), it is a plain path gateway. NEVER user it for loading dapps with sensitive information such as keys, passwords, wallets. 
-* Attempting a few refreshes, clearing site data (cache/cookies/sw/indexDb/etc..), etc, may resolve your problem (though may be indicative of issues you can fix with a PR!)
-* Some content-types are not *previewable* with certain browsers. If you receive a download prompt you didn't expect: double check the returned content-type and make sure your browser supports previewing that content-type.
+- 🚧 **WIP: alpha quality** https://inbrowser.link hosts the latest [release](https://github.com/ipfs-shipyard/service-worker-gateway/releases)
+- 🚧 **WIP: alpha quality** https://inbrowser.dev is used for testing, hosts the latest dev version from the `main` branch
 
-### Links
+## License
 
-#### Static website and it's nested content
+This project is dual-licensed under
+`SPDX-License-Identifier: Apache-2.0 OR MIT`
 
-* ipfs.tech/images directory listing page - https://helia-service-worker-gateway.on.fleek.co/ipfs/QmeUdoMyahuQUPHS2odrZEL6yk2HnNfBJ147BeLXsZuqLJ/images
-* ipfs.tech/images/images/ipfs-desktop-hex.png - https://helia-service-worker-gateway.on.fleek.co/ipfs/QmeUdoMyahuQUPHS2odrZEL6yk2HnNfBJ147BeLXsZuqLJ/images/ipfs-desktop-hex.png
-* ipfs.tech website - https://helia-service-worker-gateway.on.fleek.co/ipfs/QmeUdoMyahuQUPHS2odrZEL6yk2HnNfBJ147BeLXsZuqLJ
+See [LICENSE](./LICENSE) for more details.
 
-#### Single images
-
-* router image - https://helia-service-worker-gateway.on.fleek.co/ipfs/bafkreicafxt3zr4cshf7qteztjzl62ouxqrofu647e44wt7s2iaqjn7bra
-* web3.storage logo - https://helia-service-worker-gateway.on.fleek.co/ipfs/bafkreif4ufrfpfcmqn5ltjvmeisgv4k7ykqz2mjygpngtwt4bijxosidqa
-
-#### Videos
-
-* skateboarder stock video - https://helia-service-worker-gateway.on.fleek.co/ipfs/bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq
-* big buck bunny video - https://helia-service-worker-gateway.on.fleek.co/ipfs/bafybeidsp6fva53dexzjycntiucts57ftecajcn5omzfgjx57pqfy3kwbq
-
-#### IPNS paths
-
-* /ipns/libp2p.io - https://helia-service-worker-gateway.on.fleek.co/ipns/libp2p.io
-* /ipns/ipfs.tech - https://helia-service-worker-gateway.on.fleek.co/ipns/ipfs.tech
-
-#### DNSLink paths
-
-* TBD

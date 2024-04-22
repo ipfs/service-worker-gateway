@@ -1,4 +1,4 @@
-import React, { createContext, useState } from 'react'
+import React, { createContext, useState } from 'preact/compat'
 import { isConfigPage } from '../lib/is-config-page.js'
 
 const isLoadedInIframe = window.self !== window.top
@@ -8,8 +8,8 @@ export const ConfigContext = createContext({
   setConfigExpanded: (value: boolean) => {}
 })
 
-export const ConfigProvider = ({ children, expanded = isLoadedInIframe }: { children: JSX.Element[] | JSX.Element, expanded?: boolean }): JSX.Element => {
-  const [isConfigExpanded, setConfigExpanded] = useState(expanded)
+export const ConfigProvider = ({ children }: { children: React.JSX.Element[] | React.JSX.Element, expanded?: boolean }): React.JSX.Element => {
+  const [isConfigExpanded, setConfigExpanded] = useState(isConfigPage(window.location.hash))
   const isExplicitlyLoadedConfigPage = isConfigPage(window.location.hash)
 
   const setConfigExpandedWrapped = (value: boolean): void => {
