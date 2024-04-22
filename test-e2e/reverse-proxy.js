@@ -4,6 +4,10 @@ import { request, createServer } from 'node:http'
 const TARGET_HOST = process.env.TARGET_HOST ?? 'localhost'
 const backendPort = Number(process.env.BACKEND_PORT ?? 3000)
 const proxyPort = Number(process.env.PROXY_PORT ?? 3333)
+const subdomain = process.env.SUBDOMAIN
+const prefixPath = process.env.PREFIX_PATH
+const disableTryFiles = process.env.DISABLE_TRY_FILES === 'true'
+const X_FORWARDED_HOST = process.env.X_FORWARDED_HOST
 
 const setCommonHeaders = (res) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -16,8 +20,22 @@ const makeRequest = (options, req, res, attemptRootFallback = false) => {
   const clientIp = req.connection.remoteAddress
   options.headers['X-Forwarded-For'] = clientIp
 
+  // override path to include prefixPath if set
+  if (prefixPath != null) {
+    options.path = `${prefixPath}${options.path}`
+  }
+  if (subdomain != null) {
+    options.headers.Host = `${subdomain}.${TARGET_HOST}`
+  }
+  if (X_FORWARDED_HOST != null) {
+    options.headers['X-Forwarded-Host'] = X_FORWARDED_HOST
+  }
+
+  // log where we're making the request to
+  console.log(`Proxying request to ${options.headers.Host}:${options.port}${options.path}`)
+
   const proxyReq = request(options, proxyRes => {
-    if (proxyRes.statusCode === 404) { // poor mans attempt to implement nginx style try_files
+    if (!disableTryFiles && proxyRes.statusCode === 404) { // poor mans attempt to implement nginx style try_files
       if (!attemptRootFallback) {
         // Split the path and pop the last segment
         const pathSegments = options.path.split('/')
