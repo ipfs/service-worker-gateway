@@ -1,11 +1,13 @@
 import React, { useContext, useEffect, useMemo, useState } from 'preact/compat'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
-import { ServiceWorkerContext } from '../context/service-worker-context.jsx'
+import { ConfigProvider } from '../context/config-context.jsx'
+import { ServiceWorkerContext, ServiceWorkerProvider } from '../context/service-worker-context.jsx'
 import { HeliaServiceWorkerCommsChannel } from '../lib/channel.js'
 import { setConfig, type ConfigDb } from '../lib/config-db.js'
 import { getSubdomainParts } from '../lib/get-subdomain-parts.js'
 import { isConfigPage } from '../lib/is-config-page.js'
 import { error, trace } from '../lib/logger.js'
+import { translateIpfsRedirectUrl } from '../lib/translate-ipfs-redirect-url.js'
 
 const ConfigIframe = (): React.JSX.Element => {
   const { parentDomain } = getSubdomainParts(window.location.href)
@@ -27,11 +29,16 @@ const ConfigIframe = (): React.JSX.Element => {
 
 const channel = new HeliaServiceWorkerCommsChannel('WINDOW')
 
-export default function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean }): React.JSX.Element {
+function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean }): React.JSX.Element {
   const [isAutoReloadEnabled, setIsAutoReloadEnabled] = useState(false)
   const { isServiceWorkerRegistered } = useContext(ServiceWorkerContext)
+  const [reloadUrl, setReloadUrl] = useState(translateIpfsRedirectUrl(window.location.href).href)
 
   useEffect(() => {
+    if (isConfigPage(window.location.hash)) {
+      setReloadUrl(window.location.href.replace('#/ipfs-sw-config', ''))
+    }
+
     async function doWork (config: ConfigDb): Promise<void> {
       try {
         await setConfig(config)
@@ -63,11 +70,6 @@ export default function RedirectPage ({ showConfigIframe = true }: { showConfigI
     }
   }, [])
 
-  let reloadUrl = window.location.href
-  if (isConfigPage(window.location.hash)) {
-    reloadUrl = window.location.href.replace('#/ipfs-sw-config', '')
-  }
-
   const displayString = useMemo(() => {
     if (!isServiceWorkerRegistered) {
       return 'Registering Helia service worker...'
@@ -93,5 +95,15 @@ export default function RedirectPage ({ showConfigIframe = true }: { showConfigI
       </div>
       {showConfigIframe && <ConfigIframe />}
     </div>
+  )
+}
+
+export default (): React.JSX.Element => {
+  return (
+    <ServiceWorkerProvider>
+      <ConfigProvider>
+        <RedirectPage />
+      </ConfigProvider>
+    </ServiceWorkerProvider>
   )
 }

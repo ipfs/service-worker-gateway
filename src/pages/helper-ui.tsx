@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'preact/compat'
 import Form from '../components/Form.jsx'
 import Header from '../components/Header.jsx'
 import CidRenderer from '../components/input-validator.jsx'
+import { ConfigProvider } from '../context/config-context.jsx'
+import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
 import { LOCAL_STORAGE_KEYS } from '../lib/local-storage.js'
 
-export default function (): React.JSX.Element {
+function HelperUi (): React.JSX.Element {
   const [requestPath, setRequestPath] = useState(localStorage.getItem(LOCAL_STORAGE_KEYS.forms.requestPath) ?? '')
 
   useEffect(() => {
@@ -32,5 +34,15 @@ export default function (): React.JSX.Element {
 
       </main>
     </>
+  )
+}
+
+export default (): React.JSX.Element => {
+  return (
+    <ServiceWorkerProvider>
+      <ConfigProvider>
+        <HelperUi />
+      </ConfigProvider>
+    </ServiceWorkerProvider>
   )
 }

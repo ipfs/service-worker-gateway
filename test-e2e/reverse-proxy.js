@@ -64,7 +64,7 @@ const makeRequest = (options, req, res, attemptRootFallback = false) => {
   req.pipe(proxyReq, { end: true })
 
   proxyReq.on('error', (e) => {
-    console.error(`Problem with request: ${e.message}`)
+    log.error(`Problem with request: ${e.message}`)
     setCommonHeaders(res)
     res.writeHead(500)
     res.end(`Internal Server Error: ${e.message}`)
