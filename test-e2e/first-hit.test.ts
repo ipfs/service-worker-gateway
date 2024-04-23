@@ -12,7 +12,8 @@ test.describe('first-hit ipfs-hosted', () => {
       }
     })
     test('redirects to ?helia-sw=<path> are handled', async ({ page }) => {
-      const response = await page.goto('http://127.0.0.1:3333/?helia-sw=/ipfs/bafkqablimvwgy3y', { waitUntil: 'commit' })
+      // const response = await page.goto('http://127.0.0.1:3333/?helia-sw=/ipfs/bafkqablimvwgy3y', { waitUntil: 'commit' })
+      const response = await page.goto('http://127.0.0.1:3334/ipfs/bafkqablimvwgy3y', { waitUntil: 'commit' })
 
       // first loads the root page
       expect(response?.status()).toBe(200)
@@ -21,7 +22,8 @@ test.describe('first-hit ipfs-hosted', () => {
       expect(headers?.['content-type']).toContain('text/html')
 
       // then we should be redirected to the IPFS path
-      await page.waitForURL('http://127.0.0.1:3333/ipfs/bafkqablimvwgy3y')
+      // await page.waitForURL('http://127.0.0.1:3333/ipfs/bafkqablimvwgy3y')
+      await page.waitForURL('http://127.0.0.1:3334/ipfs/bafkqablimvwgy3y')
 
       // and then the normal redirectPage logic:
       await waitForServiceWorker(page)

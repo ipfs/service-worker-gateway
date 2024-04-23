@@ -70,6 +70,16 @@ export default defineConfig({
       stderr: process.env.CI ? undefined : 'pipe'
     },
     {
+      command: 'node test-e2e/ipfs-gateway.js',
+      timeout: 5 * 1000,
+      env: {
+        PROXY_PORT: '3334',
+        GATEWAY_PORT: '8088'
+      },
+      stdout: process.env.CI ? undefined : 'pipe',
+      stderr: process.env.CI ? undefined : 'pipe'
+    },
+    {
       // need to use built assets due to service worker loading issue.
       // TODO: figure out how to get things working with npm run start
       command: 'npm run build && npx http-server --silent -p 3000 dist',
