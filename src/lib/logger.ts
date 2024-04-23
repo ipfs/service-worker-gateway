@@ -1,7 +1,3 @@
-import { logger } from '@libp2p/logger'
+import { prefixLogger } from '@libp2p/logger'
 
-const logObj = logger('helia:service-worker-gateway')
-
-export const log = logObj
-export const error = logObj.error
-export const trace = logObj.trace
+export const logger = prefixLogger('helia:service-worker-gateway')
