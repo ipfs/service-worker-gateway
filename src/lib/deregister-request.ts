@@ -1,10 +1,8 @@
-import { trace } from './logger.js'
-
 // things are wonky with hash routes for deregistering.
 export function isDeregisterRequest (url: string): boolean {
   const urlObj = new URL(url)
   const result = urlObj.search.includes('ipfs-sw-deregister')
-  trace('isDeregisterRequest: ', url, result)
+
   return result
 }
 

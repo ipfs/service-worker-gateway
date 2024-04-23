@@ -1,7 +1,7 @@
 import debugLib from 'debug'
 import { GenericIDB, type BaseDbConfig } from './generic-db.js'
 import { LOCAL_STORAGE_KEYS } from './local-storage.js'
-import { log } from './logger.js'
+import type { ComponentLogger } from '@libp2p/logger'
 
 export interface ConfigDb extends BaseDbConfig {
   gateways: string[]
@@ -32,7 +32,8 @@ export async function loadConfigFromLocalStorage (): Promise<void> {
   }
 }
 
-export async function setConfig (config: ConfigDb): Promise<void> {
+export async function setConfig (config: ConfigDb, logger: ComponentLogger): Promise<void> {
+  const log = logger.forComponent('set-config')
   debugLib.enable(config.debug ?? '') // set debug level first.
   log('config-debug: setting config %O for domain %s', config, window.location.origin)
 

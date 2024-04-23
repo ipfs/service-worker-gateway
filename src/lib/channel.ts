@@ -1,5 +1,5 @@
-import { error } from './logger.js'
 import type { ChannelActions } from './common.js'
+import type { ComponentLogger, Logger } from '@libp2p/logger'
 
 export enum ChannelUsers {
   SW = 'SW',
@@ -34,11 +34,14 @@ export interface ChannelMessage<Source extends ChannelUserValues, Data = Record<
 export class HeliaServiceWorkerCommsChannel<S extends ChannelUserValues = 'EMITTER_ONLY'> {
   channel: BroadcastChannel
   debug = false
-  constructor (public source: S, private readonly channelName = 'helia:sw') {
+  log: Logger
+  channelName = 'helia:sw'
+  constructor (public source: S, logger: ComponentLogger) {
+    this.log = logger.forComponent('comms-channel')
     // NOTE: We're supposed to close the channel when we're done with it, but we're not doing that anywhere yet.
     this.channel = new BroadcastChannel(this.channelName)
     this.channel.onmessageerror = (e) => {
-      error('onmessageerror', e)
+      this.log.error('onmessageerror', e)
     }
   }
 

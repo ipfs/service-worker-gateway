@@ -9,9 +9,10 @@ import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
 import { HeliaServiceWorkerCommsChannel } from '../lib/channel.js'
 import { getConfig, loadConfigFromLocalStorage } from '../lib/config-db.js'
 import { LOCAL_STORAGE_KEYS } from '../lib/local-storage.js'
-import { trace } from '../lib/logger.js'
+import { uiLogger } from '../lib/logger.js'
 
-const channel = new HeliaServiceWorkerCommsChannel('WINDOW')
+const log = uiLogger.forComponent('config-page')
+const channel = new HeliaServiceWorkerCommsChannel('WINDOW', uiLogger)
 
 const urlValidationFn = (value: string): Error | null => {
   try {
@@ -49,14 +50,14 @@ function ConfigPage (): React.JSX.Element | null {
     // we get the iframe origin from a query parameter called 'origin', if this is loaded in an iframe
     const targetOrigin = decodeURIComponent(window.location.hash.split('@origin=')[1])
     const config = await getConfig()
-    trace('config-page: postMessage config to origin ', config, targetOrigin)
+    log.trace('config-page: postMessage config to origin ', config, targetOrigin)
     /**
      * The reload page in the parent window is listening for this message, and then it passes a RELOAD_CONFIG message to the service worker
      */
     window.parent?.postMessage({ source: 'helia-sw-config-iframe', target: 'PARENT', action: 'RELOAD_CONFIG', config }, {
       targetOrigin
     })
-    trace('config-page: RELOAD_CONFIG sent to parent window')
+    log.trace('config-page: RELOAD_CONFIG sent to parent window')
   }, [])
 
   useEffect(() => {
@@ -69,11 +70,11 @@ function ConfigPage (): React.JSX.Element | null {
   const saveConfig = useCallback(async () => {
     try {
       await loadConfigFromLocalStorage()
-      trace('config-page: sending RELOAD_CONFIG to service worker')
+      log.trace('config-page: sending RELOAD_CONFIG to service worker')
       // update the BASE_URL service worker
       await channel.messageAndWaitForResponse('SW', { target: 'SW', action: 'RELOAD_CONFIG' })
       // base_domain service worker is updated
-      trace('config-page: RELOAD_CONFIG_SUCCESS for %s', window.location.origin)
+      log.trace('config-page: RELOAD_CONFIG_SUCCESS for %s', window.location.origin)
       // update the <subdomain>.<namespace>.BASE_URL service worker
       await postFromIframeToParentSw()
       if (!isLoadedInIframe) {

@@ -7,10 +7,8 @@ import { getRedirectUrl, isDeregisterRequest } from './lib/deregister-request.js
 import { GenericIDB } from './lib/generic-db.js'
 import { getSubdomainParts } from './lib/get-subdomain-parts.js'
 import { isConfigPage } from './lib/is-config-page.js'
-import { logger } from './lib/logger.js'
+import { swLogger } from './lib/logger.js'
 import { findOriginIsolationRedirect } from './lib/path-or-subdomain.js'
-
-const log = logger.forComponent('service-worker')
 
 /**
  ******************************************************
@@ -79,6 +77,7 @@ interface ResponseDetails {
  ******************************************************
  */
 declare let self: ServiceWorkerGlobalScope
+const log = swLogger.forComponent('main')
 
 /**
  * This is one best practice that can be followed in general to keep track of
@@ -102,7 +101,7 @@ const CURRENT_CACHES = Object.freeze({
   immutable: `immutable-cache-v${CACHE_VERSION}`
 })
 let verifiedFetch: VerifiedFetch
-const channel = new HeliaServiceWorkerCommsChannel('SW')
+const channel = new HeliaServiceWorkerCommsChannel('SW', swLogger)
 const timeoutAbortEventType = 'verified-fetch-timeout'
 const ONE_HOUR_IN_SECONDS = 3600
 const urlInterceptRegex = [new RegExp(`${self.location.origin}/ip(n|f)s/`)]
@@ -162,7 +161,7 @@ self.addEventListener('activate', (event) => {
         cacheNames.map(async function (cacheName) {
           if (!expectedCacheNames.includes(cacheName)) {
             // If this cache name isn't present in the array of "expected" cache names, then delete it.
-            log('helia-sw: deleting out of date cache:', cacheName)
+            log('deleting out of date cache:', cacheName)
             return caches.delete(cacheName)
           }
         })
@@ -175,8 +174,8 @@ self.addEventListener('fetch', (event) => {
   const request = event.request
   const urlString = request.url
   const url = new URL(urlString)
-  log('helia-sw: incoming request url: %s:', event.request.url)
-  log('helia-sw: request range header value: "%s"', event.request.headers.get('range'))
+  log('incoming request url: %s:', event.request.url)
+  log('request range header value: "%s"', event.request.headers.get('range'))
 
   event.waitUntil(requestRouting(event, url).then(async (shouldHandle) => {
     if (shouldHandle) {
@@ -192,7 +191,7 @@ self.addEventListener('fetch', (event) => {
  */
 async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
   if (await isTimebombExpired()) {
-    log.trace('helia-sw: timebomb expired, deregistering service worker')
+    log.trace('timebomb expired, deregistering service worker')
     event.waitUntil(deregister(event, false))
     return false
   } else if (isDeregisterRequest(event.request.url)) {
@@ -200,10 +199,10 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
     return false
   } else if (isConfigPageRequest(url) || isSwAssetRequest(event)) {
     // get the assets from the server
-    log.trace('helia-sw: config page or js asset request, ignoring ', event.request.url)
+    log.trace('config page or js asset request, ignoring ', event.request.url)
     return false
   } else if (!isValidRequestForSW(event)) {
-    log.trace('helia-sw: not a valid request for helia-sw, ignoring ', event.request.url)
+    log.trace('not a valid request for helia-sw, ignoring ', event.request.url)
     return false
   } else if (url.href.includes('bafkqaaa.ipfs')) {
     /**
@@ -324,10 +323,10 @@ async function fetchAndUpdateCache (event: FetchEvent, url: URL, cacheKey: strin
 
   // log all of the headers:
   response.headers.forEach((value, key) => {
-    log.trace('helia-sw: response headers: %s: %s', key, value)
+    log.trace('response headers: %s: %s', key, value)
   })
 
-  log('helia-sw: response status: %s', response.status)
+  log('response status: %s', response.status)
 
   try {
     await storeReponseInCache({ response, isMutable: true, cacheKey, event })
@@ -344,7 +343,7 @@ async function getResponseFromCacheOrFetch (event: FetchEvent): Promise<Response
   const url = new URL(event.request.url)
   const isMutable = protocol === 'ipns'
   const cacheKey = getCacheKey(event)
-  log.trace('helia-sw: cache key: %s', cacheKey)
+  log.trace('cache key: %s', cacheKey)
   const cache = await caches.open(isMutable ? CURRENT_CACHES.mutable : CURRENT_CACHES.immutable)
   const cachedResponse = await cache.match(cacheKey)
   const validCacheHit = cachedResponse != null && !hasExpired(cachedResponse)
@@ -371,11 +370,11 @@ function shouldCacheResponse ({ event, response }: { event: FetchEvent, response
   }
   const statusCodesToNotCache = [206]
   if (statusCodesToNotCache.some(code => code === response.status)) {
-    log('helia-sw: not caching response with status %s', response.status)
+    log('not caching response with status %s', response.status)
     return false
   }
   if (event.request.headers.get('pragma') === 'no-cache' || event.request.headers.get('cache-control') === 'no-cache') {
-    log('helia-sw: request indicated no-cache, not caching')
+    log('request indicated no-cache, not caching')
     return false
   }
 
@@ -437,10 +436,10 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
   const abortFn = (event: Pick<AbortSignalEventMap['abort'], 'type'>): void => {
     clearTimeout(signalAbortTimeout)
     if (event?.type === timeoutAbortEventType) {
-      log.trace('helia-sw: timeout waiting for response from @helia/verified-fetch')
+      log.trace('timeout waiting for response from @helia/verified-fetch')
       abortController.abort('timeout')
     } else {
-      log.trace('helia-sw: request signal aborted')
+      log.trace('request signal aborted')
       abortController.abort('request signal aborted')
     }
   }

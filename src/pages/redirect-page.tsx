@@ -6,8 +6,10 @@ import { HeliaServiceWorkerCommsChannel } from '../lib/channel.js'
 import { setConfig, type ConfigDb } from '../lib/config-db.js'
 import { getSubdomainParts } from '../lib/get-subdomain-parts.js'
 import { isConfigPage } from '../lib/is-config-page.js'
-import { error, trace } from '../lib/logger.js'
+import { uiLogger } from '../lib/logger.js'
 import { translateIpfsRedirectUrl } from '../lib/translate-ipfs-redirect-url.js'
+
+const log = uiLogger.forComponent('redirect-page')
 
 const ConfigIframe = (): React.JSX.Element => {
   const { parentDomain } = getSubdomainParts(window.location.href)
@@ -27,7 +29,7 @@ const ConfigIframe = (): React.JSX.Element => {
   )
 }
 
-const channel = new HeliaServiceWorkerCommsChannel('WINDOW')
+const channel = new HeliaServiceWorkerCommsChannel('WINDOW', uiLogger)
 
 function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean }): React.JSX.Element {
   const [isAutoReloadEnabled, setIsAutoReloadEnabled] = useState(false)
@@ -41,14 +43,14 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
 
     async function doWork (config: ConfigDb): Promise<void> {
       try {
-        await setConfig(config)
+        await setConfig(config, uiLogger)
         // TODO: show spinner / disable buttons while waiting for response
         await channel.messageAndWaitForResponse('SW', { target: 'SW', action: 'RELOAD_CONFIG' })
-        trace('redirect-page: RELOAD_CONFIG_SUCCESS on %s', window.location.origin)
+        log.trace('redirect-page: RELOAD_CONFIG_SUCCESS on %s', window.location.origin)
         // try to preload the content
         // await fetch(window.location.href, { method: 'GET' })
       } catch (err) {
-        error('redirect-page: error setting config on subdomain', err)
+        log.error('redirect-page: error setting config on subdomain', err)
       }
 
       if (config.autoReload) {
@@ -57,7 +59,7 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
     }
     const listener = (event: MessageEvent): void => {
       if (event.data?.source === 'helia-sw-config-iframe') {
-        trace('redirect-page: received RELOAD_CONFIG message from iframe', event.data)
+        log.trace('redirect-page: received RELOAD_CONFIG message from iframe', event.data)
         const config = event.data?.config
         if (config != null) {
           void doWork(config as ConfigDb)
