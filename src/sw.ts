@@ -7,8 +7,10 @@ import { getRedirectUrl, isDeregisterRequest } from './lib/deregister-request.js
 import { GenericIDB } from './lib/generic-db.js'
 import { getSubdomainParts } from './lib/get-subdomain-parts.js'
 import { isConfigPage } from './lib/is-config-page.js'
-import { error, log, trace } from './lib/logger.js'
+import { logger } from './lib/logger.js'
 import { findOriginIsolationRedirect } from './lib/path-or-subdomain.js'
+
+const log = logger.forComponent('service-worker')
 
 /**
  ******************************************************
@@ -141,7 +143,7 @@ self.addEventListener('activate', (event) => {
       case 'RELOAD_CONFIG':
         void updateVerifiedFetch().then(async () => {
           channel.postMessage<any>({ action: 'RELOAD_CONFIG_SUCCESS', data: { config: await getConfig() } })
-          trace('sw: RELOAD_CONFIG_SUCCESS for %s', self.location.origin)
+          log.trace('sw: RELOAD_CONFIG_SUCCESS for %s', self.location.origin)
         })
         break
       default:
@@ -190,7 +192,7 @@ self.addEventListener('fetch', (event) => {
  */
 async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
   if (await isTimebombExpired()) {
-    trace('helia-sw: timebomb expired, deregistering service worker')
+    log.trace('helia-sw: timebomb expired, deregistering service worker')
     event.waitUntil(deregister(event, false))
     return false
   } else if (isDeregisterRequest(event.request.url)) {
@@ -198,10 +200,10 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
     return false
   } else if (isConfigPageRequest(url) || isSwAssetRequest(event)) {
     // get the assets from the server
-    trace('helia-sw: config page or js asset request, ignoring ', event.request.url)
+    log.trace('helia-sw: config page or js asset request, ignoring ', event.request.url)
     return false
   } else if (!isValidRequestForSW(event)) {
-    trace('helia-sw: not a valid request for helia-sw, ignoring ', event.request.url)
+    log.trace('helia-sw: not a valid request for helia-sw, ignoring ', event.request.url)
     return false
   } else if (url.href.includes('bafkqaaa.ipfs')) {
     /**
@@ -250,7 +252,7 @@ async function deregister (event, redirectToConfig = true): Promise<void> {
     try {
       await client.navigate(newUrl)
     } catch (e) {
-      error('error navigating client to ', newUrl, e)
+      log.error('error navigating client to ', newUrl, e)
     }
   }
 }
@@ -263,8 +265,8 @@ function isRootRequestForContent (event: FetchEvent): boolean {
 
 function isSubdomainRequest (event: FetchEvent): boolean {
   const { id, protocol } = getSubdomainParts(event.request.url)
-  trace('isSubdomainRequest.id: ', id)
-  trace('isSubdomainRequest.protocol: ', protocol)
+  log.trace('isSubdomainRequest.id: ', id)
+  log.trace('isSubdomainRequest.protocol: ', protocol)
 
   return id != null && protocol != null
 }
@@ -329,9 +331,9 @@ async function fetchAndUpdateCache (event: FetchEvent, url: URL, cacheKey: strin
 
   try {
     await storeReponseInCache({ response, isMutable: true, cacheKey, event })
-    trace('helia-ws: updated cache for %s', cacheKey)
+    log.trace('helia-ws: updated cache for %s', cacheKey)
   } catch (err) {
-    error('helia-ws: failed updating response in cache for %s', cacheKey, err)
+    log.error('helia-ws: failed updating response in cache for %s', cacheKey, err)
   }
 
   return response
@@ -342,7 +344,7 @@ async function getResponseFromCacheOrFetch (event: FetchEvent): Promise<Response
   const url = new URL(event.request.url)
   const isMutable = protocol === 'ipns'
   const cacheKey = getCacheKey(event)
-  trace('helia-sw: cache key: %s', cacheKey)
+  log.trace('helia-sw: cache key: %s', cacheKey)
   const cache = await caches.open(isMutable ? CURRENT_CACHES.mutable : CURRENT_CACHES.immutable)
   const cachedResponse = await cache.match(cacheKey)
   const validCacheHit = cachedResponse != null && !hasExpired(cachedResponse)
@@ -384,7 +386,7 @@ async function storeReponseInCache ({ response, isMutable, cacheKey, event }: St
   if (!shouldCacheResponse({ event, response })) {
     return
   }
-  trace('helia-ws: updating cache for %s in the background', cacheKey)
+  log.trace('helia-ws: updating cache for %s in the background', cacheKey)
 
   const cache = await caches.open(isMutable ? CURRENT_CACHES.mutable : CURRENT_CACHES.immutable)
 
@@ -392,7 +394,7 @@ async function storeReponseInCache ({ response, isMutable, cacheKey, event }: St
   const respToCache = response.clone()
 
   if (isMutable) {
-    trace('helia-ws: setting expires header on response key %s before storing in cache', cacheKey)
+    log.trace('helia-ws: setting expires header on response key %s before storing in cache', cacheKey)
     // 👇 Set expires header to an hour from now for mutable (ipns://) resources
     // Note that this technically breaks HTTP semantics, whereby the cache-control max-age takes precendence
     // Setting this header is only used by the service worker using a mechanism similar to stale-while-revalidate
@@ -466,7 +468,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
       headers,
       redirect: 'manual',
       onProgress: (e) => {
-        trace(`${e.type}: `, e.detail)
+        log.trace(`${e.type}: `, e.detail)
       }
     })
     /**
@@ -487,14 +489,14 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
   } catch (err: unknown) {
     const errorMessages: string[] = []
     if (isAggregateError(err)) {
-      error('fetchHandler aggregate error: ', err.message)
+      log.error('fetchHandler aggregate error: ', err.message)
       for (const e of err.errors) {
         errorMessages.push(e.message)
-        error('fetchHandler errors: ', e)
+        log.error('fetchHandler errors: ', e)
       }
     } else {
       errorMessages.push(err instanceof Error ? err.message : JSON.stringify(err))
-      error('fetchHandler error: ', err)
+      log.error('fetchHandler error: ', err)
     }
     const errorMessage = errorMessages.join('\n')
 
@@ -613,7 +615,7 @@ async function getInstallTimestamp (): Promise<number> {
     swidb.close()
     return firstInstallTime
   } catch (e) {
-    error('getInstallTimestamp error: ', e)
+    log.error('getInstallTimestamp error: ', e)
     return 0
   }
 }
@@ -627,6 +629,6 @@ async function addInstallTimestampToConfig (): Promise<void> {
     await swidb.put('installTimestamp', timestamp)
     swidb.close()
   } catch (e) {
-    error('addInstallTimestampToConfig error: ', e)
+    log.error('addInstallTimestampToConfig error: ', e)
   }
 }
