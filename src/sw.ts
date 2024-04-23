@@ -1,7 +1,7 @@
 import { createVerifiedFetch, type VerifiedFetch } from '@helia/verified-fetch'
 import { dnsJsonOverHttps } from '@multiformats/dns/resolvers'
 import { HeliaServiceWorkerCommsChannel, type ChannelMessage } from './lib/channel.js'
-import { getConfig } from './lib/config-db.js'
+import { getConfig, type ConfigDb } from './lib/config-db.js'
 import { contentTypeParser } from './lib/content-type-parser.js'
 import { getRedirectUrl, isDeregisterRequest } from './lib/deregister-request.js'
 import { GenericIDB } from './lib/generic-db.js'
@@ -44,6 +44,31 @@ interface StoreReponseInCacheOptions {
  */
 interface LocalSwConfig {
   installTimestamp: number
+}
+
+/**
+ * When returning a meaningful error page, we provide the following details about
+ * the service worker
+ */
+interface ServiceWorkerDetails {
+  config: ConfigDb
+  crossOriginIsolated: boolean
+  installTime: string
+  origin: string
+  scope: string
+  state: string
+}
+
+/**
+ * When returning a meaningful error page, we provide the following details about
+ * the response that failed
+ */
+interface ResponseDetails {
+  responseBody: string
+  headers: Record<string, string>
+  status: number
+  statusText: string
+  url: string
 }
 
 /**
@@ -454,6 +479,10 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
      * the response object, regardless of it's inner content
      */
     clearTimeout(signalAbortTimeout)
+    if (response.status >= 400) {
+      log.error('fetchHandler: response not ok: ', response)
+      return await errorPageResponse(response)
+    }
     return response
   } catch (err: unknown) {
     const errorMessages: string[] = []
@@ -473,6 +502,98 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
       return new Response('heliaFetch error aborted due to timeout: ' + errorMessage, { status: 408 })
     }
     return new Response('heliaFetch error: ' + errorMessage, { status: 500 })
+  }
+}
+
+/**
+ * TODO: better styling
+ * TODO: more error details from @helia/verified-fetch
+ */
+async function errorPageResponse (fetchResponse: Response): Promise<Response> {
+  const responseContentType = fetchResponse.headers.get('Content-Type')
+  let json: Record<string, any> | null = null
+  let text: string | null = null
+  const responseBodyAsText: string | null = await fetchResponse.text()
+
+  if (responseContentType != null) {
+    if (responseContentType.includes('text/html')) {
+      return fetchResponse
+    } else if (responseContentType.includes('application/json')) {
+      // we may eventually provide error messaging from @helia/verified-fetch
+      try {
+        json = JSON.parse(responseBodyAsText)
+      } catch (e) {
+        text = responseBodyAsText
+        json = { error: { message: `${fetchResponse.statusText}: ${text}`, stack: null } }
+      }
+    }
+  }
+  if (json == null) {
+    text = await fetchResponse.text()
+    json = { error: { message: `${fetchResponse.statusText}: ${text}`, stack: null } }
+  }
+
+  const responseDetails = getResponseDetails(fetchResponse, responseBodyAsText)
+
+  /**
+   * TODO: output configuration
+   */
+  return new Response(`
+      <h1>Oops! Something went wrong inside of Service Worker IPFS Gateway.</h1>
+      <p><button onclick="window.location.reload(true);">Click here to retry</button></p>
+      <p>
+        <h2>Error details:</h2>
+        <p><b>Message: </b>${json.error.message}</p>
+        <b>Stacktrace: </b><pre>${json.error.stack}</pre>
+      </p>
+      <p>
+        <h2>Response details:</h2>
+        <h3>${responseDetails.status} ${responseDetails.statusText}</h3>
+        <pre>${JSON.stringify(responseDetails, null, 2)}</pre>
+      </p>
+      <p>
+        <h2>Service worker details:</h2>
+        <pre>${JSON.stringify(await getServiceWorkerDetails(), null, 2)}</pre>
+      </p>
+    `, {
+    status: fetchResponse.status,
+    statusText: fetchResponse.statusText,
+    headers: new Headers({
+      'Content-Type': 'text/html'
+    })
+  })
+}
+
+/**
+ * TODO: more service worker details
+ */
+async function getServiceWorkerDetails (): Promise<ServiceWorkerDetails> {
+  const registration = self.registration
+  const state = registration.installing?.state ?? registration.waiting?.state ?? registration.active?.state ?? 'unknown'
+
+  return {
+    config: await getConfig(),
+    // TODO: implement https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Opener-Policy
+    crossOriginIsolated: self.crossOriginIsolated,
+    installTime: (new Date(firstInstallTime)).toUTCString(),
+    origin: self.location.origin,
+    scope: registration.scope,
+    state
+  }
+}
+
+function getResponseDetails (response: Response, responseBody: string): ResponseDetails {
+  const headers = {}
+  response.headers.forEach((value, key) => {
+    headers[key] = value
+  })
+
+  return {
+    responseBody,
+    headers,
+    status: response.status,
+    statusText: response.statusText,
+    url: response.url
   }
 }
 
