@@ -13,6 +13,7 @@ import { path } from 'kubo'
 
 const log = logger('ipfs-host.local')
 const daemonLog = logger('ipfs-host.local:kubo')
+const proxyLog = logger('ipfs-host.local:proxy')
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const tempDir = tmpdir()
 const IPFS_PATH = `${tempDir}/.ipfs/${Date.now()}`
@@ -28,7 +29,7 @@ const execaOptions = {
   cleanup: true,
   env: {
     IPFS_PATH,
-    GOLOG_LOG_LEVEL: 'debug,*=debug',
+    GOLOG_LOG_LEVEL: process.env.GOLOG_LOG_LEVEL ?? 'debug,*=debug',
     DEBUG: 'reverse-proxy,reverse-proxy:*'
   }
 }
@@ -71,10 +72,10 @@ if (daemon == null || (daemon.stdout == null || daemon.stderr == null)) {
   throw new Error('failed to start kubo daemon')
 }
 daemon.stdout.on('data', (data) => {
-  daemonLog.trace(data.toString())
+  daemonLog(data.toString())
 })
 daemon.stderr.on('data', (data) => {
-  daemonLog.error(data.toString())
+  daemonLog.trace(data.toString())
 })
 
 // check for "daemon is ready" message
@@ -104,4 +105,10 @@ execaOptions.env = {
   DEBUG: process.env.DEBUG ?? 'reverse-proxy*,reverse-proxy*:trace'
 }
 const reverseProxy = execa('node', [`${join(__dirname, 'reverse-proxy.js')}`], execaOptions)
-reverseProxy.stdout?.pipe(process.stdout)
+
+reverseProxy.stdout?.on('data', (data) => {
+  proxyLog(data.toString())
+})
+reverseProxy.stderr?.on('data', (data) => {
+  proxyLog.trace(data.toString())
+})

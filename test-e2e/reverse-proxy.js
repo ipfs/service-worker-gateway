@@ -1,10 +1,6 @@
 /* eslint-disable no-console */
 import { request, createServer } from 'node:http'
 import { logger } from '@libp2p/logger'
-import debug from 'debug'
-
-// TODO: debug logging is not showing up from this file for some reason.
-debug.enable(process.env.DEBUG ?? '')
 
 const log = logger('reverse-proxy')
 
