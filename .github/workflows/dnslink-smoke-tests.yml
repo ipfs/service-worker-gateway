@@ -6,12 +6,13 @@ on:
   workflow_dispatch:
 
 env:
-  KUBO_VER: 'v0.27.0'       # kubo daemon used for publishing to IPFS
+  KUBO_VER: 'v0.28.0'       # kubo daemon used for publishing to IPFS
   CLUSTER_CTL_VER: 'v1.0.8' # ipfs-cluster-ctl used by publish-to-ipfs
 
 jobs:
   smoke-test-cached-http: # basic smoke test that lets us know when stale-while-revalidate caching does not work on either env
     runs-on: ubuntu-latest
+    timeout-minutes: 55
     strategy:
       fail-fast: false
       matrix:
@@ -24,6 +25,7 @@ jobs:
 
   smoke-test-fresh-http: # basic smoke test for getting latest DNSLink DAG over HTTP gateways
     runs-on: ubuntu-latest
+    timeout-minutes: 55
     strategy:
       fail-fast: false
       matrix:
@@ -48,6 +50,7 @@ jobs:
 
   smoke-test-fresh-p2p: # basic smoke test for getting latest DNSLink DAG over P2P with Kubo
     runs-on: ubuntu-latest
+    timeout-minutes: 55
     strategy:
       fail-fast: false
       matrix:

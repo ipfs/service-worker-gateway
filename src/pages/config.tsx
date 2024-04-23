@@ -3,7 +3,9 @@ import { Collapsible } from '../components/collapsible.jsx'
 import LocalStorageInput from '../components/local-storage-input.jsx'
 import { LocalStorageToggle } from '../components/local-storage-toggle.jsx'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
+import { ConfigProvider } from '../context/config-context.jsx'
 import { RouteContext } from '../context/router-context.jsx'
+import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
 import { HeliaServiceWorkerCommsChannel } from '../lib/channel.js'
 import { getConfig, loadConfigFromLocalStorage } from '../lib/config-db.js'
 import { LOCAL_STORAGE_KEYS } from '../lib/local-storage.js'
@@ -34,7 +36,7 @@ const stringValidationFn = (value: string): Error | null => {
   return null
 }
 
-export default (): React.JSX.Element | null => {
+function ConfigPage (): React.JSX.Element | null {
   const { gotoPage } = React.useContext(RouteContext)
   const [error, setError] = useState<Error | null>(null)
 
@@ -94,5 +96,15 @@ export default (): React.JSX.Element | null => {
         {error != null && <span style={{ color: 'red' }}>{error.message}</span>}
       </Collapsible>
     </main>
+  )
+}
+
+export default (): React.JSX.Element => {
+  return (
+    <ServiceWorkerProvider>
+      <ConfigProvider>
+        <ConfigPage />
+      </ConfigProvider>
+    </ServiceWorkerProvider>
   )
 }

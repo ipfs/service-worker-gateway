@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 env:
-  KUBO_VER: 'v0.27.0'       # kubo daemon used for publishing to IPFS
+  KUBO_VER: 'v0.28.0'       # kubo daemon used for publishing to IPFS
   CLUSTER_CTL_VER: 'v1.0.8' # ipfs-cluster-ctl used by publish-to-ipfs
 
 jobs:
@@ -198,20 +198,6 @@ jobs:
           name: ipfs-cluster-ctl
           version: "${{ env.CLUSTER_CTL_VER }}"
       - uses: ipfs/start-ipfs-daemon-action@v1
-      - name: Preconnect to cluster peers
-        run: |
-          ipfs-cluster-ctl --enc=json \
-            --host "/dnsaddr/ipfs-websites.collab.ipfscluster.io" \
-            --basic-auth "$CLUSTER_USER:$CLUSTER_PASSWORD" \
-            peers ls | tee cluster-peers-ls
-          for maddr in $(jq -r '.ipfs.addresses[]?' cluster-peers-ls); do
-            ipfs swarm peering add $maddr
-            ipfs swarm connect $maddr || true &
-          done
-        shell: bash
-        env:
-          CLUSTER_USER: ${{ secrets.CLUSTER_USER }}
-          CLUSTER_PASSWORD: ${{ secrets.CLUSTER_PASSWORD }}
       - name: IPFS import of ./dist
         id: ipfs-import
         run: |
@@ -227,17 +213,15 @@ jobs:
           name: dist_${{ github.sha }}.car
           path: dist_${{ github.sha }}.car
           if-no-files-found: error
-      - name: Pin to ipfs-websites.collab.ipfscluster.io
+      - name: Upload and pin CAR to ipfs-websites.collab.ipfscluster.io
         run: |
           ipfs-cluster-ctl --enc=json \
               --host "/dnsaddr/ipfs-websites.collab.ipfscluster.io" \
               --basic-auth "${CLUSTER_USER}:${CLUSTER_PASSWORD}" \
-              pin add \
+              add --format car \
               --name "${{ github.repository }}/${{ github.sha }}" \
-              --wait \
-              "$PIN_CID"
+              dist_${{ github.sha }}.car
         env:
-          PIN_CID: ${{ steps.ipfs-import.outputs.cid }}
           CLUSTER_USER: ${{ secrets.CLUSTER_USER }}
           CLUSTER_PASSWORD: ${{ secrets.CLUSTER_PASSWORD }}
         timeout-minutes: 60
