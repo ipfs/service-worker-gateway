@@ -503,6 +503,8 @@ async function errorPageResponse (fetchResponse: Response): Promise<Response> {
     json = { error: { message: fetchResponse.statusText, stack: (new Error()).stack } }
   }
 
+  const responseDetails = getResponseDetails(fetchResponse)
+
   /**
    * TODO: output configuration
    */
@@ -516,7 +518,8 @@ async function errorPageResponse (fetchResponse: Response): Promise<Response> {
       </p>
       <p>
         <p>Response details:</p>
-        <pre>${JSON.stringify(json, null, 2)}</pre>
+        <p><b>${responseDetails.status} ${responseDetails.statusText}</b></p>
+        <pre>${JSON.stringify(responseDetails.headers, null, 2)}</pre>
       </p>
       <p>
         <p>Service worker details:</p>
@@ -554,6 +557,20 @@ async function getServiceWorkerDetails (): Promise<ServiceWorkerDetails> {
     origin: self.location.origin,
     scope: registration.scope,
     state
+  }
+}
+
+function getResponseDetails (response: Response): Record<string, any> {
+  const headers = {}
+  response.headers.forEach((value, key) => {
+    headers[key] = value
+  })
+
+  return {
+    headers,
+    status: response.status,
+    statusText: response.statusText,
+    url: response.url
   }
 }
 
