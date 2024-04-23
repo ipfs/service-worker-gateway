@@ -1,5 +1,12 @@
 /* eslint-disable no-console */
 import { request, createServer } from 'node:http'
+import { logger } from '@libp2p/logger'
+import debug from 'debug'
+
+// TODO: debug logging is not showing up from this file for some reason.
+debug.enable(process.env.DEBUG ?? '')
+
+const log = logger('reverse-proxy')
 
 const TARGET_HOST = process.env.TARGET_HOST ?? 'localhost'
 const backendPort = Number(process.env.BACKEND_PORT ?? 3000)
@@ -32,7 +39,7 @@ const makeRequest = (options, req, res, attemptRootFallback = false) => {
   }
 
   // log where we're making the request to
-  console.log(`Proxying request to ${options.headers.Host}:${options.port}${options.path}`)
+  log('Proxying request to %s:%s%s', options.headers.Host, options.port, options.path)
 
   const proxyReq = request(options, proxyRes => {
     if (!disableTryFiles && proxyRes.statusCode === 404) { // poor mans attempt to implement nginx style try_files
@@ -84,5 +91,5 @@ const proxyServer = createServer((req, res) => {
 })
 
 proxyServer.listen(proxyPort, () => {
-  console.log(`Proxy server listening on port ${proxyPort}`)
+  log(`Proxy server listening on port ${proxyPort}`)
 })
