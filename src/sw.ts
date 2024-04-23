@@ -142,7 +142,7 @@ self.addEventListener('activate', (event) => {
       case 'RELOAD_CONFIG':
         void updateVerifiedFetch().then(async () => {
           channel.postMessage<any>({ action: 'RELOAD_CONFIG_SUCCESS', data: { config: await getConfig() } })
-          log.trace('sw: RELOAD_CONFIG_SUCCESS for %s', self.location.origin)
+          log.trace('RELOAD_CONFIG_SUCCESS for %s', self.location.origin)
         })
         break
       default:
@@ -330,9 +330,9 @@ async function fetchAndUpdateCache (event: FetchEvent, url: URL, cacheKey: strin
 
   try {
     await storeReponseInCache({ response, isMutable: true, cacheKey, event })
-    log.trace('helia-ws: updated cache for %s', cacheKey)
+    log.trace('updated cache for %s', cacheKey)
   } catch (err) {
-    log.error('helia-ws: failed updating response in cache for %s', cacheKey, err)
+    log.error('failed updating response in cache for %s', cacheKey, err)
   }
 
   return response
@@ -349,7 +349,7 @@ async function getResponseFromCacheOrFetch (event: FetchEvent): Promise<Response
   const validCacheHit = cachedResponse != null && !hasExpired(cachedResponse)
 
   if (validCacheHit) {
-    log('helia-ws: cached response HIT for %s (expires: %s) %o', cacheKey, cachedResponse.headers.get('sw-cache-expires'), cachedResponse)
+    log('cached response HIT for %s (expires: %s) %o', cacheKey, cachedResponse.headers.get('sw-cache-expires'), cachedResponse)
 
     if (isMutable) {
       // If the response is mutable, update the cache in the background.
@@ -359,7 +359,7 @@ async function getResponseFromCacheOrFetch (event: FetchEvent): Promise<Response
     return cachedResponse
   }
 
-  log('helia-ws: cached response MISS for %s', cacheKey)
+  log('cached response MISS for %s', cacheKey)
 
   return fetchAndUpdateCache(event, url, cacheKey)
 }
@@ -385,7 +385,7 @@ async function storeReponseInCache ({ response, isMutable, cacheKey, event }: St
   if (!shouldCacheResponse({ event, response })) {
     return
   }
-  log.trace('helia-ws: updating cache for %s in the background', cacheKey)
+  log.trace('updating cache for %s in the background', cacheKey)
 
   const cache = await caches.open(isMutable ? CURRENT_CACHES.mutable : CURRENT_CACHES.immutable)
 
@@ -393,14 +393,14 @@ async function storeReponseInCache ({ response, isMutable, cacheKey, event }: St
   const respToCache = response.clone()
 
   if (isMutable) {
-    log.trace('helia-ws: setting expires header on response key %s before storing in cache', cacheKey)
+    log.trace('setting expires header on response key %s before storing in cache', cacheKey)
     // 👇 Set expires header to an hour from now for mutable (ipns://) resources
     // Note that this technically breaks HTTP semantics, whereby the cache-control max-age takes precendence
     // Setting this header is only used by the service worker using a mechanism similar to stale-while-revalidate
     setExpiresHeader(respToCache, ONE_HOUR_IN_SECONDS)
   }
 
-  log('helia-ws: storing response for key %s in cache', cacheKey)
+  log('storing response for key %s in cache', cacheKey)
   // do not await this.. large responses will delay [TTFB](https://web.dev/articles/ttfb) and [TTI](https://web.dev/articles/tti)
   void cache.put(cacheKey, respToCache)
 }

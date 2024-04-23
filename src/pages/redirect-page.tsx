@@ -6,9 +6,10 @@ import { HeliaServiceWorkerCommsChannel } from '../lib/channel.js'
 import { setConfig, type ConfigDb } from '../lib/config-db.js'
 import { getSubdomainParts } from '../lib/get-subdomain-parts.js'
 import { isConfigPage } from '../lib/is-config-page.js'
-import { uiLogger } from '../lib/logger.js'
+import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
 import { translateIpfsRedirectUrl } from '../lib/translate-ipfs-redirect-url.js'
 
+const uiComponentLogger = getUiComponentLogger('redirect-page')
 const log = uiLogger.forComponent('redirect-page')
 
 const ConfigIframe = (): React.JSX.Element => {
@@ -29,7 +30,7 @@ const ConfigIframe = (): React.JSX.Element => {
   )
 }
 
-const channel = new HeliaServiceWorkerCommsChannel('WINDOW', uiLogger)
+const channel = new HeliaServiceWorkerCommsChannel('WINDOW', uiComponentLogger)
 
 function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean }): React.JSX.Element {
   const [isAutoReloadEnabled, setIsAutoReloadEnabled] = useState(false)
@@ -43,7 +44,7 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
 
     async function doWork (config: ConfigDb): Promise<void> {
       try {
-        await setConfig(config, uiLogger)
+        await setConfig(config, uiComponentLogger)
         // TODO: show spinner / disable buttons while waiting for response
         await channel.messageAndWaitForResponse('SW', { target: 'SW', action: 'RELOAD_CONFIG' })
         log.trace('redirect-page: RELOAD_CONFIG_SUCCESS on %s', window.location.origin)
