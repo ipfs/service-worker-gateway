@@ -12,7 +12,9 @@ test.describe('first-hit ipfs-hosted', () => {
       }
     })
     test('redirects to ?helia-sw=<path> are handled', async ({ page }) => {
-      const response = await page.goto('http://127.0.0.1:3333/?helia-sw=/ipfs/bafkqablimvwgy3y', { waitUntil: 'commit' })
+      const response = await page.goto('http://127.0.0.1:3334/ipfs/bafkqablimvwgy3y')
+
+      expect(response?.url()).toBe('http://127.0.0.1:3334/?helia-sw=/ipfs/bafkqablimvwgy3y')
 
       // first loads the root page
       expect(response?.status()).toBe(200)
@@ -21,12 +23,10 @@ test.describe('first-hit ipfs-hosted', () => {
       expect(headers?.['content-type']).toContain('text/html')
 
       // then we should be redirected to the IPFS path
-      await page.waitForURL('http://127.0.0.1:3333/ipfs/bafkqablimvwgy3y')
-
-      // and then the normal redirectPage logic:
-      await waitForServiceWorker(page)
       const bodyTextLocator = page.locator('body')
       await expect(bodyTextLocator).toContainText('Please save your changes to the config to apply them')
+      // and then the normal redirectPage logic:
+      await waitForServiceWorker(page)
 
       // it should render the config iframe
       await expect(page.locator('#redirect-config-iframe')).toBeAttached({ timeout: 1 })
@@ -43,7 +43,9 @@ test.describe('first-hit ipfs-hosted', () => {
 
   test.describe('subdomain-routing', () => {
     test('redirects to ?helia-sw=<path> are handled', async ({ page, rootDomain, protocol }) => {
-      const response = await page.goto(`${protocol}//${rootDomain}/?helia-sw=/ipfs/bafkqablimvwgy3y`, { waitUntil: 'commit' })
+      const response = await page.goto('http://localhost:3334/ipfs/bafkqablimvwgy3y')
+
+      expect(response?.url()).toBe('http://localhost:3334/?helia-sw=/ipfs/bafkqablimvwgy3y')
 
       // first loads the root page
       expect(response?.status()).toBe(200)
@@ -53,7 +55,7 @@ test.describe('first-hit ipfs-hosted', () => {
 
       // then we should be redirected to the IPFS path
       const bodyTextLocator = page.locator('body')
-      await page.waitForURL(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}`)
+      await page.waitForURL('http://bafkqablimvwgy3y.ipfs.localhost:3334')
       await expect(bodyTextLocator).toContainText('Registering Helia service worker')
 
       await waitForServiceWorker(page)

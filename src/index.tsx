@@ -1,9 +1,7 @@
 import 'preact/debug'
 import React, { render } from 'preact/compat'
 import App from './app.jsx'
-import { ConfigProvider } from './context/config-context.jsx'
 import { RouterProvider, type Route } from './context/router-context.jsx'
-import { ServiceWorkerProvider } from './context/service-worker-context.jsx'
 
 // SW did not trigger for this request
 const container = document.getElementById('root')
@@ -23,18 +21,20 @@ const routes: Route[] = [
   { default: true, component: LazyHelperUi },
   { shouldRender: async () => (await import('./lib/routing-render-checks.js')).shouldRenderRedirectsInterstitial(), component: LazyInterstitial },
   { path: '#/ipfs-sw-config', shouldRender: async () => (await import('./lib/routing-render-checks.js')).shouldRenderConfigPage(), component: LazyConfig },
-  { shouldRender: async () => (await import('./lib/routing-render-checks.js')).shouldRenderRedirectPage(), component: LazyRedirectPage }
+  {
+    shouldRender: async () => {
+      const renderChecks = await import('./lib/routing-render-checks.js')
+      return renderChecks.shouldRenderRedirectPage()
+    },
+    component: LazyRedirectPage
+  }
 ]
 
 render(
   <React.StrictMode>
-    <ServiceWorkerProvider>
-      <ConfigProvider>
-        <RouterProvider routes={routes}>
-          <App />
-        </RouterProvider>
-      </ConfigProvider>
-    </ServiceWorkerProvider>
+    <RouterProvider routes={routes}>
+      <App />
+    </RouterProvider>
   </React.StrictMode>,
   container
 )

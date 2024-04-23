@@ -1,9 +1,16 @@
 /* eslint-disable no-console */
 import { request, createServer } from 'node:http'
+import { logger } from '@libp2p/logger'
+
+const log = logger('reverse-proxy')
 
 const TARGET_HOST = process.env.TARGET_HOST ?? 'localhost'
 const backendPort = Number(process.env.BACKEND_PORT ?? 3000)
 const proxyPort = Number(process.env.PROXY_PORT ?? 3333)
+const subdomain = process.env.SUBDOMAIN
+const prefixPath = process.env.PREFIX_PATH
+const disableTryFiles = process.env.DISABLE_TRY_FILES === 'true'
+const X_FORWARDED_HOST = process.env.X_FORWARDED_HOST
 
 const setCommonHeaders = (res) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -16,8 +23,22 @@ const makeRequest = (options, req, res, attemptRootFallback = false) => {
   const clientIp = req.connection.remoteAddress
   options.headers['X-Forwarded-For'] = clientIp
 
+  // override path to include prefixPath if set
+  if (prefixPath != null) {
+    options.path = `${prefixPath}${options.path}`
+  }
+  if (subdomain != null) {
+    options.headers.Host = `${subdomain}.${TARGET_HOST}`
+  }
+  if (X_FORWARDED_HOST != null) {
+    options.headers['X-Forwarded-Host'] = X_FORWARDED_HOST
+  }
+
+  // log where we're making the request to
+  log('Proxying request to %s:%s%s', options.headers.Host, options.port, options.path)
+
   const proxyReq = request(options, proxyRes => {
-    if (proxyRes.statusCode === 404) { // poor mans attempt to implement nginx style try_files
+    if (!disableTryFiles && proxyRes.statusCode === 404) { // poor mans attempt to implement nginx style try_files
       if (!attemptRootFallback) {
         // Split the path and pop the last segment
         const pathSegments = options.path.split('/')
@@ -39,7 +60,7 @@ const makeRequest = (options, req, res, attemptRootFallback = false) => {
   req.pipe(proxyReq, { end: true })
 
   proxyReq.on('error', (e) => {
-    console.error(`Problem with request: ${e.message}`)
+    log.error(`Problem with request: ${e.message}`)
     setCommonHeaders(res)
     res.writeHead(500)
     res.end(`Internal Server Error: ${e.message}`)
@@ -66,5 +87,5 @@ const proxyServer = createServer((req, res) => {
 })
 
 proxyServer.listen(proxyPort, () => {
-  console.log(`Proxy server listening on port ${proxyPort}`)
+  log(`Proxy server listening on port ${proxyPort}`)
 })
