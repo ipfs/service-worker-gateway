@@ -47,6 +47,31 @@ interface LocalSwConfig {
 }
 
 /**
+ * When returning a meaningful error page, we provide the following details about
+ * the service worker
+ */
+interface ServiceWorkerDetails {
+  config: ConfigDb
+  crossOriginIsolated: boolean
+  installTime: string
+  origin: string
+  scope: string
+  state: string
+}
+
+/**
+ * When returning a meaningful error page, we provide the following details about
+ * the response that failed
+ */
+interface ResponseDetails {
+  responseBody: string
+  headers: Record<string, string>
+  status: number
+  statusText: string
+  url: string
+}
+
+/**
  ******************************************************
  * "globals"
  ******************************************************
@@ -488,22 +513,27 @@ async function errorPageResponse (fetchResponse: Response): Promise<Response> {
   const responseContentType = fetchResponse.headers.get('Content-Type')
   let json: Record<string, any> | null = null
   let text: string | null = null
+  const responseBodyAsText: string | null = await fetchResponse.text()
+
   if (responseContentType != null) {
     if (responseContentType.includes('text/html')) {
       return fetchResponse
     } else if (responseContentType.includes('application/json')) {
       // we may eventually provide error messaging from @helia/verified-fetch
-      json = await fetchResponse.json()
-    } else {
-      text = await fetchResponse.text()
-      json = { error: { message: `${fetchResponse.statusText}: ${text}`, stack: null } }
+      try {
+        json = JSON.parse(responseBodyAsText)
+      } catch (e) {
+        text = responseBodyAsText
+        json = { error: { message: `${fetchResponse.statusText}: ${text}`, stack: null } }
+      }
     }
   }
   if (json == null) {
-    json = { error: { message: fetchResponse.statusText, stack: (new Error()).stack } }
+    text = await fetchResponse.text()
+    json = { error: { message: `${fetchResponse.statusText}: ${text}`, stack: null } }
   }
 
-  const responseDetails = getResponseDetails(fetchResponse)
+  const responseDetails = getResponseDetails(fetchResponse, responseBodyAsText)
 
   /**
    * TODO: output configuration
@@ -512,17 +542,17 @@ async function errorPageResponse (fetchResponse: Response): Promise<Response> {
       <h1>Oops! Something went wrong inside of Service Worker IPFS Gateway.</h1>
       <p><button onclick="window.location.reload(true);">Click here to retry</button></p>
       <p>
-        <p>Error details:</p>
-        <p>${json.error.message}</p>
-        <pre>${json.error.stack}</pre>
+        <h2>Error details:</h2>
+        <p><b>Message: </b>${json.error.message}</p>
+        <b>Stacktrace: </b><pre>${json.error.stack}</pre>
       </p>
       <p>
-        <p>Response details:</p>
-        <p><b>${responseDetails.status} ${responseDetails.statusText}</b></p>
-        <pre>${JSON.stringify(responseDetails.headers, null, 2)}</pre>
+        <h2>Response details:</h2>
+        <h3>${responseDetails.status} ${responseDetails.statusText}</h3>
+        <pre>${JSON.stringify(responseDetails, null, 2)}</pre>
       </p>
       <p>
-        <p>Service worker details:</p>
+        <h2>Service worker details:</h2>
         <pre>${JSON.stringify(await getServiceWorkerDetails(), null, 2)}</pre>
       </p>
     `, {
@@ -534,15 +564,6 @@ async function errorPageResponse (fetchResponse: Response): Promise<Response> {
   })
 }
 
-interface ServiceWorkerDetails {
-  config: ConfigDb
-  crossOriginIsolated: boolean
-  installTime: string
-  origin: string
-  scope: string
-  state: string
-}
-
 /**
  * TODO: more service worker details
  */
@@ -552,6 +573,7 @@ async function getServiceWorkerDetails (): Promise<ServiceWorkerDetails> {
 
   return {
     config: await getConfig(),
+    // TODO: implement https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Opener-Policy
     crossOriginIsolated: self.crossOriginIsolated,
     installTime: (new Date(firstInstallTime)).toUTCString(),
     origin: self.location.origin,
@@ -560,13 +582,14 @@ async function getServiceWorkerDetails (): Promise<ServiceWorkerDetails> {
   }
 }
 
-function getResponseDetails (response: Response): Record<string, any> {
+function getResponseDetails (response: Response, responseBody: string): ResponseDetails {
   const headers = {}
   response.headers.forEach((value, key) => {
     headers[key] = value
   })
 
   return {
+    responseBody,
     headers,
     status: response.status,
     statusText: response.statusText,
