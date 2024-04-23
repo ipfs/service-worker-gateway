@@ -496,7 +496,7 @@ async function errorPageResponse (fetchResponse: Response): Promise<Response> {
       json = await fetchResponse.json()
     } else {
       text = await fetchResponse.text()
-      json = { error: { message: fetchResponse.statusText, stack: text } }
+      json = { error: { message: `${fetchResponse.statusText}: ${text}`, stack: null } }
     }
   }
   if (json == null) {
@@ -550,7 +550,7 @@ async function getServiceWorkerDetails (): Promise<ServiceWorkerDetails> {
   return {
     config: await getConfig(),
     crossOriginIsolated: self.crossOriginIsolated,
-    installTime: (new Date(firstInstallTime)).toISOString(),
+    installTime: (new Date(firstInstallTime)).toUTCString(),
     origin: self.location.origin,
     scope: registration.scope,
     state
