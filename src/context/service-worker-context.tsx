@@ -13,9 +13,11 @@
  */
 import React, { createContext, useEffect, useState } from 'preact/compat'
 import { getRedirectUrl, isDeregisterRequest } from '../lib/deregister-request.js'
-import { error, trace } from '../lib/logger.js'
+import { uiLogger } from '../lib/logger.js'
 import { findOriginIsolationRedirect } from '../lib/path-or-subdomain.js'
 import { registerServiceWorker } from '../service-worker-utils.js'
+
+const log = uiLogger.forComponent('service-worker-context')
 
 export const ServiceWorkerContext = createContext({
   isServiceWorkerRegistered: false
@@ -39,13 +41,13 @@ export const ServiceWorkerProvider = ({ children }): React.JSX.Element => {
     }
     async function doWork (): Promise<void> {
       if (isDeregisterRequest(window.location.href)) {
-        trace('UI: deregistering service worker')
+        log.trace('deregistering service worker')
         const registration = await navigator.serviceWorker.getRegistration()
         if (registration != null) {
           await registration.unregister()
           window.location.replace(getRedirectUrl(window.location.href).href)
         } else {
-          error('UI: service worker not registered, cannot deregister')
+          log.error('service worker not registered, cannot deregister')
         }
       }
       const registration = await navigator.serviceWorker.getRegistration()
@@ -57,7 +59,7 @@ export const ServiceWorkerProvider = ({ children }): React.JSX.Element => {
           await registerServiceWorker()
           setIsServiceWorkerRegistered(true)
         } catch (err) {
-          error('error registering service worker', err)
+          log.error('error registering service worker', err)
         }
       }
     }

@@ -1,7 +1,13 @@
-import { logger } from '@libp2p/logger'
+import { prefixLogger, type ComponentLogger } from '@libp2p/logger'
 
-const logObj = logger('helia:service-worker-gateway')
+const host = globalThis.location.host.replace(':', '_')
 
-export const log = logObj
-export const error = logObj.error
-export const trace = logObj.trace
+const swLogPrefix = `helia:sw-gateway:sw:${host}`
+const uiLogPrefix = `helia:sw-gateway:ui:${host}`
+
+export const swLogger = prefixLogger(swLogPrefix)
+export const uiLogger = prefixLogger(uiLogPrefix)
+
+export const getUiComponentLogger = (component: string): ComponentLogger => {
+  return prefixLogger(`${uiLogPrefix}:${component}`)
+}
