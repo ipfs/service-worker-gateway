@@ -141,7 +141,7 @@ self.addEventListener('activate', (event) => {
     switch (action) {
       case 'RELOAD_CONFIG':
         void updateVerifiedFetch().then(async () => {
-          channel.postMessage<any>({ action: 'RELOAD_CONFIG_SUCCESS', data: { config: await getConfig() } })
+          channel.postMessage<any>({ action: 'RELOAD_CONFIG_SUCCESS', data: { config: await getConfig(swLogger) } })
           log.trace('RELOAD_CONFIG_SUCCESS for %s', self.location.origin)
         })
         break
@@ -174,12 +174,14 @@ self.addEventListener('fetch', (event) => {
   const request = event.request
   const urlString = request.url
   const url = new URL(urlString)
-  log('incoming request url: %s:', event.request.url)
-  log('request range header value: "%s"', event.request.headers.get('range'))
+  log.trace('incoming request url: %s:', event.request.url)
 
   event.waitUntil(requestRouting(event, url).then(async (shouldHandle) => {
     if (shouldHandle) {
+      log.trace('handling request for %s', url)
       event.respondWith(getResponseFromCacheOrFetch(event))
+    } else {
+      log.trace('not handling request for %s', url)
     }
   }))
 })
@@ -221,12 +223,12 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
 }
 
 async function getVerifiedFetch (): Promise<VerifiedFetch> {
-  const config = await getConfig()
+  const config = await getConfig(swLogger)
   log(`config-debug: got config for sw location ${self.location.origin}`, config)
 
   const verifiedFetch = await createVerifiedFetch({
-    gateways: config.gateways ?? ['https://trustless-gateway.link'],
-    routers: config.routers ?? ['https://delegated-ipfs.dev'],
+    gateways: config.gateways,
+    routers: config.routers,
     dnsResolvers: {
       '.': dnsJsonOverHttps('https://delegated-ipfs.dev/dns-query')
     }
@@ -283,7 +285,7 @@ function isAggregateError (err: unknown): err is AggregateError {
 }
 
 function isSwAssetRequest (event: FetchEvent): boolean {
-  const isActualSwAsset = /^.+\/(?:ipfs-sw-).+\.js$/.test(event.request.url)
+  const isActualSwAsset = /^.+\/(?:ipfs-sw-).+$/.test(event.request.url)
   return isActualSwAsset
 }
 
@@ -513,7 +515,6 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
 async function errorPageResponse (fetchResponse: Response): Promise<Response> {
   const responseContentType = fetchResponse.headers.get('Content-Type')
   let json: Record<string, any> | null = null
-  let text: string | null = null
   const responseBodyAsText: string | null = await fetchResponse.text()
 
   if (responseContentType != null) {
@@ -524,14 +525,12 @@ async function errorPageResponse (fetchResponse: Response): Promise<Response> {
       try {
         json = JSON.parse(responseBodyAsText)
       } catch (e) {
-        text = responseBodyAsText
-        json = { error: { message: `${fetchResponse.statusText}: ${text}`, stack: null } }
+        log.error('error parsing json for error page response', e)
       }
     }
   }
   if (json == null) {
-    text = await fetchResponse.text()
-    json = { error: { message: `${fetchResponse.statusText}: ${text}`, stack: null } }
+    json = { error: { message: `${fetchResponse.statusText}: ${responseBodyAsText}`, stack: null } }
   }
 
   const responseDetails = getResponseDetails(fetchResponse, responseBodyAsText)
@@ -573,7 +572,7 @@ async function getServiceWorkerDetails (): Promise<ServiceWorkerDetails> {
   const state = registration.installing?.state ?? registration.waiting?.state ?? registration.active?.state ?? 'unknown'
 
   return {
-    config: await getConfig(),
+    config: await getConfig(swLogger),
     // TODO: implement https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Opener-Policy
     crossOriginIsolated: self.crossOriginIsolated,
     installTime: (new Date(firstInstallTime)).toUTCString(),
