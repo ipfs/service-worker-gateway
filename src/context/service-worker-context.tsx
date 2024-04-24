@@ -11,7 +11,7 @@
  * After the service worker is loaded. Usually any react code isn't loaded, but some edge cases are:
  * 1. The page being loaded using some /ip[fn]s/<path> url, but subdomain isolation is supported, so we need to redirect to the isolated origin
  */
-import React, { createContext, useEffect, useState } from 'preact/compat'
+import React, { createContext, useEffect, useState } from 'react'
 import { getRedirectUrl, isDeregisterRequest } from '../lib/deregister-request.js'
 import { uiLogger } from '../lib/logger.js'
 import { findOriginIsolationRedirect } from '../lib/path-or-subdomain.js'

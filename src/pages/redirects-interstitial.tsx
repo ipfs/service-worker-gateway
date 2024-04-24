@@ -1,4 +1,4 @@
-import React, { useEffect } from 'preact/compat'
+import React, { useEffect } from 'react'
 import { findOriginIsolationRedirect } from '../lib/path-or-subdomain.js'
 import { translateIpfsRedirectUrl } from '../lib/translate-ipfs-redirect-url.js'
 import RedirectPage from './redirect-page'

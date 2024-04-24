@@ -27,9 +27,9 @@ const splitChunks = {
       priority: 100, // anything the sw needs should be in the sw chunk
       chunks: 'async'
     },
-    preactVendor: {
-      test: /[\\/]node_modules[\\/](preact)[\\/]/,
-      name: 'vendor-preact',
+    reactVendor: {
+      test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom)[\\/]/,
+      name: 'vendor-react',
       chunks: 'initial'
     }
   }
@@ -107,11 +107,6 @@ const prod = {
       })
     ],
     splitChunks
-  },
-  externalsType: 'window',
-  externals: {
-    // remove preact debug on production builds
-    'preact/debug': ''
   }
 }
 
