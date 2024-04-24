@@ -48,8 +48,16 @@ export async function setConfig (config: ConfigDb, logger: ComponentLogger): Pro
 export async function getConfig (): Promise<ConfigDb> {
   await configDb.open()
 
-  const gateways = await configDb.get('gateways') ?? ['https://trustless-gateway.link']
-  const routers = await configDb.get('routers') ?? ['https://delegated-ipfs.dev']
+  let gateways = await configDb.get('gateways')
+  if (gateways == null || gateways.length === 0) {
+    gateways = ['https://trustless-gateway.link']
+  }
+
+  let routers = await configDb.get('routers')
+  if (routers == null || routers.length === 0) {
+    routers = ['https://delegated-ipfs.dev']
+  }
+
   const autoReload = await configDb.get('autoReload') ?? false
   const debug = await configDb.get('debug') ?? ''
   configDb.close()

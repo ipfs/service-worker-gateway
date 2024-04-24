@@ -174,12 +174,14 @@ self.addEventListener('fetch', (event) => {
   const request = event.request
   const urlString = request.url
   const url = new URL(urlString)
-  log('incoming request url: %s:', event.request.url)
-  log('request range header value: "%s"', event.request.headers.get('range'))
+  log.trace('incoming request url: %s:', event.request.url)
 
   event.waitUntil(requestRouting(event, url).then(async (shouldHandle) => {
     if (shouldHandle) {
+      log.trace('handling request for %s', url)
       event.respondWith(getResponseFromCacheOrFetch(event))
+    } else {
+      log.trace('not handling request for %s', url)
     }
   }))
 })
@@ -225,8 +227,8 @@ async function getVerifiedFetch (): Promise<VerifiedFetch> {
   log(`config-debug: got config for sw location ${self.location.origin}`, config)
 
   const verifiedFetch = await createVerifiedFetch({
-    gateways: config.gateways ?? ['https://trustless-gateway.link'],
-    routers: config.routers ?? ['https://delegated-ipfs.dev'],
+    gateways: config.gateways,
+    routers: config.routers,
     dnsResolvers: {
       '.': dnsJsonOverHttps('https://delegated-ipfs.dev/dns-query')
     }
