@@ -513,7 +513,6 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
 async function errorPageResponse (fetchResponse: Response): Promise<Response> {
   const responseContentType = fetchResponse.headers.get('Content-Type')
   let json: Record<string, any> | null = null
-  let text: string | null = null
   const responseBodyAsText: string | null = await fetchResponse.text()
 
   if (responseContentType != null) {
@@ -524,14 +523,12 @@ async function errorPageResponse (fetchResponse: Response): Promise<Response> {
       try {
         json = JSON.parse(responseBodyAsText)
       } catch (e) {
-        text = responseBodyAsText
-        json = { error: { message: `${fetchResponse.statusText}: ${text}`, stack: null } }
+        log.error('error parsing json for error page response', e)
       }
     }
   }
   if (json == null) {
-    text = await fetchResponse.text()
-    json = { error: { message: `${fetchResponse.statusText}: ${text}`, stack: null } }
+    json = { error: { message: `${fetchResponse.statusText}: ${responseBodyAsText}`, stack: null } }
   }
 
   const responseDetails = getResponseDetails(fetchResponse, responseBodyAsText)
