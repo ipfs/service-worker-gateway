@@ -283,7 +283,7 @@ function isAggregateError (err: unknown): err is AggregateError {
 }
 
 function isSwAssetRequest (event: FetchEvent): boolean {
-  const isActualSwAsset = /^.+\/(?:ipfs-sw-).+\.js$/.test(event.request.url)
+  const isActualSwAsset = /^.+\/(?:ipfs-sw-).+$/.test(event.request.url)
   return isActualSwAsset
 }
 
