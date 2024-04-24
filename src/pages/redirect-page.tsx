@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useState } from 'preact/compat'
+import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
 import { ConfigProvider } from '../context/config-context.jsx'
 import { ServiceWorkerContext, ServiceWorkerProvider } from '../context/service-worker-context.jsx'
@@ -12,7 +12,7 @@ import { translateIpfsRedirectUrl } from '../lib/translate-ipfs-redirect-url.js'
 const uiComponentLogger = getUiComponentLogger('redirect-page')
 const log = uiLogger.forComponent('redirect-page')
 
-const ConfigIframe = (): React.JSX.Element => {
+const ConfigIframe = (): JSX.Element => {
   const { parentDomain } = getSubdomainParts(window.location.href)
   let iframeSrc
   if (parentDomain == null || parentDomain === window.location.href) {

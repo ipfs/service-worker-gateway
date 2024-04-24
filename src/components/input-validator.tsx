@@ -1,5 +1,5 @@
 import { CID } from 'multiformats/cid'
-import React from 'preact/compat'
+import React from 'react'
 import { nativeProtocolRegex, pathRegex, subdomainRegex, type IpfsUriParts } from '../lib/regex.js'
 
 function FormatHelp (): React.JSX.Element {

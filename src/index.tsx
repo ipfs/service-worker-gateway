@@ -1,16 +1,12 @@
-import 'preact/debug'
-import React, { render } from 'preact/compat'
+import React from 'react'
+import ReactDOMClient from 'react-dom/client'
 import App from './app.jsx'
 import { RouterProvider, type Route } from './context/router-context.jsx'
 
 // SW did not trigger for this request
 const container = document.getElementById('root')
-if (container == null) {
-  /**
-   * Should never happen, but preact types are not perfect
-   */
-  throw new Error('could not find root container')
-}
+
+const root = ReactDOMClient.createRoot(container)
 
 const LazyConfig = React.lazy(async () => import('./pages/config.jsx'))
 const LazyHelperUi = React.lazy(async () => import('./pages/helper-ui.jsx'))
@@ -30,7 +26,7 @@ const routes: Route[] = [
   }
 ]
 
-render(
+root.render(
   <React.StrictMode>
     <RouterProvider routes={routes}>
       <App />

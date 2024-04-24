@@ -1,9 +1,9 @@
-import React from 'preact/compat'
+import React from 'react'
 import { RouteContext } from '../context/router-context.jsx'
 import gearIcon from '../gear-icon.svg'
 import ipfsLogo from '../ipfs-logo.svg'
 
-export default function Header (): React.JSX.Element {
+export default function Header (): JSX.Element {
   const { gotoPage } = React.useContext(RouteContext)
   return (
     <header className='e2e-header flex items-center pa3 bg-navy bb bw3 b--aqua justify-between'>
