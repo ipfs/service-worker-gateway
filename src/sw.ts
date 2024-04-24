@@ -141,7 +141,7 @@ self.addEventListener('activate', (event) => {
     switch (action) {
       case 'RELOAD_CONFIG':
         void updateVerifiedFetch().then(async () => {
-          channel.postMessage<any>({ action: 'RELOAD_CONFIG_SUCCESS', data: { config: await getConfig() } })
+          channel.postMessage<any>({ action: 'RELOAD_CONFIG_SUCCESS', data: { config: await getConfig(swLogger) } })
           log.trace('RELOAD_CONFIG_SUCCESS for %s', self.location.origin)
         })
         break
@@ -223,7 +223,7 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
 }
 
 async function getVerifiedFetch (): Promise<VerifiedFetch> {
-  const config = await getConfig()
+  const config = await getConfig(swLogger)
   log(`config-debug: got config for sw location ${self.location.origin}`, config)
 
   const verifiedFetch = await createVerifiedFetch({
@@ -572,7 +572,7 @@ async function getServiceWorkerDetails (): Promise<ServiceWorkerDetails> {
   const state = registration.installing?.state ?? registration.waiting?.state ?? registration.active?.state ?? 'unknown'
 
   return {
-    config: await getConfig(),
+    config: await getConfig(swLogger),
     // TODO: implement https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Opener-Policy
     crossOriginIsolated: self.crossOriginIsolated,
     installTime: (new Date(firstInstallTime)).toUTCString(),
