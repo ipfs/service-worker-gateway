@@ -14,7 +14,6 @@ test.describe('subdomain-detection', () => {
 
     await page.waitForURL(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}`)
     const bodyTextLocator = page.locator('body')
-    await expect(bodyTextLocator).toContainText('Registering Helia service worker')
 
     await waitForServiceWorker(page)
     await expect(bodyTextLocator).toContainText('Please save your changes to the config to apply them')

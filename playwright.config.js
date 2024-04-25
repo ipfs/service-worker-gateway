@@ -40,24 +40,20 @@ export default defineConfig({
         ...devices['Desktop Firefox']
       }
     },
+    /**
+     * Test a deployed site such as inbrowser.dev with `BASE_URL="https://inbrowser.dev" npm run test:deployed`
+     * or inbrowser.link with `BASE_URL="https://inbrowser.link" npm run test:deployed`
+     */
     {
-      name: 'continuous-delivery-dev',
+      name: 'deployed',
       use: {
         ...devices['Desktop Chrome'],
         ...devices['Desktop Firefox'],
-        baseURL: 'https://inbrowser.dev'
-      }
-    },
-    {
-      name: 'continuous-delivery-prod',
-      use: {
-        ...devices['Desktop Chrome'],
-        ...devices['Desktop Firefox'],
-        baseURL: 'https://inbrowser.link'
+        baseURL: process.env.BASE_URL
       }
     }
   ],
-  // TODO: disable webservers when testing `continuous-delivery-dev` and `continuous-delivery-prod`
+  // TODO: disable webservers when testing `deployed` project
   webServer: [
     {
       command: 'node test-e2e/reverse-proxy.js',

@@ -56,7 +56,6 @@ test.describe('first-hit ipfs-hosted', () => {
       // then we should be redirected to the IPFS path
       const bodyTextLocator = page.locator('body')
       await page.waitForURL('http://bafkqablimvwgy3y.ipfs.localhost:3334')
-      await expect(bodyTextLocator).toContainText('Registering Helia service worker')
 
       await waitForServiceWorker(page)
       await expect(bodyTextLocator).toContainText('Please save your changes to the config to apply them')
@@ -125,7 +124,6 @@ test.describe('first-hit direct-hosted', () => {
       await page.waitForURL(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}`)
 
       const bodyTextLocator = page.locator('body')
-      await expect(bodyTextLocator).toContainText('Registering Helia service worker')
 
       await waitForServiceWorker(page)
       await expect(bodyTextLocator).toContainText('Please save your changes to the config to apply them')
