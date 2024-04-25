@@ -200,8 +200,7 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
     event.waitUntil(deregister(event))
     return false
   } else if (isConfigPageRequest(url) || isSwAssetRequest(event)) {
-    // get the assets from the server
-    log.trace('config page or js asset request, ignoring ', event.request.url)
+    log.trace('config page or sw-asset request, ignoring ', event.request.url)
     return false
   } else if (!isValidRequestForSW(event)) {
     log.trace('not a valid request for helia-sw, ignoring ', event.request.url)
