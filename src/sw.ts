@@ -225,12 +225,16 @@ async function getVerifiedFetch (): Promise<VerifiedFetch> {
   const config = await getConfig(swLogger)
   log(`config-debug: got config for sw location ${self.location.origin}`, config)
 
+  // set dns resolver instances
+  const dnsResolvers = {}
+  for (const [key, value] of Object.entries(config.dnsJsonResolvers)) {
+    dnsResolvers[key] = dnsJsonOverHttps(value)
+  }
+
   const verifiedFetch = await createVerifiedFetch({
     gateways: config.gateways,
     routers: config.routers,
-    dnsResolvers: {
-      '.': dnsJsonOverHttps('https://delegated-ipfs.dev/dns-query')
-    }
+    dnsResolvers
   }, {
     contentTypeParser
   })
