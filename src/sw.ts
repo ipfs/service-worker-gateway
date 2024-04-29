@@ -98,7 +98,8 @@ const log = swLogger.forComponent('main')
 const CACHE_VERSION = 1
 const CURRENT_CACHES = Object.freeze({
   mutable: `mutable-cache-v${CACHE_VERSION}`,
-  immutable: `immutable-cache-v${CACHE_VERSION}`
+  immutable: `immutable-cache-v${CACHE_VERSION}`,
+  swAssets: `sw-assets-v${CACHE_VERSION}`
 })
 let verifiedFetch: VerifiedFetch
 const channel = new HeliaServiceWorkerCommsChannel('SW', swLogger)
@@ -199,8 +200,23 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
   } else if (isDeregisterRequest(event.request.url)) {
     event.waitUntil(deregister(event))
     return false
-  } else if (isConfigPageRequest(url) || isSwAssetRequest(event)) {
-    log.trace('config page or sw-asset request, ignoring ', event.request.url)
+  } else if (isConfigPageRequest(url)) {
+    log.trace('config page request, ignoring ', event.request.url)
+    return false
+  } else if (isSwAssetRequest(event)) {
+    log.trace('sw-asset request, returning cached response ', event.request.url)
+    /**
+     * Return the asset from the cache if it exists, otherwise fetch it.
+     */
+    event.respondWith(caches.open(CURRENT_CACHES.swAssets).then(async (cache) => {
+      const cachedResponse = await cache.match(event.request)
+      if (cachedResponse != null) {
+        return cachedResponse
+      }
+      const response = await fetch(event.request)
+      await cache.put(event.request, response.clone())
+      return response
+    }))
     return false
   } else if (!isValidRequestForSW(event)) {
     log.trace('not a valid request for helia-sw, ignoring ', event.request.url)
