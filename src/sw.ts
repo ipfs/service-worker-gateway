@@ -301,7 +301,12 @@ function isAggregateError (err: unknown): err is AggregateError {
 
 function isSwAssetRequest (event: FetchEvent): boolean {
   const isActualSwAsset = /^.+\/(?:ipfs-sw-).+$/.test(event.request.url)
-  return isActualSwAsset
+  // if path is not set, then it's a request for index.html which we should consider a sw asset
+  const url = new URL(event.request.url)
+  // but only if it's not a subdomain request (root index.html should not be returned for subdomains)
+  const isIndexHtmlRequest = url.pathname === '/' && !isSubdomainRequest(event)
+
+  return isActualSwAsset || isIndexHtmlRequest
 }
 
 /**
