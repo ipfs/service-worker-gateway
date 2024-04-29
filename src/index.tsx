@@ -31,6 +31,5 @@ root.render(
     <RouterProvider routes={routes}>
       <App />
     </RouterProvider>
-  </React.StrictMode>,
-  container
+  </React.StrictMode>
 )
