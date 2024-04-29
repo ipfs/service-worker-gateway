@@ -94,7 +94,7 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
     <div className="redirect-page">
       <div className="pa4-l mw7 mv5 center pa4">
         <h3 className="">{displayString}</h3>
-        <ServiceWorkerReadyButton id="load-content" label='Load content' waitingLabel='Waiting for service worker registration...' onClick={() => { window.location.href = reloadUrl }} />
+        <ServiceWorkerReadyButton className="w-100" id="load-content" label='Load content' waitingLabel='Waiting for service worker registration...' onClick={() => { window.location.href = reloadUrl }} />
       </div>
       {showConfigIframe && <ConfigIframe />}
     </div>

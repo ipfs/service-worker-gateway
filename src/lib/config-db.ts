@@ -103,6 +103,9 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
   if (routers == null || routers.length === 0) {
     routers = [...defaultRouters]
   }
+  if (dnsJsonResolvers == null || Object.keys(dnsJsonResolvers).length === 0) {
+    dnsJsonResolvers = { ...defaultDnsJsonResolvers }
+  }
 
   // always return the config, even if we failed to load it.
   return {

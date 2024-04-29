@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { getConfigButton, getConfigPage, getConfigPageButton, getConfigPageInput, getHeader, getHeaderTitle } from './fixtures/locators.js'
+import { getConfigButton, getConfigPage, getConfigPageSaveButton, getConfigPageInput, getHeader, getHeaderTitle } from './fixtures/locators.js'
 
 test.describe('smoketests', () => {
   test.beforeEach(async ({ page }) => {
@@ -31,8 +31,8 @@ test.describe('smoketests', () => {
       const inputLocator = getConfigPageInput(page)
       // see https://playwright.dev/docs/locators#strictness
       await inputLocator.first().waitFor()
-      expect(await inputLocator.count()).toEqual(4)
-      const submitButton = getConfigPageButton(page)
+      expect(await inputLocator.count()).toEqual(5)
+      const submitButton = getConfigPageSaveButton(page)
       await expect(submitButton).toBeVisible()
     })
   })
