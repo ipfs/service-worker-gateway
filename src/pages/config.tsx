@@ -65,6 +65,7 @@ const stringValidationFn = (value: string): Error | null => {
 function ConfigPage (): React.JSX.Element | null {
   const { gotoPage } = React.useContext(RouteContext)
   const [error, setError] = useState<Error | null>(null)
+  const [resetKey, setResetKey] = useState(0)
 
   const isLoadedInIframe = window.self !== window.top
 
@@ -115,17 +116,18 @@ function ConfigPage (): React.JSX.Element | null {
     await resetConfig()
     // now reload all the inputs
     // TODO: we should fix this so a full page reload isn't necessary
-    window.location.reload()
+    // window.location.reload()
+    setResetKey((prev) => prev + 1)
   }, [])
 
   return (
     <main className='e2e-config-page pa4-l bg-snow mw7 center pa4'>
       <Collapsible collapsedLabel="View config" expandedLabel='Hide config' collapsed={isLoadedInIframe}>
-        <LocalStorageInput className="e2e-config-page-input e2e-config-page-input-gateways" localStorageKey={LOCAL_STORAGE_KEYS.config.gateways} label='Gateways' validationFn={urlValidationFn} defaultValue={JSON.stringify(defaultGateways)} />
-        <LocalStorageInput className="e2e-config-page-input e2e-config-page-input-routers" localStorageKey={LOCAL_STORAGE_KEYS.config.routers} label='Routers' validationFn={urlValidationFn} defaultValue={JSON.stringify(defaultRouters)} />
-        <LocalStorageInput className="e2e-config-page-input e2e-config-page-input-dnsJsonResolvers" localStorageKey={LOCAL_STORAGE_KEYS.config.dnsJsonResolvers} label='DNS Json resolvers' validationFn={dnsJsonValidationFn} defaultValue={JSON.stringify(defaultDnsJsonResolvers)} />
-        <LocalStorageToggle className="e2e-config-page-input e2e-config-page-input-autoreload" localStorageKey={LOCAL_STORAGE_KEYS.config.autoReload} onLabel='Auto Reload' offLabel='Show Config' />
-        <LocalStorageInput className="e2e-config-page-input" localStorageKey={LOCAL_STORAGE_KEYS.config.debug} label='Debug logging' validationFn={stringValidationFn} defaultValue=''/>
+        <LocalStorageInput className="e2e-config-page-input e2e-config-page-input-gateways" localStorageKey={LOCAL_STORAGE_KEYS.config.gateways} label='Gateways' validationFn={urlValidationFn} defaultValue={JSON.stringify(defaultGateways)} resetKey={resetKey} />
+        <LocalStorageInput className="e2e-config-page-input e2e-config-page-input-routers" localStorageKey={LOCAL_STORAGE_KEYS.config.routers} label='Routers' validationFn={urlValidationFn} defaultValue={JSON.stringify(defaultRouters)} resetKey={resetKey} />
+        <LocalStorageInput className="e2e-config-page-input e2e-config-page-input-dnsJsonResolvers" localStorageKey={LOCAL_STORAGE_KEYS.config.dnsJsonResolvers} label='DNS Json resolvers' validationFn={dnsJsonValidationFn} defaultValue={JSON.stringify(defaultDnsJsonResolvers)} resetKey={resetKey} />
+        <LocalStorageToggle className="e2e-config-page-input e2e-config-page-input-autoreload" localStorageKey={LOCAL_STORAGE_KEYS.config.autoReload} onLabel='Auto Reload' offLabel='Show Config' resetKey={resetKey} />
+        <LocalStorageInput className="e2e-config-page-input" localStorageKey={LOCAL_STORAGE_KEYS.config.debug} label='Debug logging' validationFn={stringValidationFn} defaultValue='' resetKey={resetKey} />
         <div className="w-100 inline-flex flex-row justify-between">
           <button className="e2e-config-page-button button-reset mr5 pv3 tc bg-animate hover-bg-gold pointer w-30 bn" id="reset-config" onClick={() => { void doResetConfig() }}>Reset Config</button>
           <ServiceWorkerReadyButton className="e2e-config-page-button white w-100 pa3" id="save-config" label='Save Config' waitingLabel='Waiting for service worker registration...' onClick={() => { void saveConfig() }} />
