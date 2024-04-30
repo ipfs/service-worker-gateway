@@ -8,6 +8,8 @@ import { getSubdomainParts } from '../lib/get-subdomain-parts.js'
 import { isConfigPage } from '../lib/is-config-page.js'
 import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
 import { translateIpfsRedirectUrl } from '../lib/translate-ipfs-redirect-url.js'
+import 'ipfs-css'
+import 'tachyons'
 
 const uiComponentLogger = getUiComponentLogger('redirect-page')
 const log = uiLogger.forComponent('redirect-page')

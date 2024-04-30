@@ -10,6 +10,8 @@ import { HeliaServiceWorkerCommsChannel } from '../lib/channel.js'
 import { getConfig, loadConfigFromLocalStorage } from '../lib/config-db.js'
 import { LOCAL_STORAGE_KEYS } from '../lib/local-storage.js'
 import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
+import 'ipfs-css'
+import 'tachyons'
 
 const uiComponentLogger = getUiComponentLogger('config-page')
 const log = uiLogger.forComponent('config-page')

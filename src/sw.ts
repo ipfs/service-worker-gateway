@@ -307,10 +307,7 @@ function isSwAssetRequest (event: FetchEvent): boolean {
   // but only if it's not a subdomain request (root index.html should not be returned for subdomains)
   const isIndexHtmlRequest = url.pathname === '/' && !isSubdomainRequest(event)
 
-  // if request is for https://cdn.jsdelivr.net/* we should consider it a sw asset
-  const isJsDelivrRequest = /^https:\/\/cdn.jsdelivr.net\/.+$/.test(event.request.url)
-
-  return isActualSwAsset || isIndexHtmlRequest || isJsDelivrRequest
+  return isActualSwAsset || isIndexHtmlRequest
 }
 
 /**
