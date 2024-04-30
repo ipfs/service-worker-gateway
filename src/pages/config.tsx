@@ -115,8 +115,6 @@ function ConfigPage (): React.JSX.Element | null {
     // we need to clear out the localStorage items and make sure default values are set, and that all of our inputs are updated
     await resetConfig()
     // now reload all the inputs
-    // TODO: we should fix this so a full page reload isn't necessary
-    // window.location.reload()
     setResetKey((prev) => prev + 1)
   }, [])
 
