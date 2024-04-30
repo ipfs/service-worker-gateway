@@ -124,6 +124,7 @@ self.addEventListener('install', (event) => {
   // 👇 When a new version of the SW is installed, activate immediately
   void self.skipWaiting()
   event.waitUntil(addInstallTimestampToConfig())
+  event.waitUntil(clearSwAssetCache())
 })
 
 self.addEventListener('activate', (event) => {
@@ -651,5 +652,19 @@ async function addInstallTimestampToConfig (): Promise<void> {
     swidb.close()
   } catch (e) {
     log.error('addInstallTimestampToConfig error: ', e)
+  }
+}
+
+/**
+ * To be called on 'install' sw event. This will clear out the old swAssets cache,
+ * which is used for storing the service worker's css,js, and html assets.
+ */
+async function clearSwAssetCache (): Promise<void> {
+  // clear out old swAssets cache
+  const cacheName = CURRENT_CACHES.swAssets
+  const cache = await caches.open(cacheName)
+  const keys = await cache.keys()
+  for (const request of keys) {
+    await cache.delete(request)
   }
 }
