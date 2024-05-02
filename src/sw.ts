@@ -1,5 +1,25 @@
+import { noise } from '@chainsafe/libp2p-noise'
+import { yamux } from '@chainsafe/libp2p-yamux'
+import { bitswap } from '@helia/block-brokers'
+// import { createDelegatedRoutingV1HttpApiClient } from '@helia/delegated-routing-v1-http-api-client'
+import { delegatedHTTPRouting, libp2pRouting } from '@helia/routers'
 import { createVerifiedFetch, type VerifiedFetch } from '@helia/verified-fetch'
+import { bootstrap } from '@libp2p/bootstrap'
+import { circuitRelayTransport } from '@libp2p/circuit-relay-v2'
+import { identify, type Identify } from '@libp2p/identify'
+import { type KadDHT, kadDHT, removePrivateAddressesMapper } from '@libp2p/kad-dht'
+import { mplex } from '@libp2p/mplex'
+import { webRTC, webRTCDirect } from '@libp2p/webrtc'
+import { webSockets } from '@libp2p/websockets'
+import { dns } from '@multiformats/dns'
 import { dnsJsonOverHttps } from '@multiformats/dns/resolvers'
+import { IDBBlockstore } from 'blockstore-idb'
+import { LevelDatastore } from 'datastore-level'
+import { createHelia } from 'helia'
+import { ipnsSelector } from 'ipns/selector'
+import { ipnsValidator } from 'ipns/validator'
+import { createLibp2p as create, type Libp2pOptions, type ServiceFactoryMap } from 'libp2p'
+import isPrivate from 'private-ip'
 import { HeliaServiceWorkerCommsChannel, type ChannelMessage } from './lib/channel.js'
 import { getConfig, type ConfigDb } from './lib/config-db.js'
 import { contentTypeParser } from './lib/content-type-parser.js'
@@ -9,6 +29,16 @@ import { getSubdomainParts } from './lib/get-subdomain-parts.js'
 import { isConfigPage } from './lib/is-config-page.js'
 import { swLogger } from './lib/logger.js'
 import { findOriginIsolationRedirect } from './lib/path-or-subdomain.js'
+import type { Helia } from '@helia/interface'
+import type { Libp2p, ServiceMap } from '@libp2p/interface'
+import type { Multiaddr } from '@multiformats/multiaddr'
+import type { HeliaInit } from 'helia'
+
+interface HeliaGatewayLibp2pServices extends ServiceMap {
+  dht: KadDHT
+  delegatedRouting: unknown
+  identify: Identify
+}
 
 /**
  ******************************************************
@@ -221,17 +251,131 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
   return false
 }
 
+interface HeliaGatewayLibp2pOptions extends Partial<Pick<HeliaInit, 'datastore'>> {
+  config: ConfigDb
+}
+// Stolen from https://github.com/ipfs/helia-http-gateway/blob/87deb922f6137b0a288954e6de149107e0f7a648/src/get-custom-libp2p.ts
+async function getCustomLibp2p ({ datastore, config }: HeliaGatewayLibp2pOptions): Promise<Libp2p<HeliaGatewayLibp2pServices>> {
+  const IP4 = 4
+  const IP6 = 41
+  const libp2pServices: ServiceFactoryMap = {
+    identify: identify()
+  }
+
+  // if (USE_DELEGATED_ROUTING) {
+  //   libp2pServices.delegatedRouting = () => createDelegatedRoutingV1HttpApiClient(config.routers)
+  // }
+
+  // if (USE_DHT_ROUTING) {
+  libp2pServices.dht = kadDHT({
+    protocol: '/ipfs/kad/1.0.0',
+    peerInfoMapper: removePrivateAddressesMapper,
+    // don't do DHT server work.
+    clientMode: true,
+    validators: {
+      ipns: ipnsValidator
+    },
+    selectors: {
+      ipns: ipnsSelector
+    }
+  })
+  // }
+
+  const options: Libp2pOptions<HeliaGatewayLibp2pServices> = {
+    datastore,
+    addresses: {
+      listen: [
+        // service-worker-gateway is not dialable, we're only retrieving data from IPFS network, and then providing that data via a web2 http interface.
+      ]
+    },
+    transports: [
+      circuitRelayTransport(),
+      webRTC(),
+      webRTCDirect(),
+      webSockets()
+    ],
+    connectionEncryption: [
+      noise()
+    ],
+    streamMuxers: [
+      yamux(),
+      mplex()
+    ],
+    peerDiscovery: [
+      bootstrap({
+        list: [
+          '/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN',
+          '/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa',
+          '/dnsaddr/bootstrap.libp2p.io/p2p/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb',
+          '/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt',
+          '/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ'
+        ]
+      })
+    ],
+    services: libp2pServices,
+    connectionGater: {
+      denyDialMultiaddr: async (multiaddr: Multiaddr) => {
+        const [[proto, address]] = multiaddr.stringTuples()
+
+        // deny private ip4/ip6 addresses
+        if (proto === IP4 || proto === IP6) {
+          return Boolean(isPrivate(`${address}`))
+        }
+
+        // all other addresses are ok
+        return false
+      }
+    }
+  }
+
+  return create(options)
+}
+
+async function getCustomHelia (config: ConfigDb): Promise<Helia> {
+  const blockstore = new IDBBlockstore('helia-sw-blockstore')
+  await blockstore.open()
+  const datastore = new LevelDatastore('helia-sw-datastore')
+  await datastore.open()
+
+  const libp2p = await getCustomLibp2p({ datastore, config })
+
+  return createHelia({
+    blockstore,
+    datastore,
+    libp2p,
+    blockBrokers: [
+      // no trustless gateways for testing p2p
+      bitswap()
+    ],
+    dns: dns({
+      resolvers: {
+        '.': dnsJsonOverHttps('https://delegated-ipfs.dev/dns-query')
+      }
+    }),
+    routers: [
+      ...config.routers.map((routerUrl) => delegatedHTTPRouting(routerUrl)),
+      libp2pRouting(libp2p)
+      // no httpGatewayRouting for testing p2p
+      // httpGatewayRouting({ gateways: config.gateways })
+    ]
+  })
+}
+
 async function getVerifiedFetch (): Promise<VerifiedFetch> {
   const config = await getConfig(swLogger)
+  const helia = await getCustomHelia(config)
   log(`config-debug: got config for sw location ${self.location.origin}`, config)
 
-  const verifiedFetch = await createVerifiedFetch({
-    gateways: config.gateways,
-    routers: config.routers,
-    dnsResolvers: {
-      '.': dnsJsonOverHttps('https://delegated-ipfs.dev/dns-query')
-    }
-  }, {
+  // const verifiedFetch = await createVerifiedFetch({
+  //   gateways: config.gateways,
+  //   routers: config.routers,
+  //   dnsResolvers: {
+  //     '.': dnsJsonOverHttps('https://delegated-ipfs.dev/dns-query')
+  //   }
+  // }, {
+  //   contentTypeParser
+  // })
+  const verifiedFetch = await createVerifiedFetch(helia, {
     contentTypeParser
   })
 
