@@ -92,8 +92,17 @@ For more information about local development setup, see [/docs/DEVELOPMENT.md](/
 
 ### Try hosted instance
 
-- 🚧 **WIP: alpha quality** https://inbrowser.link hosts the latest [release](https://github.com/ipfs-shipyard/service-worker-gateway/releases)
-- 🚧 **WIP: alpha quality** https://inbrowser.dev is used for testing, hosts the latest dev version from the `main` branch
+We provide a public good instance of this projct configured to run in [subdomain mode](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway),
+aiming to be a drop-in replacement for `dweb.link`:
+
+- 🚧 **WIP: alpha quality** https://inbrowser.link hosts the `release` branch, with a stable [release](https://github.com/ipfs-shipyard/service-worker-gateway/releases)
+- 🚧 **WIP: alpha quality** https://inbrowser.dev hosts the `staging` branch with development / testing version
+
+There is also an instance running in [path mode](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#path-gateway),
+aiming to be a drop-in replacement for `ipfs.io`:
+
+- 🚧 **WIP: alpha quality** https://ipfs-service-worker-gateway.pages.dev hosts the `release` branch, with a stable [release](https://github.com/ipfs-shipyard/service-worker-gateway/releases)
+- 🚧 **WIP: alpha quality** https://staging.ipfs-service-worker-gateway.pages.dev hosts the `staging` branch with development / testing version
 
 ## License
 

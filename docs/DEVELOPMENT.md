@@ -49,7 +49,7 @@ You can also try <http://sw.localhost/ipns/specs.ipfs.tech> to automatically be 
 
 ### Pre-reqs
 
-You have to visit the [hosted site](https://helia-service-worker-gateway.on.fleek.co/) first, and make sure the SW is loaded. Once it is, the below links should work for you.
+You have to visit the landing page first, and make sure the SW is loaded. Once it is, the below links should work for you.
 
 Notes:
 - ⚠️ Deployment of this service worker on environments that don't enable subdomain pathing is not recommended. Path-only gateways do not provide [Origin isolation](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway). NEVER use path-only gateways for loading dapps with sensitive information such as keys, passwords, wallets. 
