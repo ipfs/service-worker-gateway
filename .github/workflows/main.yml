@@ -241,7 +241,7 @@ jobs:
             --url "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records/${RECORD_ID}" \
             --data "{\"type\":\"TXT\",\"name\":\"_dnslink.${DNSLINK_NAME}\",\"content\":\"dnslink=/ipfs/${DNSLINK_CID}\",\"comment\":\"${{ github.repository }}/${{ github.sha }}\"}"
         env:
-          DNSLINK_NAME: inbrowser.dev
+          DNSLINK_NAME: build-cid.inbrowser.dev
           DNSLINK_CID: ${{ steps.ipfs-import.outputs.cid }}
           ZONE_ID: ${{ secrets.CF_INBROWSERDEV_ZONE_ID }}
           RECORD_ID:  ${{ secrets.CF_INBROWSERDEV_RECORD_ID }}
@@ -253,7 +253,7 @@ jobs:
             --url "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records/${RECORD_ID}" \
             --data "{\"type\":\"TXT\",\"name\":\"_dnslink.${DNSLINK_NAME}\",\"content\":\"dnslink=/ipfs/${DNSLINK_CID}\",\"comment\":\"${{ github.repository }}/${{ github.sha }}\"}"
         env:
-          DNSLINK_NAME: inbrowser.link
+          DNSLINK_NAME: build-cid.inbrowser.link
           DNSLINK_CID: ${{ steps.ipfs-import.outputs.cid }}
           ZONE_ID: ${{ secrets.CF_INBROWSERLINK_ZONE_ID }}
           RECORD_ID:  ${{ secrets.CF_INBROWSERLINK_RECORD_ID }}
