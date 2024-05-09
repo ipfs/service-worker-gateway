@@ -150,14 +150,31 @@ const dev = {
 }
 
 /**
- * Retrieves the Git branch and short SHA of the current commit.
+ * Retrieves meaningful Git info about the current commit.
  *
- * @returns {string} A string representing the Git branch and short SHA.
+ * @returns {string} A string representing the git revision info.
  */
 const gitRevision = () => {
   try {
     const ref = execSync('git rev-parse --abbrev-ref HEAD').toString().trim()
     const sha = execSync('git rev-parse --short HEAD').toString().trim()
+
+    try {
+      // detect production build
+      execSync('git fetch --force --depth=1 --quiet origin production')
+      const latestProduction = execSync('git rev-parse remotes/origin/production').toString().trim()
+      if (latestProduction.startsWith(sha)) {
+        return `production@${sha}`
+      }
+
+      // detect staging build
+      execSync('git fetch --force --depth=1 --quiet origin staging')
+      const latestStaging = execSync('git rev-parse remotes/origin/staging').toString().trim()
+      if (latestStaging.startsWith(sha)) {
+        return `staging@${sha}`
+      }
+    } catch (_) { /* noop */ }
+
     return `${ref}@${sha}`
   } catch (_) {
     return `no-git-dirty@${new Date().getTime().toString()}`
