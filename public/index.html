@@ -9,18 +9,20 @@
       The HTTP server behind this HTTP URL does not host this website.
       Instead, it sends basic website code along with JavaScript. The JS sets
       up a tool called IPFS Service Worker Gateway in the user's browser and
-      uses JavaScript version of IPFS (https://helia.io/) to get IPFS blocks
+      uses https://www.npmjs.com/package/@helia/verified-fetch to get IPFS blocks
       from content providers.
 
       CID hash verification and data assembly happens in the browser.
 
-      Learn more about it here: https://github.com/ipfs-shipyard/helia-service-worker-gateway
+      Learn more about it here: https://github.com/ipfs/service-worker-gateway
 
     -->
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title><%= htmlWebpackPlugin.options.title %> | <%= htmlWebpackPlugin.options.version %></title>
+    <meta name="description" content="A static HTML page that initializes an instance of IPFS Service Worker Gateway" />
+    <meta name="robots" content="noindex" />
   </head>
   <body>
     <div id="root" class="montserrat f5"></div>
