@@ -1,6 +1,6 @@
 <h1 align="center">
   <br>
-  <img src="https://github.com/ipfs-shipyard/service-worker-gateway/assets/157609/4931e739-a899-4b18-91f2-2a2bcafb5c33" alt="logo" title="logo" width="200"></a>
+  <img src="https://github.com/ipfs/service-worker-gateway/assets/157609/4931e739-a899-4b18-91f2-2a2bcafb5c33" alt="logo" title="logo" width="200"></a>
   <br>
   Service Worker IPFS Gateway
   <br>
@@ -12,8 +12,8 @@
   <a href="https://ipfs.tech"><img src="https://img.shields.io/badge/project-IPFS-blue.svg?style=flat-square" alt="Official Part of IPFS Project"></a>
   <a href="https://discuss.ipfs.tech"><img alt="Discourse Forum" src="https://img.shields.io/discourse/posts?server=https%3A%2F%2Fdiscuss.ipfs.tech"></a>
   <a href="https://matrix.to/#/#ip-js:ipfs.io"><img alt="Matrix" src="https://img.shields.io/matrix/ipfs-space%3Aipfs.io?server_fqdn=matrix.org"></a>
-  <a href="https://github.com/ipfs-shipyard/service-worker-gateway/actions"><img src="https://img.shields.io/github/actions/workflow/status/ipfs-shipyard/service-worker-gateway/main.yml?branch=main" alt="ci"></a>
-  <a href="https://github.com/ipfs-shipyard/service-worker-gateway/releases"><img alt="GitHub release" src="https://img.shields.io/github/v/release/ipfs-shipyard/service-worker-gateway?filter=!*rc*"></a>
+  <a href="https://github.com/ipfs/service-worker-gateway/actions"><img src="https://img.shields.io/github/actions/workflow/status/ipfs/service-worker-gateway/main.yml?branch=main" alt="ci"></a>
+  <a href="https://github.com/ipfs/service-worker-gateway/releases"><img alt="GitHub release" src="https://img.shields.io/github/v/release/ipfs/service-worker-gateway?filter=!*rc*"></a>
 </p>
 
 <hr />
@@ -95,14 +95,20 @@ For more information about local development setup, see [/docs/DEVELOPMENT.md](/
 We provide a public good instance of this projct configured to run in [subdomain mode](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway),
 aiming to be a drop-in replacement for `dweb.link`:
 
-- 🚧 **WIP: alpha quality** https://inbrowser.link hosts the `release` branch, with a stable [release](https://github.com/ipfs-shipyard/service-worker-gateway/releases)
+- 🚧 **WIP: alpha quality** https://inbrowser.link hosts the `release` branch, with a stable [release](https://github.com/ipfs/service-worker-gateway/releases)
 - 🚧 **WIP: alpha quality** https://inbrowser.dev hosts the `staging` branch with development / testing version
 
 There is also an instance running in [path mode](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#path-gateway),
 aiming to be a drop-in replacement for `ipfs.io`:
 
-- 🚧 **WIP: alpha quality** https://ipfs-service-worker-gateway.pages.dev hosts the `release` branch, with a stable [release](https://github.com/ipfs-shipyard/service-worker-gateway/releases)
+- 🚧 **WIP: alpha quality** https://ipfs-service-worker-gateway.pages.dev hosts the `release` branch, with a stable [release](https://github.com/ipfs/service-worker-gateway/releases)
 - 🚧 **WIP: alpha quality** https://staging.ipfs-service-worker-gateway.pages.dev hosts the `staging` branch with development / testing version
+
+
+#### Updating `production` and `staging`
+
+Make a PR to the respective branch. Once it is merged, new version will be
+deployed. The process takes between 1 and 5 minutes.
 
 ## License
 
