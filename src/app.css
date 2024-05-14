@@ -33,15 +33,6 @@ form {
   letter-spacing: -12px;
 }
 
-.terminal {
-  margin: 20px;
-  font-family: monospace;
-  font-size: 16px;
-  overflow: auto;
-  flex: 1;
-  word-break: break-word;
-}
-
 .cursor-disabled {
   cursor: not-allowed;
 }

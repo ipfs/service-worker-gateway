@@ -16,6 +16,10 @@ export default {
       // .jsx files aren't checked properly.
       'react-dom',
 
+      // .css deps aren't checked properly.
+      'ipfs-css',
+      'tachyons',
+
       // required by webpack
       'webpack-cli',
       'webpack-dev-server',
