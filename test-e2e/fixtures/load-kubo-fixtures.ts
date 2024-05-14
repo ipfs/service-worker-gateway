@@ -72,13 +72,13 @@ async function configureKubo (): Promise<void> {
     // some of the same things as https://github.com/ipfs/kubo/blob/62eb1439157ea8de385671cb513e8ece10e43baf/config/profile.go#L73
     await $(execaOptions)`npx -y kubo config Addresses.Gateway /ip4/127.0.0.1/tcp/0`
     await $(execaOptions)`npx -y kubo config Addresses.API /ip4/127.0.0.1/tcp/0`
-    await $(execaOptions)`npx -y kubo config --json Bootstrap '[]'`
+    await $(execaOptions)`npx -y kubo config --json Bootstrap ${JSON.stringify([])}`
     await $(execaOptions)`npx -y kubo config --json Swarm.DisableNatPortMap true`
     await $(execaOptions)`npx -y kubo config --json Discovery.MDNS.Enabled false`
     await $(execaOptions)`npx -y kubo config --json Gateway.NoFetch true`
     await $(execaOptions)`npx -y kubo config --json Gateway.ExposeRoutingAPI true`
-    await $(execaOptions)`npx -y kubo config --json Gateway.HTTPHeaders.Access-Control-Allow-Origin '["*"]'`
-    await $(execaOptions)`npx -y kubo config --json Gateway.HTTPHeaders.Access-Control-Allow-Methods '["GET", "POST", "PUT", "OPTIONS"]'`
+    await $(execaOptions)`npx -y kubo config --json Gateway.HTTPHeaders.Access-Control-Allow-Origin ${JSON.stringify(['*'])}`
+    await $(execaOptions)`npx -y kubo config --json Gateway.HTTPHeaders.Access-Control-Allow-Methods ${JSON.stringify(['GET', 'POST', 'PUT', 'OPTIONS'])}`
     log('Kubo configured')
   } catch (e) {
     log.error('Failed to configure Kubo', e)
