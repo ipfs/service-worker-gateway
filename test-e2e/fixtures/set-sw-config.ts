@@ -4,7 +4,7 @@
  *
  * Note that this was only tested and confirmed working for subdomain pages.
  */
-import { getConfigAutoReloadInput, getConfigAutoReloadInputIframe, getConfigButton, getConfigButtonIframe, getConfigGatewaysInput, getConfigGatewaysInputIframe, getConfigPage, getConfigPageButton, getConfigPageButtonIframe, getConfigRoutersInput, getConfigRoutersInputIframe } from './locators.js'
+import { getConfigAutoReloadInput, getConfigAutoReloadInputIframe, getConfigButton, getConfigButtonIframe, getConfigGatewaysInput, getConfigGatewaysInputIframe, getConfigPage, getConfigPageSaveButton, getConfigPageSaveButtonIframe, getConfigRoutersInput, getConfigRoutersInputIframe } from './locators.js'
 import { waitForServiceWorker } from './wait-for-service-worker.js'
 import type { ConfigDb } from '../../src/lib/config-db.js'
 import type { Page } from '@playwright/test'
@@ -23,7 +23,7 @@ export async function setConfigViaUiSubdomain ({ page, config }: { page: Page, c
   await getConfigGatewaysInputIframe(page).locator('input').fill(JSON.stringify([process.env.KUBO_GATEWAY]))
   await getConfigRoutersInputIframe(page).locator('input').fill(JSON.stringify([process.env.KUBO_GATEWAY]))
 
-  await getConfigPageButtonIframe(page).click()
+  await getConfigPageSaveButtonIframe(page).click()
 
   await getConfigPage(page).isHidden()
 }
@@ -44,7 +44,7 @@ export async function setConfigViaUi ({ page, config }: { page: Page, config: Pa
   await getConfigGatewaysInput(page).locator('input').fill(JSON.stringify([process.env.KUBO_GATEWAY]))
   await getConfigRoutersInput(page).locator('input').fill(JSON.stringify([process.env.KUBO_GATEWAY]))
 
-  await getConfigPageButton(page).click()
+  await getConfigPageSaveButton(page).click()
 
   await getConfigPage(page).isHidden()
 }

@@ -34,7 +34,10 @@ export const testPathRouting = base.extend<{ rootDomain: string, baseURL: string
       page,
       config: {
         gateways: [process.env.KUBO_GATEWAY as string],
-        routers: [process.env.KUBO_GATEWAY as string]
+        routers: [process.env.KUBO_GATEWAY as string],
+        dnsJsonResolvers: {
+          '.': 'https://delegated-ipfs.dev/dns-query'
+        }
       }
     })
 
@@ -76,7 +79,10 @@ export const testSubdomainRouting = base.extend<{ rootDomain: string, baseURL: s
           config: {
             autoReload: true,
             gateways: [process.env.KUBO_GATEWAY as string],
-            routers: [process.env.KUBO_GATEWAY as string]
+            routers: [process.env.KUBO_GATEWAY as string],
+            dnsJsonResolvers: {
+              '.': 'https://delegated-ipfs.dev/dns-query'
+            }
           }
         })
       } else {
@@ -91,7 +97,10 @@ export const testSubdomainRouting = base.extend<{ rootDomain: string, baseURL: s
       config: {
         autoReload: true,
         gateways: [process.env.KUBO_GATEWAY as string],
-        routers: [process.env.KUBO_GATEWAY as string]
+        routers: [process.env.KUBO_GATEWAY as string],
+        dnsJsonResolvers: {
+          '.': 'https://delegated-ipfs.dev/dns-query'
+        }
       }
     })
 
