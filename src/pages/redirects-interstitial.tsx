@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import { findOriginIsolationRedirect } from '../lib/path-or-subdomain.js'
 import { translateIpfsRedirectUrl } from '../lib/translate-ipfs-redirect-url.js'
-import RedirectPage from './redirect-page'
+import RedirectPage from './redirect-page.jsx'
 
 /**
  * This page is only used to capture the ?helia-sw=/ip[fn]s/blah query parameter that

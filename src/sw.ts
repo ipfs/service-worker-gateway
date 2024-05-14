@@ -98,7 +98,8 @@ const log = swLogger.forComponent('main')
 const CACHE_VERSION = 1
 const CURRENT_CACHES = Object.freeze({
   mutable: `mutable-cache-v${CACHE_VERSION}`,
-  immutable: `immutable-cache-v${CACHE_VERSION}`
+  immutable: `immutable-cache-v${CACHE_VERSION}`,
+  swAssets: `sw-assets-v${CACHE_VERSION}`
 })
 let verifiedFetch: VerifiedFetch
 const channel = new HeliaServiceWorkerCommsChannel('SW', swLogger)
@@ -123,6 +124,7 @@ self.addEventListener('install', (event) => {
   // 👇 When a new version of the SW is installed, activate immediately
   void self.skipWaiting()
   event.waitUntil(addInstallTimestampToConfig())
+  event.waitUntil(clearSwAssetCache())
 })
 
 self.addEventListener('activate', (event) => {
@@ -199,8 +201,23 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
   } else if (isDeregisterRequest(event.request.url)) {
     event.waitUntil(deregister(event))
     return false
-  } else if (isConfigPageRequest(url) || isSwAssetRequest(event)) {
-    log.trace('config page or sw-asset request, ignoring ', event.request.url)
+  } else if (isConfigPageRequest(url)) {
+    log.trace('config page request, ignoring ', event.request.url)
+    return false
+  } else if (isSwAssetRequest(event)) {
+    log.trace('sw-asset request, returning cached response ', event.request.url)
+    /**
+     * Return the asset from the cache if it exists, otherwise fetch it.
+     */
+    event.respondWith(caches.open(CURRENT_CACHES.swAssets).then(async (cache) => {
+      const cachedResponse = await cache.match(event.request)
+      if (cachedResponse != null) {
+        return cachedResponse
+      }
+      const response = await fetch(event.request)
+      await cache.put(event.request, response.clone())
+      return response
+    }))
     return false
   } else if (!isValidRequestForSW(event)) {
     log.trace('not a valid request for helia-sw, ignoring ', event.request.url)
@@ -289,7 +306,12 @@ function isAggregateError (err: unknown): err is AggregateError {
 
 function isSwAssetRequest (event: FetchEvent): boolean {
   const isActualSwAsset = /^.+\/(?:ipfs-sw-).+$/.test(event.request.url)
-  return isActualSwAsset
+  // if path is not set, then it's a request for index.html which we should consider a sw asset
+  const url = new URL(event.request.url)
+  // but only if it's not a subdomain request (root index.html should not be returned for subdomains)
+  const isIndexHtmlRequest = url.pathname === '/' && !isSubdomainRequest(event)
+
+  return isActualSwAsset || isIndexHtmlRequest
 }
 
 /**
@@ -631,5 +653,19 @@ async function addInstallTimestampToConfig (): Promise<void> {
     swidb.close()
   } catch (e) {
     log.error('addInstallTimestampToConfig error: ', e)
+  }
+}
+
+/**
+ * To be called on 'install' sw event. This will clear out the old swAssets cache,
+ * which is used for storing the service worker's css,js, and html assets.
+ */
+async function clearSwAssetCache (): Promise<void> {
+  // clear out old swAssets cache
+  const cacheName = CURRENT_CACHES.swAssets
+  const cache = await caches.open(cacheName)
+  const keys = await cache.keys()
+  for (const request of keys) {
+    await cache.delete(request)
   }
 }
