@@ -15,8 +15,8 @@ export const ServiceWorkerReadyButton = ({ className, label, waitingLabel, ...pr
     buttonClasses.delete('bg-gray')
     buttonClasses.delete('cursor-disabled')
     buttonClasses.add('bg-animate')
-    buttonClasses.add('bg-black-80')
-    buttonClasses.add('hover-bg-aqua')
+    buttonClasses.add('bg-teal-muted')
+    buttonClasses.add('hover-bg-navy-muted')
     buttonClasses.add('pointer')
   }
 
