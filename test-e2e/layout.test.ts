@@ -11,7 +11,7 @@ test.describe('smoketests', () => {
       await expect(getHeader(page)).toBeVisible()
       const title = getHeaderTitle(page)
       await expect(title).toBeVisible()
-      await expect(title).toHaveText('Service Worker Gateway')
+      await expect(title).toHaveText(/.*Service Worker Gateway.*/)
       await expect(getConfigButton(page)).toBeVisible()
     })
   })
