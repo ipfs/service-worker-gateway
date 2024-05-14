@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
 import { ConfigProvider } from '../context/config-context.jsx'
 import { ServiceWorkerContext, ServiceWorkerProvider } from '../context/service-worker-context.jsx'
@@ -9,6 +9,7 @@ import { isConfigPage } from '../lib/is-config-page.js'
 import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
 import { translateIpfsRedirectUrl } from '../lib/translate-ipfs-redirect-url.js'
 import './default-page-styles.css'
+import LoadingPage from './loading.jsx'
 
 const uiComponentLogger = getUiComponentLogger('redirect-page')
 const log = uiLogger.forComponent('redirect-page')
@@ -37,6 +38,7 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
   const [isAutoReloadEnabled, setIsAutoReloadEnabled] = useState(false)
   const { isServiceWorkerRegistered } = useContext(ServiceWorkerContext)
   const [reloadUrl, setReloadUrl] = useState(translateIpfsRedirectUrl(window.location.href).href)
+  const [isLoadingContent, setIsLoadingContent] = useState(false)
 
   useEffect(() => {
     if (isConfigPage(window.location.hash)) {
@@ -91,11 +93,20 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
     }
   }, [isAutoReloadEnabled, isServiceWorkerRegistered])
 
+  const loadContent = useCallback(() => {
+    window.location.href = reloadUrl
+    setIsLoadingContent(true)
+  }, [reloadUrl])
+
+  if (isLoadingContent) {
+    return <LoadingPage />
+  }
+
   return (
     <div className="redirect-page">
       <div className="pa4-l mw7 mv5 center pa4">
         <h3 className="">{displayString}</h3>
-        <ServiceWorkerReadyButton id="load-content" label='Load content' waitingLabel='Waiting for service worker registration...' onClick={() => { window.location.href = reloadUrl }} />
+        <ServiceWorkerReadyButton id="load-content" label='Load content' waitingLabel='Waiting for service worker registration...' onClick={loadContent} />
       </div>
       {showConfigIframe && <ConfigIframe />}
     </div>
