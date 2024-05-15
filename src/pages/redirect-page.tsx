@@ -94,8 +94,8 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
   }, [isAutoReloadEnabled, isServiceWorkerRegistered])
 
   const loadContent = useCallback(() => {
-    window.location.href = reloadUrl
     setIsLoadingContent(true)
+    window.location.href = reloadUrl
   }, [reloadUrl])
 
   if (isLoadingContent) {
