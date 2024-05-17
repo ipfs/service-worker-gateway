@@ -10,15 +10,15 @@ function FormatHelp (): React.JSX.Element {
         <tbody>
           <tr>
             <td>UNIX-like Content Path</td>
-            <td><pre className="di">/ipfs/cid/..</pre></td>
+            <td><pre className="di pl3">/ipfs/cid/..</pre></td>
           </tr>
           <tr>
             <td>HTTP Gateway URL</td>
-            <td><pre className="di">https://ipfs.io/ipfs/cid..</pre></td>
+            <td><pre className="di pl3">https://ipfs.io/ipfs/cid..</pre></td>
           </tr>
           <tr>
             <td>Native IPFS URL</td>
-            <td><pre className="di">ipfs://cid/..</pre></td>
+            <td><pre className="di pl3">ipfs://cid/..</pre></td>
           </tr>
         </tbody>
       </table>
@@ -30,11 +30,11 @@ function FormatHelp (): React.JSX.Element {
 function ValidationMessage ({ cidOrPeerIdOrDnslink, requestPath, protocol, children }): React.JSX.Element {
   let errorElement: React.JSX.Element | null = null
   if (requestPath == null || requestPath === '') {
-    errorElement = <span>Enter a valid IPFS/IPNS path.</span>
+    errorElement = <span><big className="f3">↑</big> Enter a valid IPFS/IPNS content path.</span>
   } else if (protocol !== 'ipfs' && protocol !== 'ipns') {
     errorElement = <FormatHelp />
   } else if (cidOrPeerIdOrDnslink == null || cidOrPeerIdOrDnslink === '') {
-    const contentType = protocol === 'ipfs' ? 'CID' : 'PeerId or DnsLink'
+    const contentType = protocol === 'ipfs' ? 'CID' : 'PeerID or DNSLink'
     errorElement = <span>Content identifier missing. Add a {contentType} to your path</span>
   } else if (protocol === 'ipfs') {
     try {
@@ -81,7 +81,7 @@ export default function InputValidator ({ requestPath }: { requestPath: string }
     <div>
       <ValidationMessage protocol={protocol} cidOrPeerIdOrDnslink={cidOrPeerIdOrDnslink} requestPath={requestPath}>
         <a className="db" href={swPath} target="_blank">
-          <button id="load-directly" className='button-reset pv3 tc bn bg-animate bg-black-80 hover-bg-aqua white pointer w-100'>Load content</button>
+          <button id="load-directly" className='button-reset pv3 tc bn bg-animate bg-teal-muted hover-bg-navy-muted white pointer f4 w-100'>Load content</button>
         </a>
       </ValidationMessage>
     </div>

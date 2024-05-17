@@ -6,6 +6,7 @@ export interface LocalStorageInputProps extends React.DetailedHTMLProps<React.HT
   placeholder?: string
   defaultValue: string
   validationFn?(value: string): Error | null
+  resetKey: number
 }
 
 const defaultValidationFunction = (value: string): Error | null => {
@@ -16,9 +17,13 @@ const defaultValidationFunction = (value: string): Error | null => {
     return err as Error
   }
 }
-export default ({ localStorageKey, label, placeholder, validationFn, defaultValue, ...props }: LocalStorageInputProps): JSX.Element => {
+export default ({ resetKey, localStorageKey, label, placeholder, validationFn, defaultValue, ...props }: LocalStorageInputProps): JSX.Element => {
   const [value, setValue] = useState(localStorage.getItem(localStorageKey) ?? defaultValue)
   const [error, setError] = useState<null | Error>(null)
+
+  useEffect(() => {
+    setValue(localStorage.getItem(localStorageKey) ?? defaultValue)
+  }, [resetKey])
 
   if (validationFn == null) {
     validationFn = defaultValidationFunction
