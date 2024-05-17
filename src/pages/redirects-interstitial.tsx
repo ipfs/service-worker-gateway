@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
 import { findOriginIsolationRedirect } from '../lib/path-or-subdomain.js'
 import { translateIpfsRedirectUrl } from '../lib/translate-ipfs-redirect-url.js'
+import LoadingPage from './loading.jsx'
 import RedirectPage from './redirect-page.jsx'
 
 /**
@@ -59,5 +60,5 @@ export default function RedirectsInterstitial (): React.JSX.Element {
    *
    * TODO: Better styling.
    */
-  return <>Waiting for redirect to subdomain...</>
+  return <LoadingPage />
 }
