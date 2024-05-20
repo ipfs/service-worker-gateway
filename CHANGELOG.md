@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.2.0](https://github.com/ipfs/service-worker-gateway/compare/v1.1.0...v1.2.0) (2024-05-17)
+
+
+### Features
+
+* _redirects only for /ipns and /ipfs ([#233](https://github.com/ipfs/service-worker-gateway/issues/233)) ([89faa58](https://github.com/ipfs/service-worker-gateway/commit/89faa588ee0c033f3d2631d5c2823c005f17ead5))
+* add content-loading indication page ([#258](https://github.com/ipfs/service-worker-gateway/issues/258)) ([c815a25](https://github.com/ipfs/service-worker-gateway/commit/c815a25d2657244cde5cea95cf535dd1bc728675))
+* cache sw assets with service worker ([#234](https://github.com/ipfs/service-worker-gateway/issues/234)) ([20a8f32](https://github.com/ipfs/service-worker-gateway/commit/20a8f329402dac4cba53fec55bd059eeb7f7137d))
+* landing & config page UX improvements ([#235](https://github.com/ipfs/service-worker-gateway/issues/235)) ([fb9b04e](https://github.com/ipfs/service-worker-gateway/commit/fb9b04e06b6b3670728c243838ee86f3d6b55067))
+* meaningful error pages ([#195](https://github.com/ipfs/service-worker-gateway/issues/195)) ([80774f5](https://github.com/ipfs/service-worker-gateway/commit/80774f50760e4b757dfacfb7d5df79f3fb020012))
+
+
+### Bug Fixes
+
+* ipfs-hosted redirects are not infinite ([#215](https://github.com/ipfs/service-worker-gateway/issues/215)) ([40cc8c7](https://github.com/ipfs/service-worker-gateway/commit/40cc8c7612302e60a2be2c9372e22e95fa10a799))
+* multiple bugs ([#220](https://github.com/ipfs/service-worker-gateway/issues/220)) ([75aa0b8](https://github.com/ipfs/service-worker-gateway/commit/75aa0b8773c8f1ab484ac110fe607404303e2e8c))
+* revert "feat: migrate to preact/compat ([#190](https://github.com/ipfs/service-worker-gateway/issues/190))" ([#219](https://github.com/ipfs/service-worker-gateway/issues/219)) ([4443174](https://github.com/ipfs/service-worker-gateway/commit/44431745be1f5638fb47969326865c8825ade141))
+* use separate logger for ui/sw ([#217](https://github.com/ipfs/service-worker-gateway/issues/217)) ([a96837b](https://github.com/ipfs/service-worker-gateway/commit/a96837b9cf753fa71dcf5a393686fe4d21c7036f))
+
 ## [1.1.0](https://github.com/ipfs-shipyard/service-worker-gateway/compare/v1.0.0...v1.1.0) (2024-04-19)
 
 
