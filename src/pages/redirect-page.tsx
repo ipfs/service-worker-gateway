@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import About from '../components/About.jsx'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
 import { ConfigProvider } from '../context/config-context.jsx'
 import { ServiceWorkerContext, ServiceWorkerProvider } from '../context/service-worker-context.jsx'
@@ -84,7 +85,7 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
       return 'Redirecting you because Auto Reload is enabled.'
     }
 
-    return 'Please save your changes to the config to apply them. You can then refresh the page to load your content.'
+    return 'Click below to load the content with the specified config.'
   }, [isAutoReloadEnabled, isServiceWorkerRegistered])
 
   useEffect(() => {
@@ -105,7 +106,9 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
   return (
     <div className="redirect-page">
       <div className="pa4-l mw7 mv5 center pa4">
-        <h3 className="">{displayString}</h3>
+        <About />
+
+        <h3 className="mt5">{displayString}</h3>
         <ServiceWorkerReadyButton className="w-100" id="load-content" label='Load content' waitingLabel='Waiting for service worker registration...' onClick={loadContent} />
       </div>
       {showConfigIframe && <ConfigIframe />}

@@ -24,7 +24,7 @@ test.describe('first-hit ipfs-hosted', () => {
 
       // then we should be redirected to the IPFS path
       const bodyTextLocator = page.locator('body')
-      await expect(bodyTextLocator).toContainText('Please save your changes to the config to apply them')
+      await expect(bodyTextLocator).toContainText('Click below to load the content with the specified config')
       // and then the normal redirectPage logic:
       await waitForServiceWorker(page)
 
@@ -58,7 +58,7 @@ test.describe('first-hit ipfs-hosted', () => {
       await page.waitForURL('http://bafkqablimvwgy3y.ipfs.localhost:3334')
 
       await waitForServiceWorker(page)
-      await expect(bodyTextLocator).toContainText('Please save your changes to the config to apply them')
+      await expect(bodyTextLocator).toContainText('Click below to load the content with the specified config')
 
       // it should render the config iframe
       await expect(page.locator('#redirect-config-iframe')).toBeAttached({ timeout: 1 })
@@ -95,7 +95,7 @@ test.describe('first-hit direct-hosted', () => {
 
       await waitForServiceWorker(page)
       const bodyTextLocator = page.locator('body')
-      await expect(bodyTextLocator).toContainText('Please save your changes to the config to apply them')
+      await expect(bodyTextLocator).toContainText('Click below to load the content with the specified config')
 
       // it should render the config iframe
       await expect(page.locator('#redirect-config-iframe')).toBeAttached({ timeout: 1 })
@@ -126,7 +126,7 @@ test.describe('first-hit direct-hosted', () => {
       const bodyTextLocator = page.locator('body')
 
       await waitForServiceWorker(page)
-      await expect(bodyTextLocator).toContainText('Please save your changes to the config to apply them')
+      await expect(bodyTextLocator).toContainText('Click below to load the content with the specified config')
 
       // it should render the config iframe
       await expect(page.locator('#redirect-config-iframe')).toBeAttached({ timeout: 1 })
