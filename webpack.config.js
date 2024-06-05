@@ -2,8 +2,10 @@ import { execSync } from 'child_process'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import CopyWebpackPlugin from 'copy-webpack-plugin'
+import { sync as globSync } from 'glob'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
 import MiniCssExtractPlugin from 'mini-css-extract-plugin'
+import { PurgeCSSPlugin } from 'purgecss-webpack-plugin'
 import TerserPlugin from 'terser-webpack-plugin'
 import webpack from 'webpack'
 import BundleAnalyzerPlugin from 'webpack-bundle-analyzer'
@@ -234,6 +236,9 @@ const common = {
     new MiniCssExtractPlugin({
       filename: 'ipfs-sw-[name]-[contenthash].css',
       chunkFilename: 'ipfs-sw-[id]-[contenthash].css'
+    }),
+    new PurgeCSSPlugin({
+      paths: globSync(`${paths.distTsc}/**/*`, { nodir: true })
     })
   ],
 
