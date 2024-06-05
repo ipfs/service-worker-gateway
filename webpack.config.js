@@ -2,10 +2,8 @@ import { execSync } from 'child_process'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import CopyWebpackPlugin from 'copy-webpack-plugin'
-import { sync as globSync } from 'glob'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
 import MiniCssExtractPlugin from 'mini-css-extract-plugin'
-import { PurgeCSSPlugin } from 'purgecss-webpack-plugin'
 import TerserPlugin from 'terser-webpack-plugin'
 import webpack from 'webpack'
 import BundleAnalyzerPlugin from 'webpack-bundle-analyzer'
@@ -236,9 +234,6 @@ const common = {
     new MiniCssExtractPlugin({
       filename: 'ipfs-sw-[name]-[contenthash].css',
       chunkFilename: 'ipfs-sw-[id]-[contenthash].css'
-    }),
-    new PurgeCSSPlugin({
-      paths: globSync(`${paths.distTsc}/**/*`, { nodir: true })
     })
   ],
 
@@ -272,7 +267,7 @@ const common = {
       { test: /\.(?:ico|gif|png|jpg|jpeg)$/i, type: 'asset/resource' },
 
       // Fonts and SVGs: Inline files
-      { test: /\.(woff(2)?|eot|ttf|otf|svg|)$/, type: 'asset/inline' },
+      { test: /\.(woff2|svg|)$/, type: 'asset/inline' },
       {
         test: /\.(sa|sc|c)ss$/i,
         use: [
