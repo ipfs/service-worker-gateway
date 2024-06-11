@@ -266,8 +266,8 @@ const common = {
       // Images: Copy image files to build folder
       { test: /\.(?:ico|gif|png|jpg|jpeg)$/i, type: 'asset/resource' },
 
-      // Fonts and SVGs: Inline files
-      { test: /\.(woff2|svg|)$/, type: 'asset/inline' },
+      // Inline SVGs
+      { test: /\.(svg|)$/, type: 'asset/inline' },
       {
         test: /\.(sa|sc|c)ss$/i,
         use: [
