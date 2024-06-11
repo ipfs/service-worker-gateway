@@ -60,7 +60,7 @@ const paths = {
  */
 const prod = {
   mode: 'production',
-  devtool: 'inline-source-map',
+  devtool: 'source-map',
   performance: {
     hints: false,
     maxEntrypointSize: 512000,
