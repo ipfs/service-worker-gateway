@@ -1,0 +1,23 @@
+{
+  "ci": {
+    "collect": {
+      "staticDistDir": "./dist"
+    },
+    "assert": {
+      "preset": "lighthouse:no-pwa",
+      "assertions": {
+        "color-contrast": "off",
+        "csp-xss": "off",
+        "font-display": "off",
+        "is-crawlable": "off",
+        "link-text": "off",
+        "maskable-icon": "off",
+        "splash-screen": "off",
+        "themed-omnibox": "off",
+        "total-byte-weight": "off",
+        "first-meaningful-paint": "off",
+        "unused-css-rules": "off"
+      }
+    }
+  }
+}

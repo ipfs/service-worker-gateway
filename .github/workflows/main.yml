@@ -37,6 +37,20 @@ jobs:
     - run: npm run --if-present dep-check
     - run: npm run --if-present doc-check
 
+  lighthouse:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - run: npm install && npm install -g @lhci/cli@0.13.x
+      - run: lhci autorun
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
+
   test-node:
     needs: build
     runs-on: ${{ matrix.os }}
