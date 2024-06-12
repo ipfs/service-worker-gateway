@@ -267,7 +267,7 @@ const common = {
       { test: /\.(?:ico|gif|png|jpg|jpeg)$/i, type: 'asset/resource' },
 
       // Fonts and SVGs: Inline files
-      { test: /\.(woff(2)?|eot|ttf|otf|svg|)$/, type: 'asset/inline' },
+      { test: /\.(woff2|svg|)$/, type: 'asset/inline' },
       {
         test: /\.(sa|sc|c)ss$/i,
         use: [
