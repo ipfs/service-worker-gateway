@@ -16,12 +16,10 @@ const LazyInterstitial = React.lazy(async () => import('./pages/redirects-inters
 
 const routes: Route[] = [
   { default: true, component: LazyHelperUi },
-  { shouldRender: async () => (await import('./lib/routing-render-checks.js')).shouldRenderRedirectsInterstitial(), component: LazyInterstitial },
-  { path: '#/ipfs-sw-config', shouldRender: async () => (await import('./lib/routing-render-checks.js')).shouldRenderConfigPage(), component: LazyConfig },
+  { shouldRender: async () => renderChecks.shouldRenderRedirectsInterstitial(), component: LazyInterstitial },
+  { path: '#/ipfs-sw-config', shouldRender: async () => renderChecks.shouldRenderConfigPage(), component: LazyConfig },
   {
-    shouldRender: async () => {
-      return renderChecks.shouldRenderRedirectPage()
-    },
+    shouldRender: async () => renderChecks.shouldRenderRedirectPage(),
     component: LazyRedirectPage
   }
 ]
