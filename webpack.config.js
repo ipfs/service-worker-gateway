@@ -272,7 +272,23 @@ const common = {
         test: /\.(sa|sc|c)ss$/i,
         use: [
           MiniCssExtractPlugin.loader,
-          'css-loader'
+          {
+            loader: 'css-loader',
+            options: {
+              url: {
+                // Exclude fonts from build
+                filter: (url, resourcePath) => {
+                  const fontRegex = /\.(otf|woff|woff2)/
+
+                  if (url.search(fontRegex)) {
+                    return false
+                  }
+
+                  return true
+                }
+              }
+            }
+          }
         ]
       }
     ]
