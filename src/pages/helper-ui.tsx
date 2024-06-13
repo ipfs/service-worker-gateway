@@ -22,7 +22,7 @@ function HelperUi (): React.JSX.Element {
   return (
     <>
       <Header />
-      <main className='pa4-l bg-snow mw7 mv5 center pa4'>
+      <main className='pa2 pa4-l bg-snow mw7 mv5-l center'>
         <h1 className='pa0 f3 ma0 mb4 teal tc'>Fetch & Verify IPFS Content in Browser</h1>
         <Form
           handleSubmit={handleSubmit}
