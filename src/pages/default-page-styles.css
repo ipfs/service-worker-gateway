@@ -1,2 +1,5 @@
 @import 'tachyons';
 @import 'ipfs-css';
+
+/* ensure we don't fetch any external fonts */
+.sans-serif { font-family: system-ui, sans-serif; }

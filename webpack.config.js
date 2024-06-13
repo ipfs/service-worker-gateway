@@ -60,7 +60,7 @@ const paths = {
  */
 const prod = {
   mode: 'production',
-  devtool: 'inline-source-map',
+  devtool: 'source-map',
   performance: {
     hints: false,
     maxEntrypointSize: 512000,
@@ -266,13 +266,29 @@ const common = {
       // Images: Copy image files to build folder
       { test: /\.(?:ico|gif|png|jpg|jpeg)$/i, type: 'asset/resource' },
 
-      // Fonts and SVGs: Inline files
-      { test: /\.(woff(2)?|eot|ttf|otf|svg|)$/, type: 'asset/inline' },
+      // Inline SVGs
+      { test: /\.(svg|)$/, type: 'asset/inline' },
       {
         test: /\.(sa|sc|c)ss$/i,
         use: [
           MiniCssExtractPlugin.loader,
-          'css-loader'
+          {
+            loader: 'css-loader',
+            options: {
+              url: {
+                // Exclude fonts from build
+                filter: (url, resourcePath) => {
+                  const fontRegex = /\.(otf|woff|woff2)/
+
+                  if (url.search(fontRegex)) {
+                    return false
+                  }
+
+                  return true
+                }
+              }
+            }
+          }
         ]
       }
     ]
