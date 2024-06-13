@@ -11,7 +11,7 @@ export default function NoServiceWorkerErrorPage (): React.JSX.Element {
   return (
     <>
       <Header />
-      <main className='pa4-l bg-red-muted mw7 mt1 mb5 center pa4'>
+      <main className='pa4-l bg-red-muted mw7 mb5 center pa4'>
         <h1>Service Worker Error</h1>
         <p>
           This page requires a service worker to be available. Please enable
