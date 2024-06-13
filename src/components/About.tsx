@@ -2,7 +2,7 @@ import React from 'react'
 
 export default function About (): JSX.Element {
   return (
-        <aside className='mw7 lb-snow center w-100 lh-copy'>
+        <aside className='mw7 lb-snow center w-100 lh-copy pa2'>
           <h1 className='pa0 f3 ma0 mb4 teal tc'>About the IPFS Gateway and Service Worker</h1>
           <p>This page runs an IPFS gateway within a <a href="https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API" target="_blank">Service Worker</a>. It uses <a href="https://github.com/ipfs/helia" target="_blank">Helia</a> (IPFS implementation in JS) and the <a href="https://github.com/ipfs/helia-verified-fetch" target="_blank">@helia/verified-fetch</a> library (<a href="https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API" target="_blank">Fetch API</a> for IPFS) to facilitate direct verified retrieval of <a href="https://docs.ipfs.tech/concepts/content-addressing/" target="_blank">content-addressed</a> data.</p>
           <p><strong>Why?</strong> It improves decentralization, offers enhanced security (CID verification happens on end user's machine) and reliability (ability to do retrieval from multiple sources without reliance on a single HTTP server).</p>

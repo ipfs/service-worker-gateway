@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOMClient from 'react-dom/client'
 import App from './app.jsx'
 import { RouterProvider, type Route } from './context/router-context.jsx'
+import * as renderChecks from './lib/routing-render-checks.js'
 
 // SW did not trigger for this request
 const container = document.getElementById('root')
@@ -15,13 +16,10 @@ const LazyInterstitial = React.lazy(async () => import('./pages/redirects-inters
 
 const routes: Route[] = [
   { default: true, component: LazyHelperUi },
-  { shouldRender: async () => (await import('./lib/routing-render-checks.js')).shouldRenderRedirectsInterstitial(), component: LazyInterstitial },
-  { path: '#/ipfs-sw-config', shouldRender: async () => (await import('./lib/routing-render-checks.js')).shouldRenderConfigPage(), component: LazyConfig },
+  { shouldRender: async () => renderChecks.shouldRenderRedirectsInterstitial(), component: LazyInterstitial },
+  { path: '#/ipfs-sw-config', shouldRender: async () => renderChecks.shouldRenderConfigPage(), component: LazyConfig },
   {
-    shouldRender: async () => {
-      const renderChecks = await import('./lib/routing-render-checks.js')
-      return renderChecks.shouldRenderRedirectPage()
-    },
+    shouldRender: async () => renderChecks.shouldRenderRedirectPage(),
     component: LazyRedirectPage
   }
 ]
