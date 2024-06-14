@@ -13,7 +13,7 @@ export default function Header (): JSX.Element {
         </a>
       </div>
       <div className='pb1 ma0 inline-flex items-center'>
-        <h1 className='e2e-header-title f3 fw2 aqua ttu system-sans-serif'>Service Worker Gateway <small className="gray">(beta)</small></h1>
+        <h1 className='e2e-header-title f3 fw2 aqua ttu sans-serif'>Service Worker Gateway <small className="gray">(beta)</small></h1>
         <button className='e2e-header-config-button pl3'
             onClick={() => {
               gotoPage('/ipfs-sw-config')
