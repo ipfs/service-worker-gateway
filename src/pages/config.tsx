@@ -141,7 +141,7 @@ function ConfigPage (): React.JSX.Element | null {
   }, [])
 
   return (
-  <main className='e2e-config-page pa4-l bg-snow mw7 center pa4'>
+    <main className='e2e-config-page pa4-l bg-snow mw7 center pa4'>
       <Collapsible collapsedLabel="View config" expandedLabel='Hide config' collapsed={isLoadedInIframe}>
         <LocalStorageInput className="e2e-config-page-input e2e-config-page-input-gateways" localStorageKey={LOCAL_STORAGE_KEYS.config.gateways} label='Gateways' validationFn={urlValidationFn} defaultValue={JSON.stringify(defaultGateways)} resetKey={resetKey} />
         <LocalStorageInput className="e2e-config-page-input e2e-config-page-input-routers" localStorageKey={LOCAL_STORAGE_KEYS.config.routers} label='Routers' validationFn={urlValidationFn} defaultValue={JSON.stringify(defaultRouters)} resetKey={resetKey} />
