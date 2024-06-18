@@ -1,4 +1,4 @@
-import { uiLogger } from './logger'
+import { uiLogger } from './logger.js'
 
 export const localGwUrl = 'http://127.0.0.1:8080'
 const localGwTestUrl = `${localGwUrl}/ipfs/bafkqablimvwgy3y?format=raw`
