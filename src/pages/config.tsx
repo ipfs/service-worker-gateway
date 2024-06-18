@@ -8,6 +8,7 @@ import { RouteContext } from '../context/router-context.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
 import { HeliaServiceWorkerCommsChannel } from '../lib/channel.js'
 import { defaultDnsJsonResolvers, defaultGateways, defaultRouters, getConfig, loadConfigFromLocalStorage, resetConfig } from '../lib/config-db.js'
+import { hasLocalGateway, localGwUrl } from '../lib/local-gateway.js'
 import { LOCAL_STORAGE_KEYS } from '../lib/local-storage.js'
 import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
 import './default-page-styles.css'
@@ -84,10 +85,30 @@ function ConfigPage (): React.JSX.Element | null {
     window.parent?.postMessage({ source: 'helia-sw-config-iframe', target: 'PARENT', action: 'RELOAD_CONFIG', config }, {
       targetOrigin
     })
-    log.trace('config-page: RELOAD_CONFIG sent to parent window')
+    log.trace('RELOAD_CONFIG sent to parent window')
   }, [])
 
   useEffect(() => {
+    hasLocalGateway()
+      .then(async hasLocalGw => {
+        if (hasLocalGw) {
+          // check if local storage has it.
+          const unparsedGwConf = localStorage.getItem(LOCAL_STORAGE_KEYS.config.gateways)
+          const gwConf = unparsedGwConf != null ? JSON.parse(unparsedGwConf) as string[] : defaultGateways
+          if (!gwConf.includes(localGwUrl)) {
+            log(`Adding ${localGwUrl} to gateway list`)
+            gwConf.push(localGwUrl)
+          }
+          // Update localStorage
+          localStorage.setItem(LOCAL_STORAGE_KEYS.config.gateways, JSON.stringify(gwConf))
+          await loadConfigFromLocalStorage()
+          await channel.messageAndWaitForResponse('SW', { target: 'SW', action: 'RELOAD_CONFIG' })
+          await postFromIframeToParentSw()
+          setResetKey((prev) => prev + 1)
+        }
+      }).catch(err => {
+        log.error('failed to probe for local gateway', err)
+      })
     /**
      * On initial load, we want to send the config to the parent window, so that the reload page can auto-reload if enabled, and the subdomain registered service worker gets the latest config without user interaction.
      */
@@ -120,7 +141,7 @@ function ConfigPage (): React.JSX.Element | null {
   }, [])
 
   return (
-    <main className='e2e-config-page pa4-l bg-snow mw7 center pa4'>
+  <main className='e2e-config-page pa4-l bg-snow mw7 center pa4'>
       <Collapsible collapsedLabel="View config" expandedLabel='Hide config' collapsed={isLoadedInIframe}>
         <LocalStorageInput className="e2e-config-page-input e2e-config-page-input-gateways" localStorageKey={LOCAL_STORAGE_KEYS.config.gateways} label='Gateways' validationFn={urlValidationFn} defaultValue={JSON.stringify(defaultGateways)} resetKey={resetKey} />
         <LocalStorageInput className="e2e-config-page-input e2e-config-page-input-routers" localStorageKey={LOCAL_STORAGE_KEYS.config.routers} label='Routers' validationFn={urlValidationFn} defaultValue={JSON.stringify(defaultRouters)} resetKey={resetKey} />
