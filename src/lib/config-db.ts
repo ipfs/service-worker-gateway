@@ -12,7 +12,7 @@ export interface ConfigDb extends BaseDbConfig {
 }
 
 export const defaultGateways = ['https://trustless-gateway.link']
-export const defaultRouters = ['https://delegated-ipfs.dev']
+export const defaultRouters = []
 export const defaultDnsJsonResolvers = {
   '.': 'https://delegated-ipfs.dev/dns-query'
 }
@@ -100,7 +100,7 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
     gateways = [...defaultGateways]
   }
 
-  if (routers == null || routers.length === 0) {
+  if (routers == null) {
     routers = [...defaultRouters]
   }
   if (dnsJsonResolvers == null || Object.keys(dnsJsonResolvers).length === 0) {

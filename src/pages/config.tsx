@@ -17,13 +17,31 @@ const uiComponentLogger = getUiComponentLogger('config-page')
 const log = uiLogger.forComponent('config-page')
 const channel = new HeliaServiceWorkerCommsChannel('WINDOW', uiComponentLogger)
 
-const urlValidationFn = (value: string): Error | null => {
+const gatewayArrayValidationFn = (value: string): Error | null => {
   try {
     const urls = JSON.parse(value) satisfies string[]
     let i = 0
     if (urls.length === 0) {
       throw new Error('At least one URL is required. Reset the config to use defaults.')
     }
+    try {
+      urls.map((url, index) => {
+        i = index
+        return new URL(url)
+      })
+    } catch (e) {
+      throw new Error(`URL "${urls[i]}" at index ${i} is not valid`)
+    }
+    return null
+  } catch (err) {
+    return err as Error
+  }
+}
+
+const routersArrayValidationFn = (value: string): Error | null => {
+  try {
+    const urls = JSON.parse(value) satisfies string[]
+    let i = 0
     try {
       urls.map((url, index) => {
         i = index
@@ -143,8 +161,8 @@ function ConfigPage (): React.JSX.Element | null {
   return (
     <main className='e2e-config-page pa4-l bg-snow mw7 center pa4'>
       <Collapsible collapsedLabel="View config" expandedLabel='Hide config' collapsed={isLoadedInIframe}>
-        <LocalStorageInput className="e2e-config-page-input e2e-config-page-input-gateways" localStorageKey={LOCAL_STORAGE_KEYS.config.gateways} label='Gateways' validationFn={urlValidationFn} defaultValue={JSON.stringify(defaultGateways)} resetKey={resetKey} />
-        <LocalStorageInput className="e2e-config-page-input e2e-config-page-input-routers" localStorageKey={LOCAL_STORAGE_KEYS.config.routers} label='Routers' validationFn={urlValidationFn} defaultValue={JSON.stringify(defaultRouters)} resetKey={resetKey} />
+        <LocalStorageInput className="e2e-config-page-input e2e-config-page-input-gateways" localStorageKey={LOCAL_STORAGE_KEYS.config.gateways} label='Gateways' validationFn={gatewayArrayValidationFn} defaultValue={JSON.stringify(defaultGateways)} resetKey={resetKey} />
+        <LocalStorageInput className="e2e-config-page-input e2e-config-page-input-routers" localStorageKey={LOCAL_STORAGE_KEYS.config.routers} label='Routers' validationFn={routersArrayValidationFn} defaultValue={JSON.stringify(defaultRouters)} resetKey={resetKey} />
         <LocalStorageInput className="e2e-config-page-input e2e-config-page-input-dnsJsonResolvers" localStorageKey={LOCAL_STORAGE_KEYS.config.dnsJsonResolvers} label='DNS (application/dns-json) resolvers' validationFn={dnsJsonValidationFn} defaultValue={JSON.stringify(defaultDnsJsonResolvers)} resetKey={resetKey} />
         <LocalStorageToggle className="e2e-config-page-input e2e-config-page-input-autoreload" localStorageKey={LOCAL_STORAGE_KEYS.config.autoReload} onLabel='Auto Reload' offLabel='Show Config' resetKey={resetKey} />
         <LocalStorageInput className="e2e-config-page-input" localStorageKey={LOCAL_STORAGE_KEYS.config.debug} label='Debug logging' validationFn={stringValidationFn} defaultValue='' resetKey={resetKey} />
