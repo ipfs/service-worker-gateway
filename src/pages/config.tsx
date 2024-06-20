@@ -115,7 +115,7 @@ function ConfigPage (): React.JSX.Element | null {
           const gwConf = unparsedGwConf != null ? JSON.parse(unparsedGwConf) as string[] : defaultGateways
           if (!gwConf.includes(localGwUrl)) {
             log(`Adding ${localGwUrl} to gateway list`)
-            gwConf.push(localGwUrl)
+            gwConf.unshift(localGwUrl)
           }
           // Update localStorage
           localStorage.setItem(LOCAL_STORAGE_KEYS.config.gateways, JSON.stringify(gwConf))
