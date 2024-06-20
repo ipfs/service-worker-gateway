@@ -9,6 +9,7 @@ export const LOCAL_STORAGE_KEYS = {
     gateways: getLocalStorageKey('config', 'gateways'),
     routers: getLocalStorageKey('config', 'routers'),
     autoReload: getLocalStorageKey('config', 'autoReload'),
+    delegatedRouting: getLocalStorageKey('config', 'delegatedRouting'),
     dnsJsonResolvers: getLocalStorageKey('config', 'dnsJsonResolvers'),
     debug: getLocalStorageKey('config', 'debug')
   },

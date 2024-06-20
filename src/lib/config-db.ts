@@ -8,14 +8,17 @@ export interface ConfigDb extends BaseDbConfig {
   routers: string[]
   dnsJsonResolvers: Record<string, string>
   autoReload: boolean
+  delegatedRouting: boolean
   debug: string
 }
 
 export const defaultGateways = ['https://trustless-gateway.link']
-export const defaultRouters = []
+export const defaultRouters = ['https://delegated-ipfs.dev']
 export const defaultDnsJsonResolvers = {
   '.': 'https://delegated-ipfs.dev/dns-query'
 }
+export const defaultdelegatedRouting = true
+export const defaultAutoReload = false
 
 const configDb = new GenericIDB<ConfigDb>('helia-sw', 'config')
 
@@ -26,7 +29,10 @@ export async function loadConfigFromLocalStorage (): Promise<void> {
     const localStorageGatewaysString = localStorage.getItem(LOCAL_STORAGE_KEYS.config.gateways) ?? JSON.stringify(defaultGateways)
     const localStorageRoutersString = localStorage.getItem(LOCAL_STORAGE_KEYS.config.routers) ?? JSON.stringify(defaultRouters)
     const localStorageDnsResolvers = localStorage.getItem(LOCAL_STORAGE_KEYS.config.dnsJsonResolvers) ?? JSON.stringify(defaultDnsJsonResolvers)
-    const autoReload = localStorage.getItem(LOCAL_STORAGE_KEYS.config.autoReload) === 'true'
+    const lsDelegatedRouting = localStorage.getItem(LOCAL_STORAGE_KEYS.config.delegatedRouting)
+    const delegatedRouting = lsDelegatedRouting === null ? defaultAutoReload : lsDelegatedRouting === 'true'
+    const lsAutoReload = localStorage.getItem(LOCAL_STORAGE_KEYS.config.autoReload)
+    const autoReload = lsAutoReload === null ? defaultAutoReload : lsAutoReload === 'true'
     const debug = localStorage.getItem(LOCAL_STORAGE_KEYS.config.debug) ?? ''
     const gateways = JSON.parse(localStorageGatewaysString)
     const routers = JSON.parse(localStorageRoutersString)
@@ -35,6 +41,7 @@ export async function loadConfigFromLocalStorage (): Promise<void> {
 
     await configDb.put('gateways', gateways)
     await configDb.put('routers', routers)
+    await configDb.put('delegatedRouting', delegatedRouting)
     await configDb.put('dnsJsonResolvers', dnsJsonResolvers)
     await configDb.put('autoReload', autoReload)
     await configDb.put('debug', debug)
@@ -44,15 +51,17 @@ export async function loadConfigFromLocalStorage (): Promise<void> {
 
 export async function resetConfig (): Promise<void> {
   await configDb.open()
-  localStorage.removeItem(LOCAL_STORAGE_KEYS.config.gateways)
+  localStorage.setItem(LOCAL_STORAGE_KEYS.config.gateways, JSON.stringify(defaultGateways))
   await configDb.put('gateways', defaultGateways)
-  localStorage.removeItem(LOCAL_STORAGE_KEYS.config.routers)
+  localStorage.setItem(LOCAL_STORAGE_KEYS.config.routers, JSON.stringify(defaultRouters))
   await configDb.put('routers', defaultRouters)
-  localStorage.removeItem(LOCAL_STORAGE_KEYS.config.dnsJsonResolvers)
+  localStorage.setItem(LOCAL_STORAGE_KEYS.config.delegatedRouting, String(defaultdelegatedRouting))
+  await configDb.put('delegatedRouting', true)
+  localStorage.setItem(LOCAL_STORAGE_KEYS.config.dnsJsonResolvers, JSON.stringify(defaultDnsJsonResolvers))
   await configDb.put('dnsJsonResolvers', defaultDnsJsonResolvers)
-  localStorage.removeItem(LOCAL_STORAGE_KEYS.config.autoReload)
+  localStorage.setItem(LOCAL_STORAGE_KEYS.config.autoReload, String(defaultAutoReload))
   await configDb.put('autoReload', false)
-  localStorage.removeItem(LOCAL_STORAGE_KEYS.config.debug)
+  localStorage.setItem(LOCAL_STORAGE_KEYS.config.debug, '')
   await configDb.put('debug', '')
   configDb.close()
 }
@@ -65,6 +74,7 @@ export async function setConfig (config: ConfigDb, logger: ComponentLogger): Pro
   await configDb.open()
   await configDb.put('gateways', config.gateways)
   await configDb.put('routers', config.routers)
+  await configDb.put('delegatedRouting', config.delegatedRouting)
   await configDb.put('dnsJsonResolvers', config.dnsJsonResolvers)
   await configDb.put('autoReload', config.autoReload)
   await configDb.put('debug', config.debug ?? '')
@@ -76,7 +86,8 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
   let gateways: string[] = defaultGateways
   let routers: string[] = defaultRouters
   let dnsJsonResolvers: Record<string, string> = defaultDnsJsonResolvers
-  let autoReload = false
+  let autoReload = defaultAutoReload
+  let delegatedRouting = defaultdelegatedRouting
   let debug = ''
 
   try {
@@ -88,7 +99,10 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
 
     dnsJsonResolvers = await configDb.get('dnsJsonResolvers')
 
-    autoReload = await configDb.get('autoReload') ?? false
+    autoReload = await configDb.get('autoReload') ?? defaultAutoReload
+
+    delegatedRouting = await configDb.get('delegatedRouting') ?? defaultdelegatedRouting
+
     debug = await configDb.get('debug') ?? ''
     configDb.close()
     debugLib.enable(debug)
@@ -111,6 +125,7 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
   return {
     gateways,
     routers,
+    delegatedRouting,
     dnsJsonResolvers,
     autoReload,
     debug

@@ -250,7 +250,7 @@ async function getVerifiedFetch (): Promise<VerifiedFetch> {
 
   const verifiedFetch = await createVerifiedFetch({
     gateways: config.gateways,
-    routers: config.routers ?? [],
+    routers: config.delegatedRouting ? config.routers : [],
     dnsResolvers,
     allowInsecure: true,
     allowLocal: true
