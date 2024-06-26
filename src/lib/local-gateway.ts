@@ -11,7 +11,7 @@ const log = uiLogger.forComponent('local-gateway-prober')
 export async function hasLocalGateway (): Promise<boolean> {
   try {
     log(`probing for local trustless gateway at ${localGwTestUrl}`)
-    const resp = await fetch(localGwTestUrl)
+    const resp = await fetch(localGwTestUrl, { cache: 'no-store' })
     if (!resp.ok) {
       return false
     }
