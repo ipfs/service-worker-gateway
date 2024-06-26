@@ -106,24 +106,35 @@ function ConfigPage (): React.JSX.Element | null {
     log.trace('RELOAD_CONFIG sent to parent window')
   }, [])
 
+  // Effect to add or remove the local gateway
   useEffect(() => {
     hasLocalGateway()
       .then(async hasLocalGw => {
+        // check if local storage has it.
+        const unparsedGwConf = localStorage.getItem(LOCAL_STORAGE_KEYS.config.gateways)
+        let gwConf = unparsedGwConf != null ? JSON.parse(unparsedGwConf) as string[] : defaultGateways
+
         if (hasLocalGw) {
-          // check if local storage has it.
-          const unparsedGwConf = localStorage.getItem(LOCAL_STORAGE_KEYS.config.gateways)
-          const gwConf = unparsedGwConf != null ? JSON.parse(unparsedGwConf) as string[] : defaultGateways
+          // Add the local gateway to config if not there already
           if (!gwConf.includes(localGwUrl)) {
             log(`Adding ${localGwUrl} to gateway list`)
             gwConf.unshift(localGwUrl)
           }
-          // Update localStorage
-          localStorage.setItem(LOCAL_STORAGE_KEYS.config.gateways, JSON.stringify(gwConf))
-          await loadConfigFromLocalStorage()
-          await channel.messageAndWaitForResponse('SW', { target: 'SW', action: 'RELOAD_CONFIG' })
-          await postFromIframeToParentSw()
-          setResetKey((prev) => prev + 1)
+        } else if (gwConf.includes(localGwUrl)) {
+          // remove local gateway from the configuration if the gateway is not available
+          gwConf = gwConf.filter(gw => gw !== localGwUrl)
+          if (gwConf.length === 0) {
+            // if there are no gateways following the removal reset to the default gateways
+            gwConf = defaultGateways
+          }
         }
+
+        // persist to localstorage, idb and 🙃
+        localStorage.setItem(LOCAL_STORAGE_KEYS.config.gateways, JSON.stringify(gwConf))
+        await loadConfigFromLocalStorage()
+        await channel.messageAndWaitForResponse('SW', { target: 'SW', action: 'RELOAD_CONFIG' })
+        await postFromIframeToParentSw()
+        setResetKey((prev) => prev + 1) // needed to ensure the config is re-rendered
       }).catch(err => {
         log.error('failed to probe for local gateway', err)
       })
