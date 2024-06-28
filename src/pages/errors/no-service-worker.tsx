@@ -14,8 +14,13 @@ export default function NoServiceWorkerErrorPage (): React.JSX.Element {
       <main className='pa4-l bg-red-muted mw7 mb5 center pa4'>
         <h1>Service Worker Error</h1>
         <p>
-          This page requires a service worker to be available. Please enable
-          service workers in your browser and try again.
+          This page requires a service worker to be available. Please ensure that
+          your browser supports service workers and that they are enabled
+          (navigator.serviceWorker is present).
+        </p>
+        <p>
+          If you are using Firefox, please note that service workers are disabled
+          in private browsing mode. Please try again in a regular browsing window.
         </p>
       </main>
       <About />
