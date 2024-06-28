@@ -21,7 +21,7 @@ if ('serviceWorker' in navigator) {
 }
 
 const routes: Route[] = [
-  { default: true, component: LazyHelperUi },
+  { default: true, component: ErrorPage ?? LazyHelperUi },
   { shouldRender: async () => renderChecks.shouldRenderRedirectsInterstitial(), component: LazyInterstitial },
   { path: '#/ipfs-sw-config', shouldRender: async () => renderChecks.shouldRenderConfigPage(), component: LazyConfig },
   {
