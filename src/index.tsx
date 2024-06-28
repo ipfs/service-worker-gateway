@@ -13,9 +13,15 @@ const LazyConfig = React.lazy(async () => import('./pages/config.jsx'))
 const LazyHelperUi = React.lazy(async () => import('./pages/helper-ui.jsx'))
 const LazyRedirectPage = React.lazy(async () => import('./pages/redirect-page.jsx'))
 const LazyInterstitial = React.lazy(async () => import('./pages/redirects-interstitial.jsx'))
+const LazyServiceWorkerErrorPage = React.lazy(async () => import('./pages/errors/no-service-worker.jsx'))
+
+let ErrorPage: null | React.LazyExoticComponent<() => React.JSX.Element> = LazyServiceWorkerErrorPage
+if ('serviceWorker' in navigator) {
+  ErrorPage = null
+}
 
 const routes: Route[] = [
-  { default: true, component: LazyHelperUi },
+  { default: true, component: ErrorPage ?? LazyHelperUi },
   { shouldRender: async () => renderChecks.shouldRenderRedirectsInterstitial(), component: LazyInterstitial },
   { path: '#/ipfs-sw-config', shouldRender: async () => renderChecks.shouldRenderConfigPage(), component: LazyConfig },
   {
