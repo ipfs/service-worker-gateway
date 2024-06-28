@@ -15,9 +15,9 @@ const LazyRedirectPage = React.lazy(async () => import('./pages/redirect-page.js
 const LazyInterstitial = React.lazy(async () => import('./pages/redirects-interstitial.jsx'))
 const LazyServiceWorkerErrorPage = React.lazy(async () => import('./pages/errors/no-service-worker.jsx'))
 
-let ErrorPage: null | React.LazyExoticComponent<() => React.JSX.Element> = null
+let ErrorPage: null | React.LazyExoticComponent<() => React.JSX.Element> = LazyServiceWorkerErrorPage
 if ('serviceWorker' in navigator) {
-  ErrorPage = LazyServiceWorkerErrorPage
+  ErrorPage = null
 }
 
 const routes: Route[] = [
