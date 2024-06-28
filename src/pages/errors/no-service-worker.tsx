@@ -19,8 +19,8 @@ export default function NoServiceWorkerErrorPage (): React.JSX.Element {
           (navigator.serviceWorker is present).
         </p>
         <p>
-          If you are using Firefox, please note that service workers are disabled
-          in private browsing mode. Please try again in a regular browsing window.
+          If you are using Firefox, please note that <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1320796" target="_blank">service workers are disabled
+          in private browsing mode</a>. Please try again in a regular browsing window.
         </p>
       </main>
       <About />
