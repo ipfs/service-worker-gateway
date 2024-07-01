@@ -1,0 +1,18 @@
+{
+  "short_name": "InBrowser IPFS",
+  "name": "InBrowser IPFS Gateway",
+  "icons": [
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "id": "/?source=pwa",
+  "start_url": "/?source=pwa",
+  "background_color": "#0B3A53",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#0B3A53",
+  "description": "An experimental IPFS Gateway implemented as a Service Worker with @helia/verified-fetch"
+}

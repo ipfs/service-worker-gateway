@@ -80,7 +80,7 @@ export default function InputValidator ({ requestPath }: { requestPath: string }
   return (
     <div>
       <ValidationMessage protocol={protocol} cidOrPeerIdOrDnslink={cidOrPeerIdOrDnslink} requestPath={requestPath}>
-        <a className="db" href={swPath} target="_blank">
+        <a className="db" href={swPath}>
           <button id="load-directly" className='button-reset pv3 tc bn bg-animate bg-teal-muted hover-bg-navy-muted white pointer f4 w-100'>Load content</button>
         </a>
       </ValidationMessage>
