@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react'
+import Header from '../components/Header.jsx'
 import { Collapsible } from '../components/collapsible.jsx'
 import LocalStorageInput from '../components/local-storage-input.jsx'
 import { LocalStorageToggle } from '../components/local-storage-toggle.jsx'
@@ -120,6 +121,8 @@ function ConfigPage (): React.JSX.Element | null {
   }, [])
 
   return (
+    <>
+    {!isLoadedInIframe && <Header /> }
     <main className='e2e-config-page pa4-l bg-snow mw7 center pa4'>
       <Collapsible collapsedLabel="View config" expandedLabel='Hide config' collapsed={isLoadedInIframe}>
         <LocalStorageInput className="e2e-config-page-input e2e-config-page-input-gateways" localStorageKey={LOCAL_STORAGE_KEYS.config.gateways} label='Gateways' validationFn={urlValidationFn} defaultValue={JSON.stringify(defaultGateways)} resetKey={resetKey} />
@@ -134,6 +137,7 @@ function ConfigPage (): React.JSX.Element | null {
         {error != null && <span style={{ color: 'red' }}>{error.message}</span>}
       </Collapsible>
     </main>
+    </>
   )
 }
 
