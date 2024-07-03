@@ -124,6 +124,7 @@ function ConfigPage (): React.JSX.Element | null {
         gotoPage()
       }
     } catch (err) {
+      log.error('Error saving config', err)
       setError(err as Error)
     }
   }, [])

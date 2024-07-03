@@ -1,6 +1,6 @@
 import debugLib from 'debug'
 import { GenericIDB, type BaseDbConfig } from './generic-db.js'
-import { LOCAL_STORAGE_KEYS, convertDnsResolverInputToObject, convertUrlInputToArray } from './local-storage.js'
+import { LOCAL_STORAGE_KEYS, convertDnsResolverInputToObject, convertDnsResolverObjectToInput, convertUrlArrayToInput, convertUrlInputToArray } from './local-storage.js'
 import type { ComponentLogger } from '@libp2p/logger'
 
 export interface ConfigDb extends BaseDbConfig {
@@ -23,14 +23,14 @@ export async function loadConfigFromLocalStorage (): Promise<void> {
   if (typeof globalThis.localStorage !== 'undefined') {
     await configDb.open()
     const localStorage = globalThis.localStorage
-    const localStorageGatewaysString = localStorage.getItem(LOCAL_STORAGE_KEYS.config.gateways) ?? JSON.stringify(defaultGateways)
-    const localStorageRoutersString = localStorage.getItem(LOCAL_STORAGE_KEYS.config.routers) ?? JSON.stringify(defaultRouters)
-    const localStorageDnsResolvers = localStorage.getItem(LOCAL_STORAGE_KEYS.config.dnsJsonResolvers) ?? JSON.stringify(defaultDnsJsonResolvers)
+    const localStorageGatewaysString = localStorage.getItem(LOCAL_STORAGE_KEYS.config.gateways) ?? convertUrlArrayToInput(defaultGateways)
+    const localStorageRoutersString = localStorage.getItem(LOCAL_STORAGE_KEYS.config.routers) ?? convertUrlArrayToInput(defaultRouters)
+    const localStorageDnsResolvers = localStorage.getItem(LOCAL_STORAGE_KEYS.config.dnsJsonResolvers) ?? convertDnsResolverObjectToInput(defaultDnsJsonResolvers)
     const autoReload = localStorage.getItem(LOCAL_STORAGE_KEYS.config.autoReload) === 'true'
     const debug = localStorage.getItem(LOCAL_STORAGE_KEYS.config.debug) ?? ''
-    const gateways = JSON.parse(localStorageGatewaysString)
-    const routers = JSON.parse(localStorageRoutersString)
-    const dnsJsonResolvers = JSON.parse(localStorageDnsResolvers)
+    const gateways = convertUrlInputToArray(localStorageGatewaysString)
+    const routers = convertUrlInputToArray(localStorageRoutersString)
+    const dnsJsonResolvers = convertDnsResolverInputToObject(localStorageDnsResolvers)
     debugLib.enable(debug)
 
     await configDb.put('gateways', gateways)
