@@ -139,11 +139,49 @@ function ConfigPage (): React.JSX.Element | null {
   return (
     <main className='e2e-config-page pa4-l bg-snow mw7 center pa4'>
       <Collapsible collapsedLabel="View config" expandedLabel='Hide config' collapsed={isLoadedInIframe}>
-        <LocalStorageInput className="e2e-config-page-input e2e-config-page-input-gateways" localStorageKey={LOCAL_STORAGE_KEYS.config.gateways} label='Gateways' validationFn={urlValidationFn} defaultValue={convertUrlArrayToInput(defaultGateways)} resetKey={resetKey} />
-        <LocalStorageInput className="e2e-config-page-input e2e-config-page-input-routers" localStorageKey={LOCAL_STORAGE_KEYS.config.routers} label='Routers' validationFn={urlValidationFn} defaultValue={convertUrlArrayToInput(defaultRouters)} resetKey={resetKey} />
-        <LocalStorageInput className="e2e-config-page-input e2e-config-page-input-dnsJsonResolvers" localStorageKey={LOCAL_STORAGE_KEYS.config.dnsJsonResolvers} label='DNS (application/dns-json) resolvers' validationFn={dnsJsonValidationFn} defaultValue={convertDnsResolverObjectToInput(defaultDnsJsonResolvers)} resetKey={resetKey} />
-        <LocalStorageToggle className="e2e-config-page-input e2e-config-page-input-autoreload" localStorageKey={LOCAL_STORAGE_KEYS.config.autoReload} onLabel='Auto Reload' offLabel='Show Config' resetKey={resetKey} />
-        <LocalStorageInput className="e2e-config-page-input" localStorageKey={LOCAL_STORAGE_KEYS.config.debug} label='Debug logging' validationFn={stringValidationFn} defaultValue='' resetKey={resetKey} />
+        <LocalStorageInput
+          className="e2e-config-page-input e2e-config-page-input-gateways"
+          description="A newline delimited list of trustless gateway URLs."
+          localStorageKey={LOCAL_STORAGE_KEYS.config.gateways}
+          label='Gateways'
+          validationFn={urlValidationFn}
+          defaultValue={convertUrlArrayToInput(defaultGateways)}
+          resetKey={resetKey}
+        />
+        <LocalStorageInput
+          className="e2e-config-page-input e2e-config-page-input-routers"
+          description="A newline delimited list of delegated IPFS router URLs."
+          localStorageKey={LOCAL_STORAGE_KEYS.config.routers}
+          label='Routers'
+          validationFn={urlValidationFn}
+          defaultValue={convertUrlArrayToInput(defaultRouters)}
+          resetKey={resetKey}
+        />
+        <LocalStorageInput
+          className="e2e-config-page-input e2e-config-page-input-dnsJsonResolvers"
+          description="A newline delimited list of space delimited key+value pairs for DNS (application/dns-json) resolvers. The key is the domain suffix, and the value is the URL of the DNS resolver."
+          localStorageKey={LOCAL_STORAGE_KEYS.config.dnsJsonResolvers}
+          label='DNS (application/dns-json) resolvers'
+          validationFn={dnsJsonValidationFn}
+          defaultValue={convertDnsResolverObjectToInput(defaultDnsJsonResolvers)}
+          resetKey={resetKey}
+        />
+        <LocalStorageToggle
+          className="e2e-config-page-input e2e-config-page-input-autoreload"
+          localStorageKey={LOCAL_STORAGE_KEYS.config.autoReload}
+          onLabel='Auto Reload'
+          offLabel='Show Config'
+          resetKey={resetKey}
+        />
+        <LocalStorageInput
+          className="e2e-config-page-input"
+          description="A string that enables debug logging. Use '*,*:trace' to enable all debug logging."
+          localStorageKey={LOCAL_STORAGE_KEYS.config.debug}
+          label='Debug logging'
+          validationFn={stringValidationFn}
+          defaultValue=''
+          resetKey={resetKey}
+        />
         <div className="w-100 inline-flex flex-row justify-between">
           <button className="e2e-config-page-button button-reset mr5 pv3 tc bg-animate hover-bg-gold pointer w-30 bn" id="reset-config" onClick={() => { void doResetConfig() }}>Reset Config</button>
           <ServiceWorkerReadyButton className="e2e-config-page-button white w-100 pa3" id="save-config" label='Save Config' waitingLabel='Waiting for service worker registration...' onClick={() => { void saveConfig() }} />
