@@ -8,7 +8,7 @@ import { RouteContext } from '../context/router-context.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
 import { HeliaServiceWorkerCommsChannel } from '../lib/channel.js'
 import { defaultDnsJsonResolvers, defaultGateways, defaultRouters, getConfig, loadConfigFromLocalStorage, resetConfig } from '../lib/config-db.js'
-import { LOCAL_STORAGE_KEYS } from '../lib/local-storage.js'
+import { LOCAL_STORAGE_KEYS, convertDnsResolverInputToObject, convertDnsResolverObjectToInput, convertUrlArrayToInput, convertUrlInputToArray } from '../lib/local-storage.js'
 import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
 import './default-page-styles.css'
 
@@ -16,9 +16,12 @@ const uiComponentLogger = getUiComponentLogger('config-page')
 const log = uiLogger.forComponent('config-page')
 const channel = new HeliaServiceWorkerCommsChannel('WINDOW', uiComponentLogger)
 
+/**
+ * Converts newline delimited URLs to an array of URLs, and validates each URL.
+ */
 const urlValidationFn = (value: string): Error | null => {
   try {
-    const urls = JSON.parse(value) satisfies string[]
+    const urls: string[] = convertUrlInputToArray(value)
     let i = 0
     if (urls.length === 0) {
       throw new Error('At least one URL is required. Reset the config to use defaults.')
@@ -29,7 +32,7 @@ const urlValidationFn = (value: string): Error | null => {
         return new URL(url)
       })
     } catch (e) {
-      throw new Error(`URL "${urls[i]}" at index ${i} is not valid`)
+      throw new Error(`URL "${urls[i]}" on line ${i} is not valid`)
     }
     return null
   } catch (err) {
@@ -37,9 +40,19 @@ const urlValidationFn = (value: string): Error | null => {
   }
 }
 
+/**
+ * Converts newline delimited patterns of space delimited key+value pairs to a JSON object, and validates each URL.
+ *
+ * @example
+ * ```
+ * . https://delegated-ipfs.dev/dns-query
+ * .com https://cloudflare-dns.com/dns-query
+ * .eth https://eth.link/dns-query
+ * ```
+ */
 const dnsJsonValidationFn = (value: string): Error | null => {
   try {
-    const urls: Record<string, string> = JSON.parse(value)
+    const urls: Record<string, string> = convertDnsResolverInputToObject(value)
     let i = 0
     if (Object.keys(urls).length === 0) {
       throw new Error('At least one URL is required. Reset the config to use defaults.')
@@ -50,7 +63,10 @@ const dnsJsonValidationFn = (value: string): Error | null => {
         return new URL(url)
       })
     } catch (e) {
-      throw new Error(`URL "${urls[i]}" at index ${i} is not valid`)
+      if (urls[i] != null) {
+        throw new Error(`URL "${urls[i]}" at index ${i} is not valid`)
+      }
+      throw new Error(`Input on line ${i} with key "${Object.keys(urls)[i]}" is not valid`)
     }
     return null
   } catch (err) {
@@ -122,9 +138,9 @@ function ConfigPage (): React.JSX.Element | null {
   return (
     <main className='e2e-config-page pa4-l bg-snow mw7 center pa4'>
       <Collapsible collapsedLabel="View config" expandedLabel='Hide config' collapsed={isLoadedInIframe}>
-        <LocalStorageInput className="e2e-config-page-input e2e-config-page-input-gateways" localStorageKey={LOCAL_STORAGE_KEYS.config.gateways} label='Gateways' validationFn={urlValidationFn} defaultValue={JSON.stringify(defaultGateways)} resetKey={resetKey} />
-        <LocalStorageInput className="e2e-config-page-input e2e-config-page-input-routers" localStorageKey={LOCAL_STORAGE_KEYS.config.routers} label='Routers' validationFn={urlValidationFn} defaultValue={JSON.stringify(defaultRouters)} resetKey={resetKey} />
-        <LocalStorageInput className="e2e-config-page-input e2e-config-page-input-dnsJsonResolvers" localStorageKey={LOCAL_STORAGE_KEYS.config.dnsJsonResolvers} label='DNS (application/dns-json) resolvers' validationFn={dnsJsonValidationFn} defaultValue={JSON.stringify(defaultDnsJsonResolvers)} resetKey={resetKey} />
+        <LocalStorageInput className="e2e-config-page-input e2e-config-page-input-gateways" localStorageKey={LOCAL_STORAGE_KEYS.config.gateways} label='Gateways' validationFn={urlValidationFn} defaultValue={convertUrlArrayToInput(defaultGateways)} resetKey={resetKey} />
+        <LocalStorageInput className="e2e-config-page-input e2e-config-page-input-routers" localStorageKey={LOCAL_STORAGE_KEYS.config.routers} label='Routers' validationFn={urlValidationFn} defaultValue={convertUrlArrayToInput(defaultRouters)} resetKey={resetKey} />
+        <LocalStorageInput className="e2e-config-page-input e2e-config-page-input-dnsJsonResolvers" localStorageKey={LOCAL_STORAGE_KEYS.config.dnsJsonResolvers} label='DNS (application/dns-json) resolvers' validationFn={dnsJsonValidationFn} defaultValue={convertDnsResolverObjectToInput(defaultDnsJsonResolvers)} resetKey={resetKey} />
         <LocalStorageToggle className="e2e-config-page-input e2e-config-page-input-autoreload" localStorageKey={LOCAL_STORAGE_KEYS.config.autoReload} onLabel='Auto Reload' offLabel='Show Config' resetKey={resetKey} />
         <LocalStorageInput className="e2e-config-page-input" localStorageKey={LOCAL_STORAGE_KEYS.config.debug} label='Debug logging' validationFn={stringValidationFn} defaultValue='' resetKey={resetKey} />
         <div className="w-100 inline-flex flex-row justify-between">
