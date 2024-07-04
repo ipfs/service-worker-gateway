@@ -565,6 +565,11 @@ async function errorPageResponse (fetchResponse: Response): Promise<Response> {
    */
   return new Response(`<!DOCTYPE html>
     <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Error - Service Worker IPFS Gateway</title>
+      </head>
       <body>
         <div id="root" class="sans-serif f5">
           <h1>Oops! Something went wrong inside of Service Worker IPFS Gateway.</h1>
