@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.3.0](https://github.com/ipfs/service-worker-gateway/compare/v1.2.0...v1.3.0) (2024-07-04)
+
+
+### Features
+
+* about section on subdomain loads ([#263](https://github.com/ipfs/service-worker-gateway/issues/263)) ([947011e](https://github.com/ipfs/service-worker-gateway/commit/947011e772f73d32b2380bb6d7521f61fc8d27bf))
+* config page ux improvements ([#315](https://github.com/ipfs/service-worker-gateway/issues/315)) ([16b31b9](https://github.com/ipfs/service-worker-gateway/commit/16b31b98f391197c745dcc4328c49fc32905d0ff))
+* error page when service worker not available ([#283](https://github.com/ipfs/service-worker-gateway/issues/283)) ([774e388](https://github.com/ipfs/service-worker-gateway/commit/774e388bd2c4696988121c42ce511c59837348f0))
+* minimal PWA manifest ([#310](https://github.com/ipfs/service-worker-gateway/issues/310)) ([6d758c9](https://github.com/ipfs/service-worker-gateway/commit/6d758c91b8ffc389ff672a6a0f987651f5a2dba2))
+
+
+### Bug Fixes
+
+* load default css on interstitial ([#298](https://github.com/ipfs/service-worker-gateway/issues/298)) ([9990664](https://github.com/ipfs/service-worker-gateway/commit/9990664899005fca960544d7e03216bb1c47d7f0))
+* remove fonts except woff2 ([#282](https://github.com/ipfs/service-worker-gateway/issues/282)) ([7517a62](https://github.com/ipfs/service-worker-gateway/commit/7517a620a66aab260c66e0cce2270bc8898a0160))
+
 ## [1.2.0](https://github.com/ipfs/service-worker-gateway/compare/v1.1.0...v1.2.0) (2024-05-17)
 
 
