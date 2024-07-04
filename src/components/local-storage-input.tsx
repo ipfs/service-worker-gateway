@@ -8,6 +8,8 @@ export interface LocalStorageInputProps extends React.DetailedHTMLProps<React.HT
   validationFn?(value: string): Error | null
   resetKey: number
   description?: string
+  preSaveFormat?(value: string): string
+  postLoadFormat?(value: string): string
 }
 
 const defaultValidationFunction = (value: string): Error | null => {
@@ -19,15 +21,24 @@ const defaultValidationFunction = (value: string): Error | null => {
   }
 }
 
+const getFromLocalStorage = (postLoadFormat?: (arg0: string) => string) => (key: string, fallback: string) => {
+  let localStorageValue = localStorage.getItem(key)
+  if (localStorageValue != null && postLoadFormat != null) {
+    localStorageValue = postLoadFormat(localStorageValue)
+  }
+  return localStorageValue ?? fallback
+}
+
 /**
  * A Local storage input (text area) component that saves the input to local storage.
  */
-export default ({ resetKey, localStorageKey, label, placeholder, validationFn, defaultValue, description, ...props }: LocalStorageInputProps): JSX.Element => {
-  const [value, setValue] = useState(localStorage.getItem(localStorageKey) ?? defaultValue)
+export default ({ resetKey, localStorageKey, label, placeholder, validationFn, defaultValue, description, preSaveFormat, postLoadFormat, ...props }: LocalStorageInputProps): JSX.Element => {
+  const localStorageLoadFn = getFromLocalStorage(postLoadFormat)
+  const [value, setValue] = useState(localStorageLoadFn(localStorageKey, defaultValue))
   const [error, setError] = useState<null | Error>(null)
 
   useEffect(() => {
-    setValue(localStorage.getItem(localStorageKey) ?? defaultValue)
+    setValue(localStorageLoadFn(localStorageKey, defaultValue))
   }, [resetKey])
 
   if (validationFn == null) {
@@ -40,7 +51,7 @@ export default ({ resetKey, localStorageKey, label, placeholder, validationFn, d
       if (err != null) {
         throw err
       }
-      localStorage.setItem(localStorageKey, value)
+      localStorage.setItem(localStorageKey, preSaveFormat?.(value) ?? value)
       setError(null)
     } catch (err) {
       setError(err as Error)

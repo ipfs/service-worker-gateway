@@ -136,6 +136,9 @@ function ConfigPage (): React.JSX.Element | null {
     setResetKey((prev) => prev + 1)
   }, [])
 
+  const newlineStringSave = (value: string): string => JSON.stringify(convertUrlInputToArray(value))
+  const newlineStringLoad = (value: string): string => convertUrlArrayToInput(JSON.parse(value))
+
   return (
     <main className='e2e-config-page pa4-l bg-snow mw7 center pa4'>
       <Collapsible collapsedLabel="View config" expandedLabel='Hide config' collapsed={isLoadedInIframe}>
@@ -146,6 +149,8 @@ function ConfigPage (): React.JSX.Element | null {
           label='Gateways'
           validationFn={urlValidationFn}
           defaultValue={convertUrlArrayToInput(defaultGateways)}
+          preSaveFormat={newlineStringSave}
+          postLoadFormat={newlineStringLoad}
           resetKey={resetKey}
         />
         <LocalStorageInput
@@ -155,6 +160,8 @@ function ConfigPage (): React.JSX.Element | null {
           label='Routers'
           validationFn={urlValidationFn}
           defaultValue={convertUrlArrayToInput(defaultRouters)}
+          preSaveFormat={newlineStringSave}
+          postLoadFormat={newlineStringLoad}
           resetKey={resetKey}
         />
         <LocalStorageInput
@@ -164,6 +171,8 @@ function ConfigPage (): React.JSX.Element | null {
           label='DNS'
           validationFn={dnsJsonValidationFn}
           defaultValue={convertDnsResolverObjectToInput(defaultDnsJsonResolvers)}
+          preSaveFormat={(value) => JSON.stringify(convertDnsResolverInputToObject(value))}
+          postLoadFormat={(value) => convertDnsResolverObjectToInput(JSON.parse(value))}
           resetKey={resetKey}
         />
 
