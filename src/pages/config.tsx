@@ -161,11 +161,14 @@ function ConfigPage (): React.JSX.Element | null {
           className="e2e-config-page-input e2e-config-page-input-dnsJsonResolvers"
           description="A newline delimited list of space delimited key+value pairs for DNS (application/dns-json) resolvers. The key is the domain suffix, and the value is the URL of the DNS resolver."
           localStorageKey={LOCAL_STORAGE_KEYS.config.dnsJsonResolvers}
-          label='DNS (application/dns-json) resolvers'
+          label='DNS'
           validationFn={dnsJsonValidationFn}
           defaultValue={convertDnsResolverObjectToInput(defaultDnsJsonResolvers)}
           resetKey={resetKey}
         />
+
+        <div className='f5 ma0 pt3 teal fw4 db'>Interstitials</div>
+        <span className="charcoal-muted f6 fw1 db pt1 pb1 lh-copy">Control if visiting a new origin should display interstitial pages or automatically load the content using existing configuration.</span>
         <LocalStorageToggle
           className="e2e-config-page-input e2e-config-page-input-autoreload"
           localStorageKey={LOCAL_STORAGE_KEYS.config.autoReload}
@@ -173,11 +176,12 @@ function ConfigPage (): React.JSX.Element | null {
           offLabel='Show Config'
           resetKey={resetKey}
         />
+
         <LocalStorageInput
           className="e2e-config-page-input"
           description="A string that enables debug logging. Use '*,*:trace' to enable all debug logging."
           localStorageKey={LOCAL_STORAGE_KEYS.config.debug}
-          label='Debug logging'
+          label='Debug'
           validationFn={stringValidationFn}
           defaultValue=''
           resetKey={resetKey}

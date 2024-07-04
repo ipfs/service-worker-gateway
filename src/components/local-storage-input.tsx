@@ -54,17 +54,17 @@ export default ({ resetKey, localStorageKey, label, placeholder, validationFn, d
 
   return (
     <div {...props}>
-      <label htmlFor={localStorageKey} className='f5 ma0 pb1 aqua fw4 db'>{label}</label>
-        <span className="charcoal-muted">{description}</span>
+      <label htmlFor={localStorageKey} className='f5 ma0 pt3 teal fw4 db'>{label}</label>
+      <span className="charcoal-muted f6 fw1 db pt1 lh-copy">{description}</span>
         <textarea
-          className='input-reset bn black-80 bg-white pa3 w-100 mt2'
+          className='input-reset ba br2 b--light-silver code lh-copy black-80 bg-white pa2 w-100 mt2'
           id={localStorageKey}
           name={localStorageKey}
           placeholder={placeholder}
           value={value}
           onChange={(e) => { setValue(e.target.value) }}
         />
-        {error != null && <span style={{ color: 'red' }}>{error.message}</span>}
+        {error != null && <span className='db lh-copy red pt1 tr f6 w-100'>⬑ {error.message}</span>}
     </div>
   )
 }
