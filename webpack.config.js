@@ -210,6 +210,14 @@ const common = {
         {
           from: `${paths.public}/_redirects`,
           noErrorOnMissing: false
+        },
+        {
+          from: `${paths.public}/manifest.json`,
+          noErrorOnMissing: false
+        },
+        {
+          from: `${paths.public}/icon-512.png`,
+          noErrorOnMissing: false
         }
       ]
     }),
