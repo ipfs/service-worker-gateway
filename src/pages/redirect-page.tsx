@@ -36,7 +36,7 @@ const ConfigIframe = (): JSX.Element => {
 const channel = new HeliaServiceWorkerCommsChannel('WINDOW', uiComponentLogger)
 
 function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean }): React.JSX.Element {
-  const [isAutoReloadEnabled, setIsAutoReloadEnabled] = useState(false)
+  const [isAutoReloadEnabled] = useState(true)
   const { isServiceWorkerRegistered } = useContext(ServiceWorkerContext)
   const [reloadUrl, setReloadUrl] = useState(translateIpfsRedirectUrl(window.location.href).href)
   const [isLoadingContent, setIsLoadingContent] = useState(false)
@@ -58,9 +58,9 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
         log.error('redirect-page: error setting config on subdomain', err)
       }
 
-      if (config.autoReload) {
-        setIsAutoReloadEnabled(config.autoReload)
-      }
+      // if (config.autoReload) {
+      //   setIsAutoReloadEnabled(config.autoReload)
+      // }
     }
     const listener = (event: MessageEvent): void => {
       if (event.data?.source === 'helia-sw-config-iframe') {
