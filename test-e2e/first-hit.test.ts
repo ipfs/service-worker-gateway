@@ -21,19 +21,7 @@ test.describe('first-hit ipfs-hosted', () => {
       const headers = await response?.allHeaders()
 
       expect(headers?.['content-type']).toContain('text/html')
-
-      // then we should be redirected to the IPFS path
-      const bodyTextLocator = page.locator('body')
-      await expect(bodyTextLocator).toContainText('Click below to load the content with the specified config')
-      // and then the normal redirectPage logic:
       await waitForServiceWorker(page)
-
-      // it should render the config iframe
-      await expect(page.locator('#redirect-config-iframe')).toBeAttached({ timeout: 1 })
-
-      // wait for the service worker to be registered, and click load content.
-      const loadContent = await page.waitForSelector('#load-content', { state: 'visible' })
-      await loadContent.click()
 
       // and we verify the content was returned
       const text = await page.innerText('body')
@@ -52,18 +40,8 @@ test.describe('first-hit ipfs-hosted', () => {
       const headers = await response?.allHeaders()
 
       expect(headers?.['content-type']).toContain('text/html')
-
-      // then we should be redirected to the IPFS path
-      const bodyTextLocator = page.locator('body')
       await page.waitForURL('http://bafkqablimvwgy3y.ipfs.localhost:3334')
-
       await waitForServiceWorker(page)
-      await expect(bodyTextLocator).toContainText('Click below to load the content with the specified config')
-
-      // it should render the config iframe
-      await expect(page.locator('#redirect-config-iframe')).toBeAttached({ timeout: 1 })
-
-      await page.reload()
 
       // and we verify the content was returned
       const text = await page.innerText('body')
@@ -94,15 +72,6 @@ test.describe('first-hit direct-hosted', () => {
       expect(headers?.['content-type']).toContain('text/html')
 
       await waitForServiceWorker(page)
-      const bodyTextLocator = page.locator('body')
-      await expect(bodyTextLocator).toContainText('Click below to load the content with the specified config')
-
-      // it should render the config iframe
-      await expect(page.locator('#redirect-config-iframe')).toBeAttached({ timeout: 1 })
-
-      // wait for the service worker to be registered, and click load content.
-      const loadContent = await page.waitForSelector('#load-content', { state: 'visible' })
-      await loadContent.click()
 
       // and we verify the content was returned
       const text = await page.innerText('body')
@@ -122,17 +91,7 @@ test.describe('first-hit direct-hosted', () => {
 
       // then we should be redirected to the IPFS path
       await page.waitForURL(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}`)
-
-      const bodyTextLocator = page.locator('body')
-
       await waitForServiceWorker(page)
-      await expect(bodyTextLocator).toContainText('Click below to load the content with the specified config')
-
-      // it should render the config iframe
-      await expect(page.locator('#redirect-config-iframe')).toBeAttached({ timeout: 1 })
-
-      const loadContent = await page.waitForSelector('#load-content', { state: 'visible' })
-      await loadContent.click()
 
       // and we verify the content was returned
       const text = await page.innerText('body')
