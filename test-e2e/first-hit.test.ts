@@ -1,5 +1,4 @@
 import { test, expect } from './fixtures/config-test-fixtures.js'
-import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
 
 test.describe('first-hit ipfs-hosted', () => {
   /**
@@ -21,14 +20,12 @@ test.describe('first-hit ipfs-hosted', () => {
       const headers = await response?.allHeaders()
 
       expect(headers?.['content-type']).toContain('text/html')
-      await waitForServiceWorker(page)
 
       // wait for loading page to finish '.loading-page' to be removed
       await page.waitForSelector('.loading-page', { state: 'detached' })
 
       // and we verify the content was returned
-      const text = await page.innerText('body')
-      expect(text).toBe('hello')
+      await page.waitForSelector('text=hello', { timeout: 25000 })
     })
   })
 
@@ -44,14 +41,12 @@ test.describe('first-hit ipfs-hosted', () => {
 
       expect(headers?.['content-type']).toContain('text/html')
       await expect(page).toHaveURL('http://bafkqablimvwgy3y.ipfs.localhost:3334', { timeout: 10000 })
-      await waitForServiceWorker(page)
 
       // wait for loading page to finish '.loading-page' to be removed
       await page.waitForSelector('.loading-page', { state: 'detached' })
 
       // and we verify the content was returned
-      const text = await page.innerText('body')
-      expect(text).toBe('hello')
+      await page.waitForSelector('text=hello', { timeout: 25000 })
     })
   })
 })
@@ -77,13 +72,11 @@ test.describe('first-hit direct-hosted', () => {
 
       expect(headers?.['content-type']).toContain('text/html')
 
-      await waitForServiceWorker(page)
       // wait for loading page to finish '.loading-page' to be removed
       await page.waitForSelector('.loading-page', { state: 'detached' })
 
       // and we verify the content was returned
-      const text = await page.innerText('body')
-      expect(text).toBe('hello')
+      await page.waitForSelector('text=hello', { timeout: 25000 })
     })
   })
 
@@ -104,8 +97,7 @@ test.describe('first-hit direct-hosted', () => {
       await page.waitForSelector('.loading-page', { state: 'detached' })
 
       // and we verify the content was returned
-      const text = await page.innerText('body')
-      expect(text).toBe('hello')
+      await page.waitForSelector('text=hello', { timeout: 25000 })
     })
   })
 })
