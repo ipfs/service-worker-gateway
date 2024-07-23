@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useState } from 'react'
 import Header from '../components/Header.jsx'
 import { Collapsible } from '../components/collapsible.jsx'
 import LocalStorageInput from '../components/local-storage-input.jsx'
-// import { LocalStorageToggle } from '../components/local-storage-toggle.jsx'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
 import { ConfigProvider } from '../context/config-context.jsx'
 import { RouteContext } from '../context/router-context.jsx'
@@ -178,16 +177,6 @@ function ConfigPage (): React.JSX.Element | null {
           postLoadFormat={(value) => convertDnsResolverObjectToInput(JSON.parse(value))}
           resetKey={resetKey}
         />
-
-        {/* <div className='f5 ma0 pt3 teal fw4 db'>Interstitials</div>
-        <span className="charcoal-muted f6 fw1 db pt1 pb1 lh-copy">Control if visiting a new origin should display interstitial pages or automatically load the content using existing configuration.</span>
-        <LocalStorageToggle
-          className="e2e-config-page-input e2e-config-page-input-autoreload"
-          localStorageKey={LOCAL_STORAGE_KEYS.config.autoReload}
-          onLabel='Auto Reload'
-          offLabel='Show Config'
-          resetKey={resetKey}
-        /> */}
 
         <LocalStorageInput
           className="e2e-config-page-input"

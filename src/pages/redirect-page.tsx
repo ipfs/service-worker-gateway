@@ -49,18 +49,11 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
     async function doWork (config: ConfigDb): Promise<void> {
       try {
         await setConfig(config, uiComponentLogger)
-        // TODO: show spinner / disable buttons while waiting for response
         await channel.messageAndWaitForResponse('SW', { target: 'SW', action: 'RELOAD_CONFIG' })
         log.trace('redirect-page: RELOAD_CONFIG_SUCCESS on %s', window.location.origin)
-        // try to preload the content
-        // await fetch(window.location.href, { method: 'GET' })
       } catch (err) {
         log.error('redirect-page: error setting config on subdomain', err)
       }
-
-      // if (config.autoReload) {
-      //   setIsAutoReloadEnabled(config.autoReload)
-      // }
     }
     const listener = (event: MessageEvent): void => {
       if (event.data?.source === 'helia-sw-config-iframe') {
