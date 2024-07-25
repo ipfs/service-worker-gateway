@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/ipfs/service-worker-gateway/compare/v1.3.0...v1.3.1) (2024-07-25)
+
+
+### Bug Fixes
+
+* remove auto-reload config and default to true ([#319](https://github.com/ipfs/service-worker-gateway/issues/319)) ([42e6b64](https://github.com/ipfs/service-worker-gateway/commit/42e6b64cf46856eba231b676a4f9c104ff1090f9))
+
 ## [1.3.0](https://github.com/ipfs/service-worker-gateway/compare/v1.2.0...v1.3.0) (2024-07-04)
 
 
