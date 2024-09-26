@@ -81,7 +81,7 @@
     "rimraf": "^5.0.5",
     "style-loader": "^3.3.4",
     "terser-webpack-plugin": "^5.3.10",
-    "webpack": "^5.91.0",
+    "webpack": "^5.95.0",
     "webpack-bundle-analyzer": "^4.10.1",
     "webpack-cli": "^5.1.4",
     "webpack-dev-server": "^5.0.4",
