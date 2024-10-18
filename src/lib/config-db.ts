@@ -8,6 +8,7 @@ export interface ConfigDb extends BaseDbConfig {
   routers: string[]
   dnsJsonResolvers: Record<string, string>
   autoReload: boolean
+  p2pRetrieval: boolean
   debug: string
 }
 
@@ -16,6 +17,7 @@ export const defaultRouters = ['https://delegated-ipfs.dev']
 export const defaultDnsJsonResolvers: Record<string, string> = {
   '.': 'https://delegated-ipfs.dev/dns-query'
 }
+export const defaultP2pRetrieval = true
 
 const configDb = new GenericIDB<ConfigDb>('helia-sw', 'config')
 
@@ -27,6 +29,7 @@ export async function loadConfigFromLocalStorage (): Promise<void> {
     const localStorageRoutersString = localStorage.getItem(LOCAL_STORAGE_KEYS.config.routers) ?? JSON.stringify(defaultRouters)
     const localStorageDnsResolvers = localStorage.getItem(LOCAL_STORAGE_KEYS.config.dnsJsonResolvers) ?? JSON.stringify(defaultDnsJsonResolvers)
     const autoReload = localStorage.getItem(LOCAL_STORAGE_KEYS.config.autoReload) === 'true'
+    const p2pRetrieval = localStorage.getItem(LOCAL_STORAGE_KEYS.config.p2pRetrieval) === 'true'
     const debug = localStorage.getItem(LOCAL_STORAGE_KEYS.config.debug) ?? ''
     const gateways = JSON.parse(localStorageGatewaysString)
     const routers = JSON.parse(localStorageRoutersString)
@@ -37,6 +40,7 @@ export async function loadConfigFromLocalStorage (): Promise<void> {
     await configDb.put('routers', routers)
     await configDb.put('dnsJsonResolvers', dnsJsonResolvers)
     await configDb.put('autoReload', autoReload)
+    await configDb.put('p2pRetrieval', p2pRetrieval)
     await configDb.put('debug', debug)
     configDb.close()
   }
@@ -52,6 +56,8 @@ export async function resetConfig (): Promise<void> {
   await configDb.put('dnsJsonResolvers', defaultDnsJsonResolvers)
   localStorage.removeItem(LOCAL_STORAGE_KEYS.config.autoReload)
   await configDb.put('autoReload', false)
+  localStorage.removeItem(LOCAL_STORAGE_KEYS.config.p2pRetrieval)
+  await configDb.put('p2pRetrieval', defaultP2pRetrieval)
   localStorage.removeItem(LOCAL_STORAGE_KEYS.config.debug)
   await configDb.put('debug', '')
   configDb.close()
@@ -67,6 +73,7 @@ export async function setConfig (config: ConfigDb, logger: ComponentLogger): Pro
   await configDb.put('routers', config.routers)
   await configDb.put('dnsJsonResolvers', config.dnsJsonResolvers)
   await configDb.put('autoReload', config.autoReload)
+  await configDb.put('p2pRetrieval', config.p2pRetrieval)
   await configDb.put('debug', config.debug ?? '')
   configDb.close()
 }
@@ -77,6 +84,8 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
   let routers = defaultRouters
   let dnsJsonResolvers = defaultDnsJsonResolvers
   let autoReload = false
+  let p2pRetrieval = defaultP2pRetrieval
+
   let debug = ''
 
   try {
@@ -87,6 +96,9 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
     routers = await configDb.get('routers')
 
     dnsJsonResolvers = await configDb.get('dnsJsonResolvers')
+
+    p2pRetrieval = await configDb.get('p2pRetrieval') ?? defaultP2pRetrieval
+    console.log('p2pRetrieval', p2pRetrieval)
 
     autoReload = await configDb.get('autoReload') ?? false
     debug = await configDb.get('debug') ?? ''
@@ -113,6 +125,7 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
     routers,
     dnsJsonResolvers,
     autoReload,
+    p2pRetrieval,
     debug
   }
 }

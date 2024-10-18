@@ -4,21 +4,30 @@
 import React, { useEffect, useState } from 'react'
 import './local-storage-toggle.css'
 
-interface LocalStorageToggleProps extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
+interface LocalStorageToggleProps {
+  label: string
+  defaultValue: boolean
+  description?: string
   localStorageKey: string
-  offLabel: string
-  onLabel: string
+  className?: string
+  onClick?: React.MouseEventHandler<HTMLDivElement>
   resetKey: number
 }
 
-export const LocalStorageToggle: React.FC<LocalStorageToggleProps> = ({ resetKey, localStorageKey, onLabel = 'Off', offLabel = 'On', ...props }) => {
+export const LocalStorageToggle: React.FC<LocalStorageToggleProps> = ({
+  label,
+  description = '',
+  defaultValue,
+  resetKey,
+  localStorageKey,
+  ...props
+}) => {
   const [isChecked, setIsChecked] = useState(() => {
-    const savedValue = localStorage.getItem(localStorageKey)
-    return savedValue === 'true'
+    return getLocalStorageValue(localStorageKey, defaultValue)
   })
 
   useEffect(() => {
-    setIsChecked(localStorage.getItem(localStorageKey) === 'true')
+    setIsChecked(getLocalStorageValue(localStorageKey, defaultValue))
   }, [resetKey])
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
@@ -28,11 +37,40 @@ export const LocalStorageToggle: React.FC<LocalStorageToggleProps> = ({ resetKey
   }
 
   return (
-    <div {...props} className={`${props.className} local-storage-toggle input-reset bn black-80 w-100 mb3`}>
-      <input className="status" style={{ display: 'none' }} id={localStorageKey} type="checkbox" name="status" checked={isChecked} onChange={handleChange} />
-      <label htmlFor={localStorageKey} className="w-100 h-100">
-        <div className="status-switch relative h3-custom pointer white bg-gray w-100" data-unchecked={offLabel} data-checked={onLabel} />
+    <div {...props} className={`${props.className}`}>
+      <span className='f5 ma0 pt3 teal fw4 db'>{label}</span>
+      {(description.length > 0) ? <span className="charcoal-muted f6 fw1 db pt1 lh-copy mb2">{description}</span> : null}
+
+      <input
+        type="checkbox"
+        id={localStorageKey}
+        checked={isChecked}
+        onChange={handleChange}
+        className="dn"
+      />
+      <label
+        htmlFor={localStorageKey}
+        className={`relative dib h2 w3 flex-shrink-0 pointer br4 ${
+          isChecked ? 'bg-green' : 'bg-light-gray'
+        } transition-all duration-200 ease-in-out`}
+      >
+        <span
+          className={`absolute top-0 left-0 dib h2 w2 br-100 bg-white shadow-1 ${
+            isChecked ? 'translate-x-100' : 'translate-x-0'
+          } transition-transform duration-200 ease-in-out`}
+        />
       </label>
+
     </div>
   )
+}
+
+function getLocalStorageValue (localStorageKey: string, defaultValue: boolean): boolean {
+  const savedValue = localStorage.getItem(localStorageKey)
+  if (savedValue == null) {
+    localStorage.setItem(localStorageKey, String(defaultValue))
+    return defaultValue
+  }
+
+  return savedValue === 'true'
 }

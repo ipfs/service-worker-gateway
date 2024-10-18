@@ -2,12 +2,13 @@ import React, { useCallback, useEffect, useState } from 'react'
 import Header from '../components/Header.jsx'
 import { Collapsible } from '../components/collapsible.jsx'
 import LocalStorageInput from '../components/local-storage-input.jsx'
+import { LocalStorageToggle } from '../components/local-storage-toggle.jsx'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
 import { ConfigProvider } from '../context/config-context.jsx'
 import { RouteContext } from '../context/router-context.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
 import { HeliaServiceWorkerCommsChannel } from '../lib/channel.js'
-import { defaultDnsJsonResolvers, defaultGateways, defaultRouters, getConfig, loadConfigFromLocalStorage, resetConfig } from '../lib/config-db.js'
+import { defaultDnsJsonResolvers, defaultGateways, defaultP2pRetrieval, defaultRouters, getConfig, loadConfigFromLocalStorage, resetConfig } from '../lib/config-db.js'
 import { LOCAL_STORAGE_KEYS, convertDnsResolverInputToObject, convertDnsResolverObjectToInput, convertUrlArrayToInput, convertUrlInputToArray } from '../lib/local-storage.js'
 import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
 import './default-page-styles.css'
@@ -153,6 +154,14 @@ function ConfigPage (): React.JSX.Element | null {
           defaultValue={convertUrlArrayToInput(defaultGateways)}
           preSaveFormat={newlineStringSave}
           postLoadFormat={newlineStringLoad}
+          resetKey={resetKey}
+        />
+        <LocalStorageToggle
+          className="e2e-config-page-input"
+          label="P2P Retrieval"
+          description="Enable peer-to-peer retrieval of content directly from peers."
+          defaultValue={defaultP2pRetrieval}
+          localStorageKey={LOCAL_STORAGE_KEYS.config.p2pRetrieval}
           resetKey={resetKey}
         />
         <LocalStorageInput
