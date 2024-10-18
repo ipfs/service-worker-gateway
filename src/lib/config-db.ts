@@ -98,7 +98,6 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
     dnsJsonResolvers = await configDb.get('dnsJsonResolvers')
 
     p2pRetrieval = await configDb.get('p2pRetrieval') ?? defaultP2pRetrieval
-    console.log('p2pRetrieval', p2pRetrieval)
 
     autoReload = await configDb.get('autoReload') ?? false
     debug = await configDb.get('debug') ?? ''
