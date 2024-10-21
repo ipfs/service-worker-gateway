@@ -2,12 +2,13 @@ import React, { useCallback, useEffect, useState } from 'react'
 import Header from '../components/Header.jsx'
 import { Collapsible } from '../components/collapsible.jsx'
 import LocalStorageInput from '../components/local-storage-input.jsx'
+import { LocalStorageToggle } from '../components/local-storage-toggle.jsx'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
 import { ConfigProvider } from '../context/config-context.jsx'
 import { RouteContext } from '../context/router-context.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
 import { HeliaServiceWorkerCommsChannel } from '../lib/channel.js'
-import { defaultDnsJsonResolvers, defaultGateways, defaultRouters, getConfig, loadConfigFromLocalStorage, resetConfig } from '../lib/config-db.js'
+import { defaultDnsJsonResolvers, defaultGateways, defaultP2pRetrieval, defaultRouters, getConfig, loadConfigFromLocalStorage, resetConfig } from '../lib/config-db.js'
 import { LOCAL_STORAGE_KEYS, convertDnsResolverInputToObject, convertDnsResolverObjectToInput, convertUrlArrayToInput, convertUrlInputToArray } from '../lib/local-storage.js'
 import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
 import './default-page-styles.css'
@@ -26,6 +27,29 @@ const urlValidationFn = (value: string): Error | null => {
     if (urls.length === 0) {
       throw new Error('At least one URL is required. Reset the config to use defaults.')
     }
+    try {
+      urls.map((url, index) => {
+        i = index
+        return new URL(url)
+      })
+    } catch (e) {
+      throw new Error(`URL "${urls[i]}" on line ${i} is not valid`)
+    }
+    return null
+  } catch (err) {
+    return err as Error
+  }
+}
+/**
+ * Converts newline delimited URLs to an array of URLs, and validates each URL.
+ */
+const urlNullAllowedValidationFn = (value: string): Error | null => {
+  if (value.length === 0) {
+    return null
+  }
+  try {
+    const urls: string[] = convertUrlInputToArray(value)
+    let i = 0
     try {
       urls.map((url, index) => {
         i = index
@@ -149,10 +173,18 @@ function ConfigPage (): React.JSX.Element | null {
           description="A newline delimited list of trustless gateway URLs."
           localStorageKey={LOCAL_STORAGE_KEYS.config.gateways}
           label='Gateways'
-          validationFn={urlValidationFn}
+          validationFn={urlNullAllowedValidationFn}
           defaultValue={convertUrlArrayToInput(defaultGateways)}
           preSaveFormat={newlineStringSave}
           postLoadFormat={newlineStringLoad}
+          resetKey={resetKey}
+        />
+        <LocalStorageToggle
+          className="e2e-config-page-input"
+          label="P2P Retrieval"
+          description="Enable peer-to-peer retrieval of content directly from peers."
+          defaultValue={defaultP2pRetrieval}
+          localStorageKey={LOCAL_STORAGE_KEYS.config.p2pRetrieval}
           resetKey={resetKey}
         />
         <LocalStorageInput
