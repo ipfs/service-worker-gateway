@@ -1,8 +1,8 @@
-import { getVerifiedFetch } from './lib/get-helia.js'
 import { HeliaServiceWorkerCommsChannel, type ChannelMessage } from './lib/channel.js'
 import { getConfig, type ConfigDb } from './lib/config-db.js'
 import { getRedirectUrl, isDeregisterRequest } from './lib/deregister-request.js'
 import { GenericIDB } from './lib/generic-db.js'
+import { getVerifiedFetch } from './lib/get-helia.js'
 import { getSubdomainParts } from './lib/get-subdomain-parts.js'
 import { isConfigPage } from './lib/is-config-page.js'
 import { swLogger } from './lib/logger.js'
@@ -237,7 +237,6 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
   }
   return false
 }
-
 
 // potential race condition
 async function deregister (event, redirectToConfig = true): Promise<void> {
