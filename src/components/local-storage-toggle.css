@@ -1,9 +1,3 @@
-/**
-  Inspiration from https://dev.to/codebubb/create-a-simple-on-off-slide-toggle-with-css-db8
-*/
-
-/* Add these custom classes to your existing CSS file */
-
 .transition-all {
   transition-property: all;
 }
