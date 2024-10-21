@@ -118,7 +118,7 @@ export const buildOptions = {
   minify: true,
   sourcemap: true,
   metafile: true,
-  splitting: true,
+  splitting: false,
   target: ['es2020'],
   format: 'esm',
   entryNames: 'ipfs-sw-[name]-[hash]',
