@@ -44,9 +44,6 @@ describe(`verify-dist at ${distRoot}`, () => {
       filePath: 'index.html',
       content: [
         /ipfs-sw-index-.*\.css/,
-        // /ipfs-sw-styles-.*\.js/,
-        // /ipfs-sw-main-.*\.js/,
-        // /ipfs-sw-vendor-react-.*\.js/,
         'id="root"'
       ]
     },
