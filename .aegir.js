@@ -19,13 +19,6 @@ export default {
       // .css deps aren't checked properly.
       'ipfs-css',
       'tachyons',
-
-      // required by webpack
-      'webpack-cli',
-      'webpack-dev-server',
-      'babel-loader',
-      'style-loader',
-      'css-loader'
     ],
     productionIgnorePatterns: [
       'webpack.config.js',
@@ -33,7 +26,8 @@ export default {
       'test-e2e',
       '.aegir.js',
       '/test',
-      'dist'
+      'dist',
+      'build.js'
     ]
   }
 }
