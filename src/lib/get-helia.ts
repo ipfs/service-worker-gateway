@@ -26,8 +26,9 @@ export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogge
   log(`config-debug: got config for sw location ${self.location.origin}`, config)
 
   const routers: Array<Partial<Routing>> = config.routers.map((routerUrl) => delegatedHTTPRouting(routerUrl))
+  const gateways = config.gateways ?? []
 
-  if (config.gateways.length > 0) {
+  if (gateways.length > 0) {
     routers.push(httpGatewayRouting({ gateways: config.gateways }))
   }
 
