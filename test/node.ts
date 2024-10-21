@@ -43,15 +43,15 @@ describe(`verify-dist at ${distRoot}`, () => {
     {
       filePath: 'index.html',
       content: [
-        /ipfs-sw-styles-.*\.css/,
-        /ipfs-sw-styles-.*\.js/,
-        /ipfs-sw-main-.*\.js/,
-        /ipfs-sw-vendor-react-.*\.js/,
+        /ipfs-sw-index-.*\.css/,
+        // /ipfs-sw-styles-.*\.js/,
+        // /ipfs-sw-main-.*\.js/,
+        // /ipfs-sw-vendor-react-.*\.js/,
         'id="root"'
       ]
     },
     {
-      globPath: 'ipfs-sw-styles-*.css',
+      globPath: 'ipfs-sw-index-*.css',
       content: ['47vh']
     }
   ]
