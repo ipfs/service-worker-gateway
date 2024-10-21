@@ -59,7 +59,7 @@ export default defineConfig({
       command: 'node test-e2e/reverse-proxy.js',
       timeout: 5 * 1000,
       env: {
-        BACKEND_PORT: '8345',
+        BACKEND_PORT: '3000',
         PROXY_PORT: '3333'
       },
       stdout: process.env.CI ? undefined : 'pipe',
@@ -78,8 +78,8 @@ export default defineConfig({
     {
       // need to use built assets due to service worker loading issue.
       // TODO: figure out how to get things working with npm run start
-      command: 'node build.js --serve',
-      port: 8345,
+      command: 'npm run build && npx http-server --silent -p 3000 dist',
+      port: 3000,
       timeout: 10 * 1000,
       reuseExistingServer: !process.env.CI,
       stdout: process.env.CI ? undefined : 'pipe',
