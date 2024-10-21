@@ -2,7 +2,6 @@ import { testPathRouting as test, expect } from './fixtures/config-test-fixtures
 
 test.describe('hamt-dir', () => {
   test('can open UnixFS file from HAMT-sharded directory', async ({ page }) => {
-    test.setTimeout(60000)
     const response = await page.goto('http://127.0.0.1:3333/ipfs/bafybeidbclfqleg2uojchspzd4bob56dqetqjsj27gy2cq3klkkgxtpn4i/685.txt')
 
     expect(response?.status()).toBe(200)
