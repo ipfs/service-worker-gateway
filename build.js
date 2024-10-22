@@ -93,39 +93,28 @@ const injectAssets = (metafile) => {
 const renameSwPlugin = {
   name: 'rename-sw-plugin',
   setup (build) {
-    build.onEnd(() => {
-      const outdir = path.resolve('dist')
-      const files = fs.readdirSync(outdir)
-
-      files.forEach(file => {
-        if (file.startsWith('ipfs-sw-sw-')) {
-          // everything after the dot
-          const extension = file.slice(file.indexOf('.'))
-          const oldPath = path.join(outdir, file)
-          const newPath = path.join(outdir, `ipfs-sw-sw${extension}`)
-          fs.renameSync(oldPath, newPath)
-          console.log(`Renamed ${file} to ipfs-sw-sw${extension}`)
-          if (extension === '.js') {
-            // Replace sourceMappingURL with new path
-            const contents = fs.readFileSync(newPath, 'utf8')
-            const newContents = contents.replace(/sourceMappingURL=.*\.js\.map/, 'sourceMappingURL=ipfs-sw-sw.js.map')
-            fs.writeFileSync(newPath, newContents)
-          }
-        }
-      })
-    })
-  }
-}
-
-/**
- * @type {esbuild.Plugin}
- */
-const modifyBuiltFiles = {
-  name: 'modify-built-files',
-  setup (build) {
     build.onEnd(async (result) => {
-      copyPublicFiles()
-      injectAssets(result.metafile)
+      const oldPath = Object.keys(result.metafile.outputs).find(key => {
+        const obj = result.metafile.outputs[key]
+        if (obj.entryPoint === 'src/sw.ts') {
+          return key
+        }
+        return false
+      })
+      if (oldPath == null) {
+        return
+      }
+
+      const newPath = 'dist/ipfs-sw-sw.js'
+      await fs.promises.rename(oldPath, newPath)
+        .then(() => console.log(`Renamed ${oldPath} to ${newPath}`))
+      await fs.promises.rename(oldPath + '.map', newPath + '.map')
+        .then(() => console.log(`Renamed ${oldPath}.map to ${newPath}.map`))
+
+      // Replace sourceMappingURL with new path
+      const contents = await fs.promises.readFile(newPath, 'utf8')
+      const newContents = contents.replace(/sourceMappingURL=.*\.js\.map/, 'sourceMappingURL=ipfs-sw-sw.js.map')
+      await fs.promises.writeFile(newPath, newContents)
     })
   }
 }
@@ -139,6 +128,7 @@ const excludeFilesPlugin = (extensions) => ({
   setup (build) {
     build.onResolve({ filter: /.*/ }, async (args) => {
       if (extensions.some(ext => args.path.endsWith(ext))) {
+        /** @type {esbuild.OnResolveResult} */
         return { path: args.path, namespace: 'exclude', external: true }
       }
     })
@@ -148,24 +138,56 @@ const excludeFilesPlugin = (extensions) => ({
 /**
  * @type {esbuild.BuildOptions}
  */
-export const buildOptions = {
-  entryPoints: ['src/index.tsx', 'src/sw.ts'],
+const baseOptions = {
   bundle: true,
-  outdir: 'dist',
   loader: {
     '.js': 'jsx',
     '.css': 'css',
     '.svg': 'file'
   },
   minify: true,
-  sourcemap: true,
+  sourcemap: !(process.argv.includes('--serve') || process.argv.includes('--watch')),
   metafile: true,
-  splitting: false,
+  splitting: true,
   target: ['es2020'],
   format: 'esm',
   entryNames: 'ipfs-sw-[name]-[hash]',
   assetNames: 'ipfs-sw-[name]-[hash]',
-  plugins: [renameSwPlugin, modifyBuiltFiles, excludeFilesPlugin(['.eot?#iefix', '.otf', '.woff', '.woff2'])]
+  chunkNames: 'ipfs-sw-[name]-[hash]',
+  plugins: [excludeFilesPlugin(['.eot?#iefix', '.otf', '.woff', '.woff2'])]
+}
+
+/**
+ * @type {esbuild.Plugin}
+ */
+const modifyBuiltFiles = {
+  name: 'modify-built-files',
+  setup (build) {
+    build.onEnd(async (result) => {
+      copyPublicFiles()
+      injectAssets(result.metafile)
+
+      await esbuild.build({
+        ...baseOptions,
+        entryPoints: ['src/sw.ts'],
+        splitting: false,
+        outfile: 'dist/sw-es5.js',
+        logLevel: 'debug',
+        entryNames: 'ipfs-sw-sw-es5'
+      })
+    })
+  }
+}
+
+/**
+ * @type {esbuild.BuildOptions}
+ */
+const buildOptions = {
+  ...baseOptions,
+  entryPoints: ['src/index.tsx', 'src/sw.ts'],
+  outdir: 'dist',
+  plugins: [...baseOptions.plugins, modifyBuiltFiles, renameSwPlugin],
+  logLevel: 'debug'
 }
 
 const ctx = await esbuild.context(buildOptions)

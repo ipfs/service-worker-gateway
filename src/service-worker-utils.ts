@@ -1,11 +1,39 @@
 import { uiLogger } from './lib/logger.js'
 
+async function supportsESMInServiceWorkers (): Promise<ServiceWorkerRegistration | null> {
+  try {
+    const scriptURL = new URL('ipfs-sw-sw.js', import.meta.url)
+    const registration = await navigator.serviceWorker.register(scriptURL, { type: 'module' })
+    // await registration.unregister()
+    return registration
+  } catch (e) {
+    console.error('error', e)
+    return null
+  }
+}
 /**
  * This function is always and only used from the UI
  */
 export async function registerServiceWorker (): Promise<ServiceWorkerRegistration> {
   const log = uiLogger.forComponent('register-service-worker')
-  const swRegistration = await navigator.serviceWorker.register(new URL('ipfs-sw-sw.js', import.meta.url))
+  const esmRegistration = await supportsESMInServiceWorkers()
+  const swToLoad = (esmRegistration != null) ? 'ipfs-sw-sw.js' : 'ipfs-sw-sw-es5.js'
+  const swUrl = new URL(swToLoad, import.meta.url)
+  log.trace('loading service worker', swToLoad)
+  const currentRegistration = await navigator.serviceWorker.getRegistration()
+  if (currentRegistration != null) {
+    const currentScriptURL = currentRegistration.active?.scriptURL ?? currentRegistration.waiting?.scriptURL ?? currentRegistration.installing?.scriptURL
+
+    // If the current service worker is different, unregister it
+    if (currentScriptURL !== swUrl.href) {
+      log('unregistering old service worker', currentScriptURL)
+      await currentRegistration.unregister()
+    }
+  }
+  const swRegistration = esmRegistration ?? await navigator.serviceWorker.register(swUrl, {
+    type: 'classic'
+  })
+
   return new Promise((resolve, reject) => {
     swRegistration.addEventListener('updatefound', () => {
       const newWorker = swRegistration.installing
