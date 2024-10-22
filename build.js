@@ -191,12 +191,13 @@ const watchRequested = process.argv.includes('--watch')
 const serveRequested = process.argv.includes('--serve')
 
 if (!watchRequested && !serveRequested) {
-  esbuild.build(buildOptions).then(result => {
+  try {
+    await ctx.rebuild()
     console.log('Build completed successfully.')
-  }).catch(error => {
+  } catch (error) {
     console.error('Build failed:', error)
     process.exit(1)
-  })
+  }
   await ctx.dispose()
 }
 
