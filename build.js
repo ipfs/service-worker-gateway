@@ -25,76 +25,13 @@ const copyPublicFiles = () => {
 }
 
 /**
- * Inject the dist/index.js and dist/index.css into the dist/index.html file
- *
- * @param {esbuild.Metafile} metafile
- */
-const injectAssets = (metafile) => {
-  const htmlFilePath = path.resolve('dist/index.html')
-
-  // Extract the output file names from the metafile
-  const outputs = metafile.outputs
-  const scriptFile = Object.keys(outputs).find(file => file.endsWith('.js') && file.includes('ipfs-sw-index'))
-  const cssFile = Object.keys(outputs).find(file => file.endsWith('.css') && file.includes('ipfs-sw-index'))
-
-  const scriptTag = `<script type="module" src="${path.basename(scriptFile)}"></script>`
-  const linkTag = `<link rel="stylesheet" href="${path.basename(cssFile)}">`
-
-  // Read the index.html file
-  let htmlContent = fs.readFileSync(htmlFilePath, 'utf8')
-
-  // Inject the link tag for CSS before the closing </head> tag
-  htmlContent = htmlContent.replace('</head>', `${linkTag}</head>`)
-
-  // Inject the script tag for JS before the closing </body> tag
-  htmlContent = htmlContent.replace('</body>', `${scriptTag}</body>`)
-
-  // Write the modified HTML back to the index.html file
-  fs.writeFileSync(htmlFilePath, htmlContent)
-  console.log(`Injected ${path.basename(scriptFile)} and ${path.basename(cssFile)} into index.html.`)
-}
-
-/**
- * We need the service worker to have a consistent name
- *
  * @type {esbuild.Plugin}
  */
-const renameSwPlugin = {
-  name: 'rename-sw-plugin',
-  setup (build) {
-    build.onEnd(() => {
-      const outdir = path.resolve('dist')
-      const files = fs.readdirSync(outdir)
-
-      files.forEach(file => {
-        if (file.startsWith('ipfs-sw-sw-')) {
-          // everything after the dot
-          const extension = file.slice(file.indexOf('.'))
-          const oldPath = path.join(outdir, file)
-          const newPath = path.join(outdir, `ipfs-sw-sw${extension}`)
-          fs.renameSync(oldPath, newPath)
-          console.log(`Renamed ${file} to ipfs-sw-sw${extension}`)
-          if (extension === '.js') {
-            // Replace sourceMappingURL with new path
-            const contents = fs.readFileSync(newPath, 'utf8')
-            const newContents = contents.replace(/sourceMappingURL=.*\.js\.map/, 'sourceMappingURL=ipfs-sw-sw.js.map')
-            fs.writeFileSync(newPath, newContents)
-          }
-        }
-      })
-    })
-  }
-}
-
-/**
- * @type {esbuild.Plugin}
- */
-const modifyBuiltFiles = {
-  name: 'modify-built-files',
+const copyPublicFilesPlugin = {
+  name: 'copy-public-files',
   setup (build) {
     build.onEnd(async (result) => {
       copyPublicFiles()
-      injectAssets(result.metafile)
     })
   }
 }
@@ -121,9 +58,9 @@ export const buildOptions = {
   splitting: false,
   target: ['es2020'],
   format: 'esm',
-  entryNames: 'ipfs-sw-[name]-[hash]',
-  assetNames: 'ipfs-sw-[name]-[hash]',
-  plugins: [renameSwPlugin, modifyBuiltFiles]
+  entryNames: 'ipfs-sw-[name]',
+  assetNames: 'ipfs-sw-[name]',
+  plugins: [copyPublicFilesPlugin]
 }
 
 const ctx = await esbuild.context(buildOptions)
