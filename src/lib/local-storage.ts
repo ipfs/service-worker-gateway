@@ -8,7 +8,10 @@ export const LOCAL_STORAGE_KEYS = {
   config: {
     gateways: getLocalStorageKey('config', 'gateways'),
     routers: getLocalStorageKey('config', 'routers'),
-    p2pRetrieval: getLocalStorageKey('config', 'p2pRetrieval'),
+    enableWss: getLocalStorageKey('config', 'enableWss'),
+    enableWebTransport: getLocalStorageKey('config', 'enableWebTransport'),
+    enableRecursiveGateways: getLocalStorageKey('config', 'enableRecursiveGateways'),
+    enableGatewayProviders: getLocalStorageKey('config', 'enableGatewayProviders'),
     autoReload: getLocalStorageKey('config', 'autoReload'),
     dnsJsonResolvers: getLocalStorageKey('config', 'dnsJsonResolvers'),
     debug: getLocalStorageKey('config', 'debug')

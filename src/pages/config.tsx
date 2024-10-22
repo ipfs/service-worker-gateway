@@ -8,7 +8,7 @@ import { ConfigProvider } from '../context/config-context.jsx'
 import { RouteContext } from '../context/router-context.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
 import { HeliaServiceWorkerCommsChannel } from '../lib/channel.js'
-import { defaultDnsJsonResolvers, defaultGateways, defaultP2pRetrieval, defaultRouters, getConfig, loadConfigFromLocalStorage, resetConfig } from '../lib/config-db.js'
+import { defaultDnsJsonResolvers, defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, defaultGateways, defaultRouters, getConfig, loadConfigFromLocalStorage, resetConfig } from '../lib/config-db.js'
 import { LOCAL_STORAGE_KEYS, convertDnsResolverInputToObject, convertDnsResolverObjectToInput, convertUrlArrayToInput, convertUrlInputToArray } from '../lib/local-storage.js'
 import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
 import './default-page-styles.css'
@@ -137,33 +137,58 @@ function ConfigPage (): React.JSX.Element | null {
     setResetKey((prev) => prev + 1)
   }, [])
 
-  const newlineStringSave = (value: string): string => JSON.stringify(convertUrlInputToArray(value))
-  const newlineStringLoad = (value: string): string => convertUrlArrayToInput(JSON.parse(value))
+  const newlineToJsonArray = (value: string): string => JSON.stringify(convertUrlInputToArray(value))
+  const jsonToNewlineString = (value: string): string => convertUrlArrayToInput(JSON.parse(value))
 
   return (
     <>
     {!isLoadedInIframe && <Header /> }
     <main className='e2e-config-page pa4-l bg-snow mw7 center pa4'>
       <Collapsible collapsedLabel="View config" expandedLabel='Hide config' collapsed={isLoadedInIframe}>
+      <LocalStorageToggle
+        className="e2e-config-page-input"
+        label="Enable Recursive Gateways"
+        description="Use recursive gateways configured below for retrieval of content."
+        defaultValue={defaultEnableRecursiveGateways}
+        localStorageKey={LOCAL_STORAGE_KEYS.config.enableRecursiveGateways}
+        resetKey={resetKey}
+      />
         <LocalStorageInput
           className="e2e-config-page-input e2e-config-page-input-gateways"
-          description="A newline delimited list of trustless gateway URLs."
+          description="A newline delimited list of recursive trustless gateway URLs."
           localStorageKey={LOCAL_STORAGE_KEYS.config.gateways}
-          label='Gateways'
+          label='Recursive Gateways'
           validationFn={urlValidationFn}
           defaultValue={convertUrlArrayToInput(defaultGateways)}
-          preSaveFormat={newlineStringSave}
-          postLoadFormat={newlineStringLoad}
+          preSaveFormat={newlineToJsonArray}
+          postLoadFormat={jsonToNewlineString}
           resetKey={resetKey}
         />
         <LocalStorageToggle
           className="e2e-config-page-input"
-          label="P2P Retrieval"
-          description="Enable peer-to-peer retrieval of content directly from peers."
-          defaultValue={defaultP2pRetrieval}
-          localStorageKey={LOCAL_STORAGE_KEYS.config.p2pRetrieval}
+          label="Enable Delegated HTTP Gateway Providers"
+          description="Use gateway providers returned from delegated routers for direct retrieval."
+          defaultValue={defaultEnableGatewayProviders}
+          localStorageKey={LOCAL_STORAGE_KEYS.config.enableGatewayProviders}
           resetKey={resetKey}
         />
+        <LocalStorageToggle
+          className="e2e-config-page-input"
+          label="Enable Secure WebSocket Providers"
+          description="Use Secure WebSocket providers returned from delegated routers for direct retrieval."
+          defaultValue={defaultEnableWss}
+          localStorageKey={LOCAL_STORAGE_KEYS.config.enableWss}
+          resetKey={resetKey}
+        />
+        <LocalStorageToggle
+          className="e2e-config-page-input"
+          label="Enable WebTransport Providers"
+          description="Use WebTransport providers returned from delegated routers for direct retrieval."
+          defaultValue={defaultEnableWebTransport}
+          localStorageKey={LOCAL_STORAGE_KEYS.config.enableWebTransport}
+          resetKey={resetKey}
+        />
+        {/* TODO: we should only accept a single router URL */}
         <LocalStorageInput
           className="e2e-config-page-input e2e-config-page-input-routers"
           description="A newline delimited list of delegated IPFS router URLs."
@@ -171,8 +196,8 @@ function ConfigPage (): React.JSX.Element | null {
           label='Routers'
           validationFn={urlValidationFn}
           defaultValue={convertUrlArrayToInput(defaultRouters)}
-          preSaveFormat={newlineStringSave}
-          postLoadFormat={newlineStringLoad}
+          preSaveFormat={newlineToJsonArray}
+          postLoadFormat={jsonToNewlineString}
           resetKey={resetKey}
         />
         <LocalStorageInput

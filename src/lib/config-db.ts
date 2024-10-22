@@ -8,7 +8,10 @@ export interface ConfigDb extends BaseDbConfig {
   routers: string[]
   dnsJsonResolvers: Record<string, string>
   autoReload: boolean
-  p2pRetrieval: boolean
+  enableWss: boolean
+  enableWebTransport: boolean
+  enableGatewayProviders: boolean
+  enableRecursiveGateways: boolean
   debug: string
 }
 
@@ -17,7 +20,10 @@ export const defaultRouters = ['https://delegated-ipfs.dev']
 export const defaultDnsJsonResolvers: Record<string, string> = {
   '.': 'https://delegated-ipfs.dev/dns-query'
 }
-export const defaultP2pRetrieval = true
+export const defaultEnableRecursiveGateways = true
+export const defaultEnableWss = true
+export const defaultEnableWebTransport = false
+export const defaultEnableGatewayProviders = true
 
 const configDb = new GenericIDB<ConfigDb>('helia-sw', 'config')
 
@@ -29,7 +35,10 @@ export async function loadConfigFromLocalStorage (): Promise<void> {
     const localStorageRoutersString = localStorage.getItem(LOCAL_STORAGE_KEYS.config.routers) ?? JSON.stringify(defaultRouters)
     const localStorageDnsResolvers = localStorage.getItem(LOCAL_STORAGE_KEYS.config.dnsJsonResolvers) ?? JSON.stringify(defaultDnsJsonResolvers)
     const autoReload = localStorage.getItem(LOCAL_STORAGE_KEYS.config.autoReload) === 'true'
-    const p2pRetrieval = localStorage.getItem(LOCAL_STORAGE_KEYS.config.p2pRetrieval) === 'true'
+    const enableRecursiveGateways = localStorage.getItem(LOCAL_STORAGE_KEYS.config.enableRecursiveGateways) === 'true'
+    const enableWss = localStorage.getItem(LOCAL_STORAGE_KEYS.config.enableWss) === 'true'
+    const enableWebTransport = localStorage.getItem(LOCAL_STORAGE_KEYS.config.enableWebTransport) === 'true'
+    const enableGatewayProviders = localStorage.getItem(LOCAL_STORAGE_KEYS.config.enableGatewayProviders) === 'true'
     const debug = localStorage.getItem(LOCAL_STORAGE_KEYS.config.debug) ?? ''
     const gateways = JSON.parse(localStorageGatewaysString)
     const routers = JSON.parse(localStorageRoutersString)
@@ -40,7 +49,10 @@ export async function loadConfigFromLocalStorage (): Promise<void> {
     await configDb.put('routers', routers)
     await configDb.put('dnsJsonResolvers', dnsJsonResolvers)
     await configDb.put('autoReload', autoReload)
-    await configDb.put('p2pRetrieval', p2pRetrieval)
+    await configDb.put('enableRecursiveGateways', enableRecursiveGateways)
+    await configDb.put('enableWss', enableWss)
+    await configDb.put('enableWebTransport', enableWebTransport)
+    await configDb.put('enableGatewayProviders', enableGatewayProviders)
     await configDb.put('debug', debug)
     configDb.close()
   }
@@ -56,8 +68,14 @@ export async function resetConfig (): Promise<void> {
   await configDb.put('dnsJsonResolvers', defaultDnsJsonResolvers)
   localStorage.removeItem(LOCAL_STORAGE_KEYS.config.autoReload)
   await configDb.put('autoReload', false)
-  localStorage.removeItem(LOCAL_STORAGE_KEYS.config.p2pRetrieval)
-  await configDb.put('p2pRetrieval', defaultP2pRetrieval)
+  localStorage.removeItem(LOCAL_STORAGE_KEYS.config.enableWss)
+  await configDb.put('enableWss', defaultEnableWss)
+  localStorage.removeItem(LOCAL_STORAGE_KEYS.config.enableWebTransport)
+  await configDb.put('enableWebTransport', defaultEnableWebTransport)
+  localStorage.removeItem(LOCAL_STORAGE_KEYS.config.enableRecursiveGateways)
+  await configDb.put('enableRecursiveGateways', defaultEnableRecursiveGateways)
+  localStorage.removeItem(LOCAL_STORAGE_KEYS.config.enableGatewayProviders)
+  await configDb.put('enableGatewayProviders', defaultEnableGatewayProviders)
   localStorage.removeItem(LOCAL_STORAGE_KEYS.config.debug)
   await configDb.put('debug', '')
   configDb.close()
@@ -72,8 +90,11 @@ export async function setConfig (config: ConfigDb, logger: ComponentLogger): Pro
   await configDb.put('gateways', config.gateways)
   await configDb.put('routers', config.routers)
   await configDb.put('dnsJsonResolvers', config.dnsJsonResolvers)
+  await configDb.put('enableRecursiveGateways', config.enableRecursiveGateways)
+  await configDb.put('enableWss', config.enableWss)
+  await configDb.put('enableWebTransport', config.enableWebTransport)
+  await configDb.put('enableGatewayProviders', config.enableGatewayProviders)
   await configDb.put('autoReload', config.autoReload)
-  await configDb.put('p2pRetrieval', config.p2pRetrieval)
   await configDb.put('debug', config.debug ?? '')
   configDb.close()
 }
@@ -83,8 +104,11 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
   let gateways = defaultGateways
   let routers = defaultRouters
   let dnsJsonResolvers = defaultDnsJsonResolvers
+  let enableRecursiveGateways
+  let enableWss
+  let enableWebTransport
+  let enableGatewayProviders
   let autoReload = false
-  let p2pRetrieval = defaultP2pRetrieval
 
   let debug = ''
 
@@ -97,7 +121,10 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
 
     dnsJsonResolvers = await configDb.get('dnsJsonResolvers')
 
-    p2pRetrieval = await configDb.get('p2pRetrieval') ?? defaultP2pRetrieval
+    enableRecursiveGateways = await configDb.get('enableRecursiveGateways') ?? defaultEnableRecursiveGateways
+    enableWss = await configDb.get('enableWss') ?? defaultEnableWss
+    enableWebTransport = await configDb.get('enableWebTransport') ?? defaultEnableWebTransport
+    enableGatewayProviders = await configDb.get('enableGatewayProviders') ?? defaultEnableGatewayProviders
 
     autoReload = await configDb.get('autoReload') ?? false
     debug = await configDb.get('debug') ?? ''
@@ -124,7 +151,10 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
     routers,
     dnsJsonResolvers,
     autoReload,
-    p2pRetrieval,
+    enableRecursiveGateways,
+    enableWss,
+    enableWebTransport,
+    enableGatewayProviders,
     debug
   }
 }

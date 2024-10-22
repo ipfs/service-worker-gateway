@@ -1,15 +1,16 @@
 import { noise } from '@chainsafe/libp2p-noise'
 import { yamux } from '@chainsafe/libp2p-yamux'
+import { trustlessGateway, bitswap } from '@helia/block-brokers'
 import { createDelegatedRoutingV1HttpApiClient } from '@helia/delegated-routing-v1-http-api-client'
 import { createHeliaHTTP } from '@helia/http'
-import { httpGatewayRouting, delegatedHTTPRouting } from '@helia/routers'
+import { type BlockBroker } from '@helia/interface'
+import { httpGatewayRouting, delegatedHTTPRouting, libp2pRouting } from '@helia/routers'
 import { createVerifiedFetch, type VerifiedFetch } from '@helia/verified-fetch'
 import { generateKeyPair } from '@libp2p/crypto/keys'
 import { dcutr } from '@libp2p/dcutr'
 import { identify, identifyPush } from '@libp2p/identify'
 import { keychain } from '@libp2p/keychain'
 import { ping } from '@libp2p/ping'
-import { webRTCDirect } from '@libp2p/webrtc'
 import { webSockets } from '@libp2p/websockets'
 import { webTransport } from '@libp2p/webtransport'
 import { dns } from '@multiformats/dns'
@@ -25,10 +26,16 @@ export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogge
   const log = logger.forComponent('get-verified-fetch')
   log(`config-debug: got config for sw location ${self.location.origin}`, config)
 
-  const routers: Array<Partial<Routing>> = config.routers.map((routerUrl) => delegatedHTTPRouting(routerUrl))
-  const gateways = config.gateways ?? []
+  if (!config.enableRecursiveGateways && !config.enableGatewayProviders && !config.enableWss && !config.enableWebTransport) {
+    // crude validation
+    throw new Error('Config is invalid. At least one of the following must be enabled: recursive gateways, gateway providers, wss, or webtransport.')
+  }
 
-  if (gateways.length > 0) {
+  // Start by adding the config routers as delegated routers
+  const routers: Array<Partial<Routing>> = []
+
+  if (config.enableRecursiveGateways) {
+    // Only add the gateways if the recursive gateways toggle is enabled
     routers.push(httpGatewayRouting({ gateways: config.gateways }))
   }
 
@@ -38,20 +45,32 @@ export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogge
     dnsResolvers[key] = dnsJsonOverHttps(value)
   }
 
-  let helia: Helia
+  const blockBrokers: Array<(components: any) => BlockBroker> = []
 
-  if (config.p2pRetrieval) {
-    const libp2pOptions = await libp2pDefaults()
+  if (config.enableGatewayProviders) {
+    blockBrokers.push(trustlessGateway())
+  }
+
+  let helia: Helia
+  if (config.enableWss || config.enableWebTransport) {
+    // If we are using websocket or webtransport, we need to instantiate libp2p
+    blockBrokers.push(bitswap())
+    const libp2pOptions = await libp2pDefaults(config)
     const libp2p = await createLibp2p(libp2pOptions)
+    routers.push(libp2pRouting(libp2p))
 
     helia = await createHelia({
       libp2p,
       routers,
+      blockBrokers,
       dns: dns(dnsResolvers)
     })
   } else {
+    // TODO: Pass IPIP-484 filter config once https://github.com/ipfs/helia/pull/654 is merged
+    routers.push(delegatedHTTPRouting(config.routers[0]))
     helia = await createHeliaHTTP({
       routers,
+      blockBrokers,
       dns: dns(dnsResolvers)
     })
   }
@@ -59,21 +78,34 @@ export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogge
   return createVerifiedFetch(helia, { contentTypeParser })
 }
 
-export async function libp2pDefaults (): Promise<Libp2pOptions> {
+export async function libp2pDefaults (config: ConfigDb): Promise<Libp2pOptions> {
   const agentVersion = `@helia/verified-fetch ${libp2pInfo.name}/${libp2pInfo.version} UserAgent=${globalThis.navigator.userAgent}`
   const privateKey = await generateKeyPair('Ed25519')
 
-  return {
+  const filterAddrs = ['https']
+
+  const transports: Array<(components: any) => any> = []
+
+  if (config.enableWss) {
+    transports.push(webSockets())
+    filterAddrs.push('wss')
+  }
+  if (config.enableWebTransport) {
+    transports.push(webTransport())
+    filterAddrs.push('webtransport')
+  }
+
+  const libp2pOptions: Libp2pOptions = {
     privateKey,
     addresses: {}, // no need to listen on any addresses
-    transports: [webRTCDirect(), webTransport(), webSockets()],
+    transports,
     connectionEncrypters: [noise()],
     streamMuxers: [yamux()],
     services: {
       delegatedRouting: () =>
-        createDelegatedRoutingV1HttpApiClient('https://delegated-ipfs.dev', {
+        createDelegatedRoutingV1HttpApiClient(config.routers[0], {
           filterProtocols: ['unknown', 'transport-bitswap', 'transport-ipfs-gateway-http'],
-          filterAddrs: ['https', 'webtransport', 'wss']
+          filterAddrs
         }),
       dcutr: dcutr(),
       identify: identify({
@@ -86,4 +118,5 @@ export async function libp2pDefaults (): Promise<Libp2pOptions> {
       ping: ping()
     }
   }
+  return libp2pOptions
 }
