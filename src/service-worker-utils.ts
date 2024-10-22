@@ -5,6 +5,7 @@ async function supportsESMInServiceWorkers (): Promise<ServiceWorkerRegistration
     const scriptURL = new URL('ipfs-sw-sw.js', import.meta.url)
     const registration = await navigator.serviceWorker.register(scriptURL, { type: 'module' })
     // await registration.unregister()
+    console.log('supportsESMInServiceWorkers', registration)
     return registration
   } catch (e) {
     console.error('error', e)
@@ -17,6 +18,7 @@ async function supportsESMInServiceWorkers (): Promise<ServiceWorkerRegistration
 export async function registerServiceWorker (): Promise<ServiceWorkerRegistration> {
   const log = uiLogger.forComponent('register-service-worker')
   const esmRegistration = await supportsESMInServiceWorkers()
+  console.log('esmRegistration', esmRegistration)
   const swToLoad = (esmRegistration != null) ? 'ipfs-sw-sw.js' : 'ipfs-sw-sw-es5.js'
   const swUrl = new URL(swToLoad, import.meta.url)
   log.trace('loading service worker', swToLoad)

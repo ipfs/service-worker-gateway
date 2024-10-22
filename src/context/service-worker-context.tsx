@@ -50,18 +50,14 @@ export const ServiceWorkerProvider = ({ children }): React.JSX.Element => {
           log.error('service worker not registered, cannot deregister')
         }
       }
-      const registration = await navigator.serviceWorker.getRegistration()
 
-      if (registration != null) {
+      try {
+        await registerServiceWorker()
         setIsServiceWorkerRegistered(true)
-      } else {
-        try {
-          await registerServiceWorker()
-          setIsServiceWorkerRegistered(true)
-        } catch (err) {
-          log.error('error registering service worker', err)
-        }
+      } catch (err) {
+        log.error('error registering service worker', err)
       }
+      // }
     }
     void doWork()
   }, [isServiceWorkerRegistered])

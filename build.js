@@ -108,6 +108,11 @@ const renameSwPlugin = {
       const newPath = 'dist/ipfs-sw-sw.js'
       await fs.promises.rename(oldPath, newPath)
         .then(() => console.log(`Renamed ${oldPath} to ${newPath}`))
+
+      // make sure that oldPath.map exists
+      if (!fs.existsSync(oldPath + '.map')) {
+        return
+      }
       await fs.promises.rename(oldPath + '.map', newPath + '.map')
         .then(() => console.log(`Renamed ${oldPath}.map to ${newPath}.map`))
 
@@ -146,7 +151,7 @@ const baseOptions = {
     '.svg': 'file'
   },
   minify: true,
-  sourcemap: !(process.argv.includes('--serve') || process.argv.includes('--watch')),
+  sourcemap: process.argv.includes('--serve') || process.argv.includes('--watch'),
   metafile: true,
   splitting: true,
   target: ['es2020'],
