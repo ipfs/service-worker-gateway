@@ -19,6 +19,9 @@ export default {
       // .css deps aren't checked properly.
       'ipfs-css',
       'tachyons',
+
+      // playwright dependencies
+      'http-server'
     ],
     productionIgnorePatterns: [
       'webpack.config.js',
