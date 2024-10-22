@@ -80,8 +80,10 @@ export default defineConfig({
       // TODO: figure out how to get things working with npm run start
       command: 'npm run build && npx http-server --silent -p 3000 dist',
       port: 3000,
-      timeout: 120 * 1000,
-      reuseExistingServer: !process.env.CI
+      timeout: 10 * 1000,
+      reuseExistingServer: !process.env.CI,
+      stdout: process.env.CI ? undefined : 'pipe',
+      stderr: process.env.CI ? undefined : 'pipe'
     }
   ]
 })
