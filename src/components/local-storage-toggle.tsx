@@ -51,7 +51,7 @@ export const LocalStorageToggle: React.FC<LocalStorageToggleProps> = ({
       <label
         htmlFor={localStorageKey}
         className={`relative dib h2 w3 flex-shrink-0 pointer br4 ${
-          isChecked ? 'bg-green' : 'bg-light-gray'
+          isChecked ? 'bg-green' : 'bg-dark-gray'
         } transition-all duration-200 ease-in-out`}
       >
         <span
