@@ -23,7 +23,7 @@ export const convertUrlArrayToInput = (urls: string[]): string => {
 }
 
 export const convertUrlInputToArray = (newlineDelimitedString: string): string[] => {
-  return newlineDelimitedString.split('\n').map((u) => u.trim())
+  return newlineDelimitedString.length > 0 ? newlineDelimitedString.split('\n').map((u) => u.trim()) : []
 }
 
 export const convertDnsResolverObjectToInput = (dnsResolvers: Record<string, string>): string => {
