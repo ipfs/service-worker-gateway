@@ -63,6 +63,7 @@
     "eslint-config-standard-with-typescript": "^34.0.1",
     "execa": "^8.0.1",
     "glob": "^10.3.12",
+    "http-server": "^14.1.1",
     "ipfsd-ctl": "^13.0.0",
     "kubo": "^0.27.0",
     "kubo-rpc-client": "^3.0.4",
