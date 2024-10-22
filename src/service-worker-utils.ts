@@ -3,7 +3,11 @@ import { uiLogger } from './lib/logger.js'
 async function supportsESMInServiceWorkers (): Promise<ServiceWorkerRegistration | null> {
   try {
     const scriptURL = new URL('ipfs-sw-sw.js', import.meta.url)
-    const registration = await navigator.serviceWorker.register(scriptURL, { type: 'module', updateViaCache: 'imports' })
+    const registration = await navigator.serviceWorker.register(scriptURL, {
+      type: 'module',
+      // don't use the cache for this registration
+      updateViaCache: 'none'
+    })
     // await registration.unregister()
     console.log('supportsESMInServiceWorkers', registration)
     return registration
