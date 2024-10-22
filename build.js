@@ -1,4 +1,5 @@
 /* eslint-disable no-console */
+import { execSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import esbuild from 'esbuild'
@@ -24,6 +25,32 @@ const copyPublicFiles = () => {
   })
 }
 
+function gitRevision () {
+  try {
+    const ref = execSync('git rev-parse --abbrev-ref HEAD').toString().trim()
+    const sha = execSync('git rev-parse --short HEAD').toString().trim()
+
+    try {
+      // detect production build
+      execSync('git fetch --force --depth=1 --quiet origin production')
+      const latestProduction = execSync('git rev-parse remotes/origin/production').toString().trim()
+      if (latestProduction.startsWith(sha)) {
+        return `production@${sha}`
+      }
+
+      // detect staging build
+      execSync('git fetch --force --depth=1 --quiet origin staging')
+      const latestStaging = execSync('git rev-parse remotes/origin/staging').toString().trim()
+      if (latestStaging.startsWith(sha)) {
+        return `staging@${sha}`
+      }
+    } catch (_) { /* noop */ }
+
+    return `${ref}@${sha}`
+  } catch (_) {
+    return `no-git-dirty@${new Date().getTime().toString()}`
+  }
+}
 /**
  * Inject the dist/index.js and dist/index.css into the dist/index.html file
  *
@@ -48,6 +75,9 @@ const injectAssets = (metafile) => {
 
   // Inject the script tag for JS before the closing </body> tag
   htmlContent = htmlContent.replace('</body>', `${scriptTag}</body>`)
+
+  // Inject the git revision into the index
+  htmlContent = htmlContent.replace(/<%= GIT_VERSION %>/g, gitRevision())
 
   // Write the modified HTML back to the index.html file
   fs.writeFileSync(htmlFilePath, htmlContent)
