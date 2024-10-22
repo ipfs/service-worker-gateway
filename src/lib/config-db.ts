@@ -25,7 +25,7 @@ export async function loadConfigFromLocalStorage (): Promise<void> {
   if (typeof globalThis.localStorage !== 'undefined') {
     await configDb.open()
     const localStorage = globalThis.localStorage
-    const localStorageGatewaysString = localStorage.getItem(LOCAL_STORAGE_KEYS.config.gateways) ?? JSON.stringify([])
+    const localStorageGatewaysString = localStorage.getItem(LOCAL_STORAGE_KEYS.config.gateways) ?? JSON.stringify(defaultGateways)
     const localStorageRoutersString = localStorage.getItem(LOCAL_STORAGE_KEYS.config.routers) ?? JSON.stringify(defaultRouters)
     const localStorageDnsResolvers = localStorage.getItem(LOCAL_STORAGE_KEYS.config.dnsJsonResolvers) ?? JSON.stringify(defaultDnsJsonResolvers)
     const autoReload = localStorage.getItem(LOCAL_STORAGE_KEYS.config.autoReload) === 'true'
@@ -107,9 +107,9 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
     log('error loading config from db', err)
   }
 
-  // if (gateways == null || gateways.length === 0) {
-  //   gateways = [...defaultGateways]
-  // }
+  if (gateways == null || gateways.length === 0) {
+    gateways = [...defaultGateways]
+  }
 
   if (routers == null || routers.length === 0) {
     routers = [...defaultRouters]

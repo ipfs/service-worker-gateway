@@ -40,29 +40,6 @@ const urlValidationFn = (value: string): Error | null => {
     return err as Error
   }
 }
-/**
- * Converts newline delimited URLs to an array of URLs, and validates each URL.
- */
-const urlNullAllowedValidationFn = (value: string): Error | null => {
-  if (value.length === 0) {
-    return null
-  }
-  try {
-    const urls: string[] = convertUrlInputToArray(value)
-    let i = 0
-    try {
-      urls.map((url, index) => {
-        i = index
-        return new URL(url)
-      })
-    } catch (e) {
-      throw new Error(`URL "${urls[i]}" on line ${i} is not valid`)
-    }
-    return null
-  } catch (err) {
-    return err as Error
-  }
-}
 
 /**
  * Converts newline delimited patterns of space delimited key+value pairs to a JSON object, and validates each URL.
@@ -173,7 +150,7 @@ function ConfigPage (): React.JSX.Element | null {
           description="A newline delimited list of trustless gateway URLs."
           localStorageKey={LOCAL_STORAGE_KEYS.config.gateways}
           label='Gateways'
-          validationFn={urlNullAllowedValidationFn}
+          validationFn={urlValidationFn}
           defaultValue={convertUrlArrayToInput(defaultGateways)}
           preSaveFormat={newlineStringSave}
           postLoadFormat={newlineStringLoad}
