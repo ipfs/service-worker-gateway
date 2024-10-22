@@ -51,6 +51,7 @@ function gitRevision () {
     return `no-git-dirty@${new Date().getTime().toString()}`
   }
 }
+
 /**
  * Inject the dist/index.js and dist/index.css into the dist/index.html file
  *
@@ -130,6 +131,21 @@ const modifyBuiltFiles = {
 }
 
 /**
+ * @param {string[]} extensions - The extension of the imported files to exclude. Must match the fill ending path in the import(js) or url(css) statement.
+ * @returns {esbuild.Plugin}
+ */
+const excludeFilesPlugin = (extensions) => ({
+  name: 'exclude-files',
+  setup (build) {
+    build.onResolve({ filter: /.*/ }, async (args) => {
+      if (extensions.some(ext => args.path.endsWith(ext))) {
+        return { path: args.path, namespace: 'exclude', external: true }
+      }
+    })
+  }
+})
+
+/**
  * @type {esbuild.BuildOptions}
  */
 export const buildOptions = {
@@ -139,10 +155,6 @@ export const buildOptions = {
   loader: {
     '.js': 'jsx',
     '.css': 'css',
-    '.eot': 'file',
-    '.otf': 'file',
-    '.woff': 'file',
-    '.woff2': 'file',
     '.svg': 'file'
   },
   minify: true,
@@ -153,7 +165,7 @@ export const buildOptions = {
   format: 'esm',
   entryNames: 'ipfs-sw-[name]-[hash]',
   assetNames: 'ipfs-sw-[name]-[hash]',
-  plugins: [renameSwPlugin, modifyBuiltFiles]
+  plugins: [renameSwPlugin, modifyBuiltFiles, excludeFilesPlugin(['.eot?#iefix', '.otf', '.woff', '.woff2'])]
 }
 
 const ctx = await esbuild.context(buildOptions)
