@@ -8,9 +8,6 @@ const createlibp2pLogger = (prefix: string): Logger => {
   const mainLogger = debug(prefix)
   return Object.assign(debug(prefix), {
     error: mainLogger.extend('error'),
-    // warn: mainLogger.extend('warn'),
-    // info: mainLogger.extend('info'),
-    // debug: mainLogger.extend('debug'),
     trace: mainLogger.extend('trace')
   })
 }
