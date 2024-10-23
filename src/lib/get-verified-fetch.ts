@@ -19,7 +19,7 @@ import { createHelia, type Helia, type Routing } from 'helia'
 import { createLibp2p, type Libp2pOptions } from 'libp2p'
 import * as libp2pInfo from 'libp2p/version'
 import { contentTypeParser } from './content-type-parser.js'
-import type { ConfigDb } from './config-db'
+import type { ConfigDb } from './config-db.js'
 import type { ComponentLogger } from '@libp2p/logger'
 
 export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogger): Promise<VerifiedFetch> {
