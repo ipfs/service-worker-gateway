@@ -3,6 +3,8 @@
  */
 import React, { useEffect, useState } from 'react'
 import './local-storage-toggle.css'
+import { InputDescription } from './input-description'
+import { InputLabel } from './input-label'
 
 interface LocalStorageToggleProps {
   label: string
@@ -38,8 +40,8 @@ export const LocalStorageToggle: React.FC<LocalStorageToggleProps> = ({
 
   return (
     <div {...props} className={`${props.className}`}>
-      <span className='f5 ma0 pt3 teal fw4 db'>{label}</span>
-      {(description.length > 0) ? <span className="charcoal-muted f6 fw1 db pt1 lh-copy mb2">{description}</span> : null}
+      <InputLabel label={label} />
+      <InputDescription description={description} />
 
       <input
         type="checkbox"

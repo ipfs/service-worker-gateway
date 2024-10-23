@@ -172,25 +172,7 @@ function ConfigPage (): React.JSX.Element | null {
     {!isLoadedInIframe && <Header /> }
     <main className='e2e-config-page pa4-l bg-snow mw7 center pa4'>
       <Collapsible collapsedLabel="View config" expandedLabel='Hide config' collapsed={isLoadedInIframe}>
-      <LocalStorageToggle
-        className="e2e-config-page-input"
-        label="Enable Recursive Gateways"
-        description="Use recursive gateways configured below for retrieval of content."
-        defaultValue={defaultEnableRecursiveGateways}
-        localStorageKey={LOCAL_STORAGE_KEYS.config.enableRecursiveGateways}
-        resetKey={resetKey}
-      />
-        <LocalStorageInput
-          className="e2e-config-page-input e2e-config-page-input-gateways"
-          description="A newline delimited list of recursive trustless gateway URLs."
-          localStorageKey={LOCAL_STORAGE_KEYS.config.gateways}
-          label='Recursive Gateways'
-          validationFn={urlValidationFn}
-          defaultValue={convertUrlArrayToInput(defaultGateways)}
-          preSaveFormat={newlineToJsonArray}
-          postLoadFormat={jsonToNewlineString}
-          resetKey={resetKey}
-        />
+        <span className='f3 ma0 pt3 teal fw4 db'>Direct Retrieval</span>
         <LocalStorageToggle
           className="e2e-config-page-input"
           label="Enable Delegated HTTP Gateway Providers"
@@ -238,7 +220,25 @@ function ConfigPage (): React.JSX.Element | null {
           postLoadFormat={(value) => convertDnsResolverObjectToInput(JSON.parse(value))}
           resetKey={resetKey}
         />
-
+        <LocalStorageToggle
+          className="e2e-config-page-input"
+          label="Enable Recursive Gateways"
+          description="Use recursive gateways configured below for retrieval of content."
+          defaultValue={defaultEnableRecursiveGateways}
+          localStorageKey={LOCAL_STORAGE_KEYS.config.enableRecursiveGateways}
+          resetKey={resetKey}
+        />
+        <LocalStorageInput
+          className="e2e-config-page-input e2e-config-page-input-gateways"
+          description="A newline delimited list of recursive trustless gateway URLs."
+          localStorageKey={LOCAL_STORAGE_KEYS.config.gateways}
+          label='Recursive Gateways'
+          validationFn={urlValidationFn}
+          defaultValue={convertUrlArrayToInput(defaultGateways)}
+          preSaveFormat={newlineToJsonArray}
+          postLoadFormat={jsonToNewlineString}
+          resetKey={resetKey}
+        />
         <LocalStorageInput
           className="e2e-config-page-input"
           description="A string that enables debug logging. Use '*,*:trace' to enable all debug logging."

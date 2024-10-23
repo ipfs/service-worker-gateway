@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
+import { InputDescription } from './input-description'
+import { InputLabel } from './input-label'
 
 export interface LocalStorageInputProps extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
   localStorageKey: string
@@ -67,8 +69,8 @@ export default ({ resetKey, localStorageKey, label, placeholder, validationFn, d
 
   return (
     <div {...props}>
-      <label htmlFor={localStorageKey} className='f5 ma0 pt3 teal fw4 db'>{label}</label>
-      <span className="charcoal-muted f6 fw1 db pt1 lh-copy">{description}</span>
+      <InputLabel label={label} />
+      <InputDescription description={description} />
         <textarea
           className='input-reset ba br2 b--light-silver code lh-copy black-80 bg-white pa2 w-100 mt2'
           id={localStorageKey}
