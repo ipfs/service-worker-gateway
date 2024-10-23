@@ -220,6 +220,7 @@ function ConfigPage (): React.JSX.Element | null {
           postLoadFormat={(value) => convertDnsResolverObjectToInput(JSON.parse(value))}
           resetKey={resetKey}
         />
+        <span className='f3 ma0 pt3 teal fw4 db'>Fallback Retrieval</span>
         <LocalStorageToggle
           className="e2e-config-page-input"
           label="Enable Recursive Gateways"
