@@ -4,7 +4,7 @@
  *
  * Note that this was only tested and confirmed working for subdomain pages.
  */
-import { getConfigAutoReloadInput, getConfigAutoReloadInputIframe, getConfigButton, getConfigButtonIframe, getConfigGatewaysInput, getConfigGatewaysInputIframe, getConfigPage, getConfigPageSaveButton, getConfigPageSaveButtonIframe, getConfigRoutersInput, getConfigRoutersInputIframe } from './locators.js'
+import { getConfigAutoReloadInputIframe, getConfigButton, getConfigButtonIframe, getConfigGatewaysInput, getConfigGatewaysInputIframe, getConfigPage, getConfigPageSaveButton, getConfigPageSaveButtonIframe, getConfigRoutersInput, getConfigRoutersInputIframe } from './locators.js'
 import { waitForServiceWorker } from './wait-for-service-worker.js'
 import type { ConfigDb } from '../../src/lib/config-db.js'
 import type { Page } from '@playwright/test'
@@ -34,12 +34,6 @@ export async function setConfigViaUi ({ page, config }: { page: Page, config: Pa
   await getConfigButton(page).isVisible()
   await getConfigButton(page).click()
   await getConfigPage(page).isVisible()
-
-  for (const [key] of Object.entries(config)) {
-    if (key === 'autoReload') {
-      await getConfigAutoReloadInput(page).click()
-    }
-  }
 
   await getConfigGatewaysInput(page).locator('input').fill(JSON.stringify([process.env.KUBO_GATEWAY]))
   await getConfigRoutersInput(page).locator('input').fill(JSON.stringify([process.env.KUBO_GATEWAY]))

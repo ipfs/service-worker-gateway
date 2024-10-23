@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 
 export interface LocalStorageInputProps extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
   localStorageKey: string
@@ -45,18 +45,20 @@ export default ({ resetKey, localStorageKey, label, placeholder, validationFn, d
     validationFn = defaultValidationFunction
   }
 
-  useEffect(() => {
+  const saveValue = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value
     try {
-      const err = validationFn?.(value)
+      const err = validationFn?.(newValue)
       if (err != null) {
         throw err
       }
-      localStorage.setItem(localStorageKey, preSaveFormat?.(value) ?? value)
+      setValue(newValue)
+      localStorage.setItem(localStorageKey, preSaveFormat?.(newValue) ?? newValue)
       setError(null)
     } catch (err) {
       setError(err as Error)
     }
-  }, [value])
+  }, [validationFn, localStorageKey, preSaveFormat])
 
   props = {
     ...props,
@@ -73,7 +75,7 @@ export default ({ resetKey, localStorageKey, label, placeholder, validationFn, d
           name={localStorageKey}
           placeholder={placeholder}
           value={value}
-          onChange={(e) => { setValue(e.target.value) }}
+          onChange={saveValue}
         />
         {error != null && <span className='db lh-copy red pt1 tr f6 w-100'>⬑ {error.message}</span>}
     </div>

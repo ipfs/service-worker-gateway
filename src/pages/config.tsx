@@ -8,7 +8,7 @@ import { ConfigProvider } from '../context/config-context.jsx'
 import { RouteContext } from '../context/router-context.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
 import { HeliaServiceWorkerCommsChannel } from '../lib/channel.js'
-import { defaultDnsJsonResolvers, defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, defaultGateways, defaultRouters, getConfig, loadConfigFromLocalStorage, resetConfig } from '../lib/config-db.js'
+import { defaultDnsJsonResolvers, defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, defaultGateways, defaultRouters, getConfig, localStorageToIdb, resetConfig } from '../lib/config-db.js'
 import { LOCAL_STORAGE_KEYS, convertDnsResolverInputToObject, convertDnsResolverObjectToInput, convertUrlArrayToInput, convertUrlInputToArray } from '../lib/local-storage.js'
 import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
 import './default-page-styles.css'
@@ -113,7 +113,7 @@ function ConfigPage (): React.JSX.Element | null {
 
   const saveConfig = useCallback(async () => {
     try {
-      await loadConfigFromLocalStorage()
+      await localStorageToIdb()
       log.trace('config-page: sending RELOAD_CONFIG to service worker')
       // update the BASE_URL service worker
       await channel.messageAndWaitForResponse('SW', { target: 'SW', action: 'RELOAD_CONFIG' })

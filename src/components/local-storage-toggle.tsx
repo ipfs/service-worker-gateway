@@ -67,7 +67,6 @@ export const LocalStorageToggle: React.FC<LocalStorageToggleProps> = ({
 function getLocalStorageValue (localStorageKey: string, defaultValue: boolean): boolean {
   const savedValue = localStorage.getItem(localStorageKey)
   if (savedValue == null) {
-    localStorage.setItem(localStorageKey, String(defaultValue))
     return defaultValue
   }
 
