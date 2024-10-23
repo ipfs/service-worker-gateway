@@ -64,7 +64,7 @@ export default ({ resetKey, localStorageKey, label, placeholder, validationFn, d
 
   props = {
     ...props,
-    className: `${props.className ?? ''} flex-column items-start mb3`
+    className: `${props.className ?? ''} flex-column items-start`
   }
 
   return (

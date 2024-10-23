@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import Header from '../components/Header.jsx'
 import { Collapsible } from '../components/collapsible.jsx'
+import { InputSection } from '../components/input-section.jsx'
 import LocalStorageInput from '../components/local-storage-input.jsx'
 import { LocalStorageToggle } from '../components/local-storage-toggle.jsx'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
@@ -172,83 +173,87 @@ function ConfigPage (): React.JSX.Element | null {
     {!isLoadedInIframe && <Header /> }
     <main className='e2e-config-page pa4-l bg-snow mw7 center pa4'>
       <Collapsible collapsedLabel="View config" expandedLabel='Hide config' collapsed={isLoadedInIframe}>
-        <span className='f3 ma0 pt3 teal fw4 db'>Direct Retrieval</span>
-        <LocalStorageToggle
-          className="e2e-config-page-input"
-          label="Enable Delegated HTTP Gateway Providers"
-          description="Use gateway providers returned from delegated routers for direct retrieval."
-          defaultValue={defaultEnableGatewayProviders}
-          localStorageKey={LOCAL_STORAGE_KEYS.config.enableGatewayProviders}
-          resetKey={resetKey}
-        />
-        <LocalStorageToggle
-          className="e2e-config-page-input"
-          label="Enable Secure WebSocket Providers"
-          description="Use Secure WebSocket providers returned from delegated routers for direct retrieval."
-          defaultValue={defaultEnableWss}
-          localStorageKey={LOCAL_STORAGE_KEYS.config.enableWss}
-          resetKey={resetKey}
-        />
-        <LocalStorageToggle
-          className="e2e-config-page-input"
-          label="Enable WebTransport Providers"
-          description="Use WebTransport providers returned from delegated routers for direct retrieval."
-          defaultValue={defaultEnableWebTransport}
-          localStorageKey={LOCAL_STORAGE_KEYS.config.enableWebTransport}
-          resetKey={resetKey}
-        />
-        {/* For now we only accept a single router URL */}
-        <LocalStorageInput
-          className="e2e-config-page-input e2e-config-page-input-routers"
-          description="A newline delimited list of delegated IPFS router URLs."
-          localStorageKey={LOCAL_STORAGE_KEYS.config.routers}
-          label='Routers'
-          validationFn={singleUrlValidationFn}
-          defaultValue={convertUrlArrayToInput(defaultRouters)}
-          preSaveFormat={newlineToJsonArray}
-          postLoadFormat={jsonToNewlineString}
-          resetKey={resetKey}
-        />
-        <LocalStorageInput
-          className="e2e-config-page-input e2e-config-page-input-dnsJsonResolvers"
-          description="A newline delimited list of space delimited key+value pairs for DNS (application/dns-json) resolvers. The key is the domain suffix, and the value is the URL of the DNS resolver."
-          localStorageKey={LOCAL_STORAGE_KEYS.config.dnsJsonResolvers}
-          label='DNS'
-          validationFn={dnsJsonValidationFn}
-          defaultValue={convertDnsResolverObjectToInput(defaultDnsJsonResolvers)}
-          preSaveFormat={(value) => JSON.stringify(convertDnsResolverInputToObject(value))}
-          postLoadFormat={(value) => convertDnsResolverObjectToInput(JSON.parse(value))}
-          resetKey={resetKey}
-        />
-        <span className='f3 ma0 pt3 teal fw4 db'>Fallback Retrieval</span>
-        <LocalStorageToggle
-          className="e2e-config-page-input"
-          label="Enable Recursive Gateways"
-          description="Use recursive gateways configured below for retrieval of content."
-          defaultValue={defaultEnableRecursiveGateways}
-          localStorageKey={LOCAL_STORAGE_KEYS.config.enableRecursiveGateways}
-          resetKey={resetKey}
-        />
-        <LocalStorageInput
-          className="e2e-config-page-input e2e-config-page-input-gateways"
-          description="A newline delimited list of recursive trustless gateway URLs."
-          localStorageKey={LOCAL_STORAGE_KEYS.config.gateways}
-          label='Recursive Gateways'
-          validationFn={urlValidationFn}
-          defaultValue={convertUrlArrayToInput(defaultGateways)}
-          preSaveFormat={newlineToJsonArray}
-          postLoadFormat={jsonToNewlineString}
-          resetKey={resetKey}
-        />
-        <LocalStorageInput
-          className="e2e-config-page-input"
-          description="A string that enables debug logging. Use '*,*:trace' to enable all debug logging."
-          localStorageKey={LOCAL_STORAGE_KEYS.config.debug}
-          label='Debug'
-          validationFn={stringValidationFn}
-          defaultValue=''
-          resetKey={resetKey}
-        />
+        <InputSection label='Direct Retrieval'>
+          <LocalStorageToggle
+            className="e2e-config-page-input"
+            label="Enable Delegated HTTP Gateway Providers"
+            description="Use gateway providers returned from delegated routers for direct retrieval."
+            defaultValue={defaultEnableGatewayProviders}
+            localStorageKey={LOCAL_STORAGE_KEYS.config.enableGatewayProviders}
+            resetKey={resetKey}
+          />
+          <LocalStorageToggle
+            className="e2e-config-page-input"
+            label="Enable Secure WebSocket Providers"
+            description="Use Secure WebSocket providers returned from delegated routers for direct retrieval."
+            defaultValue={defaultEnableWss}
+            localStorageKey={LOCAL_STORAGE_KEYS.config.enableWss}
+            resetKey={resetKey}
+          />
+          <LocalStorageToggle
+            className="e2e-config-page-input"
+            label="Enable WebTransport Providers"
+            description="Use WebTransport providers returned from delegated routers for direct retrieval."
+            defaultValue={defaultEnableWebTransport}
+            localStorageKey={LOCAL_STORAGE_KEYS.config.enableWebTransport}
+            resetKey={resetKey}
+          />
+          {/* For now we only accept a single router URL */}
+          <LocalStorageInput
+            className="e2e-config-page-input e2e-config-page-input-routers"
+            description="A newline delimited list of delegated IPFS router URLs."
+            localStorageKey={LOCAL_STORAGE_KEYS.config.routers}
+            label='Routers'
+            validationFn={singleUrlValidationFn}
+            defaultValue={convertUrlArrayToInput(defaultRouters)}
+            preSaveFormat={newlineToJsonArray}
+            postLoadFormat={jsonToNewlineString}
+            resetKey={resetKey}
+          />
+        </InputSection>
+        <InputSection label='Fallback Retrieval'>
+          <LocalStorageToggle
+            className="e2e-config-page-input"
+            label="Enable Recursive Gateways"
+            description="Use recursive gateways configured below for retrieval of content."
+            defaultValue={defaultEnableRecursiveGateways}
+            localStorageKey={LOCAL_STORAGE_KEYS.config.enableRecursiveGateways}
+            resetKey={resetKey}
+          />
+          <LocalStorageInput
+            className="e2e-config-page-input e2e-config-page-input-gateways"
+            description="A newline delimited list of recursive trustless gateway URLs."
+            localStorageKey={LOCAL_STORAGE_KEYS.config.gateways}
+            label='Recursive Gateways'
+            validationFn={urlValidationFn}
+            defaultValue={convertUrlArrayToInput(defaultGateways)}
+            preSaveFormat={newlineToJsonArray}
+            postLoadFormat={jsonToNewlineString}
+            resetKey={resetKey}
+          />
+        </InputSection>
+        <InputSection label='Other'>
+          <LocalStorageInput
+            className="e2e-config-page-input e2e-config-page-input-dnsJsonResolvers"
+            description="A newline delimited list of space delimited key+value pairs for DNS (application/dns-json) resolvers. The key is the domain suffix, and the value is the URL of the DNS resolver."
+            localStorageKey={LOCAL_STORAGE_KEYS.config.dnsJsonResolvers}
+            label='DNS'
+            validationFn={dnsJsonValidationFn}
+            defaultValue={convertDnsResolverObjectToInput(defaultDnsJsonResolvers)}
+            preSaveFormat={(value) => JSON.stringify(convertDnsResolverInputToObject(value))}
+            postLoadFormat={(value) => convertDnsResolverObjectToInput(JSON.parse(value))}
+            resetKey={resetKey}
+          />
+          <LocalStorageInput
+            className="e2e-config-page-input"
+            description="A string that enables debug logging. Use '*,*:trace' to enable all debug logging."
+            localStorageKey={LOCAL_STORAGE_KEYS.config.debug}
+            label='Debug'
+            validationFn={stringValidationFn}
+            defaultValue=''
+            resetKey={resetKey}
+          />
+        </InputSection>
         <div className="w-100 inline-flex flex-row justify-between">
           <button className="e2e-config-page-button button-reset mr5 pv3 tc bg-animate hover-bg-gold pointer w-30 bn" id="reset-config" onClick={() => { void doResetConfig() }}>Reset Config</button>
           <ServiceWorkerReadyButton className="e2e-config-page-button white w-100 pa3" id="save-config" label='Save Config' waitingLabel='Waiting for service worker registration...' onClick={() => { void saveConfig() }} />
