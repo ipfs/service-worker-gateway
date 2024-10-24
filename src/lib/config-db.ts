@@ -1,7 +1,6 @@
-import debugLib from 'debug'
+import { type ComponentLogger, enable } from '@libp2p/logger'
 import { GenericIDB, type BaseDbConfig } from './generic-db.js'
 import { LOCAL_STORAGE_KEYS } from './local-storage.js'
-import type { ComponentLogger } from '@libp2p/logger'
 
 export interface ConfigDb extends BaseDbConfig {
   gateways: string[]
@@ -31,7 +30,7 @@ export async function loadConfigFromLocalStorage (): Promise<void> {
     const gateways = JSON.parse(localStorageGatewaysString)
     const routers = JSON.parse(localStorageRoutersString)
     const dnsJsonResolvers = JSON.parse(localStorageDnsResolvers)
-    debugLib.enable(debug)
+    enable(debug)
 
     await configDb.put('gateways', gateways)
     await configDb.put('routers', routers)
@@ -59,7 +58,7 @@ export async function resetConfig (): Promise<void> {
 
 export async function setConfig (config: ConfigDb, logger: ComponentLogger): Promise<void> {
   const log = logger.forComponent('set-config')
-  debugLib.enable(config.debug ?? '') // set debug level first.
+  enable(config.debug ?? '') // set debug level first.
   log('config-debug: setting config %O for domain %s', config, window.location.origin)
 
   await configDb.open()
@@ -91,7 +90,7 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
     autoReload = await configDb.get('autoReload') ?? false
     debug = await configDb.get('debug') ?? ''
     configDb.close()
-    debugLib.enable(debug)
+    enable(debug)
   } catch (err) {
     log('error loading config from db', err)
   }
