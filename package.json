@@ -57,7 +57,6 @@
     "@libp2p/webtransport": "^5.0.13",
     "@multiformats/dns": "^1.0.6",
     "@sgtpooki/file-type": "^1.0.1",
-    "debug": "^4.3.4",
     "helia": "^5.0.1",
     "ipfs-css": "^1.4.0",
     "libp2p": "^2.1.9",
