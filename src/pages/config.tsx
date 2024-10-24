@@ -10,6 +10,7 @@ import { RouteContext } from '../context/router-context.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
 import { HeliaServiceWorkerCommsChannel } from '../lib/channel.js'
 import { defaultDnsJsonResolvers, defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, defaultGateways, defaultRouters, getConfig, localStorageToIdb, resetConfig } from '../lib/config-db.js'
+import { hasLocalGateway, localGwUrl } from '../lib/local-gateway.js'
 import { LOCAL_STORAGE_KEYS, convertDnsResolverInputToObject, convertDnsResolverObjectToInput, convertUrlArrayToInput, convertUrlInputToArray } from '../lib/local-storage.js'
 import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
 import './default-page-styles.css'
@@ -106,6 +107,36 @@ function ConfigPage (): React.JSX.Element | null {
   }, [])
 
   useEffect(() => {
+    hasLocalGateway()
+      .then(async hasLocalGw => {
+        // check if local storage has it.
+        const unparsedGwConf = localStorage.getItem(LOCAL_STORAGE_KEYS.config.gateways)
+        let gwConf = unparsedGwConf != null ? JSON.parse(unparsedGwConf) as string[] : defaultGateways
+
+        if (hasLocalGw) {
+          // Add the local gateway to config if not there already
+          if (!gwConf.includes(localGwUrl)) {
+            log(`Adding ${localGwUrl} to gateway list`)
+            gwConf.unshift(localGwUrl)
+          }
+        } else if (gwConf.includes(localGwUrl)) {
+          // remove local gateway from the configuration if the gateway is not available
+          gwConf = gwConf.filter(gw => gw !== localGwUrl)
+          if (gwConf.length === 0) {
+            // if there are no gateways following the removal reset to the default gateways
+            gwConf = defaultGateways
+          }
+        }
+
+        // persist to localstorage, idb and 🙃
+        localStorage.setItem(LOCAL_STORAGE_KEYS.config.gateways, JSON.stringify(gwConf))
+        await localStorageToIdb()
+        await channel.messageAndWaitForResponse('SW', { target: 'SW', action: 'RELOAD_CONFIG' })
+        await postFromIframeToParentSw()
+        setResetKey((prev) => prev + 1) // needed to ensure the config is re-rendered
+      }).catch(err => {
+        log.error('failed to probe for local gateway', err)
+      })
     /**
      * On initial load, we want to send the config to the parent window, so that the reload page can auto-reload if enabled, and the subdomain registered service worker gets the latest config without user interaction.
      */
