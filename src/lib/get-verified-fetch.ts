@@ -67,7 +67,10 @@ export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogge
     })
   } else {
     // TODO: Pass IPIP-484 filter config once https://github.com/ipfs/helia/pull/654 is merged
-    routers.push(delegatedHTTPRouting(config.routers[0]))
+    config.routers.forEach((router) => {
+      routers.push(delegatedHTTPRouting(router))
+    })
+
     helia = await createHeliaHTTP({
       routers,
       blockBrokers,
@@ -78,7 +81,9 @@ export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogge
   return createVerifiedFetch(helia, { contentTypeParser })
 }
 
-export async function libp2pDefaults (config: ConfigDb): Promise<Libp2pOptions> {
+type Libp2pDefaultsOptions = Pick<ConfigDb, 'routers' | 'enableWss' | 'enableWebTransport'>
+
+export async function libp2pDefaults (config: Libp2pDefaultsOptions): Promise<Libp2pOptions> {
   const agentVersion = `@helia/verified-fetch ${libp2pInfo.name}/${libp2pInfo.version} UserAgent=${globalThis.navigator.userAgent}`
   const privateKey = await generateKeyPair('Ed25519')
 
@@ -95,18 +100,13 @@ export async function libp2pDefaults (config: ConfigDb): Promise<Libp2pOptions> 
     filterAddrs.push('webtransport')
   }
 
-  const libp2pOptions: Libp2pOptions = {
+  const libp2pOptions = {
     privateKey,
     addresses: {}, // no need to listen on any addresses
     transports,
     connectionEncrypters: [noise()],
     streamMuxers: [yamux()],
     services: {
-      delegatedRouting: () =>
-        createDelegatedRoutingV1HttpApiClient(config.routers[0], {
-          filterProtocols: ['unknown', 'transport-bitswap', 'transport-ipfs-gateway-http'],
-          filterAddrs
-        }),
       dcutr: dcutr(),
       identify: identify({
         agentVersion
@@ -117,6 +117,15 @@ export async function libp2pDefaults (config: ConfigDb): Promise<Libp2pOptions> 
       keychain: keychain(),
       ping: ping()
     }
-  }
+  } satisfies Libp2pOptions
+
+  // Add delegated routing services for each passed delegated router endpoint
+  config.routers.forEach((router, i) => {
+    libp2pOptions.services[`delegatedRouter${i}`] = () => createDelegatedRoutingV1HttpApiClient(router, {
+      filterProtocols: ['unknown', 'transport-bitswap', 'transport-ipfs-gateway-http'],
+      filterAddrs
+    })
+  })
+
   return libp2pOptions
 }

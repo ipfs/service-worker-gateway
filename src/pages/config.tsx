@@ -43,33 +43,6 @@ const urlValidationFn = (value: string): Error | null => {
 }
 
 /**
- * Converts newline delimited URLs to an array of URLs, and validates each URL.
- */
-const singleUrlValidationFn = (value: string): Error | null => {
-  try {
-    const urls: string[] = convertUrlInputToArray(value)
-    let i = 0
-    if (urls.length === 0) {
-      throw new Error('At least one URL is required. Reset the config to use defaults.')
-    }
-    if (urls.length > 1) {
-      throw new Error('Only one URL is allowed. Reset the config to use defaults.')
-    }
-    try {
-      urls.map((url, index) => {
-        i = index
-        return new URL(url)
-      })
-    } catch (e) {
-      throw new Error(`URL "${urls[i]}" on line ${i} is not valid`)
-    }
-    return null
-  } catch (err) {
-    return err as Error
-  }
-}
-
-/**
  * Converts newline delimited patterns of space delimited key+value pairs to a JSON object, and validates each URL.
  *
  * @example
@@ -198,13 +171,12 @@ function ConfigPage (): React.JSX.Element | null {
             localStorageKey={LOCAL_STORAGE_KEYS.config.enableWebTransport}
             resetKey={resetKey}
           />
-          {/* For now we only accept a single router URL */}
           <LocalStorageInput
             className="e2e-config-page-input e2e-config-page-input-routers"
             description="A newline delimited list of delegated IPFS router URLs."
             localStorageKey={LOCAL_STORAGE_KEYS.config.routers}
             label='Routers'
-            validationFn={singleUrlValidationFn}
+            validationFn={urlValidationFn}
             defaultValue={convertUrlArrayToInput(defaultRouters)}
             preSaveFormat={newlineToJsonArray}
             postLoadFormat={jsonToNewlineString}
