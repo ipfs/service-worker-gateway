@@ -66,9 +66,11 @@ export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogge
       dns: dns(dnsResolvers)
     })
   } else {
-    // TODO: Pass IPIP-484 filter config once https://github.com/ipfs/helia/pull/654 is merged
     config.routers.forEach((router) => {
-      routers.push(delegatedHTTPRouting(router))
+      routers.push(delegatedHTTPRouting(router, {
+        filterProtocols: ['transport-ipfs-gateway-http'],
+        filterAddrs: ['https']
+      }))
     })
 
     helia = await createHeliaHTTP({

@@ -45,7 +45,7 @@
     "@helia/delegated-routing-v1-http-api-client": "^4.1.0",
     "@helia/http": "^2.0.0",
     "@helia/interface": "^5.0.0",
-    "@helia/routers": "^2.0.0",
+    "@helia/routers": "^2.1.0",
     "@helia/verified-fetch": "^2.0.0",
     "@libp2p/crypto": "^5.0.5",
     "@libp2p/dcutr": "^2.0.8",
