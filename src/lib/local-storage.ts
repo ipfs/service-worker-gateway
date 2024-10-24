@@ -8,7 +8,10 @@ export const LOCAL_STORAGE_KEYS = {
   config: {
     gateways: getLocalStorageKey('config', 'gateways'),
     routers: getLocalStorageKey('config', 'routers'),
-    autoReload: getLocalStorageKey('config', 'autoReload'),
+    enableWss: getLocalStorageKey('config', 'enableWss'),
+    enableWebTransport: getLocalStorageKey('config', 'enableWebTransport'),
+    enableRecursiveGateways: getLocalStorageKey('config', 'enableRecursiveGateways'),
+    enableGatewayProviders: getLocalStorageKey('config', 'enableGatewayProviders'),
     dnsJsonResolvers: getLocalStorageKey('config', 'dnsJsonResolvers'),
     debug: getLocalStorageKey('config', 'debug')
   },
@@ -22,7 +25,7 @@ export const convertUrlArrayToInput = (urls: string[]): string => {
 }
 
 export const convertUrlInputToArray = (newlineDelimitedString: string): string[] => {
-  return newlineDelimitedString.split('\n').map((u) => u.trim())
+  return newlineDelimitedString.length > 0 ? newlineDelimitedString.split('\n').map((u) => u.trim()) : []
 }
 
 export const convertDnsResolverObjectToInput = (dnsResolvers: Record<string, string>): string => {

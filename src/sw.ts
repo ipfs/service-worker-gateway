@@ -1,14 +1,13 @@
-import { createVerifiedFetch, type VerifiedFetch } from '@helia/verified-fetch'
-import { dnsJsonOverHttps } from '@multiformats/dns/resolvers'
 import { HeliaServiceWorkerCommsChannel, type ChannelMessage } from './lib/channel.js'
 import { getConfig, type ConfigDb } from './lib/config-db.js'
-import { contentTypeParser } from './lib/content-type-parser.js'
 import { getRedirectUrl, isDeregisterRequest } from './lib/deregister-request.js'
 import { GenericIDB } from './lib/generic-db.js'
 import { getSubdomainParts } from './lib/get-subdomain-parts.js'
+import { getVerifiedFetch } from './lib/get-verified-fetch.js'
 import { isConfigPage } from './lib/is-config-page.js'
 import { swLogger } from './lib/logger.js'
 import { findOriginIsolationRedirect } from './lib/path-or-subdomain.js'
+import type { VerifiedFetch } from '@helia/verified-fetch'
 
 /**
  ******************************************************
@@ -107,7 +106,8 @@ const timeoutAbortEventType = 'verified-fetch-timeout'
 const ONE_HOUR_IN_SECONDS = 3600
 const urlInterceptRegex = [new RegExp(`${self.location.origin}/ip(n|f)s/`)]
 const updateVerifiedFetch = async (): Promise<void> => {
-  verifiedFetch = await getVerifiedFetch()
+  const config = await getConfig(swLogger)
+  verifiedFetch = await getVerifiedFetch(config, swLogger)
 }
 let swIdb: GenericIDB<LocalSwConfig>
 let firstInstallTime: number
@@ -236,27 +236,6 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
     return true
   }
   return false
-}
-
-async function getVerifiedFetch (): Promise<VerifiedFetch> {
-  const config = await getConfig(swLogger)
-  log(`config-debug: got config for sw location ${self.location.origin}`, config)
-
-  // set dns resolver instances
-  const dnsResolvers = {}
-  for (const [key, value] of Object.entries(config.dnsJsonResolvers)) {
-    dnsResolvers[key] = dnsJsonOverHttps(value)
-  }
-
-  const verifiedFetch = await createVerifiedFetch({
-    gateways: config.gateways,
-    routers: config.routers,
-    dnsResolvers
-  }, {
-    contentTypeParser
-  })
-
-  return verifiedFetch
 }
 
 // potential race condition
@@ -451,7 +430,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
    *
    * @see https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle
    */
-  verifiedFetch = verifiedFetch ?? await getVerifiedFetch()
+  verifiedFetch = verifiedFetch ?? await getVerifiedFetch(await getConfig(swLogger), swLogger)
 
   /**
    * Note that there are existing bugs regarding service worker signal handling:

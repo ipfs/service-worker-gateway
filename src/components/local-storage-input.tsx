@@ -1,4 +1,6 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
+import { InputDescription } from './input-description'
+import { InputLabel } from './input-label'
 
 export interface LocalStorageInputProps extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
   localStorageKey: string
@@ -45,35 +47,42 @@ export default ({ resetKey, localStorageKey, label, placeholder, validationFn, d
     validationFn = defaultValidationFunction
   }
 
-  useEffect(() => {
+  const updateValue = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setValue(e.target.value)
+  }, [])
+
+  const saveValue = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value
     try {
-      const err = validationFn?.(value)
+      const err = validationFn?.(newValue)
       if (err != null) {
         throw err
       }
-      localStorage.setItem(localStorageKey, preSaveFormat?.(value) ?? value)
+      setValue(newValue)
+      localStorage.setItem(localStorageKey, preSaveFormat?.(newValue) ?? newValue)
       setError(null)
     } catch (err) {
       setError(err as Error)
     }
-  }, [value])
+  }, [validationFn, localStorageKey, preSaveFormat])
 
   props = {
     ...props,
-    className: `${props.className ?? ''} flex-column items-start mb3`
+    className: `${props.className ?? ''} flex-column items-start`
   }
 
   return (
     <div {...props}>
-      <label htmlFor={localStorageKey} className='f5 ma0 pt3 teal fw4 db'>{label}</label>
-      <span className="charcoal-muted f6 fw1 db pt1 lh-copy">{description}</span>
+      <InputLabel label={label} />
+      <InputDescription description={description} />
         <textarea
           className='input-reset ba br2 b--light-silver code lh-copy black-80 bg-white pa2 w-100 mt2'
           id={localStorageKey}
           name={localStorageKey}
           placeholder={placeholder}
           value={value}
-          onChange={(e) => { setValue(e.target.value) }}
+          onChange={updateValue}
+          onBlur={saveValue}
         />
         {error != null && <span className='db lh-copy red pt1 tr f6 w-100'>⬑ {error.message}</span>}
     </div>
