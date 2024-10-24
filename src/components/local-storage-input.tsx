@@ -47,6 +47,10 @@ export default ({ resetKey, localStorageKey, label, placeholder, validationFn, d
     validationFn = defaultValidationFunction
   }
 
+  const updateValue = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setValue(e.target.value)
+  }, [])
+
   const saveValue = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value
     try {
@@ -77,7 +81,8 @@ export default ({ resetKey, localStorageKey, label, placeholder, validationFn, d
           name={localStorageKey}
           placeholder={placeholder}
           value={value}
-          onChange={saveValue}
+          onChange={updateValue}
+          onBlur={saveValue}
         />
         {error != null && <span className='db lh-copy red pt1 tr f6 w-100'>⬑ {error.message}</span>}
     </div>
