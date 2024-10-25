@@ -146,7 +146,7 @@ function ConfigPage (): React.JSX.Element | null {
       return `A local gateway has been detected at ${localGwUrl}. Enable the local gateway?`
     }
     if (!localGatewayAvailable && localGatewayChecked) {
-      return `No local gateway detected at ${localGwUrl}.`
+      return `No local gateway detected at ${localGwUrl}. This toggle has been disabled.`
     }
     return 'Checking for local gateway...'
   }, [localGatewayAvailable, localGatewayChecked])
