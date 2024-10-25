@@ -95,7 +95,8 @@ export async function libp2pDefaults (config: Libp2pDefaultsOptions): Promise<Li
 
   if (config.enableWss) {
     transports.push(webSockets())
-    filterAddrs.push('wss')
+    filterAddrs.push('wss') // /dns4/sv15.bootstrap.libp2p.io/tcp/443/wss/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJ
+    filterAddrs.push('ws') // /ip4/A.B.C.D/tcp/4002/tls/sni/A-B-C-D.peerid.libp2p.direct/ws/p2p/peerid
   }
   if (config.enableWebTransport) {
     transports.push(webTransport())
