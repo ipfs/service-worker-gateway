@@ -68,8 +68,11 @@ export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogge
   } else {
     config.routers.forEach((router) => {
       routers.push(delegatedHTTPRouting(router, {
+        // NOTE: in practice 'transport-ipfs-gateway-http' exists only in IPNI results, we won't have any DHT results like this unless..
+        // TODO: someguy starts doing active probing to identify peers which have funcitonal HTTP gateway
         filterProtocols: ['transport-ipfs-gateway-http'],
-        filterAddrs: ['https']
+        // Include both /https && /tls/../http
+        filterAddrs: ['https', 'tls']
       }))
     })
 
@@ -83,14 +86,13 @@ export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogge
   return createVerifiedFetch(helia, { contentTypeParser })
 }
 
-type Libp2pDefaultsOptions = Pick<ConfigDb, 'routers' | 'enableWss' | 'enableWebTransport'>
+type Libp2pDefaultsOptions = Pick<ConfigDb, 'routers' | 'enableWss' | 'enableWebTransport' | 'enableGatewayProviders'>
 
 export async function libp2pDefaults (config: Libp2pDefaultsOptions): Promise<Libp2pOptions> {
   const agentVersion = `@helia/verified-fetch ${libp2pInfo.name}/${libp2pInfo.version} UserAgent=${globalThis.navigator.userAgent}`
   const privateKey = await generateKeyPair('Ed25519')
 
-  const filterAddrs = ['https']
-
+  const filterAddrs = [] as string[]
   const transports: Array<(components: any) => any> = []
 
   if (config.enableWss) {
@@ -101,6 +103,10 @@ export async function libp2pDefaults (config: Libp2pDefaultsOptions): Promise<Li
   if (config.enableWebTransport) {
     transports.push(webTransport())
     filterAddrs.push('webtransport')
+  }
+  if (config.enableGatewayProviders) {
+    filterAddrs.push('https') // /dns/example.com/tcp/443/https
+    filterAddrs.push('tls') // /ip4/A.B.C.D/tcp/4002/tls/sni/example.com/http
   }
 
   const libp2pOptions = {
