@@ -69,7 +69,7 @@ export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogge
     config.routers.forEach((router) => {
       routers.push(delegatedHTTPRouting(router, {
         // NOTE: in practice 'transport-ipfs-gateway-http' exists only in IPNI results, we won't have any DHT results like this unless..
-        // TODO: someguy starts doing active probing to identify peers which have funcitonal HTTP gateway
+        // TODO: someguy starts doing active probing (https://github.com/ipfs/someguy/issues/53) to identify peers which have functional HTTP gateway
         filterProtocols: ['transport-ipfs-gateway-http'],
         // Include both /https && /tls/../http
         filterAddrs: ['https', 'tls']
