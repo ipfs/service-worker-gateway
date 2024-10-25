@@ -222,6 +222,9 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
   } else if (!isValidRequestForSW(event)) {
     log.trace('not a valid request for helia-sw, ignoring ', event.request.url)
     return false
+  } else if (url.href.includes('127.0.0.1:8080/ipfs/bafkqacdjobthgllto4fa')) {
+    log('Passing through local gateway test url', event.request.url)
+    return false
   } else if (url.href.includes('bafkqaaa.ipfs')) {
     /**
      * `bafkqaaa` is an empty inline CID, so this response *is* valid, and prevents additional network calls.

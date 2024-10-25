@@ -14,6 +14,8 @@ interface LocalStorageToggleProps {
   className?: string
   onClick?: React.MouseEventHandler<HTMLDivElement>
   resetKey: number
+  disabled?: boolean
+  handleChange?(toggleValue: boolean): void
 }
 
 export const LocalStorageToggle: React.FC<LocalStorageToggleProps> = ({
@@ -22,6 +24,8 @@ export const LocalStorageToggle: React.FC<LocalStorageToggleProps> = ({
   defaultValue,
   resetKey,
   localStorageKey,
+  disabled,
+  handleChange,
   ...props
 }) => {
   const [isChecked, setIsChecked] = useState(() => {
@@ -32,10 +36,11 @@ export const LocalStorageToggle: React.FC<LocalStorageToggleProps> = ({
     setIsChecked(getLocalStorageValue(localStorageKey, defaultValue))
   }, [resetKey])
 
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
+  const handleChangeInner = (event: React.ChangeEvent<HTMLInputElement>): void => {
     const newValue = event.target.checked
     setIsChecked(newValue)
     localStorage.setItem(localStorageKey, String(newValue))
+    handleChange?.(newValue)
   }
 
   return (
@@ -45,9 +50,10 @@ export const LocalStorageToggle: React.FC<LocalStorageToggleProps> = ({
 
       <input
         type="checkbox"
+        disabled={disabled}
         id={localStorageKey}
         checked={isChecked}
-        onChange={handleChange}
+        onChange={handleChangeInner}
         className="dn"
       />
       <label
