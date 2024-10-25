@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.4.0](https://github.com/ipfs/service-worker-gateway/compare/v1.3.0...v1.4.0) (2024-10-24)
+
+
+### Features
+
+* add p2p retrieval option ([#391](https://github.com/ipfs/service-worker-gateway/issues/391)) ([0db6d94](https://github.com/ipfs/service-worker-gateway/commit/0db6d94393238853ad5130a6fb17e0a2a821efde))
+* build with esbuild, apply source maps ([#392](https://github.com/ipfs/service-worker-gateway/issues/392)) ([2b26bd6](https://github.com/ipfs/service-worker-gateway/commit/2b26bd6354a5f2b9ca51d078ad7c146d69360dac))
+
+
+### Bug Fixes
+
+* remove auto-reload config and default to true ([#319](https://github.com/ipfs/service-worker-gateway/issues/319)) ([42e6b64](https://github.com/ipfs/service-worker-gateway/commit/42e6b64cf46856eba231b676a4f9c104ff1090f9))
+* remove fonts from dist folder ([#394](https://github.com/ipfs/service-worker-gateway/issues/394)) ([86641e5](https://github.com/ipfs/service-worker-gateway/commit/86641e590c8991dad1cc3c1f7b89931b630ccb11))
+* service worker logs are visible again ([#395](https://github.com/ipfs/service-worker-gateway/issues/395)) ([98659e2](https://github.com/ipfs/service-worker-gateway/commit/98659e28e98ec5297fd9dc1e6ed2e3d244a51a58))
+* use enable from @libp2p/logger ([#398](https://github.com/ipfs/service-worker-gateway/issues/398)) ([cb8c662](https://github.com/ipfs/service-worker-gateway/commit/cb8c662a3d27248c72cb9da2beef5fb56228550e))
+* use more ipfs-sw prefixes ([#396](https://github.com/ipfs/service-worker-gateway/issues/396)) ([ade0074](https://github.com/ipfs/service-worker-gateway/commit/ade0074d7f08a61b15f33077c00dc5a1cb273cb7))
+
 ## [1.3.0](https://github.com/ipfs/service-worker-gateway/compare/v1.2.0...v1.3.0) (2024-07-04)
 
 
