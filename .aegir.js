@@ -20,12 +20,8 @@ export default {
       'ipfs-css',
       'tachyons',
 
-      // required by webpack
-      'webpack-cli',
-      'webpack-dev-server',
-      'babel-loader',
-      'style-loader',
-      'css-loader'
+      // playwright dependencies
+      'http-server'
     ],
     productionIgnorePatterns: [
       'webpack.config.js',
@@ -33,7 +29,8 @@ export default {
       'test-e2e',
       '.aegir.js',
       '/test',
-      'dist'
+      'dist',
+      'build.js'
     ]
   }
 }

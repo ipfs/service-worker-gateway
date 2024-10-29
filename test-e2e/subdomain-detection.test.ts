@@ -26,9 +26,6 @@ test.describe('subdomain-detection', () => {
     const bodyTextLocator = page.locator('body')
 
     await waitForServiceWorker(page)
-    await expect(bodyTextLocator).toContainText('Click below to load the content with the specified config')
-
-    await page.reload()
 
     await expect(bodyTextLocator).toContainText('hello')
   })

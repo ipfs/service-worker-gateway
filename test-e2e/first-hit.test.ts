@@ -1,5 +1,4 @@
 import { test, expect } from './fixtures/config-test-fixtures.js'
-import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
 
 test.describe('first-hit ipfs-hosted', () => {
   /**
@@ -22,22 +21,11 @@ test.describe('first-hit ipfs-hosted', () => {
 
       expect(headers?.['content-type']).toContain('text/html')
 
-      // then we should be redirected to the IPFS path
-      const bodyTextLocator = page.locator('body')
-      await expect(bodyTextLocator).toContainText('Click below to load the content with the specified config')
-      // and then the normal redirectPage logic:
-      await waitForServiceWorker(page)
-
-      // it should render the config iframe
-      await expect(page.locator('#redirect-config-iframe')).toBeAttached({ timeout: 1 })
-
-      // wait for the service worker to be registered, and click load content.
-      const loadContent = await page.waitForSelector('#load-content', { state: 'visible' })
-      await loadContent.click()
+      // wait for loading page to finish '.loading-page' to be removed
+      await page.waitForSelector('.loading-page', { state: 'detached' })
 
       // and we verify the content was returned
-      const text = await page.innerText('body')
-      expect(text).toBe('hello')
+      await page.waitForSelector('text=hello', { timeout: 25000 })
     })
   })
 
@@ -52,22 +40,13 @@ test.describe('first-hit ipfs-hosted', () => {
       const headers = await response?.allHeaders()
 
       expect(headers?.['content-type']).toContain('text/html')
+      await expect(page).toHaveURL('http://bafkqablimvwgy3y.ipfs.localhost:3334', { timeout: 10000 })
 
-      // then we should be redirected to the IPFS path
-      const bodyTextLocator = page.locator('body')
-      await page.waitForURL('http://bafkqablimvwgy3y.ipfs.localhost:3334')
-
-      await waitForServiceWorker(page)
-      await expect(bodyTextLocator).toContainText('Click below to load the content with the specified config')
-
-      // it should render the config iframe
-      await expect(page.locator('#redirect-config-iframe')).toBeAttached({ timeout: 1 })
-
-      await page.reload()
+      // wait for loading page to finish '.loading-page' to be removed
+      await page.waitForSelector('.loading-page', { state: 'detached' })
 
       // and we verify the content was returned
-      const text = await page.innerText('body')
-      expect(text).toBe('hello')
+      await page.waitForSelector('text=hello', { timeout: 25000 })
     })
   })
 })
@@ -93,20 +72,11 @@ test.describe('first-hit direct-hosted', () => {
 
       expect(headers?.['content-type']).toContain('text/html')
 
-      await waitForServiceWorker(page)
-      const bodyTextLocator = page.locator('body')
-      await expect(bodyTextLocator).toContainText('Click below to load the content with the specified config')
-
-      // it should render the config iframe
-      await expect(page.locator('#redirect-config-iframe')).toBeAttached({ timeout: 1 })
-
-      // wait for the service worker to be registered, and click load content.
-      const loadContent = await page.waitForSelector('#load-content', { state: 'visible' })
-      await loadContent.click()
+      // wait for loading page to finish '.loading-page' to be removed
+      await page.waitForSelector('.loading-page', { state: 'detached' })
 
       // and we verify the content was returned
-      const text = await page.innerText('body')
-      expect(text).toBe('hello')
+      await page.waitForSelector('text=hello', { timeout: 25000 })
     })
   })
 
@@ -121,22 +91,13 @@ test.describe('first-hit direct-hosted', () => {
       expect(headers?.['content-type']).toContain('text/html')
 
       // then we should be redirected to the IPFS path
-      await page.waitForURL(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}`)
+      await expect(page).toHaveURL(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}`, { timeout: 10000 })
 
-      const bodyTextLocator = page.locator('body')
-
-      await waitForServiceWorker(page)
-      await expect(bodyTextLocator).toContainText('Click below to load the content with the specified config')
-
-      // it should render the config iframe
-      await expect(page.locator('#redirect-config-iframe')).toBeAttached({ timeout: 1 })
-
-      const loadContent = await page.waitForSelector('#load-content', { state: 'visible' })
-      await loadContent.click()
+      // wait for loading page to finish '.loading-page' to be removed
+      await page.waitForSelector('.loading-page', { state: 'detached' })
 
       // and we verify the content was returned
-      const text = await page.innerText('body')
-      expect(text).toBe('hello')
+      await page.waitForSelector('text=hello', { timeout: 25000 })
     })
   })
 })
