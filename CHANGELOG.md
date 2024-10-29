@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1](https://github.com/ipfs/service-worker-gateway/compare/v1.4.0...v1.4.1) (2024-10-25)
+
+
+### Bug Fixes
+
+* support discovery of /tls/../ws|http  providers ([#405](https://github.com/ipfs/service-worker-gateway/issues/405)) ([d848e6c](https://github.com/ipfs/service-worker-gateway/commit/d848e6cbff01d38b851d601a3f65dfdac235086f))
+
 ## [1.4.0](https://github.com/ipfs/service-worker-gateway/compare/v1.3.0...v1.4.0) (2024-10-24)
 
 
