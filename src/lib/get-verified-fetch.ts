@@ -13,7 +13,7 @@ import { keychain } from '@libp2p/keychain'
 import { ping } from '@libp2p/ping'
 import { webSockets } from '@libp2p/websockets'
 import { webTransport } from '@libp2p/webtransport'
-import { dns } from '@multiformats/dns'
+import { dns, type DNSResolvers } from '@multiformats/dns'
 import { dnsJsonOverHttps } from '@multiformats/dns/resolvers'
 import { createHelia, type Helia, type Routing } from 'helia'
 import { createLibp2p, type Libp2pOptions } from 'libp2p'
@@ -40,10 +40,11 @@ export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogge
   }
 
   // set dns resolver instances
-  const dnsResolvers = {}
+  const dnsResolvers: DNSResolvers = {}
   for (const [key, value] of Object.entries(config.dnsJsonResolvers)) {
     dnsResolvers[key] = dnsJsonOverHttps(value)
   }
+  const dnsConfig = dns({ resolvers: dnsResolvers })
 
   const blockBrokers: Array<(components: any) => BlockBroker> = []
 
@@ -56,6 +57,7 @@ export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogge
     // If we are using websocket or webtransport, we need to instantiate libp2p
     blockBrokers.push(bitswap())
     const libp2pOptions = await libp2pDefaults(config)
+    libp2pOptions.dns = dnsConfig
     const libp2p = await createLibp2p(libp2pOptions)
     routers.push(libp2pRouting(libp2p))
 
@@ -63,7 +65,7 @@ export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogge
       libp2p,
       routers,
       blockBrokers,
-      dns: dns(dnsResolvers)
+      dns: dnsConfig
     })
   } else {
     config.routers.forEach((router) => {
@@ -79,7 +81,7 @@ export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogge
     helia = await createHeliaHTTP({
       routers,
       blockBrokers,
-      dns: dns(dnsResolvers)
+      dns: dnsConfig
     })
   }
 
