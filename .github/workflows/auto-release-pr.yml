@@ -1,4 +1,4 @@
-name: Auto PR
+name: Auto release PR
 
 on:
   push:
@@ -9,30 +9,41 @@ on:
 permissions:
   contents: write # to create release
   pull-requests: write # to create release PR
-  
+
 jobs:
-  create-pr:
+  # from https://github.com/peter-evans/create-pull-request/blob/main/docs/examples.md#keep-a-branch-up-to-date-with-another
+  productionRelease:
+    if: github.ref == 'refs/heads/staging'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Create PR from main to staging
-        if: github.ref == 'refs/heads/main'
-        uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
+      - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.UCI_GITHUB_TOKEN }}
-          base: staging
-          head: main
-          title: 'Merge main into staging'
-          body: 'This PR merges commits from main into staging.'
-
+          ref: production
       - name: Create PR from staging to production
-        if: github.ref == 'refs/heads/staging'
+        run: |
+          git fetch origin main:main
+          git reset --hard main
+      - name: Create Pull Request
         uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
         with:
-          token: ${{ secrets.UCI_GITHUB_TOKEN }}
-          base: production
-          head: staging
+          branch: production-release
           title: 'Merge staging into production'
           body: 'This PR merges commits from staging into production.'
+
+  stagingRelease:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: staging
+      - name: Create PR from main to staging
+        run: |
+          git fetch origin main:main
+          git reset --hard main
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
+        with:
+          branch: staging-release
+          title: 'Merge main into staging'
+          body: 'This PR merges commits from main into staging.'
