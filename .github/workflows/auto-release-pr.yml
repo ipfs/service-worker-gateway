@@ -1,0 +1,38 @@
+name: Auto PR
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+
+permissions:
+  contents: write # to create release
+  pull-requests: write # to create release PR
+  
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create PR from main to staging
+        if: github.ref == 'refs/heads/main'
+        uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
+        with:
+          token: ${{ secrets.UCI_GITHUB_TOKEN }}
+          base: staging
+          head: main
+          title: 'Merge main into staging'
+          body: 'This PR merges commits from main into staging.'
+
+      - name: Create PR from staging to production
+        if: github.ref == 'refs/heads/staging'
+        uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
+        with:
+          token: ${{ secrets.UCI_GITHUB_TOKEN }}
+          base: production
+          head: staging
+          title: 'Merge staging into production'
+          body: 'This PR merges commits from staging into production.'
