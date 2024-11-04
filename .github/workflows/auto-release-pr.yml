@@ -27,7 +27,7 @@ jobs:
         uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
         with:
           branch: production-release
-          title: 'Merge staging into production'
+          title: 'chore: Merge staging into production'
           body: 'This PR merges commits from staging into production.'
 
   stagingRelease:
@@ -45,5 +45,5 @@ jobs:
         uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
         with:
           branch: staging-release
-          title: 'Merge main into staging'
+          title: 'chore: Merge main into staging'
           body: 'This PR merges commits from main into staging.'
