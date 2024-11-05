@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.5.0](https://github.com/ipfs/service-worker-gateway/compare/v1.4.1...v1.5.0) (2024-11-05)
+
+
+### Features
+
+* add blake3 hasher ([#421](https://github.com/ipfs/service-worker-gateway/issues/421)) ([6270acd](https://github.com/ipfs/service-worker-gateway/commit/6270acd2696417afe2b61803278f461636c3a69a))
+
+
+### Bug Fixes
+
+* apply dns resolvers corectly ([#412](https://github.com/ipfs/service-worker-gateway/issues/412)) ([ba0ede9](https://github.com/ipfs/service-worker-gateway/commit/ba0ede9f3c050f20adf5cd391818d332e9b301b8))
+* force use of latest multiaddr-to-uri ([#409](https://github.com/ipfs/service-worker-gateway/issues/409)) ([4915b34](https://github.com/ipfs/service-worker-gateway/commit/4915b346cb64514e47102de32aec74a88e67cd5e))
+
 ## [1.4.1](https://github.com/ipfs/service-worker-gateway/compare/v1.4.0...v1.4.1) (2024-10-25)
 
 
