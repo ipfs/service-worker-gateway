@@ -2,9 +2,8 @@ name: Auto release PR
 
 on:
   push:
-    branches:
-      - main
-      - staging
+    tags:
+      - '*'
   workflow_dispatch:
 
 permissions:
