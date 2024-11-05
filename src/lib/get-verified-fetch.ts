@@ -18,6 +18,7 @@ import { dnsJsonOverHttps } from '@multiformats/dns/resolvers'
 import { createHelia, type Helia, type Routing } from 'helia'
 import { createLibp2p, type Libp2pOptions } from 'libp2p'
 import * as libp2pInfo from 'libp2p/version'
+import { blake3 } from './blake3.js'
 import { contentTypeParser } from './content-type-parser.js'
 import type { ConfigDb } from './config-db.js'
 import type { ComponentLogger } from '@libp2p/logger'
@@ -52,6 +53,8 @@ export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogge
     blockBrokers.push(trustlessGateway())
   }
 
+  const hashers = [blake3]
+
   let helia: Helia
   if (config.enableWss || config.enableWebTransport) {
     // If we are using websocket or webtransport, we need to instantiate libp2p
@@ -65,6 +68,7 @@ export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogge
       libp2p,
       routers,
       blockBrokers,
+      hashers,
       dns: dnsConfig
     })
   } else {
@@ -81,6 +85,7 @@ export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogge
     helia = await createHeliaHTTP({
       routers,
       blockBrokers,
+      hashers,
       dns: dnsConfig
     })
   }
