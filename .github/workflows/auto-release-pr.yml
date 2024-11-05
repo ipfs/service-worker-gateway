@@ -24,7 +24,7 @@ jobs:
         run: git fetch --tags
       - name: Get latest tag
         id: get_latest_tag
-        run: echo "::set-output name=tag::$(git describe --tags `git rev-list --tags --max-count=1`)"
+        run: echo "tag=$(git describe --tags `git rev-list --tags --max-count=1`)" >> $GITHUB_OUTPUT
       - name: Checkout latest tag
         run: git checkout ${{ steps.get_latest_tag.outputs.tag }}
       - name: Force update production branch to latest tag
@@ -50,7 +50,7 @@ jobs:
         run: git fetch --tags
       - name: Get latest tag
         id: get_latest_tag
-        run: echo "::set-output name=tag::$(git describe --tags `git rev-list --tags --max-count=1`)"
+        run: echo "tag=$(git describe --tags `git rev-list --tags --max-count=1`)" >> $GITHUB_OUTPUT
       - name: Checkout latest tag
         run: git checkout ${{ steps.get_latest_tag.outputs.tag }}
       - name: Force update staging branch to latest tag
