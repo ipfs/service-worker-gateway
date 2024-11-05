@@ -25,11 +25,10 @@ jobs:
         run: echo "tag=$(git describe --tags `git rev-list --tags --max-count=1`)" >> $GITHUB_OUTPUT
       - name: Checkout latest tag
         run: git checkout ${{ steps.get_latest_tag.outputs.tag }}
-      - name: Force update production branch to latest tag
+      - name: Ensure production-release branch points to latest tag
         run: |
-          git checkout production
-          git reset --hard ${{ steps.get_latest_tag.outputs.tag }}
-          git push origin production --force
+          git checkout -B production-release ${{ steps.get_latest_tag.outputs.tag }}
+          git push origin production-release --force
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7.0.5
         with:
@@ -50,11 +49,10 @@ jobs:
         run: echo "tag=$(git describe --tags `git rev-list --tags --max-count=1`)" >> $GITHUB_OUTPUT
       - name: Checkout latest tag
         run: git checkout ${{ steps.get_latest_tag.outputs.tag }}
-      - name: Force update staging branch to latest tag
+      - name: Ensure staging-release branch points to latest tag
         run: |
-          git checkout staging
-          git reset --hard ${{ steps.get_latest_tag.outputs.tag }}
-          git push origin staging --force
+          git checkout -B staging-release ${{ steps.get_latest_tag.outputs.tag }}
+          git push origin staging-release --force
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7.0.5
         with:
