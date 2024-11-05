@@ -32,6 +32,7 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7.0.5
         with:
+          base: production
           branch: production-release
           title: 'chore: Point production to release ${{ steps.get_latest_tag.outputs.tag }}'
           body: 'This PR points the production branch to release ${{ steps.get_latest_tag.outputs.tag }}.'
@@ -56,6 +57,7 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7.0.5
         with:
+          base: staging
           branch: staging-release
           title: 'chore: point staging to release ${{ steps.get_latest_tag.outputs.tag }}'
           body: 'This PR points the staging branch to release ${{ steps.get_latest_tag.outputs.tag }}.'
