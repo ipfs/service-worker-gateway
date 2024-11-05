@@ -61,7 +61,7 @@
     "helia": "^5.1.0",
     "ipfs-css": "^1.4.0",
     "libp2p": "^2.2.1",
-    "multiformats": "^13.1.0",
+    "multiformats": "^13.3.1",
     "react": "^18.3.0",
     "react-dom": "^18.3.1",
     "tachyons": "^4.12.0"
