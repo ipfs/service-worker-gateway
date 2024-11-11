@@ -173,6 +173,6 @@ jobs:
       contents: write # to create release
       pull-requests: write # to create release PR
     steps:
-      - uses: google-github-actions/release-please-action@v4
+      - uses: googleapis/release-please-action@v4
         with:
           release-type: node
