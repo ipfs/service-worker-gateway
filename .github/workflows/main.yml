@@ -4,8 +4,9 @@ on:
     branches:
       - main
   pull_request:
-    branches:
-      - '**'
+    branches-ignore:
+      # Run on all pull requests except for release PRs which don't change code
+      - 'release-please**'
   workflow_dispatch:
 
 jobs:
@@ -172,6 +173,65 @@ jobs:
       contents: write # to create release
       pull-requests: write # to create release PR
     steps:
-      - uses: google-github-actions/release-please-action@v4
+      - uses: googleapis/release-please-action@7987652d64b4581673a76e33ad5e98e3dd56832f # v4.1.3
         with:
           release-type: node
+
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: [ build, check, release-please ]
+    if: ((github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.ref == 'refs/heads/main' && needs.release-please.outputs.releases_created == 'true')
+    permissions:
+      pull-requests: write # to create release PR
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: staging
+      - name: Fetch all tags
+        run: git fetch --tags
+      - name: Get latest tag
+        id: get_latest_tag
+        run: echo "tag=$(git describe --tags `git rev-list --tags --max-count=1`)" >> $GITHUB_OUTPUT
+      - name: Checkout latest tag
+        run: git checkout ${{ steps.get_latest_tag.outputs.tag }}
+      - name: Ensure staging-release branch points to latest tag
+        run: |
+          git checkout -B staging-release ${{ steps.get_latest_tag.outputs.tag }}
+          git push origin staging-release --force
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
+        with:
+          base: staging
+          branch: staging-release
+          title: 'chore: point staging to release ${{ steps.get_latest_tag.outputs.tag }}'
+          body: 'This PR points the staging branch to release ${{ steps.get_latest_tag.outputs.tag }}.'
+
+  # from https://github.com/peter-evans/create-pull-request/blob/main/docs/examples.md#keep-a-branch-up-to-date-with-another
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: [ build, check, release-please ]
+    if: ((github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.ref == 'refs/heads/main' && needs.release-please.outputs.releases_created == 'true')
+    permissions:
+      pull-requests: write # to create release PR
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: production
+      - name: Fetch all tags
+        run: git fetch --tags
+      - name: Get latest tag
+        id: get_latest_tag
+        run: echo "tag=$(git describe --tags `git rev-list --tags --max-count=1`)" >> $GITHUB_OUTPUT
+      - name: Checkout latest tag
+        run: git checkout ${{ steps.get_latest_tag.outputs.tag }}
+      - name: Ensure production-release branch points to latest tag
+        run: |
+          git checkout -B production-release ${{ steps.get_latest_tag.outputs.tag }}
+          git push origin production-release --force
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
+        with:
+          base: production
+          branch: production-release
+          title: 'chore: Point production to release ${{ steps.get_latest_tag.outputs.tag }}'
+          body: 'This PR points the production branch to release ${{ steps.get_latest_tag.outputs.tag }}.'
