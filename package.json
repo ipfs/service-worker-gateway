@@ -1,6 +1,6 @@
 {
   "name": "helia-service-worker-gateway",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "private": true,
   "type": "module",
   "description": "An IPFS Gateway that uses @helia/verified-fetch in a Service Worker to fetch content",
@@ -42,7 +42,7 @@
     "@chainsafe/libp2p-noise": "^16.0.0",
     "@chainsafe/libp2p-yamux": "^7.0.1",
     "@helia/block-brokers": "^4.0.1",
-    "@helia/delegated-routing-v1-http-api-client": "^4.1.1",
+    "@helia/delegated-routing-v1-http-api-client": "^4.2.0",
     "@helia/http": "^2.0.1",
     "@helia/interface": "^5.0.0",
     "@helia/routers": "^2.1.0",
