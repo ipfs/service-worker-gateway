@@ -34,7 +34,7 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
         with:
-          token: ${{ secrets.UCI_GITHUB_TOKEN }}
+          token: ${{ secrets.SGTPOOKI_PAT }}
           base: staging
           branch: staging-release
           title: 'chore: point staging to release ${{ steps.get_latest_tag.outputs.tag }}'
@@ -67,7 +67,7 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7.0.5
         with:
-          token: ${{ secrets.UCI_GITHUB_TOKEN }}
+          token: ${{ secrets.SGTPOOKI_PAT }}
           base: production
           branch: production-release
           title: 'chore: Point production to release ${{ steps.get_latest_tag.outputs.tag }}'
