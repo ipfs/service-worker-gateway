@@ -180,7 +180,7 @@ jobs:
   deploy-staging:
     runs-on: ubuntu-latest
     needs: [ build, check, release-please ]
-    if: ((github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.ref == 'refs/heads/main') && needs.release-please.outputs.releases_created == 'true'
+    if: ((github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.ref == 'refs/heads/main' && needs.release-please.outputs.releases_created == 'true')
     permissions:
       pull-requests: write # to create release PR
     steps:
@@ -210,7 +210,7 @@ jobs:
   deploy-production:
     runs-on: ubuntu-latest
     needs: [ build, check, release-please ]
-    if: ((github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.ref == 'refs/heads/main') && needs.release-please.outputs.releases_created == 'true'
+    if: ((github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.ref == 'refs/heads/main' && needs.release-please.outputs.releases_created == 'true')
     permissions:
       pull-requests: write # to create release PR
     steps:
