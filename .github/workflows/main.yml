@@ -173,7 +173,7 @@ jobs:
       contents: write # to create release
       pull-requests: write # to create release PR
     steps:
-      - uses: googleapis/release-please-action@v4
+      - uses: googleapis/release-please-action@7987652d64b4581673a76e33ad5e98e3dd56832f # v4.1.3
         with:
           release-type: node
 
@@ -199,7 +199,7 @@ jobs:
           git checkout -B staging-release ${{ steps.get_latest_tag.outputs.tag }}
           git push origin staging-release --force
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f
+        uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
         with:
           base: staging
           branch: staging-release
@@ -229,7 +229,7 @@ jobs:
           git checkout -B production-release ${{ steps.get_latest_tag.outputs.tag }}
           git push origin production-release --force
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f
+        uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
         with:
           base: production
           branch: production-release
