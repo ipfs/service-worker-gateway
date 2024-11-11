@@ -199,7 +199,7 @@ jobs:
           git checkout -B staging-release ${{ steps.get_latest_tag.outputs.tag }}
           git push origin staging-release --force
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v7.0.5
+        uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f
         with:
           base: staging
           branch: staging-release
@@ -229,7 +229,7 @@ jobs:
           git checkout -B production-release ${{ steps.get_latest_tag.outputs.tag }}
           git push origin production-release --force
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v7.0.5
+        uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f
         with:
           base: production
           branch: production-release
