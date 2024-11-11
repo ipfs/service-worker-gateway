@@ -177,6 +177,13 @@ jobs:
         with:
           release-type: node
 
+  step: debugging
+    runs-on: ubuntu-latest
+    needs: [ release-please ]
+    run: |
+      # output the release-please action outputs
+      echo "release-please outputs: ${{ toJson(needs.release-please.outputs) }}"
+
   deploy-staging:
     runs-on: ubuntu-latest
     needs: [ build, check, release-please ]
