@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/ipfs/service-worker-gateway/compare/v1.5.0...v1.6.0) (2024-11-11)
+
+
+### Features
+
+* delegated routing request deduplication and caching ([90c48a0](https://github.com/ipfs/service-worker-gateway/commit/90c48a070e2316bb83bf97400c9ae07d8ac4acc8))
+
 ## [1.5.0](https://github.com/ipfs/service-worker-gateway/compare/v1.4.1...v1.5.0) (2024-11-05)
 
 
