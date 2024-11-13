@@ -2,16 +2,15 @@ import React, { useCallback, useContext, useEffect, useState } from 'react'
 import Header from '../components/Header.jsx'
 import { Collapsible } from '../components/collapsible.jsx'
 import { InputSection } from '../components/input-section.jsx'
-import { LocalStorageToggle } from '../components/local-storage-toggle.jsx'
+import { InputToggle } from '../components/input-toggle.jsx'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
 import Input from '../components/textarea-input.jsx'
 import { ConfigContext, ConfigProvider } from '../context/config-context.jsx'
 import { RouteContext } from '../context/router-context.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
 import { HeliaServiceWorkerCommsChannel } from '../lib/channel.js'
-import { defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, getConfig, localStorageToIdb, resetConfig } from '../lib/config-db.js'
+import { getConfig, setConfig as storeConfig } from '../lib/config-db.js'
 import { convertDnsResolverInputToObject, convertDnsResolverObjectToInput, convertUrlArrayToInput, convertUrlInputToArray } from '../lib/input-helpers.js'
-import { LOCAL_STORAGE_KEYS } from '../lib/local-storage.js'
 import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
 import './default-page-styles.css'
 
@@ -79,7 +78,7 @@ const dnsJsonValidationFn = (value: string): Error | null => {
 
 function ConfigPage (): React.JSX.Element | null {
   const { gotoPage } = useContext(RouteContext)
-  const { setConfig, gateways, routers, dnsJsonResolvers, debug } = useContext(ConfigContext)
+  const { setConfig, resetConfig, gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport } = useContext(ConfigContext)
   const [error, setError] = useState<Error | null>(null)
   const [resetKey, setResetKey] = useState(0)
 
@@ -111,7 +110,7 @@ function ConfigPage (): React.JSX.Element | null {
 
   const saveConfig = useCallback(async () => {
     try {
-      await localStorageToIdb({ gateways, routers, dnsJsonResolvers, debug })
+      await storeConfig({ gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport }, uiComponentLogger)
       log.trace('config-page: sending RELOAD_CONFIG to service worker')
       // update the BASE_URL service worker
       await channel.messageAndWaitForResponse('SW', { target: 'SW', action: 'RELOAD_CONFIG' })
@@ -141,28 +140,28 @@ function ConfigPage (): React.JSX.Element | null {
     <main className='e2e-config-page pa4-l bg-snow mw7 center pa4'>
       <Collapsible collapsedLabel="View config" expandedLabel='Hide config' collapsed={isLoadedInIframe}>
         <InputSection label='Direct Retrieval'>
-          <LocalStorageToggle
+          <InputToggle
             className="e2e-config-page-input"
             label="Enable Delegated HTTP Gateway Providers"
             description="Use gateway providers returned from delegated routers for direct retrieval."
-            defaultValue={defaultEnableGatewayProviders}
-            localStorageKey={LOCAL_STORAGE_KEYS.config.enableGatewayProviders}
+            value={enableGatewayProviders}
+            onChange={(value) => { setConfig('enableGatewayProviders', value) }}
             resetKey={resetKey}
           />
-          <LocalStorageToggle
+          <InputToggle
             className="e2e-config-page-input"
             label="Enable Secure WebSocket Providers"
             description="Use Secure WebSocket providers returned from delegated routers for direct retrieval."
-            defaultValue={defaultEnableWss}
-            localStorageKey={LOCAL_STORAGE_KEYS.config.enableWss}
+            value={enableWss}
+            onChange={(value) => { setConfig('enableWss', value) }}
             resetKey={resetKey}
           />
-          <LocalStorageToggle
+          <InputToggle
             className="e2e-config-page-input"
             label="Enable WebTransport Providers"
             description="Use WebTransport providers returned from delegated routers for direct retrieval."
-            defaultValue={defaultEnableWebTransport}
-            localStorageKey={LOCAL_STORAGE_KEYS.config.enableWebTransport}
+            value={enableWebTransport}
+            onChange={(value) => { setConfig('enableWebTransport', value) }}
             resetKey={resetKey}
           />
           <Input
@@ -177,12 +176,12 @@ function ConfigPage (): React.JSX.Element | null {
           />
         </InputSection>
         <InputSection label='Fallback Retrieval'>
-          <LocalStorageToggle
+          <InputToggle
             className="e2e-config-page-input"
             label="Enable Recursive Gateways"
             description="Use recursive gateways configured below for retrieval of content."
-            defaultValue={defaultEnableRecursiveGateways}
-            localStorageKey={LOCAL_STORAGE_KEYS.config.enableRecursiveGateways}
+            value={enableRecursiveGateways}
+            onChange={(value) => { setConfig('enableRecursiveGateways', value) }}
             resetKey={resetKey}
           />
           <Input

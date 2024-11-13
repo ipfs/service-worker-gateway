@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useEffect, useState } from 'react'
-import { getConfig, type ConfigDb } from '../lib/config-db.js'
+import { defaultDnsJsonResolvers, defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, defaultGateways, defaultRouters, getConfig, resetConfig, type ConfigDb } from '../lib/config-db.js'
 import { isConfigPage } from '../lib/is-config-page.js'
 import { getUiComponentLogger } from '../lib/logger.js'
 
@@ -10,12 +10,14 @@ export interface ConfigContextType extends ConfigDb {
   isConfigExpanded: boolean
   setConfigExpanded(value: boolean): void
   setConfig(key: ConfigKey, value: any): void
+  resetConfig(): Promise<void>
 }
 
 export const ConfigContext = createContext<ConfigContextType>({
   isConfigExpanded: isLoadedInIframe,
   setConfigExpanded: (value: boolean) => {},
   setConfig: (key, value) => {},
+  resetConfig: async () => Promise.resolve(),
   gateways: [],
   routers: [],
   dnsJsonResolvers: {},
@@ -28,30 +30,36 @@ export const ConfigContext = createContext<ConfigContextType>({
 
 export const ConfigProvider = ({ children }: { children: JSX.Element[] | JSX.Element, expanded?: boolean }): JSX.Element => {
   const [isConfigExpanded, setConfigExpanded] = useState(isConfigPage(window.location.hash))
-  const [gateways, setGateways] = useState<string[]>([])
-  const [routers, setRouters] = useState<string[]>([])
-  const [dnsJsonResolvers, setDnsJsonResolvers] = useState<Record<string, string>>({})
-  const [enableWss, setEnableWss] = useState(false)
-  const [enableWebTransport, setEnableWebTransport] = useState(false)
-  const [enableGatewayProviders, setEnableGatewayProviders] = useState(false)
-  const [enableRecursiveGateways, setEnableRecursiveGateways] = useState(false)
-  const [debug, setDebug] = useState('')
+  const [gateways, setGateways] = useState<string[]>(defaultGateways)
+  const [routers, setRouters] = useState<string[]>(defaultRouters)
+  const [dnsJsonResolvers, setDnsJsonResolvers] = useState<Record<string, string>>(defaultDnsJsonResolvers)
+  const [enableWss, setEnableWss] = useState(defaultEnableWss)
+  const [enableWebTransport, setEnableWebTransport] = useState(defaultEnableWebTransport)
+  const [enableGatewayProviders, setEnableGatewayProviders] = useState(defaultEnableGatewayProviders)
+  const [enableRecursiveGateways, setEnableRecursiveGateways] = useState(defaultEnableRecursiveGateways)
+  const [debug, setDebug] = useState('helia:sw-gateway*,helia:sw-gateway*:trace')
   const isExplicitlyLoadedConfigPage = isConfigPage(window.location.hash)
+  const logger = getUiComponentLogger('config-context')
+  const log = logger.forComponent('main')
+
+  async function loadConfig (): Promise<void> {
+    const config = await getConfig(logger)
+    setGateways(config.gateways)
+    setRouters(config.routers)
+    setDnsJsonResolvers(config.dnsJsonResolvers)
+    setEnableWss(config.enableWss)
+    setEnableWebTransport(config.enableWebTransport)
+    setEnableGatewayProviders(config.enableGatewayProviders)
+    setEnableRecursiveGateways(config.enableRecursiveGateways)
+    setDebug(config.debug)
+  }
   /**
    * We need to make sure that the configDb types are loaded with the values from IDB
    */
   useEffect(() => {
-    void (async () => {
-      const config = await getConfig(getUiComponentLogger('config-context'))
-      setGateways(config.gateways)
-      setRouters(config.routers)
-      setDnsJsonResolvers(config.dnsJsonResolvers)
-      setEnableWss(config.enableWss)
-      setEnableWebTransport(config.enableWebTransport)
-      setEnableGatewayProviders(config.enableGatewayProviders)
-      setEnableRecursiveGateways(config.enableRecursiveGateways)
-      setDebug(config.debug)
-    })()
+    void loadConfig().catch((err) => {
+      log.error('Error loading config', err)
+    })
   }, [])
 
   /**
@@ -84,9 +92,15 @@ export const ConfigProvider = ({ children }: { children: JSX.Element[] | JSX.Ele
         setDebug(value)
         break
       default:
+        log.error(`Unknown config key: ${key}`)
         throw new Error(`Unknown config key: ${key}`)
     }
   }, [])
+
+  const resetConfigLocal = async (): Promise<void> => {
+    await resetConfig()
+    await loadConfig()
+  }
 
   const setConfigExpandedWrapped = (value: boolean): void => {
     if (isLoadedInIframe || isExplicitlyLoadedConfigPage) {
@@ -97,7 +111,7 @@ export const ConfigProvider = ({ children }: { children: JSX.Element[] | JSX.Ele
   }
 
   return (
-    <ConfigContext.Provider value={{ isConfigExpanded, setConfigExpanded: setConfigExpandedWrapped, setConfig: setConfigLocal, gateways, routers, dnsJsonResolvers, enableWss, enableWebTransport, enableGatewayProviders, enableRecursiveGateways, debug }}>
+    <ConfigContext.Provider value={{ isConfigExpanded, setConfigExpanded: setConfigExpandedWrapped, setConfig: setConfigLocal, resetConfig: resetConfigLocal, gateways, routers, dnsJsonResolvers, enableWss, enableWebTransport, enableGatewayProviders, enableRecursiveGateways, debug }}>
       {children}
     </ConfigContext.Provider>
   )
