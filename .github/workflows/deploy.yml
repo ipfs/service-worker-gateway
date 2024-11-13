@@ -14,11 +14,10 @@ jobs:
   # from https://github.com/peter-evans/create-pull-request/blob/main/docs/examples.md#keep-a-branch-up-to-date-with-another
   deploy-staging:
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write # to create release PR
     steps:
       - uses: actions/checkout@v4
         with:
+          token: ${{ secrets.SGTPOOKI_PAT }}
           ref: staging
       - name: Fetch all tags
         run: git fetch --tags
@@ -43,11 +42,10 @@ jobs:
   # from https://github.com/peter-evans/create-pull-request/blob/main/docs/examples.md#keep-a-branch-up-to-date-with-another
   deploy-production:
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write # to create release PR
     steps:
       - uses: actions/checkout@v4
         with:
+          token: ${{ secrets.SGTPOOKI_PAT }}
           fetch-depth: 0 # Fetch all history so that git commands work correctly
       - name: Fetch all branches and tags
         run: |
