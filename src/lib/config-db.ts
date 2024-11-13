@@ -110,3 +110,12 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
     debug
   }
 }
+
+export async function validateConfig (config: ConfigDb, logger: ComponentLogger): Promise<void> {
+  const log = logger.forComponent('validate-config')
+
+  if (!config.enableRecursiveGateways && !config.enableGatewayProviders && !config.enableWss && !config.enableWebTransport) {
+    log.error('Config is invalid. At least one of the following must be enabled: recursive gateways, gateway providers, wss, or webtransport.')
+    throw new Error('Config is invalid. At least one of the following must be enabled: recursive gateways, gateway providers, wss, or webtransport.')
+  }
+}

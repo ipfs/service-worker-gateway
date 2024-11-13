@@ -8,7 +8,7 @@ import Input from '../components/textarea-input.jsx'
 import { ConfigContext, ConfigProvider } from '../context/config-context.jsx'
 import { RouteContext } from '../context/router-context.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
-import { setConfig as storeConfig } from '../lib/config-db.js'
+import { setConfig as storeConfig, validateConfig } from '../lib/config-db.js'
 import { convertDnsResolverInputToObject, convertDnsResolverObjectToInput, convertUrlArrayToInput, convertUrlInputToArray } from '../lib/input-helpers.js'
 import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
 import './default-page-styles.css'
@@ -110,6 +110,8 @@ function ConfigPage (): React.JSX.Element | null {
 
   const saveConfig = useCallback(async () => {
     try {
+      const config = { gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport }
+      await validateConfig(config, uiComponentLogger)
       setIsSaving(true)
       await storeConfig({ gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport }, uiComponentLogger)
       log.trace('config-page: sending RELOAD_CONFIG to service worker')

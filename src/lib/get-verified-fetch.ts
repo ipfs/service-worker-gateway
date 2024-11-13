@@ -27,11 +27,6 @@ export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogge
   const log = logger.forComponent('get-verified-fetch')
   log(`config-debug: got config for sw location ${self.location.origin}`, JSON.stringify(config, null, 2))
 
-  if (!config.enableRecursiveGateways && !config.enableGatewayProviders && !config.enableWss && !config.enableWebTransport) {
-    // crude validation
-    throw new Error('Config is invalid. At least one of the following must be enabled: recursive gateways, gateway providers, wss, or webtransport.')
-  }
-
   // Start by adding the config routers as delegated routers
   const routers: Array<Partial<Routing>> = []
 
