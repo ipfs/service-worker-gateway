@@ -11,6 +11,7 @@ export const LOCAL_STORAGE_KEYS = {
     enableWss: getLocalStorageKey('config', 'enableWss'),
     enableWebTransport: getLocalStorageKey('config', 'enableWebTransport'),
     enableRecursiveGateways: getLocalStorageKey('config', 'enableRecursiveGateways'),
+    useLocalGateway: getLocalStorageKey('config', 'useLocalGateway'),
     enableGatewayProviders: getLocalStorageKey('config', 'enableGatewayProviders'),
     dnsJsonResolvers: getLocalStorageKey('config', 'dnsJsonResolvers'),
     debug: getLocalStorageKey('config', 'debug')
