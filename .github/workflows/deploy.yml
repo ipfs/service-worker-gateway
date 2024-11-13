@@ -45,6 +45,7 @@ jobs:
         with:
           token: ${{ secrets.SGTPOOKI_PAT }}
           ref: production
+          fetch-depth: 0  # Fetch all branches and commit history
       - name: Get latest tag deployed to staging
         id: get_latest_tag
         run: |
