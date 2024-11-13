@@ -1,16 +1,17 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useState } from 'react'
 import Header from '../components/Header.jsx'
 import { Collapsible } from '../components/collapsible.jsx'
 import { InputSection } from '../components/input-section.jsx'
-import LocalStorageInput from '../components/local-storage-input.jsx'
 import { LocalStorageToggle } from '../components/local-storage-toggle.jsx'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
-import { ConfigProvider } from '../context/config-context.jsx'
+import Input from '../components/textarea-input.jsx'
+import { ConfigContext, ConfigProvider } from '../context/config-context.jsx'
 import { RouteContext } from '../context/router-context.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
 import { HeliaServiceWorkerCommsChannel } from '../lib/channel.js'
-import { defaultDnsJsonResolvers, defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, defaultGateways, defaultRouters, getConfig, localStorageToIdb, resetConfig } from '../lib/config-db.js'
-import { LOCAL_STORAGE_KEYS, convertDnsResolverInputToObject, convertDnsResolverObjectToInput, convertUrlArrayToInput, convertUrlInputToArray } from '../lib/local-storage.js'
+import { defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, getConfig, localStorageToIdb, resetConfig } from '../lib/config-db.js'
+import { convertDnsResolverInputToObject, convertDnsResolverObjectToInput, convertUrlArrayToInput, convertUrlInputToArray } from '../lib/input-helpers.js'
+import { LOCAL_STORAGE_KEYS } from '../lib/local-storage.js'
 import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
 import './default-page-styles.css'
 
@@ -76,13 +77,9 @@ const dnsJsonValidationFn = (value: string): Error | null => {
   }
 }
 
-const stringValidationFn = (value: string): Error | null => {
-  // we accept any string
-  return null
-}
-
 function ConfigPage (): React.JSX.Element | null {
-  const { gotoPage } = React.useContext(RouteContext)
+  const { gotoPage } = useContext(RouteContext)
+  const { setConfig, gateways, routers, dnsJsonResolvers, debug } = useContext(ConfigContext)
   const [error, setError] = useState<Error | null>(null)
   const [resetKey, setResetKey] = useState(0)
 
@@ -114,7 +111,7 @@ function ConfigPage (): React.JSX.Element | null {
 
   const saveConfig = useCallback(async () => {
     try {
-      await localStorageToIdb()
+      await localStorageToIdb({ gateways, routers, dnsJsonResolvers, debug })
       log.trace('config-page: sending RELOAD_CONFIG to service worker')
       // update the BASE_URL service worker
       await channel.messageAndWaitForResponse('SW', { target: 'SW', action: 'RELOAD_CONFIG' })
@@ -129,7 +126,7 @@ function ConfigPage (): React.JSX.Element | null {
       log.error('Error saving config', err)
       setError(err as Error)
     }
-  }, [])
+  }, [gateways, routers, dnsJsonResolvers, debug])
 
   const doResetConfig = useCallback(async () => {
     // we need to clear out the localStorage items and make sure default values are set, and that all of our inputs are updated
@@ -137,9 +134,6 @@ function ConfigPage (): React.JSX.Element | null {
     // now reload all the inputs
     setResetKey((prev) => prev + 1)
   }, [])
-
-  const newlineToJsonArray = (value: string): string => JSON.stringify(convertUrlInputToArray(value))
-  const jsonToNewlineString = (value: string): string => convertUrlArrayToInput(JSON.parse(value))
 
   return (
     <>
@@ -171,15 +165,14 @@ function ConfigPage (): React.JSX.Element | null {
             localStorageKey={LOCAL_STORAGE_KEYS.config.enableWebTransport}
             resetKey={resetKey}
           />
-          <LocalStorageInput
+          <Input
             className="e2e-config-page-input e2e-config-page-input-routers"
             description="A newline delimited list of delegated IPFS router URLs."
-            localStorageKey={LOCAL_STORAGE_KEYS.config.routers}
             label='Routers'
             validationFn={urlValidationFn}
-            defaultValue={convertUrlArrayToInput(defaultRouters)}
-            preSaveFormat={newlineToJsonArray}
-            postLoadFormat={jsonToNewlineString}
+            onChange={(value) => { setConfig('routers', value) }}
+            value={convertUrlArrayToInput(routers)}
+            preSaveFormat={(value: string) => value.split('\n')}
             resetKey={resetKey}
           />
         </InputSection>
@@ -192,37 +185,34 @@ function ConfigPage (): React.JSX.Element | null {
             localStorageKey={LOCAL_STORAGE_KEYS.config.enableRecursiveGateways}
             resetKey={resetKey}
           />
-          <LocalStorageInput
+          <Input
             className="e2e-config-page-input e2e-config-page-input-gateways"
             description="A newline delimited list of recursive trustless gateway URLs."
-            localStorageKey={LOCAL_STORAGE_KEYS.config.gateways}
             label='Recursive Gateways'
             validationFn={urlValidationFn}
-            defaultValue={convertUrlArrayToInput(defaultGateways)}
-            preSaveFormat={newlineToJsonArray}
-            postLoadFormat={jsonToNewlineString}
+            value={convertUrlArrayToInput(gateways)}
+            onChange={(value) => { setConfig('gateways', value) }}
+            preSaveFormat={(value: string) => value.split('\n')}
             resetKey={resetKey}
           />
         </InputSection>
         <InputSection label='Other'>
-          <LocalStorageInput
+          <Input
             className="e2e-config-page-input e2e-config-page-input-dnsJsonResolvers"
             description="A newline delimited list of space delimited key+value pairs for DNS (application/dns-json) resolvers. The key is the domain suffix, and the value is the URL of the DNS resolver."
-            localStorageKey={LOCAL_STORAGE_KEYS.config.dnsJsonResolvers}
             label='DNS'
             validationFn={dnsJsonValidationFn}
-            defaultValue={convertDnsResolverObjectToInput(defaultDnsJsonResolvers)}
-            preSaveFormat={(value) => JSON.stringify(convertDnsResolverInputToObject(value))}
-            postLoadFormat={(value) => convertDnsResolverObjectToInput(JSON.parse(value))}
+            value={convertDnsResolverObjectToInput(dnsJsonResolvers)}
+            onChange={(value) => { setConfig('dnsJsonResolvers', value) }}
+            preSaveFormat={(value) => convertDnsResolverInputToObject(value)}
             resetKey={resetKey}
           />
-          <LocalStorageInput
+          <Input
             className="e2e-config-page-input"
             description="A string that enables debug logging. Use '*,*:trace' to enable all debug logging."
-            localStorageKey={LOCAL_STORAGE_KEYS.config.debug}
             label='Debug'
-            validationFn={stringValidationFn}
-            defaultValue=''
+            value={debug}
+            onChange={(value) => { setConfig('debug', value) }}
             resetKey={resetKey}
           />
         </InputSection>

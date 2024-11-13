@@ -25,21 +25,14 @@ export const defaultEnableGatewayProviders = true
 
 const configDb = new GenericIDB<ConfigDb>('helia-sw', 'config')
 
-export async function localStorageToIdb (): Promise<void> {
+export async function localStorageToIdb ({ gateways, routers, dnsJsonResolvers, debug }: Pick<ConfigDb, 'gateways' | 'routers' | 'dnsJsonResolvers' | 'debug'>): Promise<void> {
   if (typeof globalThis.localStorage !== 'undefined') {
     await configDb.open()
     const localStorage = globalThis.localStorage
-    const localStorageGatewaysString = localStorage.getItem(LOCAL_STORAGE_KEYS.config.gateways) ?? JSON.stringify(defaultGateways)
-    const localStorageRoutersString = localStorage.getItem(LOCAL_STORAGE_KEYS.config.routers) ?? JSON.stringify(defaultRouters)
-    const localStorageDnsResolvers = localStorage.getItem(LOCAL_STORAGE_KEYS.config.dnsJsonResolvers) ?? JSON.stringify(defaultDnsJsonResolvers)
     const enableRecursiveGateways = localStorage.getItem(LOCAL_STORAGE_KEYS.config.enableRecursiveGateways) === null ? defaultEnableRecursiveGateways : localStorage.getItem(LOCAL_STORAGE_KEYS.config.enableRecursiveGateways) === 'true'
     const enableWss = localStorage.getItem(LOCAL_STORAGE_KEYS.config.enableWss) === null ? defaultEnableWss : localStorage.getItem(LOCAL_STORAGE_KEYS.config.enableWss) === 'true'
     const enableWebTransport = localStorage.getItem(LOCAL_STORAGE_KEYS.config.enableWebTransport) === null ? defaultEnableWebTransport : localStorage.getItem(LOCAL_STORAGE_KEYS.config.enableWebTransport) === 'true'
     const enableGatewayProviders = localStorage.getItem(LOCAL_STORAGE_KEYS.config.enableGatewayProviders) === null ? defaultEnableGatewayProviders : localStorage.getItem(LOCAL_STORAGE_KEYS.config.enableGatewayProviders) === 'true'
-    const debug = localStorage.getItem(LOCAL_STORAGE_KEYS.config.debug) ?? ''
-    const gateways = JSON.parse(localStorageGatewaysString)
-    const routers = JSON.parse(localStorageRoutersString)
-    const dnsJsonResolvers = JSON.parse(localStorageDnsResolvers)
     enable(debug)
 
     await configDb.put('gateways', gateways)
@@ -56,11 +49,8 @@ export async function localStorageToIdb (): Promise<void> {
 
 export async function resetConfig (): Promise<void> {
   await configDb.open()
-  localStorage.removeItem(LOCAL_STORAGE_KEYS.config.gateways)
   await configDb.put('gateways', defaultGateways)
-  localStorage.removeItem(LOCAL_STORAGE_KEYS.config.routers)
   await configDb.put('routers', defaultRouters)
-  localStorage.removeItem(LOCAL_STORAGE_KEYS.config.dnsJsonResolvers)
   await configDb.put('dnsJsonResolvers', defaultDnsJsonResolvers)
   localStorage.removeItem(LOCAL_STORAGE_KEYS.config.enableWss)
   await configDb.put('enableWss', defaultEnableWss)
@@ -70,7 +60,6 @@ export async function resetConfig (): Promise<void> {
   await configDb.put('enableRecursiveGateways', defaultEnableRecursiveGateways)
   localStorage.removeItem(LOCAL_STORAGE_KEYS.config.enableGatewayProviders)
   await configDb.put('enableGatewayProviders', defaultEnableGatewayProviders)
-  localStorage.removeItem(LOCAL_STORAGE_KEYS.config.debug)
   await configDb.put('debug', '')
   configDb.close()
 }
