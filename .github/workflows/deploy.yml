@@ -45,17 +45,18 @@ jobs:
         with:
           token: ${{ secrets.SGTPOOKI_PAT }}
           ref: production
-      - name: Ensure production branch points to latest staging
-        run: |
-          git fetch origin staging:staging
-          git reset --hard staging
+      - name: Fetch all tags
+        run: git fetch --tags
       - name: Get latest tag merged into staging
         id: get_latest_tag
         run: |
           git checkout origin/staging
           latest_tag=$(git describe --tags $(git rev-list --tags --merged origin/staging --max-count=1))
           echo "tag=$latest_tag" >> $GITHUB_OUTPUT
-          git checkout production
+      - name: Ensure production branch points to latest staging
+        run: |
+          git fetch origin staging:staging
+          git reset --hard staging
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7.0.5
         with:
