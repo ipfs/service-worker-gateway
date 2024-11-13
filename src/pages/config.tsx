@@ -8,15 +8,14 @@ import Input from '../components/textarea-input.jsx'
 import { ConfigContext, ConfigProvider } from '../context/config-context.jsx'
 import { RouteContext } from '../context/router-context.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
-import { HeliaServiceWorkerCommsChannel } from '../lib/channel.js'
 import { getConfig, setConfig as storeConfig } from '../lib/config-db.js'
 import { convertDnsResolverInputToObject, convertDnsResolverObjectToInput, convertUrlArrayToInput, convertUrlInputToArray } from '../lib/input-helpers.js'
 import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
 import './default-page-styles.css'
+import { tellSwToReloadConfig } from '../lib/sw-comms.js'
 
 const uiComponentLogger = getUiComponentLogger('config-page')
 const log = uiLogger.forComponent('config-page')
-const channel = new HeliaServiceWorkerCommsChannel('WINDOW', uiComponentLogger)
 
 /**
  * Converts newline delimited URLs to an array of URLs, and validates each URL.
@@ -79,6 +78,7 @@ const dnsJsonValidationFn = (value: string): Error | null => {
 function ConfigPage (): React.JSX.Element | null {
   const { gotoPage } = useContext(RouteContext)
   const { setConfig, resetConfig, gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport } = useContext(ConfigContext)
+  const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [resetKey, setResetKey] = useState(0)
 
@@ -90,7 +90,7 @@ function ConfigPage (): React.JSX.Element | null {
     }
     // we get the iframe origin from a query parameter called 'origin', if this is loaded in an iframe
     const targetOrigin = decodeURIComponent(window.location.hash.split('@origin=')[1])
-    const config = await getConfig(uiComponentLogger)
+    const config = { gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport }
     log.trace('config-page: postMessage config to origin ', config, targetOrigin)
     /**
      * The reload page in the parent window is listening for this message, and then it passes a RELOAD_CONFIG message to the service worker
@@ -99,7 +99,7 @@ function ConfigPage (): React.JSX.Element | null {
       targetOrigin
     })
     log.trace('config-page: RELOAD_CONFIG sent to parent window')
-  }, [])
+  }, [gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport])
 
   useEffect(() => {
     /**
@@ -110,10 +110,11 @@ function ConfigPage (): React.JSX.Element | null {
 
   const saveConfig = useCallback(async () => {
     try {
+      setIsSaving(true)
       await storeConfig({ gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport }, uiComponentLogger)
       log.trace('config-page: sending RELOAD_CONFIG to service worker')
       // update the BASE_URL service worker
-      await channel.messageAndWaitForResponse('SW', { target: 'SW', action: 'RELOAD_CONFIG' })
+      await tellSwToReloadConfig()
       // base_domain service worker is updated
       log.trace('config-page: RELOAD_CONFIG_SUCCESS for %s', window.location.origin)
       // update the <subdomain>.<namespace>.BASE_URL service worker
@@ -124,8 +125,10 @@ function ConfigPage (): React.JSX.Element | null {
     } catch (err) {
       log.error('Error saving config', err)
       setError(err as Error)
+    } finally {
+      setIsSaving(false)
     }
-  }, [gateways, routers, dnsJsonResolvers, debug])
+  }, [gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport])
 
   const doResetConfig = useCallback(async () => {
     // we need to clear out the localStorage items and make sure default values are set, and that all of our inputs are updated
@@ -217,7 +220,7 @@ function ConfigPage (): React.JSX.Element | null {
         </InputSection>
         <div className="w-100 inline-flex flex-row justify-between">
           <button className="e2e-config-page-button button-reset mr5 pv3 tc bg-animate hover-bg-gold pointer w-30 bn" id="reset-config" onClick={() => { void doResetConfig() }}>Reset Config</button>
-          <ServiceWorkerReadyButton className="e2e-config-page-button white w-100 pa3" id="save-config" label='Save Config' waitingLabel='Waiting for service worker registration...' onClick={() => { void saveConfig() }} />
+          <ServiceWorkerReadyButton className="e2e-config-page-button white w-100 pa3" id="save-config" label={isSaving ? 'Saving...' : 'Save Config'} waitingLabel='Waiting for service worker registration...' onClick={() => { void saveConfig() }} />
         </div>
         {error != null && <span style={{ color: 'red' }}>{error.message}</span>}
       </Collapsible>
