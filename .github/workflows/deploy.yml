@@ -49,11 +49,18 @@ jobs:
         run: |
           git fetch origin staging:staging
           git reset --hard staging
+      - name: Get latest tag merged into staging
+        id: get_latest_tag
+        run: |
+          git checkout origin/staging
+          latest_tag=$(git describe --tags $(git rev-list --tags --merged origin/staging --max-count=1))
+          echo "tag=$latest_tag" >> $GITHUB_OUTPUT
+          git checkout production
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7.0.5
         with:
           token: ${{ secrets.SGTPOOKI_PAT }}
           branch: production-release
-          title: 'chore: Point production to release ${{ steps.get_latest_tag.outputs.tag }}'
-          body: 'This PR points the production branch to release ${{ steps.get_latest_tag.outputs.tag }}.'
+          title: 'chore: Point production to ${{ steps.get_latest_tag.outputs.tag }}'
+          body: 'This PR points the production branch to release ${{ steps.get_latest_tag.outputs.tag }}, which is the latest tag deployed to staging.'
 
