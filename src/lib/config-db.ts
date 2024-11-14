@@ -22,6 +22,11 @@ export const defaultEnableWss = true
 export const defaultEnableWebTransport = false
 export const defaultEnableGatewayProviders = true
 
+/**
+ * On dev/testing environments, (inbrowser.dev, localhost:${port}, or 127.0.0.1) we should set the default debug config to helia:sw-gateway*,helia:sw-gateway*:trace so we don't need to go set it manually
+ */
+export const defaultDebug = self.location.hostname.search(/localhost|inbrowser\.dev|127\.0\.0\.1/) === -1 ? '' : 'helia:sw-gateway*,helia:sw-gateway*:trace'
+
 const configDb = new GenericIDB<ConfigDb>('helia-sw', 'config')
 
 export async function resetConfig (logger: ComponentLogger): Promise<void> {
@@ -35,7 +40,7 @@ export async function resetConfig (logger: ComponentLogger): Promise<void> {
     await configDb.put('enableWebTransport', defaultEnableWebTransport)
     await configDb.put('enableRecursiveGateways', defaultEnableRecursiveGateways)
     await configDb.put('enableGatewayProviders', defaultEnableGatewayProviders)
-    await configDb.put('debug', '')
+    await configDb.put('debug', defaultDebug)
   } catch (err) {
     log('error resetting config in db', err)
   } finally {
@@ -45,7 +50,7 @@ export async function resetConfig (logger: ComponentLogger): Promise<void> {
 
 export async function setConfig (config: ConfigDb, logger: ComponentLogger): Promise<void> {
   const log = logger.forComponent('set-config')
-  enable(config.debug ?? '') // set debug level first.
+  enable(config.debug ?? defaultDebug) // set debug level first.
   await validateConfig(config, logger)
   try {
     log('config-debug: setting config %O for domain %s', config, window.location.origin)
@@ -57,7 +62,7 @@ export async function setConfig (config: ConfigDb, logger: ComponentLogger): Pro
     await configDb.put('enableWss', config.enableWss)
     await configDb.put('enableWebTransport', config.enableWebTransport)
     await configDb.put('enableGatewayProviders', config.enableGatewayProviders)
-    await configDb.put('debug', config.debug ?? '')
+    await configDb.put('debug', config.debug ?? defaultDebug)
   } catch (err) {
     log('error setting config in db', err)
   } finally {
@@ -91,7 +96,7 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
     enableWebTransport = await configDb.get('enableWebTransport') ?? defaultEnableWebTransport
     enableGatewayProviders = await configDb.get('enableGatewayProviders') ?? defaultEnableGatewayProviders
 
-    debug = await configDb.get('debug') ?? ''
+    debug = await configDb.get('debug') ?? defaultDebug
     enable(debug)
   } catch (err) {
     log('error loading config from db', err)
