@@ -28,7 +28,7 @@ jobs:
         id: get_latest_tag
         run: echo "tag=$(git describe --tags `git rev-list --tags --max-count=1`)" >> $GITHUB_OUTPUT
       - name: Checkout latest tag
-        run: git checkout ${{ steps.get_latest_tag.outputs.tag }}
+        run: git reset --hard ${{ steps.get_latest_tag.outputs.tag }}
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
         with:
