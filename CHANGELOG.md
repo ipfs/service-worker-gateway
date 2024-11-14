@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.6.2](https://github.com/ipfs/service-worker-gateway/compare/v1.6.1...v1.6.2) (2024-11-13)
+
+
+### Bug Fixes
+
+* more CI fixes ([#439](https://github.com/ipfs/service-worker-gateway/issues/439)) ([b5e0e25](https://github.com/ipfs/service-worker-gateway/commit/b5e0e25fa8eee8b33b4b56471fcb7e7f2cac1a21))
+
+## [1.6.1](https://github.com/ipfs/service-worker-gateway/compare/v1.6.0...v1.6.1) (2024-11-11)
+
+
+### Bug Fixes
+
+* ci and deployment workflows ([#437](https://github.com/ipfs/service-worker-gateway/issues/437)) ([17ca8d5](https://github.com/ipfs/service-worker-gateway/commit/17ca8d5e803eab9cc409c43b40af2cc5786924ea))
+
 ## [1.6.0](https://github.com/ipfs/service-worker-gateway/compare/v1.5.0...v1.6.0) (2024-11-11)
 
 

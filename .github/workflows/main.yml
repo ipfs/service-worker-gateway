@@ -4,8 +4,9 @@ on:
     branches:
       - main
   pull_request:
-    branches:
-      - '**'
+    branches-ignore:
+      # Run on all pull requests except for release PRs which don't change code
+      - 'release-please**'
   workflow_dispatch:
 
 jobs:
@@ -172,6 +173,9 @@ jobs:
       contents: write # to create release
       pull-requests: write # to create release PR
     steps:
-      - uses: google-github-actions/release-please-action@v4
+      - uses: googleapis/release-please-action@7987652d64b4581673a76e33ad5e98e3dd56832f # v4.1.3
         with:
           release-type: node
+          # Use a token for creating the release-pr and git tags so that the `deploy` workflow can be triggered by them
+          # see https://github.com/peter-evans/create-pull-request/blob/main/docs/concepts-guidelines.md#triggering-further-workflow-runs and https://github.com/orgs/community/discussions/27028 for more information
+          token: ${{ secrets.SGTPOOKI_PAT }}
