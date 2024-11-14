@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.7.0](https://github.com/ipfs/service-worker-gateway/compare/v1.6.2...v1.7.0) (2024-11-14)
+
+
+### Features
+
+* global config validation ([#451](https://github.com/ipfs/service-worker-gateway/issues/451)) ([334a077](https://github.com/ipfs/service-worker-gateway/commit/334a0773f3015290f581abf4f4ac700309988986))
+
+
+### Bug Fixes
+
+* dont use local storage for text config items ([#448](https://github.com/ipfs/service-worker-gateway/issues/448)) ([aab3c00](https://github.com/ipfs/service-worker-gateway/commit/aab3c00db9ef40fc93996f894df954fbfe4c4d0f))
+* input toggles dont use localStorage ([#450](https://github.com/ipfs/service-worker-gateway/issues/450)) ([c838307](https://github.com/ipfs/service-worker-gateway/commit/c83830714475a7a20d949d5bf9f74bf65c7e387d))
+
 ## [1.6.2](https://github.com/ipfs/service-worker-gateway/compare/v1.6.1...v1.6.2) (2024-11-13)
 
 
