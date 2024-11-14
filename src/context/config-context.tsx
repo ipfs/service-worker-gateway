@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useEffect, useState } from 'react'
-import { defaultDnsJsonResolvers, defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, defaultGateways, defaultRouters, getConfig, resetConfig, type ConfigDb } from '../lib/config-db.js'
+import { defaultDebug, defaultDnsJsonResolvers, defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, defaultGateways, defaultRouters, getConfig, resetConfig, type ConfigDb } from '../lib/config-db.js'
 import { isConfigPage } from '../lib/is-config-page.js'
 import { getUiComponentLogger } from '../lib/logger.js'
 import type { ComponentLogger } from '@libp2p/logger'
@@ -19,14 +19,14 @@ export const ConfigContext = createContext<ConfigContextType>({
   setConfigExpanded: (value: boolean) => {},
   setConfig: (key, value) => {},
   resetConfig: async () => Promise.resolve(),
-  gateways: [],
-  routers: [],
-  dnsJsonResolvers: {},
-  enableWss: false,
-  enableWebTransport: false,
-  enableGatewayProviders: false,
-  enableRecursiveGateways: false,
-  debug: ''
+  gateways: defaultGateways,
+  routers: defaultRouters,
+  dnsJsonResolvers: defaultDnsJsonResolvers,
+  enableWss: defaultEnableWss,
+  enableWebTransport: defaultEnableWebTransport,
+  enableGatewayProviders: defaultEnableGatewayProviders,
+  enableRecursiveGateways: defaultEnableRecursiveGateways,
+  debug: defaultDebug
 })
 
 export const ConfigProvider = ({ children }: { children: JSX.Element[] | JSX.Element, expanded?: boolean }): JSX.Element => {
@@ -38,7 +38,7 @@ export const ConfigProvider = ({ children }: { children: JSX.Element[] | JSX.Ele
   const [enableWebTransport, setEnableWebTransport] = useState(defaultEnableWebTransport)
   const [enableGatewayProviders, setEnableGatewayProviders] = useState(defaultEnableGatewayProviders)
   const [enableRecursiveGateways, setEnableRecursiveGateways] = useState(defaultEnableRecursiveGateways)
-  const [debug, setDebug] = useState('')
+  const [debug, setDebug] = useState(defaultDebug)
   const isExplicitlyLoadedConfigPage = isConfigPage(window.location.hash)
   const logger = getUiComponentLogger('config-context')
   const log = logger.forComponent('main')
