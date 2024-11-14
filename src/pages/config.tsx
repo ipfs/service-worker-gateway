@@ -8,7 +8,7 @@ import Input from '../components/textarea-input.jsx'
 import { ConfigContext, ConfigProvider } from '../context/config-context.jsx'
 import { RouteContext } from '../context/router-context.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
-import { setConfig as storeConfig, validateConfig } from '../lib/config-db.js'
+import { setConfig as storeConfig } from '../lib/config-db.js'
 import { convertDnsResolverInputToObject, convertDnsResolverObjectToInput, convertUrlArrayToInput, convertUrlInputToArray } from '../lib/input-helpers.js'
 import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
 import './default-page-styles.css'
@@ -111,7 +111,6 @@ function ConfigPage (): React.JSX.Element | null {
   const saveConfig = useCallback(async () => {
     try {
       const config = { gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport }
-      await validateConfig(config, uiComponentLogger)
       setIsSaving(true)
       await storeConfig(config, uiComponentLogger)
       log.trace('config-page: sending RELOAD_CONFIG to service worker')
@@ -134,7 +133,7 @@ function ConfigPage (): React.JSX.Element | null {
 
   const doResetConfig = useCallback(async () => {
     // we need to clear out the localStorage items and make sure default values are set, and that all of our inputs are updated
-    await resetConfig()
+    await resetConfig(uiComponentLogger)
     // now reload all the inputs
     setResetKey((prev) => prev + 1)
   }, [])

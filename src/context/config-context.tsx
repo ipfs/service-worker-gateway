@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useEffect, useState } from 'react'
 import { defaultDnsJsonResolvers, defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, defaultGateways, defaultRouters, getConfig, resetConfig, type ConfigDb } from '../lib/config-db.js'
 import { isConfigPage } from '../lib/is-config-page.js'
 import { getUiComponentLogger } from '../lib/logger.js'
+import type { ComponentLogger } from '@libp2p/logger'
 
 const isLoadedInIframe = window.self !== window.top
 
@@ -10,7 +11,7 @@ export interface ConfigContextType extends ConfigDb {
   isConfigExpanded: boolean
   setConfigExpanded(value: boolean): void
   setConfig(key: ConfigKey, value: any): void
-  resetConfig(): Promise<void>
+  resetConfig(logger?: ComponentLogger): Promise<void>
 }
 
 export const ConfigContext = createContext<ConfigContextType>({
@@ -97,8 +98,8 @@ export const ConfigProvider = ({ children }: { children: JSX.Element[] | JSX.Ele
     }
   }, [])
 
-  const resetConfigLocal = async (): Promise<void> => {
-    await resetConfig()
+  const resetConfigLocal: ConfigContextType['resetConfig'] = async (givenLogger): Promise<void> => {
+    await resetConfig(givenLogger ?? logger)
     await loadConfig()
   }
 
