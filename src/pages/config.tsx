@@ -110,8 +110,9 @@ function ConfigPage (): React.JSX.Element | null {
 
   const saveConfig = useCallback(async () => {
     try {
+      const config = { gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport }
       setIsSaving(true)
-      await storeConfig({ gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport }, uiComponentLogger)
+      await storeConfig(config, uiComponentLogger)
       log.trace('config-page: sending RELOAD_CONFIG to service worker')
       // update the BASE_URL service worker
       await tellSwToReloadConfig()
@@ -132,7 +133,7 @@ function ConfigPage (): React.JSX.Element | null {
 
   const doResetConfig = useCallback(async () => {
     // we need to clear out the localStorage items and make sure default values are set, and that all of our inputs are updated
-    await resetConfig()
+    await resetConfig(uiComponentLogger)
     // now reload all the inputs
     setResetKey((prev) => prev + 1)
   }, [])

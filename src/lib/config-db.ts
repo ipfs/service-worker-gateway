@@ -24,34 +24,45 @@ export const defaultEnableGatewayProviders = true
 
 const configDb = new GenericIDB<ConfigDb>('helia-sw', 'config')
 
-export async function resetConfig (): Promise<void> {
-  await configDb.open()
-  await configDb.put('gateways', defaultGateways)
-  await configDb.put('routers', defaultRouters)
-  await configDb.put('dnsJsonResolvers', defaultDnsJsonResolvers)
-  await configDb.put('enableWss', defaultEnableWss)
-  await configDb.put('enableWebTransport', defaultEnableWebTransport)
-  await configDb.put('enableRecursiveGateways', defaultEnableRecursiveGateways)
-  await configDb.put('enableGatewayProviders', defaultEnableGatewayProviders)
-  await configDb.put('debug', '')
-  configDb.close()
+export async function resetConfig (logger: ComponentLogger): Promise<void> {
+  const log = logger.forComponent('reset-config')
+  try {
+    await configDb.open()
+    await configDb.put('gateways', defaultGateways)
+    await configDb.put('routers', defaultRouters)
+    await configDb.put('dnsJsonResolvers', defaultDnsJsonResolvers)
+    await configDb.put('enableWss', defaultEnableWss)
+    await configDb.put('enableWebTransport', defaultEnableWebTransport)
+    await configDb.put('enableRecursiveGateways', defaultEnableRecursiveGateways)
+    await configDb.put('enableGatewayProviders', defaultEnableGatewayProviders)
+    await configDb.put('debug', '')
+  } catch (err) {
+    log('error resetting config in db', err)
+  } finally {
+    configDb.close()
+  }
 }
 
 export async function setConfig (config: ConfigDb, logger: ComponentLogger): Promise<void> {
   const log = logger.forComponent('set-config')
   enable(config.debug ?? '') // set debug level first.
-  log('config-debug: setting config %O for domain %s', config, window.location.origin)
-
-  await configDb.open()
-  await configDb.put('gateways', config.gateways)
-  await configDb.put('routers', config.routers)
-  await configDb.put('dnsJsonResolvers', config.dnsJsonResolvers)
-  await configDb.put('enableRecursiveGateways', config.enableRecursiveGateways)
-  await configDb.put('enableWss', config.enableWss)
-  await configDb.put('enableWebTransport', config.enableWebTransport)
-  await configDb.put('enableGatewayProviders', config.enableGatewayProviders)
-  await configDb.put('debug', config.debug ?? '')
-  configDb.close()
+  await validateConfig(config, logger)
+  try {
+    log('config-debug: setting config %O for domain %s', config, window.location.origin)
+    await configDb.open()
+    await configDb.put('gateways', config.gateways)
+    await configDb.put('routers', config.routers)
+    await configDb.put('dnsJsonResolvers', config.dnsJsonResolvers)
+    await configDb.put('enableRecursiveGateways', config.enableRecursiveGateways)
+    await configDb.put('enableWss', config.enableWss)
+    await configDb.put('enableWebTransport', config.enableWebTransport)
+    await configDb.put('enableGatewayProviders', config.enableGatewayProviders)
+    await configDb.put('debug', config.debug ?? '')
+  } catch (err) {
+    log('error setting config in db', err)
+  } finally {
+    configDb.close()
+  }
 }
 
 export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
@@ -81,10 +92,11 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
     enableGatewayProviders = await configDb.get('enableGatewayProviders') ?? defaultEnableGatewayProviders
 
     debug = await configDb.get('debug') ?? ''
-    configDb.close()
     enable(debug)
   } catch (err) {
     log('error loading config from db', err)
+  } finally {
+    configDb.close()
   }
 
   if (gateways == null || gateways.length === 0) {
@@ -108,5 +120,14 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
     enableWebTransport,
     enableGatewayProviders,
     debug
+  }
+}
+
+export async function validateConfig (config: ConfigDb, logger: ComponentLogger): Promise<void> {
+  const log = logger.forComponent('validate-config')
+
+  if (!config.enableRecursiveGateways && !config.enableGatewayProviders && !config.enableWss && !config.enableWebTransport) {
+    log.error('Config is invalid. At least one of the following must be enabled: recursive gateways, gateway providers, wss, or webtransport.')
+    throw new Error('Config is invalid. At least one of the following must be enabled: recursive gateways, gateway providers, wss, or webtransport.')
   }
 }
