@@ -113,7 +113,7 @@ function ConfigPage (): React.JSX.Element | null {
       const config = { gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport }
       await validateConfig(config, uiComponentLogger)
       setIsSaving(true)
-      await storeConfig({ gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport }, uiComponentLogger)
+      await storeConfig(config, uiComponentLogger)
       log.trace('config-page: sending RELOAD_CONFIG to service worker')
       // update the BASE_URL service worker
       await tellSwToReloadConfig()
