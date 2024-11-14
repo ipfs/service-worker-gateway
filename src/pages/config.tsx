@@ -2,22 +2,20 @@ import React, { useCallback, useContext, useEffect, useState } from 'react'
 import Header from '../components/Header.jsx'
 import { Collapsible } from '../components/collapsible.jsx'
 import { InputSection } from '../components/input-section.jsx'
-import { LocalStorageToggle } from '../components/local-storage-toggle.jsx'
+import { InputToggle } from '../components/input-toggle.jsx'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
 import Input from '../components/textarea-input.jsx'
 import { ConfigContext, ConfigProvider } from '../context/config-context.jsx'
 import { RouteContext } from '../context/router-context.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
-import { HeliaServiceWorkerCommsChannel } from '../lib/channel.js'
-import { defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, getConfig, localStorageToIdb, resetConfig } from '../lib/config-db.js'
+import { setConfig as storeConfig } from '../lib/config-db.js'
 import { convertDnsResolverInputToObject, convertDnsResolverObjectToInput, convertUrlArrayToInput, convertUrlInputToArray } from '../lib/input-helpers.js'
-import { LOCAL_STORAGE_KEYS } from '../lib/local-storage.js'
 import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
 import './default-page-styles.css'
+import { tellSwToReloadConfig } from '../lib/sw-comms.js'
 
 const uiComponentLogger = getUiComponentLogger('config-page')
 const log = uiLogger.forComponent('config-page')
-const channel = new HeliaServiceWorkerCommsChannel('WINDOW', uiComponentLogger)
 
 /**
  * Converts newline delimited URLs to an array of URLs, and validates each URL.
@@ -79,7 +77,8 @@ const dnsJsonValidationFn = (value: string): Error | null => {
 
 function ConfigPage (): React.JSX.Element | null {
   const { gotoPage } = useContext(RouteContext)
-  const { setConfig, gateways, routers, dnsJsonResolvers, debug } = useContext(ConfigContext)
+  const { setConfig, resetConfig, gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport } = useContext(ConfigContext)
+  const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [resetKey, setResetKey] = useState(0)
 
@@ -91,7 +90,7 @@ function ConfigPage (): React.JSX.Element | null {
     }
     // we get the iframe origin from a query parameter called 'origin', if this is loaded in an iframe
     const targetOrigin = decodeURIComponent(window.location.hash.split('@origin=')[1])
-    const config = await getConfig(uiComponentLogger)
+    const config = { gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport }
     log.trace('config-page: postMessage config to origin ', config, targetOrigin)
     /**
      * The reload page in the parent window is listening for this message, and then it passes a RELOAD_CONFIG message to the service worker
@@ -100,7 +99,7 @@ function ConfigPage (): React.JSX.Element | null {
       targetOrigin
     })
     log.trace('config-page: RELOAD_CONFIG sent to parent window')
-  }, [])
+  }, [gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport])
 
   useEffect(() => {
     /**
@@ -111,10 +110,11 @@ function ConfigPage (): React.JSX.Element | null {
 
   const saveConfig = useCallback(async () => {
     try {
-      await localStorageToIdb({ gateways, routers, dnsJsonResolvers, debug })
+      setIsSaving(true)
+      await storeConfig({ gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport }, uiComponentLogger)
       log.trace('config-page: sending RELOAD_CONFIG to service worker')
       // update the BASE_URL service worker
-      await channel.messageAndWaitForResponse('SW', { target: 'SW', action: 'RELOAD_CONFIG' })
+      await tellSwToReloadConfig()
       // base_domain service worker is updated
       log.trace('config-page: RELOAD_CONFIG_SUCCESS for %s', window.location.origin)
       // update the <subdomain>.<namespace>.BASE_URL service worker
@@ -125,8 +125,10 @@ function ConfigPage (): React.JSX.Element | null {
     } catch (err) {
       log.error('Error saving config', err)
       setError(err as Error)
+    } finally {
+      setIsSaving(false)
     }
-  }, [gateways, routers, dnsJsonResolvers, debug])
+  }, [gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport])
 
   const doResetConfig = useCallback(async () => {
     // we need to clear out the localStorage items and make sure default values are set, and that all of our inputs are updated
@@ -141,28 +143,28 @@ function ConfigPage (): React.JSX.Element | null {
     <main className='e2e-config-page pa4-l bg-snow mw7 center pa4'>
       <Collapsible collapsedLabel="View config" expandedLabel='Hide config' collapsed={isLoadedInIframe}>
         <InputSection label='Direct Retrieval'>
-          <LocalStorageToggle
+          <InputToggle
             className="e2e-config-page-input"
             label="Enable Delegated HTTP Gateway Providers"
             description="Use gateway providers returned from delegated routers for direct retrieval."
-            defaultValue={defaultEnableGatewayProviders}
-            localStorageKey={LOCAL_STORAGE_KEYS.config.enableGatewayProviders}
+            value={enableGatewayProviders}
+            onChange={(value) => { setConfig('enableGatewayProviders', value) }}
             resetKey={resetKey}
           />
-          <LocalStorageToggle
+          <InputToggle
             className="e2e-config-page-input"
             label="Enable Secure WebSocket Providers"
             description="Use Secure WebSocket providers returned from delegated routers for direct retrieval."
-            defaultValue={defaultEnableWss}
-            localStorageKey={LOCAL_STORAGE_KEYS.config.enableWss}
+            value={enableWss}
+            onChange={(value) => { setConfig('enableWss', value) }}
             resetKey={resetKey}
           />
-          <LocalStorageToggle
+          <InputToggle
             className="e2e-config-page-input"
             label="Enable WebTransport Providers"
             description="Use WebTransport providers returned from delegated routers for direct retrieval."
-            defaultValue={defaultEnableWebTransport}
-            localStorageKey={LOCAL_STORAGE_KEYS.config.enableWebTransport}
+            value={enableWebTransport}
+            onChange={(value) => { setConfig('enableWebTransport', value) }}
             resetKey={resetKey}
           />
           <Input
@@ -177,12 +179,12 @@ function ConfigPage (): React.JSX.Element | null {
           />
         </InputSection>
         <InputSection label='Fallback Retrieval'>
-          <LocalStorageToggle
+          <InputToggle
             className="e2e-config-page-input"
             label="Enable Recursive Gateways"
             description="Use recursive gateways configured below for retrieval of content."
-            defaultValue={defaultEnableRecursiveGateways}
-            localStorageKey={LOCAL_STORAGE_KEYS.config.enableRecursiveGateways}
+            value={enableRecursiveGateways}
+            onChange={(value) => { setConfig('enableRecursiveGateways', value) }}
             resetKey={resetKey}
           />
           <Input
@@ -218,7 +220,7 @@ function ConfigPage (): React.JSX.Element | null {
         </InputSection>
         <div className="w-100 inline-flex flex-row justify-between">
           <button className="e2e-config-page-button button-reset mr5 pv3 tc bg-animate hover-bg-gold pointer w-30 bn" id="reset-config" onClick={() => { void doResetConfig() }}>Reset Config</button>
-          <ServiceWorkerReadyButton className="e2e-config-page-button white w-100 pa3" id="save-config" label='Save Config' waitingLabel='Waiting for service worker registration...' onClick={() => { void saveConfig() }} />
+          <ServiceWorkerReadyButton className="e2e-config-page-button white w-100 pa3" id="save-config" label={isSaving ? 'Saving...' : 'Save Config'} waitingLabel='Waiting for service worker registration...' onClick={() => { void saveConfig() }} />
         </div>
         {error != null && <span style={{ color: 'red' }}>{error.message}</span>}
       </Collapsible>

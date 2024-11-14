@@ -76,22 +76,11 @@ export async function setConfig ({ page, config }: { page: Page, config: Partial
 
     db.close()
 
-    /**
-     * We need to do an operation like HeliaServiceWorkerCommsChannel.messageAndWaitForResponse
-     * see {@link HeliaServiceWorkerCommsChannel} for more information
-     */
-    const channel = new BroadcastChannel('helia:sw')
-    const swResponsePromise = new Promise<void>((resolve, reject) => {
-      const onSuccess = (e: MessageEvent): void => {
-        if (e.data.action === 'RELOAD_CONFIG_SUCCESS') {
-          resolve()
-          channel.removeEventListener('message', onSuccess)
-        }
-      }
-      channel.addEventListener('message', onSuccess)
-    })
-    channel.postMessage({ target: 'SW', action: 'RELOAD_CONFIG', source: 'WINDOW' })
-    await swResponsePromise
+    const resp = await fetch('/#/ipfs-sw-config-reload')
+
+    if (!resp.ok) {
+      throw new Error('Failed to reload config')
+    }
   }, {
     gateways: [process.env.KUBO_GATEWAY],
     routers: [process.env.KUBO_GATEWAY],

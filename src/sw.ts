@@ -1,4 +1,3 @@
-import { HeliaServiceWorkerCommsChannel, type ChannelMessage } from './lib/channel.js'
 import { getConfig, type ConfigDb } from './lib/config-db.js'
 import { getRedirectUrl, isDeregisterRequest } from './lib/deregister-request.js'
 import { GenericIDB } from './lib/generic-db.js'
@@ -101,7 +100,6 @@ const CURRENT_CACHES = Object.freeze({
   swAssets: `sw-assets-v${CACHE_VERSION}`
 })
 let verifiedFetch: VerifiedFetch
-const channel = new HeliaServiceWorkerCommsChannel('SW', swLogger)
 const timeoutAbortEventType = 'verified-fetch-timeout'
 const ONE_HOUR_IN_SECONDS = 3600
 const urlInterceptRegex = [new RegExp(`${self.location.origin}/ip(n|f)s/`)]
@@ -138,19 +136,6 @@ self.addEventListener('activate', (event) => {
    * button.
    */
   event.waitUntil(self.clients.claim())
-  channel.onmessagefrom('WINDOW', async (message: MessageEvent<ChannelMessage<'WINDOW', null>>) => {
-    const { action } = message.data
-    switch (action) {
-      case 'RELOAD_CONFIG':
-        void updateVerifiedFetch().then(async () => {
-          channel.postMessage<any>({ action: 'RELOAD_CONFIG_SUCCESS', data: { config: await getConfig(swLogger) } })
-          log.trace('RELOAD_CONFIG_SUCCESS for %s', self.location.origin)
-        })
-        break
-      default:
-        log('unknown action: ', action)
-    }
-  })
 
   // Delete all caches that aren't named in CURRENT_CACHES.
   const expectedCacheNames = Object.keys(CURRENT_CACHES).map(function (key) {
@@ -203,6 +188,14 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
     return false
   } else if (isConfigPageRequest(url)) {
     log.trace('config page request, ignoring ', event.request.url)
+    return false
+  } else if (isSwConfigReloadRequest(event)) {
+    log.trace('sw-config reload request, updating verifiedFetch')
+    event.waitUntil(updateVerifiedFetch().then(() => {
+      log.trace('sw-config reload request, verifiedFetch updated')
+    }).catch((err) => {
+      log.error('sw-config reload request, error updating verifiedFetch', err)
+    }))
     return false
   } else if (isSwAssetRequest(event)) {
     log.trace('sw-asset request, returning cached response ', event.request.url)
@@ -281,6 +274,10 @@ function isValidRequestForSW (event: FetchEvent): boolean {
 
 function isAggregateError (err: unknown): err is AggregateError {
   return err instanceof Error && (err as AggregateError).errors != null
+}
+
+function isSwConfigReloadRequest (event: FetchEvent): boolean {
+  return event.request.url.includes('/#/ipfs-sw-config-reload')
 }
 
 function isSwAssetRequest (event: FetchEvent): boolean {
