@@ -6,35 +6,12 @@ export function getLocalStorageKey (root: LocalStorageRoots, key: string): strin
 
 export const LOCAL_STORAGE_KEYS = {
   config: {
-    gateways: getLocalStorageKey('config', 'gateways'),
-    routers: getLocalStorageKey('config', 'routers'),
     enableWss: getLocalStorageKey('config', 'enableWss'),
     enableWebTransport: getLocalStorageKey('config', 'enableWebTransport'),
     enableRecursiveGateways: getLocalStorageKey('config', 'enableRecursiveGateways'),
-    enableGatewayProviders: getLocalStorageKey('config', 'enableGatewayProviders'),
-    dnsJsonResolvers: getLocalStorageKey('config', 'dnsJsonResolvers'),
-    debug: getLocalStorageKey('config', 'debug')
+    enableGatewayProviders: getLocalStorageKey('config', 'enableGatewayProviders')
   },
   forms: {
     requestPath: getLocalStorageKey('forms', 'requestPath')
   }
-}
-
-export const convertUrlArrayToInput = (urls: string[]): string => {
-  return urls.join('\n')
-}
-
-export const convertUrlInputToArray = (newlineDelimitedString: string): string[] => {
-  return newlineDelimitedString.length > 0 ? newlineDelimitedString.split('\n').map((u) => u.trim()) : []
-}
-
-export const convertDnsResolverObjectToInput = (dnsResolvers: Record<string, string>): string => {
-  return Object.entries(dnsResolvers).map(([key, url]) => `${key} ${url}`).join('\n')
-}
-
-export const convertDnsResolverInputToObject = (dnsResolverInput: string): Record<string, string> => {
-  return dnsResolverInput.split('\n').map((u) => u.trim().split(' ')).reduce((acc, [key, url]) => {
-    acc[key] = url
-    return acc
-  }, {})
 }
