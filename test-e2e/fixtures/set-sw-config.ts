@@ -59,7 +59,7 @@ export async function setConfig ({ page, config }: { page: Page, config: Partial
       }
     })
     const db = await openDb()
-    const put = async (key, value): Promise<void> => {
+    const put = async (key: keyof ConfigDb, value): Promise<void> => {
       const transaction = db.transaction(storeName, 'readwrite')
       const store = transaction.objectStore(storeName)
       const request = store.put(value, key)
@@ -86,6 +86,49 @@ export async function setConfig ({ page, config }: { page: Page, config: Partial
     routers: [process.env.KUBO_GATEWAY],
     ...config
   })
+}
+
+export async function getConfig ({ page }: { page: Page }): Promise<ConfigDb> {
+  const config: ConfigDb = await page.evaluate(async () => {
+    const dbName = 'helia-sw'
+    const storeName = 'config'
+    const openDb = async (): Promise<IDBDatabase> => new Promise((resolve, reject) => {
+      const request = indexedDB.open(dbName, 1)
+      request.onerror = () => { reject(request.error) }
+      request.onsuccess = () => { resolve(request.result) }
+      request.onupgradeneeded = (event) => {
+        const db = request.result
+        db.createObjectStore(storeName)
+      }
+    })
+    const db = await openDb()
+    const get = async (key): Promise<any> => {
+      const transaction = db.transaction(storeName, 'readonly')
+      const store = transaction.objectStore(storeName)
+      const request = store.get(key)
+      return new Promise((resolve, reject) => {
+        request.onerror = () => { reject(request.error) }
+        request.onsuccess = () => { resolve(request.result) }
+      })
+    }
+
+    const config: ConfigDb = {
+      gateways: await get('gateways'),
+      routers: await get('routers'),
+      dnsJsonResolvers: await get('dnsJsonResolvers'),
+      enableWss: await get('enableWss'),
+      enableWebTransport: await get('enableWebTransport'),
+      enableRecursiveGateways: await get('enableRecursiveGateways'),
+      enableGatewayProviders: await get('enableGatewayProviders'),
+      debug: await get('debug')
+    }
+
+    db.close()
+
+    return config
+  }, {})
+
+  return config
 }
 
 export async function setSubdomainConfig ({ page, config }: { page: Page, config: Partial<ConfigDb> }): Promise<void> {
