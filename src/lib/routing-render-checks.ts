@@ -31,3 +31,7 @@ export function shouldRenderRedirectsInterstitial (): boolean {
   const heliaSw = url.searchParams.get('helia-sw')
   return heliaSw != null
 }
+
+export function shouldRenderNoServiceWorkerError (): boolean {
+  return !('serviceWorker' in navigator)
+}
