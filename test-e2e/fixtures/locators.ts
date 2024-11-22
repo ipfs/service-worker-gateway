@@ -21,6 +21,8 @@ export const getConfigGatewaysInput: GetLocator = (page) => page.locator('.e2e-c
 export const getConfigRoutersInput: GetLocator = (page) => page.locator('.e2e-config-page-input-routers')
 export const getConfigAutoReloadInput: GetLocator = (page) => page.locator('.e2e-config-page-input-autoreload')
 
+export const getNoServiceWorkerError: GetLocator = (page) => page.locator('.e2e-no-service-worker-error')
+
 /**
  * Iframe page parts
  */
