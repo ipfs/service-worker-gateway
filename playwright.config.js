@@ -58,6 +58,7 @@ export default defineConfig({
        * Anything needing a service worker will be skipped when this project is ran.
        */
       name: 'no-service-worker',
+      testMatch: /test-e2e\/no-service-worker\.test\.ts/,
       use: {
         ...devices['Desktop Firefox'],
         contextOptions: {

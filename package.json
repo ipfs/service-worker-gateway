@@ -21,7 +21,7 @@
     "test:browsers": "playwright test -c playwright.config.js",
     "test:chrome": "playwright test -c playwright.config.js --project chromium",
     "test:no-sw": "playwright test -c playwright.config.js --project no-service-worker",
-    "test:firefox": "playwright test -c playwright.config.js --project firefox",
+    "test:firefox": "playwright test -c playwright.config.js --project firefox --project no-service-worker",
     "test:deployed": "playwright test -c playwright.config.js --project deployed",
     "test:inbrowser-dev": "cross-env BASE_URL='https://inbrowser.dev' playwright test -c playwright.config.js --project deployed",
     "test:inbrowser-prod": "cross-env BASE_URL='https://inbrowser.link' playwright test -c playwright.config.js --project deployed",
