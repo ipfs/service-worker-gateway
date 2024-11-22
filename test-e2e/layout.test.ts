@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures/config-test-fixtures.js'
 import { getConfigButton, getConfigPage, getConfigPageSaveButton, getConfigPageInput, getHeader, getHeaderTitle } from './fixtures/locators.js'
 
 test.describe('smoketests', () => {

@@ -51,6 +51,31 @@ export default defineConfig({
         ...devices['Desktop Firefox'],
         baseURL: process.env.BASE_URL
       }
+    },
+    {
+      /**
+       * Test the site with service workers disabled. You need to `import {testNoServiceWorker as test, expect} from './fixtures/config-test-fixtures.js'` to use this project.
+       * Anything needing a service worker will be skipped when this project is ran.
+       */
+      name: 'no-service-worker',
+      use: {
+        ...devices['Desktop Firefox'],
+        contextOptions: {
+          serviceWorkers: 'block'
+        },
+        launchOptions: {
+          firefoxUserPrefs: {
+            'dom.serviceWorkers.enabled': false
+          }
+        },
+        beforeEach: async ({ page }) => {
+          await page.addInitScript(() => {
+            Object.defineProperty(navigator, 'serviceWorker', {
+              get: () => undefined
+            })
+          })
+        }
+      }
     }
   ],
   // TODO: disable webservers when testing `deployed` project

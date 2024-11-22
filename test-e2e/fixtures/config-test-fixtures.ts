@@ -2,6 +2,10 @@ import { test as base, type Page } from '@playwright/test'
 import { setConfig, setSubdomainConfig } from './set-sw-config.js'
 import { waitForServiceWorker } from './wait-for-service-worker.js'
 
+function isNoServiceWorkerProject <T extends typeof base = typeof base> (test: T): boolean {
+  return test.info().project.name === 'no-service-worker'
+}
+
 const rootDomain = async ({ baseURL }, use): Promise<void> => {
   const url = new URL(baseURL)
   await use(url.host)
@@ -13,13 +17,20 @@ const baseURLProtocol = async ({ baseURL }, use): Promise<void> => {
 
 export const test = base.extend<{ rootDomain: string, baseURL: string, protocol: string }>({
   rootDomain: [rootDomain, { scope: 'test' }],
-  protocol: [baseURLProtocol, { scope: 'test' }]
+  protocol: [baseURLProtocol, { scope: 'test' }],
+  page: async ({ page }, use) => {
+    if (isNoServiceWorkerProject(test)) {
+      test.skip()
+      return
+    }
+    await use(page)
+  }
 })
 
 /**
  * You should use this fixture instead of the `test` fixture from `@playwright/test` when testing path routing via the service worker.
  */
-export const testPathRouting = base.extend<{ rootDomain: string, baseURL: string, protocol: string }>({
+export const testPathRouting = test.extend<{ rootDomain: string, baseURL: string, protocol: string }>({
   rootDomain: [rootDomain, { scope: 'test' }],
   protocol: [baseURLProtocol, { scope: 'test' }],
   page: async ({ page, rootDomain }, use) => {
@@ -63,7 +74,7 @@ export const testPathRouting = base.extend<{ rootDomain: string, baseURL: string
  * })
  * ```
  */
-export const testSubdomainRouting = base.extend<{ rootDomain: string, baseURL: string, protocol: string }>({
+export const testSubdomainRouting = test.extend<{ rootDomain: string, baseURL: string, protocol: string }>({
   rootDomain: [rootDomain, { scope: 'test' }],
   protocol: [baseURLProtocol, { scope: 'test' }],
   page: async ({ page, baseURL }, use) => {
@@ -104,6 +115,23 @@ export const testSubdomainRouting = base.extend<{ rootDomain: string, baseURL: s
       }
     })
 
+    await use(page)
+  }
+})
+
+/**
+ * A fixture that skips tests that require the service worker. This is needed in order to test handling of requests where the service worker is not present.
+ *
+ * @see https://github.com/ipfs/service-worker-gateway/issues/272
+ */
+export const testNoServiceWorker = base.extend<{ rootDomain: string, baseURL: string, protocol: string }>({
+  rootDomain: [rootDomain, { scope: 'test' }],
+  protocol: [baseURLProtocol, { scope: 'test' }],
+  page: async ({ page }, use) => {
+    if (!isNoServiceWorkerProject(testNoServiceWorker)) {
+      testNoServiceWorker.skip()
+      return
+    }
     await use(page)
   }
 })

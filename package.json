@@ -20,6 +20,7 @@
     "test:iso": "aegir test -f dist-tsc/test/**/*.spec.js",
     "test:browsers": "playwright test -c playwright.config.js",
     "test:chrome": "playwright test -c playwright.config.js --project chromium",
+    "test:no-sw": "playwright test -c playwright.config.js --project no-service-worker",
     "test:firefox": "playwright test -c playwright.config.js --project firefox",
     "test:deployed": "playwright test -c playwright.config.js --project deployed",
     "test:inbrowser-dev": "cross-env BASE_URL='https://inbrowser.dev' playwright test -c playwright.config.js --project deployed",
