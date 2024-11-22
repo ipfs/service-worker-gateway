@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.7.1](https://github.com/ipfs/service-worker-gateway/compare/v1.7.0...v1.7.1) (2024-11-22)
+
+
+### Bug Fixes
+
+* debug logs enabled on dev environments ([#456](https://github.com/ipfs/service-worker-gateway/issues/456)) ([65fd112](https://github.com/ipfs/service-worker-gateway/commit/65fd112d192b200388a37bb4ba403782a46bc18e)), closes [#455](https://github.com/ipfs/service-worker-gateway/issues/455)
+* no-sw error shows for subdomain requests ([#491](https://github.com/ipfs/service-worker-gateway/issues/491)) ([c16688e](https://github.com/ipfs/service-worker-gateway/commit/c16688e2d5fb6f9f56146aec4d947d41c0646023))
+
 ## [1.7.0](https://github.com/ipfs/service-worker-gateway/compare/v1.6.2...v1.7.0) (2024-11-14)
 
 
