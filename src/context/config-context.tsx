@@ -3,8 +3,6 @@ import { defaultDebug, defaultDnsJsonResolvers, defaultEnableGatewayProviders, d
 import { getUiComponentLogger } from '../lib/logger.js'
 import type { ComponentLogger } from '@libp2p/logger'
 
-// const isLoadedInIframe = window.self !== window.top
-
 type ConfigKey = keyof ConfigDb
 export interface ConfigContextType extends ConfigDb {
   setConfig(key: ConfigKey, value: any): void

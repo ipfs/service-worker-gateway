@@ -5,7 +5,6 @@ import Header from '../components/Header.jsx'
 import CidRenderer from '../components/input-validator.jsx'
 import { ConfigProvider } from '../context/config-context.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
-// import { isConfigPage } from '../lib/is-config-page'
 import { LOCAL_STORAGE_KEYS } from '../lib/local-storage.js'
 import './default-page-styles.css'
 import Config from './config.js'
@@ -20,16 +19,6 @@ function HelperUi (): React.JSX.Element {
   const handleSubmit = async (e): Promise<void> => {
     e.preventDefault()
   }
-
-  // if (isConfigPage(window.location.hash)) {
-  //   // when user on a subdomain explicitly requests /#/ipfs-sw-config
-  //   return (
-  //     <>
-  //       <Header />
-  //       <Config />
-  //     </>
-  //   )
-  // }
 
   return (
     <>
