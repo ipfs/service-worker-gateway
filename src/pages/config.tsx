@@ -1,6 +1,5 @@
-import React, { useCallback, useContext, useEffect, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useState, type FunctionComponent } from 'react'
 import Header from '../components/Header.jsx'
-import { Collapsible } from '../components/collapsible.jsx'
 import { InputSection } from '../components/input-section.jsx'
 import { InputToggle } from '../components/input-toggle.jsx'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
@@ -10,6 +9,7 @@ import { RouteContext } from '../context/router-context.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
 import { setConfig as storeConfig } from '../lib/config-db.js'
 import { convertDnsResolverInputToObject, convertDnsResolverObjectToInput, convertUrlArrayToInput, convertUrlInputToArray } from '../lib/input-helpers.js'
+import { isConfigPage } from '../lib/is-config-page.js'
 import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
 import './default-page-styles.css'
 import { tellSwToReloadConfig } from '../lib/sw-comms.js'
@@ -75,7 +75,11 @@ const dnsJsonValidationFn = (value: string): Error | null => {
   }
 }
 
-function ConfigPage (): React.JSX.Element | null {
+export interface ConfigPageProps extends React.HTMLProps<HTMLElement> {
+
+}
+
+const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
   const { gotoPage } = useContext(RouteContext)
   const { setConfig, resetConfig, gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport } = useContext(ConfigContext)
   const [isSaving, setIsSaving] = useState(false)
@@ -140,9 +144,9 @@ function ConfigPage (): React.JSX.Element | null {
 
   return (
     <>
-    {!isLoadedInIframe && <Header /> }
-    <main className='e2e-config-page pa4-l bg-snow mw7 center pa4'>
-      <Collapsible collapsedLabel="View config" expandedLabel='Hide config' collapsed={isLoadedInIframe}>
+      {isConfigPage(window.location.hash) ? <Header /> : null}
+      <section className='e2e-config-page pa4-l bg-snow mw7 center pa4'>
+        <h1 className='pa0 f3 ma0 mb4 teal tc'>Configure your IPFS Gateway</h1>
         <InputSection label='Direct Retrieval'>
           <InputToggle
             className="e2e-config-page-input"
@@ -224,8 +228,7 @@ function ConfigPage (): React.JSX.Element | null {
           <ServiceWorkerReadyButton className="e2e-config-page-button white w-100 pa3" id="save-config" label={isSaving ? 'Saving...' : 'Save Config'} waitingLabel='Waiting for service worker registration...' onClick={() => { void saveConfig() }} />
         </div>
         {error != null && <span style={{ color: 'red' }}>{error.message}</span>}
-      </Collapsible>
-    </main>
+      </section>
     </>
   )
 }
