@@ -79,6 +79,7 @@ export interface ConfigPageProps extends React.HTMLProps<HTMLElement> {
 
 }
 
+// Config Page can be loaded either as a page or as a component in the landing helper-ui page
 const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
   const { gotoPage } = useContext(RouteContext)
   const { setConfig, resetConfig, gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport } = useContext(ConfigContext)
