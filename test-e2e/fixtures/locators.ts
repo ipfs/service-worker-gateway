@@ -12,7 +12,6 @@ export interface GetFrameLocator {
  */
 export const getHeader: GetLocator = (page) => page.locator('.e2e-header')
 export const getHeaderTitle: GetLocator = (page) => page.locator('.e2e-header-title')
-export const getConfigButton: GetLocator = (page) => page.locator('.e2e-header-config-button')
 export const getConfigPage: GetLocator = (page) => page.locator('.e2e-config-page')
 export const getConfigPageInput: GetLocator = (page) => page.locator('.e2e-config-page-input')
 export const getConfigPageSaveButton: GetLocator = (page) => page.locator('.e2e-config-page-button#save-config')
@@ -22,6 +21,9 @@ export const getConfigRoutersInput: GetLocator = (page) => page.locator('.e2e-co
 export const getConfigAutoReloadInput: GetLocator = (page) => page.locator('.e2e-config-page-input-autoreload')
 
 export const getNoServiceWorkerError: GetLocator = (page) => page.locator('.e2e-no-service-worker-error')
+
+export const getHelperUi: GetLocator = (page) => page.locator('.e2e-helper-ui')
+export const getAboutSection: GetLocator = (page) => page.locator('.e2e-about-section')
 
 /**
  * Iframe page parts

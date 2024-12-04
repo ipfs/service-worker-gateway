@@ -1,21 +1,15 @@
 import React, { createContext, useCallback, useEffect, useState } from 'react'
 import { defaultDebug, defaultDnsJsonResolvers, defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, defaultGateways, defaultRouters, getConfig, resetConfig, type ConfigDb } from '../lib/config-db.js'
-import { isConfigPage } from '../lib/is-config-page.js'
 import { getUiComponentLogger } from '../lib/logger.js'
 import type { ComponentLogger } from '@libp2p/logger'
 
-const isLoadedInIframe = window.self !== window.top
-
 type ConfigKey = keyof ConfigDb
 export interface ConfigContextType extends ConfigDb {
-  isConfigExpanded: boolean
-  setConfigExpanded(value: boolean): void
   setConfig(key: ConfigKey, value: any): void
   resetConfig(logger?: ComponentLogger): Promise<void>
 }
 
 export const ConfigContext = createContext<ConfigContextType>({
-  isConfigExpanded: isLoadedInIframe,
   setConfigExpanded: (value: boolean) => {},
   setConfig: (key, value) => {},
   resetConfig: async () => Promise.resolve(),
@@ -30,7 +24,6 @@ export const ConfigContext = createContext<ConfigContextType>({
 })
 
 export const ConfigProvider = ({ children }: { children: JSX.Element[] | JSX.Element, expanded?: boolean }): JSX.Element => {
-  const [isConfigExpanded, setConfigExpanded] = useState(isConfigPage(window.location.hash))
   const [gateways, setGateways] = useState<string[]>(defaultGateways)
   const [routers, setRouters] = useState<string[]>(defaultRouters)
   const [dnsJsonResolvers, setDnsJsonResolvers] = useState<Record<string, string>>(defaultDnsJsonResolvers)
@@ -39,7 +32,6 @@ export const ConfigProvider = ({ children }: { children: JSX.Element[] | JSX.Ele
   const [enableGatewayProviders, setEnableGatewayProviders] = useState(defaultEnableGatewayProviders)
   const [enableRecursiveGateways, setEnableRecursiveGateways] = useState(defaultEnableRecursiveGateways)
   const [debug, setDebug] = useState(defaultDebug)
-  const isExplicitlyLoadedConfigPage = isConfigPage(window.location.hash)
   const logger = getUiComponentLogger('config-context')
   const log = logger.forComponent('main')
 
@@ -103,16 +95,8 @@ export const ConfigProvider = ({ children }: { children: JSX.Element[] | JSX.Ele
     await loadConfig()
   }
 
-  const setConfigExpandedWrapped = (value: boolean): void => {
-    if (isLoadedInIframe || isExplicitlyLoadedConfigPage) {
-      // ignore it
-    } else {
-      setConfigExpanded(value)
-    }
-  }
-
   return (
-    <ConfigContext.Provider value={{ isConfigExpanded, setConfigExpanded: setConfigExpandedWrapped, setConfig: setConfigLocal, resetConfig: resetConfigLocal, gateways, routers, dnsJsonResolvers, enableWss, enableWebTransport, enableGatewayProviders, enableRecursiveGateways, debug }}>
+    <ConfigContext.Provider value={{ setConfig: setConfigLocal, resetConfig: resetConfigLocal, gateways, routers, dnsJsonResolvers, enableWss, enableWebTransport, enableGatewayProviders, enableRecursiveGateways, debug }}>
       {children}
     </ConfigContext.Provider>
   )

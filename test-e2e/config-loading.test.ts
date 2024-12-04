@@ -3,7 +3,7 @@ import { getConfig, setConfig } from './fixtures/set-sw-config.js'
 import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
 import type { ConfigDb } from '../src/lib/config-db'
 
-test.describe('/#/ipfs-sw-config', () => {
+test.describe('ipfs-sw configuration', () => {
   const testConfig: ConfigDb = {
     gateways: [process.env.KUBO_GATEWAY as string, 'http://example.com'],
     routers: [process.env.KUBO_GATEWAY as string, 'http://example.com/routing/v1'],

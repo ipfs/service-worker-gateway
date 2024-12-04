@@ -21,9 +21,10 @@ export async function shouldRenderRedirectPage (): Promise<boolean> {
 
 export async function shouldRenderConfigPage (): Promise<boolean> {
   const { isConfigPage } = await import('../lib/is-config-page.js')
+  const { isSubdomainGatewayRequest } = await import('./path-or-subdomain.js')
 
   const isRequestToViewConfigPage = isConfigPage(window.location.hash)
-  return isRequestToViewConfigPage
+  return isRequestToViewConfigPage && isSubdomainGatewayRequest(window.location)
 }
 
 export function shouldRenderRedirectsInterstitial (): boolean {
