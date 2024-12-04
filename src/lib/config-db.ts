@@ -17,7 +17,7 @@ export interface ConfigDbWithoutPrivateFields extends BaseDbConfig {
  * These are not configurable by the user, and are only for programmatic use and changing functionality.
  */
 export interface ConfigDb extends ConfigDbWithoutPrivateFields {
-  _supportsSubdomains: boolean
+  _supportsSubdomains: null | boolean
 }
 
 export const defaultGateways = ['https://trustless-gateway.link']
@@ -29,6 +29,7 @@ export const defaultEnableRecursiveGateways = true
 export const defaultEnableWss = true
 export const defaultEnableWebTransport = false
 export const defaultEnableGatewayProviders = true
+export const defaultSupportsSubdomains: null | boolean = null
 
 /**
  * On dev/testing environments, (inbrowser.dev, localhost:${port}, or 127.0.0.1) we should set the default debug config to helia:sw-gateway*,helia:sw-gateway*:trace so we don't need to go set it manually
@@ -90,7 +91,7 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
   let enableWebTransport
   let enableGatewayProviders
   let debug = ''
-  let _supportsSubdomains = false
+  let _supportsSubdomains = defaultSupportsSubdomains
 
   try {
     await configDb.open()
@@ -109,7 +110,7 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
     debug = await configDb.get('debug') ?? defaultDebug()
     enable(debug)
 
-    _supportsSubdomains = await configDb.get('_supportsSubdomains') ?? false
+    _supportsSubdomains = await configDb.get('_supportsSubdomains') ?? _supportsSubdomains
   } catch (err) {
     log('error loading config from db', err)
   } finally {
@@ -165,11 +166,11 @@ export async function setSubdomainsSupported (supportsSubdomains: boolean, logge
   }
 }
 
-export async function areSubdomainsSupported (logger?: ComponentLogger): Promise<boolean> {
+export async function areSubdomainsSupported (logger?: ComponentLogger): Promise<null | boolean> {
   const log = logger?.forComponent('are-subdomains-supported')
   try {
     await configDb.open()
-    return await configDb.get('_supportsSubdomains') ?? false
+    return await configDb.get('_supportsSubdomains') ?? defaultSupportsSubdomains
   } catch (err) {
     log?.('error loading subdomain support from db', err)
   } finally {

@@ -1,4 +1,4 @@
-import { setSubdomainsSupported } from './config-db.js'
+import { areSubdomainsSupported, setSubdomainsSupported } from './config-db.js'
 import { isSubdomainGatewayRequest } from './path-or-subdomain.js'
 
 /**
@@ -7,7 +7,7 @@ import { isSubdomainGatewayRequest } from './path-or-subdomain.js'
  * supported.
  */
 export async function checkSubdomainSupport (): Promise<void> {
-  if (!isSubdomainGatewayRequest(location)) {
+  if (!isSubdomainGatewayRequest(location) && await areSubdomainsSupported() === null) {
     const testUrl = `${location.protocol}//bafkqaaa.ipfs.${location.host}/ipfs-sw-1x1.png`
     await new Promise<boolean>((resolve, reject) => {
       const img = new Image()
