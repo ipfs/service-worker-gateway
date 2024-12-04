@@ -26,7 +26,8 @@ export const ConfigContext = createContext<ConfigContextType>({
   enableWebTransport: defaultEnableWebTransport,
   enableGatewayProviders: defaultEnableGatewayProviders,
   enableRecursiveGateways: defaultEnableRecursiveGateways,
-  debug: defaultDebug
+  debug: defaultDebug(),
+  _supportsSubdomains: false
 })
 
 export const ConfigProvider = ({ children }: { children: JSX.Element[] | JSX.Element, expanded?: boolean }): JSX.Element => {
@@ -38,7 +39,8 @@ export const ConfigProvider = ({ children }: { children: JSX.Element[] | JSX.Ele
   const [enableWebTransport, setEnableWebTransport] = useState(defaultEnableWebTransport)
   const [enableGatewayProviders, setEnableGatewayProviders] = useState(defaultEnableGatewayProviders)
   const [enableRecursiveGateways, setEnableRecursiveGateways] = useState(defaultEnableRecursiveGateways)
-  const [debug, setDebug] = useState(defaultDebug)
+  const [debug, setDebug] = useState(defaultDebug())
+  const [_supportsSubdomains, setSupportsSubdomains] = useState(false)
   const isExplicitlyLoadedConfigPage = isConfigPage(window.location.hash)
   const logger = getUiComponentLogger('config-context')
   const log = logger.forComponent('main')
@@ -92,6 +94,9 @@ export const ConfigProvider = ({ children }: { children: JSX.Element[] | JSX.Ele
       case 'debug':
         setDebug(value)
         break
+      case '_supportsSubdomains':
+        setSupportsSubdomains(value)
+        break
       default:
         log.error(`Unknown config key: ${key}`)
         throw new Error(`Unknown config key: ${key}`)
@@ -112,7 +117,7 @@ export const ConfigProvider = ({ children }: { children: JSX.Element[] | JSX.Ele
   }
 
   return (
-    <ConfigContext.Provider value={{ isConfigExpanded, setConfigExpanded: setConfigExpandedWrapped, setConfig: setConfigLocal, resetConfig: resetConfigLocal, gateways, routers, dnsJsonResolvers, enableWss, enableWebTransport, enableGatewayProviders, enableRecursiveGateways, debug }}>
+    <ConfigContext.Provider value={{ isConfigExpanded, setConfigExpanded: setConfigExpandedWrapped, setConfig: setConfigLocal, resetConfig: resetConfigLocal, gateways, routers, dnsJsonResolvers, enableWss, enableWebTransport, enableGatewayProviders, enableRecursiveGateways, debug, _supportsSubdomains }}>
       {children}
     </ConfigContext.Provider>
   )

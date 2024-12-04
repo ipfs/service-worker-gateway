@@ -1,8 +1,10 @@
 import { base32 } from 'multiformats/bases/base32'
 import { base36 } from 'multiformats/bases/base36'
 import { CID } from 'multiformats/cid'
+import { areSubdomainsSupported } from './config-db.js'
 import { dnsLinkLabelEncoder } from './dns-link-labels.js'
 import { pathRegex, subdomainRegex } from './regex.js'
+import type { ComponentLogger } from '@libp2p/logger'
 
 export const isPathOrSubdomainRequest = (location: Pick<Location, 'host' | 'pathname'>): boolean => {
   return isPathGatewayRequest(location) || isSubdomainGatewayRequest(location)
@@ -22,25 +24,19 @@ export const isPathGatewayRequest = (location: Pick<Location, 'host' | 'pathname
  * Origin isolation check and enforcement
  * https://github.com/ipfs-shipyard/helia-service-worker-gateway/issues/30
  */
-export const findOriginIsolationRedirect = async (location: Pick<Location, 'protocol' | 'host' | 'pathname' | 'search' | 'hash' >): Promise<string | null> => {
+export const findOriginIsolationRedirect = async (location: Pick<Location, 'protocol' | 'host' | 'pathname' | 'search' | 'hash' >, logger?: ComponentLogger): Promise<string | null> => {
+  const log = logger?.forComponent('find-origin-isolation-redirect')
   if (isPathGatewayRequest(location) && !isSubdomainGatewayRequest(location)) {
-    const redirect = await isSubdomainIsolationSupported(location)
-    if (redirect) {
+    log?.trace('checking for subdomain support')
+    if (await areSubdomainsSupported()) {
+      log?.trace('subdomain support is enabled')
       return toSubdomainRequest(location)
+    } else {
+      log?.trace('subdomain support is disabled')
     }
   }
+  log?.trace('no need to check for subdomain support', isPathGatewayRequest(location), isSubdomainGatewayRequest(location))
   return null
-}
-
-const isSubdomainIsolationSupported = async (location: Pick<Location, 'protocol' | 'host' | 'pathname'>): Promise<boolean> => {
-  // TODO: do this test once and expose it as cookie / config flag somehow
-  const testUrl = `${location.protocol}//bafkqaaa.ipfs.${location.host}`
-  try {
-    const response: Response = await fetch(testUrl)
-    return response.status === 200
-  } catch (_) {
-    return false
-  }
 }
 
 const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' | 'pathname' | 'search' | 'hash'>): string => {

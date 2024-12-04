@@ -410,7 +410,7 @@ async function storeReponseInCache ({ response, isMutable, cacheKey, event }: St
 
 async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise<Response> {
   // test and enforce origin isolation before anything else is executed
-  const originLocation = await findOriginIsolationRedirect(new URL(request.url))
+  const originLocation = await findOriginIsolationRedirect(new URL(request.url), swLogger)
   if (originLocation !== null) {
     const body = 'Gateway supports subdomain mode, redirecting to ensure Origin isolation..'
     return new Response(body, {

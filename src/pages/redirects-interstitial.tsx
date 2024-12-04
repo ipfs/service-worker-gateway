@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react'
+import { checkSubdomainSupport } from '../lib/check-subdomain-support.js'
 import { findOriginIsolationRedirect } from '../lib/path-or-subdomain.js'
 import { translateIpfsRedirectUrl } from '../lib/translate-ipfs-redirect-url.js'
 import LoadingPage from './loading.jsx'
@@ -15,11 +16,12 @@ export default function RedirectsInterstitial (): React.JSX.Element {
   const [isSubdomainCheckDone, setIsSubdomainCheckDone] = React.useState<boolean>(false)
   useEffect(() => {
     async function doWork (): Promise<void> {
+      await checkSubdomainSupport()
       setSubdomainRedirectUrl(await findOriginIsolationRedirect(translateIpfsRedirectUrl(window.location.href)))
       setIsSubdomainCheckDone(true)
     }
     void doWork()
-  })
+  }, [])
 
   useEffect(() => {
     if (subdomainRedirectUrl != null && window.location.href !== subdomainRedirectUrl) {

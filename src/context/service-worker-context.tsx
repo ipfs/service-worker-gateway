@@ -28,7 +28,7 @@ export const ServiceWorkerProvider = ({ children }): React.JSX.Element => {
 
   useEffect(() => {
     if (isServiceWorkerRegistered) {
-      void findOriginIsolationRedirect(window.location).then((originRedirect) => {
+      void findOriginIsolationRedirect(window.location, uiLogger).then((originRedirect) => {
         if (originRedirect !== null) {
           window.location.replace(originRedirect)
         }
