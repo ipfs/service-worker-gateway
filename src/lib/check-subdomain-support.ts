@@ -14,7 +14,7 @@ export async function checkSubdomainSupport (): Promise<void> {
       img.onload = () => {
         resolve(true)
       }
-      img.onerror = (err) => {
+      img.onerror = () => {
         resolve(false)
       }
       img.src = testUrl
