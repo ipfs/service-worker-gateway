@@ -110,7 +110,7 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
     debug = await configDb.get('debug') ?? defaultDebug()
     enable(debug)
 
-    _supportsSubdomains = await configDb.get('_supportsSubdomains') ?? _supportsSubdomains
+    _supportsSubdomains ??= await configDb.get('_supportsSubdomains')
   } catch (err) {
     log('error loading config from db', err)
   } finally {

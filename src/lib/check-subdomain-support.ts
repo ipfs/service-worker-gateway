@@ -12,13 +12,9 @@ export async function checkSubdomainSupport (): Promise<void> {
     await new Promise<boolean>((resolve, reject) => {
       const img = new Image()
       img.onload = () => {
-        // eslint-disable-next-line no-console
-        console.log('in image onload')
         resolve(true)
       }
       img.onerror = (err) => {
-        // eslint-disable-next-line no-console
-        console.log('in image onerror', err)
         resolve(false)
       }
       img.src = testUrl
@@ -28,6 +24,5 @@ export async function checkSubdomainSupport (): Promise<void> {
       // eslint-disable-next-line no-console
       console.error('Error checking for subdomain support')
     })
-    // })()
   }
 }
