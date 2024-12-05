@@ -1,0 +1,81 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to deploy'
+        required: true
+        type: string
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up git config
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Verify tag
+        env:
+          TAG: ${{ inputs.tag }}
+          ENVIRONMENT: ${{ inputs.environment }}
+        run: |
+          # If deploying to staging, ensure the tag is somewhere in the history of master
+          if [ "$ENVIRONMENT" == "staging" ]; then
+            git merge-base --is-ancestor $TAG origin/master
+            if [ $? -ne 0 ]; then
+              echo "Tag $TAG is not present in the history of master"
+              exit 1
+            fi
+          fi
+          # If deploying to production, ensure the tag is present in the history of staging
+          if [ "$ENVIRONMENT" == "production" ]; then
+            git merge-base --is-ancestor $TAG origin/staging
+            if [ $? -ne 0 ]; then
+              echo "Tag $TAG is not present in the history of staging"
+              exit 1
+            fi
+          fi
+      - name: Checkout environment branch
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+        run: git checkout $ENVIRONMENT
+      - name: Reset environment branch to tag
+        env:
+          TAG: ${{ inputs.tag }}
+        run: git reset --hard $TAG
+      # The following step requires a PAT allowed to modify protection rules
+      # - name: Unlock environment branch
+      #   env:
+      #     ENVIRONMENT: ${{ inputs.environment }}
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     REPOSITORY: ${{ github.repository }}
+      #   run: gh api --method PUT /repos/$REPOSITORY/branches/$ENVIRONMENT/protection -f lock_branch=false
+      - name: Force push environment branch
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+        run: git push -f origin $ENVIRONMENT
+      # The following step requires a PAT allowed to modify protection rules
+      # - name: Lock environment branch
+      #   env:
+      #     ENVIRONMENT: ${{ inputs.environment }}
+      #     GITHUB_TOKEN: ${{ github.token }}
+      #     REPOSITORY: ${{ github.repository }}
+      #   run: gh api --method PUT /repos/$REPOSITORY/branches/$ENVIRONMENT/protection -f lock_branch=true
