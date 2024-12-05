@@ -1,7 +1,7 @@
 name: Deploy
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       tag:
         description: 'Tag to deploy'
@@ -10,13 +10,22 @@ on:
       environment:
         description: 'Environment to deploy to'
         required: true
-        type: choice
-        options:
-          - staging
-          - production
+        type: string
+      lock:
+        description: 'Lock environment branch after deployment'
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      DEPLOYMENT_GITHUB_TOKEN:
+        description: |
+          A GitHub token with the following permissions:
+          administration: write (optional; to be able to lock the environment branch)
+          contents: write (required; to be able to push to the environment branch)
+          workflows: write (required; to be able to modify .github/workflows)
+        required: true
 
-permissions:
-  contents: write
+permissions: {}
 
 jobs:
   deploy:
@@ -28,6 +37,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.DEPLOYMENT_GITHUB_TOKEN }}
       - name: Set up git config
         run: |
           git config --global user.name "github-actions[bot]"
@@ -35,23 +45,11 @@ jobs:
       - name: Verify tag
         env:
           TAG: ${{ inputs.tag }}
-          ENVIRONMENT: ${{ inputs.environment }}
         run: |
-          # If deploying to staging, ensure the tag is somewhere in the history of master
-          if [ "$ENVIRONMENT" == "staging" ]; then
-            git merge-base --is-ancestor $TAG origin/master
-            if [ $? -ne 0 ]; then
-              echo "Tag $TAG is not present in the history of master"
-              exit 1
-            fi
-          fi
-          # If deploying to production, ensure the tag is present in the history of staging
-          if [ "$ENVIRONMENT" == "production" ]; then
-            git merge-base --is-ancestor $TAG origin/staging
-            if [ $? -ne 0 ]; then
-              echo "Tag $TAG is not present in the history of staging"
-              exit 1
-            fi
+          git merge-base --is-ancestor $TAG origin/main
+          if [ $? -ne 0 ]; then
+            echo "Tag $TAG is not present in the history of main"
+            exit 1
           fi
       - name: Checkout environment branch
         env:
@@ -61,21 +59,34 @@ jobs:
         env:
           TAG: ${{ inputs.tag }}
         run: git reset --hard $TAG
-      # The following step requires a PAT allowed to modify protection rules
-      # - name: Unlock environment branch
-      #   env:
-      #     ENVIRONMENT: ${{ inputs.environment }}
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #     REPOSITORY: ${{ github.repository }}
-      #   run: gh api --method PUT /repos/$REPOSITORY/branches/$ENVIRONMENT/protection -f lock_branch=false
+      # TODO: Use repository rule sets instead of branch protection rules
+      - name: Unlock environment branch
+        if: inputs.lock == true
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          GITHUB_TOKEN: ${{ secrets.DEPLOYMENT_GITHUB_TOKEN }}
+        run: |
+          gh api --method PUT /repos/$GITHUB_REPOSITORY/branches/$ENVIRONMENT/protection \
+            -F required_status_checks=null \
+            -F enforce_admins=true \
+            -F required_pull_request_reviews=null \
+            -F restrictions=null \
+            -F allow_force_pushes=true \
+            -F lock_branch=false
       - name: Force push environment branch
         env:
           ENVIRONMENT: ${{ inputs.environment }}
         run: git push -f origin $ENVIRONMENT
-      # The following step requires a PAT allowed to modify protection rules
-      # - name: Lock environment branch
-      #   env:
-      #     ENVIRONMENT: ${{ inputs.environment }}
-      #     GITHUB_TOKEN: ${{ github.token }}
-      #     REPOSITORY: ${{ github.repository }}
-      #   run: gh api --method PUT /repos/$REPOSITORY/branches/$ENVIRONMENT/protection -f lock_branch=true
+      - name: Lock environment branch
+        if: inputs.lock == true
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          GITHUB_TOKEN: ${{ secrets.DEPLOYMENT_GITHUB_TOKEN }}
+        run: |
+          gh api --method PUT /repos/$GITHUB_REPOSITORY/branches/$ENVIRONMENT/protection \
+            -F required_status_checks=null \
+            -F enforce_admins=true \
+            -F required_pull_request_reviews=null \
+            -F restrictions=null \
+            -F allow_force_pushes=false \
+            -F lock_branch=true
