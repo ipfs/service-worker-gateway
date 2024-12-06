@@ -25,3 +25,6 @@ updates:
       patterns:
         - "*kubo*"
         - "ipfsd-ctl"
+    react-deps: # group all react deps updates
+      patterns:
+        - "*react*"
