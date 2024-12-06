@@ -39,13 +39,16 @@ export const testPathRouting = test.extend<{ rootDomain: string, baseURL: string
       testPathRouting.skip()
       return
     }
+    if (process.env.KUBO_GATEWAY == null || process.env.KUBO_GATEWAY === '') {
+      throw new Error('KUBO_GATEWAY not set')
+    }
     await page.goto('http://127.0.0.1:3333', { waitUntil: 'networkidle' })
     await waitForServiceWorker(page)
     await setConfig({
       page,
       config: {
-        gateways: [process.env.KUBO_GATEWAY as string],
-        routers: [process.env.KUBO_GATEWAY as string],
+        gateways: [process.env.KUBO_GATEWAY],
+        routers: [process.env.KUBO_GATEWAY],
         dnsJsonResolvers: {
           '.': 'https://delegated-ipfs.dev/dns-query'
         }
@@ -73,6 +76,8 @@ export const testPathRouting = test.extend<{ rootDomain: string, baseURL: string
  *   })
  * })
  * ```
+ *
+ * TODO: do not set config on subdomains automatically.. this should be done by the application
  */
 export const testSubdomainRouting = test.extend<{ rootDomain: string, baseURL: string, protocol: string }>({
   rootDomain: [rootDomain, { scope: 'test' }],
@@ -81,6 +86,10 @@ export const testSubdomainRouting = test.extend<{ rootDomain: string, baseURL: s
     await page.goto(baseURL, { waitUntil: 'networkidle' })
     await waitForServiceWorker(page)
 
+    if (process.env.KUBO_GATEWAY == null || process.env.KUBO_GATEWAY === '') {
+      throw new Error('KUBO_GATEWAY not set')
+    }
+    const kuboGateway = process.env.KUBO_GATEWAY
     const oldPageGoto = page.goto.bind(page)
     page.goto = async (url: Parameters<Page['goto']>[0], options: Parameters<Page['goto']>[1]): ReturnType<Page['goto']> => {
       const response = await oldPageGoto(url, options)
@@ -89,8 +98,8 @@ export const testSubdomainRouting = test.extend<{ rootDomain: string, baseURL: s
           page,
           config: {
             autoReload: true,
-            gateways: [process.env.KUBO_GATEWAY as string],
-            routers: [process.env.KUBO_GATEWAY as string],
+            gateways: [kuboGateway],
+            routers: [kuboGateway],
             dnsJsonResolvers: {
               '.': 'https://delegated-ipfs.dev/dns-query'
             }
@@ -107,8 +116,8 @@ export const testSubdomainRouting = test.extend<{ rootDomain: string, baseURL: s
       page,
       config: {
         autoReload: true,
-        gateways: [process.env.KUBO_GATEWAY as string],
-        routers: [process.env.KUBO_GATEWAY as string],
+        gateways: [kuboGateway],
+        routers: [kuboGateway],
         dnsJsonResolvers: {
           '.': 'https://delegated-ipfs.dev/dns-query'
         }

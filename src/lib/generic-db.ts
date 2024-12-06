@@ -17,10 +17,10 @@ export class GenericIDB<T extends BaseDbConfig> {
   constructor (private readonly dbName: string, private readonly storeName: string) {
   }
 
-  #openDatabase = async (): Promise<TypedIDBDatabase<T>> => {
+  readonly #openDatabase = async (): Promise<TypedIDBDatabase<T>> => {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(this.dbName, 1)
-      request.onerror = () => { reject(request.error) }
+      request.onerror = () => { reject(request.error ?? new Error('Could not open DB')) }
       request.onsuccess = () => { resolve(request.result as TypedIDBDatabase<T>) }
       request.onupgradeneeded = (event) => {
         const db = request.result
@@ -41,7 +41,7 @@ export class GenericIDB<T extends BaseDbConfig> {
     const store = transaction.objectStore(this.storeName)
     const request = store.put(value, key)
     return new Promise((resolve, reject) => {
-      request.onerror = () => { reject(request.error) }
+      request.onerror = () => { reject(request.error ?? new Error(`Could not set "${String(key)}" to "${value}" `)) }
       request.onsuccess = () => { resolve() }
     })
   }
@@ -54,7 +54,7 @@ export class GenericIDB<T extends BaseDbConfig> {
     const store = transaction.objectStore(this.storeName)
     const request = store.get(key) as IDBRequest<T[K]>
     return new Promise((resolve, reject) => {
-      request.onerror = () => { reject(request.error) }
+      request.onerror = () => { reject(request.error ?? new Error(`Could not get value for "${String(key)}"`)) }
       request.onsuccess = () => { resolve(request.result) }
     })
   }
