@@ -48,7 +48,7 @@ export async function setConfig ({ page, config }: { page: Page, config: Partial
     const storeName = 'config'
     const openDb = async (): Promise<IDBDatabase> => new Promise((resolve, reject) => {
       const request = indexedDB.open(dbName, 1)
-      request.onerror = () => { reject(request.error) }
+      request.onerror = () => { reject(request.error ?? new Error('Could not open DB')) }
       request.onsuccess = () => { resolve(request.result) }
       request.onupgradeneeded = (event) => {
         const db = request.result
@@ -61,7 +61,7 @@ export async function setConfig ({ page, config }: { page: Page, config: Partial
       const store = transaction.objectStore(storeName)
       const request = store.put(value, key)
       return new Promise((resolve, reject) => {
-        request.onerror = () => { reject(request.error) }
+        request.onerror = () => { reject(request.error ?? new Error(`Could not set "${String(key)}" to "${value}" `)) }
         request.onsuccess = () => { resolve() }
       })
     }
@@ -91,7 +91,7 @@ export async function getConfig ({ page }: { page: Page }): Promise<ConfigDb> {
     const storeName = 'config'
     const openDb = async (): Promise<IDBDatabase> => new Promise((resolve, reject) => {
       const request = indexedDB.open(dbName, 1)
-      request.onerror = () => { reject(request.error) }
+      request.onerror = () => { reject(request.error ?? new Error('Could not open DB')) }
       request.onsuccess = () => { resolve(request.result) }
       request.onupgradeneeded = (event) => {
         const db = request.result
@@ -104,7 +104,7 @@ export async function getConfig ({ page }: { page: Page }): Promise<ConfigDb> {
       const store = transaction.objectStore(storeName)
       const request = store.get(key)
       return new Promise((resolve, reject) => {
-        request.onerror = () => { reject(request.error) }
+        request.onerror = () => { reject(request.error ?? new Error(`Could not get value for "${String(key)}"`)) }
         request.onsuccess = () => { resolve(request.result) }
       })
     }
