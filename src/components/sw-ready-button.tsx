@@ -1,13 +1,13 @@
 import React, { useContext, useMemo } from 'react'
 import { ServiceWorkerContext } from '../context/service-worker-context.jsx'
-type ButtonProps = JSX.IntrinsicElements['button']
+type ButtonProps = React.JSX.IntrinsicElements['button']
 
 interface ServiceWorkerReadyButtonProps extends ButtonProps {
   label: string
   waitingLabel?: string
 }
 
-export const ServiceWorkerReadyButton = ({ className, label, waitingLabel, ...props }: ServiceWorkerReadyButtonProps): JSX.Element => {
+export const ServiceWorkerReadyButton: React.FC<ServiceWorkerReadyButtonProps> = ({ className, label, waitingLabel, ...props }) => {
   const { isServiceWorkerRegistered } = useContext(ServiceWorkerContext)
 
   const buttonClasses = new Set(['button-reset', 'pv3', 'tc', 'bn', 'white', 'cursor-disabled', 'bg-gray'])

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, type ReactElement } from 'react'
 import About from '../components/About.jsx'
 import Form from '../components/Form.jsx'
 import Header from '../components/Header.jsx'
@@ -9,7 +9,7 @@ import { LOCAL_STORAGE_KEYS } from '../lib/local-storage.js'
 import './default-page-styles.css'
 import Config from './config.js'
 
-function HelperUi (): React.JSX.Element {
+function HelperUi (): ReactElement {
   const [requestPath, setRequestPath] = useState(localStorage.getItem(LOCAL_STORAGE_KEYS.forms.requestPath) ?? '')
 
   useEffect(() => {
@@ -43,7 +43,7 @@ function HelperUi (): React.JSX.Element {
   )
 }
 
-export default (): React.JSX.Element => {
+export default (): ReactElement => {
   return (
     <ServiceWorkerProvider>
       <ConfigProvider>
