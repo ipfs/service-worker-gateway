@@ -1,68 +1,92 @@
-name: Auto release PR
+name: Deploy
 
 on:
-  push:
-    tags:
-      - '*'
-    branches:
-      - staging
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Tag to deploy'
+        required: true
+        type: string
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: string
+      lock:
+        description: 'Lock environment branch after deployment'
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      DEPLOYMENT_GITHUB_TOKEN:
+        description: |
+          A GitHub token with the following permissions:
+          administration: write (optional; to be able to lock the environment branch)
+          contents: write (required; to be able to push to the environment branch)
+          workflows: write (required; to be able to modify .github/workflows)
+        required: true
 
-permissions:
-  contents: write # to create release
-  pull-requests: write # to create release PR
+permissions: {}
 
 jobs:
-  # from https://github.com/peter-evans/create-pull-request/blob/main/docs/examples.md#keep-a-branch-up-to-date-with-another
-  deploy-staging:
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
+  deploy:
+    name: Deploy
     runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          token: ${{ secrets.SGTPOOKI_PAT }}
-          ref: staging
-      - name: Fetch all tags
-        run: git fetch --tags
-      - name: Get latest tag
-        id: get_latest_tag
-        run: echo "tag=$(git describe --tags `git rev-list --tags --max-count=1`)" >> $GITHUB_OUTPUT
-      - name: Ensure staging-release branch points to latest tag
+          fetch-depth: 0
+          token: ${{ secrets.DEPLOYMENT_GITHUB_TOKEN }}
+      - name: Set up git config
         run: |
-          git reset --hard ${{ steps.get_latest_tag.outputs.tag }}
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
-        with:
-          token: ${{ secrets.SGTPOOKI_PAT }}
-          base: staging
-          branch: staging-release
-          title: 'chore: point staging to release ${{ steps.get_latest_tag.outputs.tag }}'
-          body: 'This PR points the staging branch to release ${{ steps.get_latest_tag.outputs.tag }}.  **Choose "Rebase and merge" for this PR only!**'
-
-  # from https://github.com/peter-evans/create-pull-request/blob/main/docs/examples.md#keep-a-branch-up-to-date-with-another
-  deploy-production:
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/staging')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.SGTPOOKI_PAT }}
-          ref: production
-          fetch-depth: 0  # Fetch all branches and commit history
-      - name: Get latest tag deployed to staging
-        id: get_latest_tag
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Verify tag
+        env:
+          TAG: ${{ inputs.tag }}
         run: |
-          latest_tag=$(git --no-pager log origin/staging --all --grep="chore: point staging to release v" --pretty=format:"%H %s" | head -n1 | sed -n 's/.*release \(v[0-9]*\.[0-9]*\.[0-9]*\).*/\1/p')
-          echo "tag=$latest_tag" >> $GITHUB_OUTPUT
-      - name: Set production branch to latest tag deployed to staging
+          git merge-base --is-ancestor $TAG origin/main
+          if [ $? -ne 0 ]; then
+            echo "Tag $TAG is not present in the history of main"
+            exit 1
+          fi
+      - name: Checkout environment branch
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+        run: git checkout $ENVIRONMENT
+      - name: Reset environment branch to tag
+        env:
+          TAG: ${{ inputs.tag }}
+        run: git reset --hard $TAG
+      # TODO: Use repository rule sets instead of branch protection rules
+      - name: Unlock environment branch
+        if: inputs.lock == true
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          GITHUB_TOKEN: ${{ secrets.DEPLOYMENT_GITHUB_TOKEN }}
         run: |
-          git reset --hard ${{ steps.get_latest_tag.outputs.tag }}
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v7.0.5
-        with:
-          token: ${{ secrets.SGTPOOKI_PAT }}
-          base: production
-          branch: production-release
-          title: 'chore: Point production to ${{ steps.get_latest_tag.outputs.tag }}'
-          body: 'This PR points the production branch to release ${{ steps.get_latest_tag.outputs.tag }}, which is the latest tag deployed to staging. **Choose "Rebase and merge" for this PR only!**'
-
+          gh api --method PUT /repos/$GITHUB_REPOSITORY/branches/$ENVIRONMENT/protection \
+            -F required_status_checks=null \
+            -F enforce_admins=true \
+            -F required_pull_request_reviews=null \
+            -F restrictions=null \
+            -F allow_force_pushes=true \
+            -F lock_branch=false
+      - name: Force push environment branch
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+        run: git push -f origin $ENVIRONMENT
+      - name: Lock environment branch
+        if: inputs.lock == true
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          GITHUB_TOKEN: ${{ secrets.DEPLOYMENT_GITHUB_TOKEN }}
+        run: |
+          gh api --method PUT /repos/$GITHUB_REPOSITORY/branches/$ENVIRONMENT/protection \
+            -F required_status_checks=null \
+            -F enforce_admins=true \
+            -F required_pull_request_reviews=null \
+            -F restrictions=null \
+            -F allow_force_pushes=false \
+            -F lock_branch=true
