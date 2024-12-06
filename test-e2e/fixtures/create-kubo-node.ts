@@ -1,16 +1,15 @@
-import { createController, type Controller } from 'ipfsd-ctl'
+import { createNode, type KuboNode } from 'ipfsd-ctl'
 import { path as kuboPath } from 'kubo'
-import * as kuboRpcClient from 'kubo-rpc-client'
+import { create } from 'kubo-rpc-client'
 import { kuboRepoDir } from './load-kubo-fixtures.js'
 
-export async function createKuboNode (): Promise<Controller> {
-  return createController({
-    kuboRpcModule: kuboRpcClient,
-    ipfsBin: kuboPath(),
+export async function createKuboNode (): Promise<KuboNode> {
+  return createNode({
+    type: 'kubo',
+    bin: kuboPath(),
+    rpc: create,
     test: true,
-    ipfsOptions: {
-      repo: kuboRepoDir
-    },
+    repo: kuboRepoDir,
     args: []
   })
 }
