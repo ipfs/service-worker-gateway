@@ -18,4 +18,4 @@ jobs:
       environment: production
       lock: true
     secrets:
-      DEPLOYMENT_GITHUB_TOKEN: ${{ secrets.DEPLOYMENT_GITHUB_TOKEN }}
+      DEPLOYMENT_GITHUB_TOKEN: ${{ secrets.SGTPOOKI_PAT }}
