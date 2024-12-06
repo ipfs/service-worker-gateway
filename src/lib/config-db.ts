@@ -1,7 +1,7 @@
 import { type ComponentLogger, enable } from '@libp2p/logger'
 import { GenericIDB, type BaseDbConfig } from './generic-db.js'
 
-export interface ConfigDb extends BaseDbConfig {
+export interface ConfigDbWithoutPrivateFields extends BaseDbConfig {
   gateways: string[]
   routers: string[]
   dnsJsonResolvers: Record<string, string>
@@ -10,6 +10,14 @@ export interface ConfigDb extends BaseDbConfig {
   enableGatewayProviders: boolean
   enableRecursiveGateways: boolean
   debug: string
+}
+
+/**
+ * Private fields for app-only config.
+ * These are not configurable by the user, and are only for programmatic use and changing functionality.
+ */
+export interface ConfigDb extends ConfigDbWithoutPrivateFields {
+  _supportsSubdomains: null | boolean
 }
 
 export const defaultGateways = ['https://trustless-gateway.link']
@@ -21,11 +29,12 @@ export const defaultEnableRecursiveGateways = true
 export const defaultEnableWss = true
 export const defaultEnableWebTransport = false
 export const defaultEnableGatewayProviders = true
+export const defaultSupportsSubdomains: null | boolean = null
 
 /**
  * On dev/testing environments, (inbrowser.dev, localhost:${port}, or 127.0.0.1) we should set the default debug config to helia:sw-gateway*,helia:sw-gateway*:trace so we don't need to go set it manually
  */
-export const defaultDebug = self.location.hostname.search(/localhost|inbrowser\.dev|127\.0\.0\.1/) === -1 ? '' : 'helia:sw-gateway*,helia:sw-gateway*:trace'
+export const defaultDebug = (): string => self.location.hostname.search(/localhost|inbrowser\.dev|127\.0\.0\.1/) === -1 ? '' : 'helia:sw-gateway*,helia:sw-gateway*:trace'
 
 const configDb = new GenericIDB<ConfigDb>('helia-sw', 'config')
 
@@ -40,7 +49,8 @@ export async function resetConfig (logger: ComponentLogger): Promise<void> {
     await configDb.put('enableWebTransport', defaultEnableWebTransport)
     await configDb.put('enableRecursiveGateways', defaultEnableRecursiveGateways)
     await configDb.put('enableGatewayProviders', defaultEnableGatewayProviders)
-    await configDb.put('debug', defaultDebug)
+    await configDb.put('debug', defaultDebug())
+    // leave private/app-only fields as is
   } catch (err) {
     log('error resetting config in db', err)
   } finally {
@@ -48,9 +58,9 @@ export async function resetConfig (logger: ComponentLogger): Promise<void> {
   }
 }
 
-export async function setConfig (config: ConfigDb, logger: ComponentLogger): Promise<void> {
+export async function setConfig (config: ConfigDbWithoutPrivateFields, logger: ComponentLogger): Promise<void> {
   const log = logger.forComponent('set-config')
-  enable(config.debug ?? defaultDebug) // set debug level first.
+  enable(config.debug ?? defaultDebug()) // set debug level first.
   await validateConfig(config, logger)
   try {
     log('config-debug: setting config %O for domain %s', config, window.location.origin)
@@ -62,7 +72,8 @@ export async function setConfig (config: ConfigDb, logger: ComponentLogger): Pro
     await configDb.put('enableWss', config.enableWss)
     await configDb.put('enableWebTransport', config.enableWebTransport)
     await configDb.put('enableGatewayProviders', config.enableGatewayProviders)
-    await configDb.put('debug', config.debug ?? defaultDebug)
+    await configDb.put('debug', config.debug ?? defaultDebug())
+    // ignore private/app-only fields
   } catch (err) {
     log('error setting config in db', err)
   } finally {
@@ -79,8 +90,8 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
   let enableWss
   let enableWebTransport
   let enableGatewayProviders
-
   let debug = ''
+  let _supportsSubdomains = defaultSupportsSubdomains
 
   try {
     await configDb.open()
@@ -96,8 +107,10 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
     enableWebTransport = await configDb.get('enableWebTransport') ?? defaultEnableWebTransport
     enableGatewayProviders = await configDb.get('enableGatewayProviders') ?? defaultEnableGatewayProviders
 
-    debug = await configDb.get('debug') ?? defaultDebug
+    debug = await configDb.get('debug') ?? defaultDebug()
     enable(debug)
+
+    _supportsSubdomains ??= await configDb.get('_supportsSubdomains')
   } catch (err) {
     log('error loading config from db', err)
   } finally {
@@ -124,15 +137,44 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
     enableWss,
     enableWebTransport,
     enableGatewayProviders,
-    debug
+    debug,
+    _supportsSubdomains
   }
 }
 
-export async function validateConfig (config: ConfigDb, logger: ComponentLogger): Promise<void> {
+export async function validateConfig (config: ConfigDbWithoutPrivateFields, logger: ComponentLogger): Promise<void> {
   const log = logger.forComponent('validate-config')
 
   if (!config.enableRecursiveGateways && !config.enableGatewayProviders && !config.enableWss && !config.enableWebTransport) {
     log.error('Config is invalid. At least one of the following must be enabled: recursive gateways, gateway providers, wss, or webtransport.')
     throw new Error('Config is invalid. At least one of the following must be enabled: recursive gateways, gateway providers, wss, or webtransport.')
   }
+}
+
+/**
+ * Private field setters/getters
+ */
+export async function setSubdomainsSupported (supportsSubdomains: boolean, logger?: ComponentLogger): Promise<void> {
+  const log = logger?.forComponent('set-subdomains-supported')
+  try {
+    await configDb.open()
+    await configDb.put('_supportsSubdomains', supportsSubdomains)
+  } catch (err) {
+    log?.('error setting subdomain support in db', err)
+  } finally {
+    configDb.close()
+  }
+}
+
+export async function areSubdomainsSupported (logger?: ComponentLogger): Promise<null | boolean> {
+  const log = logger?.forComponent('are-subdomains-supported')
+  try {
+    await configDb.open()
+    return await configDb.get('_supportsSubdomains') ?? defaultSupportsSubdomains
+  } catch (err) {
+    log?.('error loading subdomain support from db', err)
+  } finally {
+    configDb.close()
+  }
+  return false
 }

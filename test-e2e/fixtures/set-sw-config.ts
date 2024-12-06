@@ -41,7 +41,6 @@ export async function setConfigViaUi ({ page, config }: { page: Page, config: Pa
   await getConfigPage(page).isHidden()
 }
 
-// TODO: ensure that the config can be set on root and loaded properly by subdomains with playwright
 export async function setConfig ({ page, config }: { page: Page, config: Partial<ConfigDb> }): Promise<void> {
   // we can't pass through functions we already have defined, so many of these things are copied over from <root>/src/lib/generic-db.ts
   await page.evaluate(async (configInPage) => {
@@ -118,7 +117,8 @@ export async function getConfig ({ page }: { page: Page }): Promise<ConfigDb> {
       enableWebTransport: await get('enableWebTransport'),
       enableRecursiveGateways: await get('enableRecursiveGateways'),
       enableGatewayProviders: await get('enableGatewayProviders'),
-      debug: await get('debug')
+      debug: await get('debug'),
+      _supportsSubdomains: await get('_supportsSubdomains')
     }
 
     db.close()

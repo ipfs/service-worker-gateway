@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useEffect, useState } from 'react'
-import { defaultDebug, defaultDnsJsonResolvers, defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, defaultGateways, defaultRouters, getConfig, resetConfig, type ConfigDb } from '../lib/config-db.js'
+import { defaultDebug, defaultDnsJsonResolvers, defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, defaultGateways, defaultRouters, defaultSupportsSubdomains, getConfig, resetConfig, type ConfigDb } from '../lib/config-db.js'
 import { getUiComponentLogger } from '../lib/logger.js'
 import type { ComponentLogger } from '@libp2p/logger'
 
@@ -20,7 +20,8 @@ export const ConfigContext = createContext<ConfigContextType>({
   enableWebTransport: defaultEnableWebTransport,
   enableGatewayProviders: defaultEnableGatewayProviders,
   enableRecursiveGateways: defaultEnableRecursiveGateways,
-  debug: defaultDebug
+  debug: defaultDebug(),
+  _supportsSubdomains: defaultSupportsSubdomains
 })
 
 export const ConfigProvider = ({ children }: { children: JSX.Element[] | JSX.Element, expanded?: boolean }): JSX.Element => {
@@ -31,7 +32,8 @@ export const ConfigProvider = ({ children }: { children: JSX.Element[] | JSX.Ele
   const [enableWebTransport, setEnableWebTransport] = useState(defaultEnableWebTransport)
   const [enableGatewayProviders, setEnableGatewayProviders] = useState(defaultEnableGatewayProviders)
   const [enableRecursiveGateways, setEnableRecursiveGateways] = useState(defaultEnableRecursiveGateways)
-  const [debug, setDebug] = useState(defaultDebug)
+  const [debug, setDebug] = useState(defaultDebug())
+  const [_supportsSubdomains, setSupportsSubdomains] = useState(defaultSupportsSubdomains)
   const logger = getUiComponentLogger('config-context')
   const log = logger.forComponent('main')
 
@@ -84,6 +86,9 @@ export const ConfigProvider = ({ children }: { children: JSX.Element[] | JSX.Ele
       case 'debug':
         setDebug(value)
         break
+      case '_supportsSubdomains':
+        setSupportsSubdomains(value)
+        break
       default:
         log.error(`Unknown config key: ${key}`)
         throw new Error(`Unknown config key: ${key}`)
@@ -96,7 +101,7 @@ export const ConfigProvider = ({ children }: { children: JSX.Element[] | JSX.Ele
   }
 
   return (
-    <ConfigContext.Provider value={{ setConfig: setConfigLocal, resetConfig: resetConfigLocal, gateways, routers, dnsJsonResolvers, enableWss, enableWebTransport, enableGatewayProviders, enableRecursiveGateways, debug }}>
+    <ConfigContext.Provider value={{ setConfig: setConfigLocal, resetConfig: resetConfigLocal, gateways, routers, dnsJsonResolvers, enableWss, enableWebTransport, enableGatewayProviders, enableRecursiveGateways, debug, _supportsSubdomains }}>
       {children}
     </ConfigContext.Provider>
   )

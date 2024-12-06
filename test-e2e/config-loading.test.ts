@@ -1,10 +1,10 @@
 import { testSubdomainRouting as test, expect } from './fixtures/config-test-fixtures.js'
 import { getConfig, setConfig } from './fixtures/set-sw-config.js'
 import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
-import type { ConfigDb } from '../src/lib/config-db'
+import type { ConfigDbWithoutPrivateFields } from '../src/lib/config-db.js'
 
 test.describe('ipfs-sw configuration', () => {
-  const testConfig: ConfigDb = {
+  const testConfig: ConfigDbWithoutPrivateFields = {
     gateways: [process.env.KUBO_GATEWAY as string, 'http://example.com'],
     routers: [process.env.KUBO_GATEWAY as string, 'http://example.com/routing/v1'],
     dnsJsonResolvers: {
@@ -21,7 +21,7 @@ test.describe('ipfs-sw configuration', () => {
     await waitForServiceWorker(page)
 
     await setConfig({ page, config: testConfig })
-    expect(await getConfig({ page })).toEqual(testConfig)
+    expect(await getConfig({ page })).toMatchObject(testConfig)
   })
 
   test('root config is propagated to subdomain', async ({ page, baseURL, rootDomain, protocol }) => {
@@ -43,6 +43,6 @@ test.describe('ipfs-sw configuration', () => {
 
     // ensure it equals the root config
     expect(subdomainConfig).toEqual(rootConfig)
-    expect(subdomainConfig).toEqual(testConfig)
+    expect(subdomainConfig).toMatchObject(testConfig)
   })
 })

@@ -82,7 +82,7 @@ export interface ConfigPageProps extends React.HTMLProps<HTMLElement> {
 // Config Page can be loaded either as a page or as a component in the landing helper-ui page
 const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
   const { gotoPage } = useContext(RouteContext)
-  const { setConfig, resetConfig, gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport } = useContext(ConfigContext)
+  const { setConfig, resetConfig, gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, _supportsSubdomains } = useContext(ConfigContext)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [resetKey, setResetKey] = useState(0)
@@ -95,7 +95,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
     }
     // we get the iframe origin from a query parameter called 'origin', if this is loaded in an iframe
     const targetOrigin = decodeURIComponent(window.location.hash.split('@origin=')[1])
-    const config = { gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport }
+    const config = { gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, _supportsSubdomains }
     log.trace('config-page: postMessage config to origin ', config, targetOrigin)
     /**
      * The reload page in the parent window is listening for this message, and then it passes a RELOAD_CONFIG message to the service worker
