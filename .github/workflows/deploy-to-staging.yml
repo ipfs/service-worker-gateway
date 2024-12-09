@@ -17,4 +17,4 @@ jobs:
       tag: ${{ inputs.tag }}
       environment: staging
     secrets:
-      DEPLOYMENT_GITHUB_TOKEN: ${{ secrets.DEPLOYMENT_GITHUB_TOKEN }}
+      DEPLOYMENT_GITHUB_TOKEN: ${{ secrets.UCI_GITHUB_TOKEN }}
