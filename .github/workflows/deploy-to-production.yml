@@ -16,6 +16,5 @@ jobs:
     with:
       tag: ${{ inputs.tag }}
       environment: production
-      lock: true
     secrets:
       DEPLOYMENT_GITHUB_TOKEN: ${{ secrets.DEPLOYMENT_GITHUB_TOKEN }}

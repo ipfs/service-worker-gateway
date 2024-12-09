@@ -11,16 +11,10 @@ on:
         description: 'Environment to deploy to'
         required: true
         type: string
-      lock:
-        description: 'Lock environment branch after deployment'
-        required: false
-        type: boolean
-        default: false
     secrets:
       DEPLOYMENT_GITHUB_TOKEN:
         description: |
           A GitHub token with the following permissions:
-          administration: write (optional; to be able to lock the environment branch)
           contents: write (required; to be able to push to the environment branch)
           workflows: write (required; to be able to modify .github/workflows)
         required: true
@@ -29,7 +23,7 @@ permissions: {}
 
 jobs:
   deploy:
-    name: Deploy
+    name: Deploy ${{ inputs.tag }} to ${{ inputs.environment }}
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     steps:
@@ -59,34 +53,7 @@ jobs:
         env:
           TAG: ${{ inputs.tag }}
         run: git reset --hard $TAG
-      # TODO: Use repository rule sets instead of branch protection rules
-      - name: Unlock environment branch
-        if: inputs.lock == true
-        env:
-          ENVIRONMENT: ${{ inputs.environment }}
-          GITHUB_TOKEN: ${{ secrets.DEPLOYMENT_GITHUB_TOKEN }}
-        run: |
-          gh api --method PUT /repos/$GITHUB_REPOSITORY/branches/$ENVIRONMENT/protection \
-            -F required_status_checks=null \
-            -F enforce_admins=true \
-            -F required_pull_request_reviews=null \
-            -F restrictions=null \
-            -F allow_force_pushes=true \
-            -F lock_branch=false
       - name: Force push environment branch
         env:
           ENVIRONMENT: ${{ inputs.environment }}
         run: git push -f origin $ENVIRONMENT
-      - name: Lock environment branch
-        if: inputs.lock == true
-        env:
-          ENVIRONMENT: ${{ inputs.environment }}
-          GITHUB_TOKEN: ${{ secrets.DEPLOYMENT_GITHUB_TOKEN }}
-        run: |
-          gh api --method PUT /repos/$GITHUB_REPOSITORY/branches/$ENVIRONMENT/protection \
-            -F required_status_checks=null \
-            -F enforce_admins=true \
-            -F required_pull_request_reviews=null \
-            -F restrictions=null \
-            -F allow_force_pushes=false \
-            -F lock_branch=true
