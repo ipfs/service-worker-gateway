@@ -1,5 +1,5 @@
 import { test as base, type Page } from '@playwright/test'
-import { setConfig, setSubdomainConfig } from './set-sw-config.js'
+import { setConfig } from './set-sw-config.js'
 import { waitForServiceWorker } from './wait-for-service-worker.js'
 
 function isNoServiceWorkerProject <T extends typeof base = typeof base> (test: T): boolean {
@@ -51,8 +51,17 @@ export const testPathRouting = test.extend<{ rootDomain: string, baseURL: string
         routers: [process.env.KUBO_GATEWAY],
         dnsJsonResolvers: {
           '.': 'https://delegated-ipfs.dev/dns-query'
-        }
+        },
+        debug: 'helia*,helia*:trace,libp2p*,libp2p*:trace,*,*:trace',
+        enableWss: false,
+        enableWebTransport: false,
+        enableRecursiveGateways: true,
+        enableGatewayProviders: false
       }
+    })
+
+    await page.evaluate(async () => {
+      await fetch('/#/ipfs-sw-config-reload')
     })
 
     await use(page)
@@ -89,38 +98,46 @@ export const testSubdomainRouting = test.extend<{ rootDomain: string, baseURL: s
     if (process.env.KUBO_GATEWAY == null || process.env.KUBO_GATEWAY === '') {
       throw new Error('KUBO_GATEWAY not set')
     }
-    const kuboGateway = process.env.KUBO_GATEWAY
-    const oldPageGoto = page.goto.bind(page)
-    page.goto = async (url: Parameters<Page['goto']>[0], options: Parameters<Page['goto']>[1]): ReturnType<Page['goto']> => {
-      const response = await oldPageGoto(url, options)
-      if (['.ipfs.', '.ipns.'].some((part) => url.includes(part))) {
-        await setSubdomainConfig({
-          page,
-          config: {
-            autoReload: true,
-            gateways: [kuboGateway],
-            routers: [kuboGateway],
-            dnsJsonResolvers: {
-              '.': 'https://delegated-ipfs.dev/dns-query'
-            }
-          }
-        })
-      } else {
-        // already set on root.
-      }
-      return response
-    }
+    // const kuboGateway = process.env.KUBO_GATEWAY
+    // const oldPageGoto = page.goto.bind(page)
+    // page.goto = async (url: Parameters<Page['goto']>[0], options: Parameters<Page['goto']>[1]): ReturnType<Page['goto']> => {
+    //   const response = await oldPageGoto(url, options)
+    //   if (['.ipfs.', '.ipns.'].some((part) => url.includes(part))) {
+    //     await setSubdomainConfig({
+    //       page,
+    //       config: {
+    //         autoReload: true,
+    //         gateways: [kuboGateway],
+    //         routers: [kuboGateway],
+    //         dnsJsonResolvers: {
+    //           '.': 'https://delegated-ipfs.dev/dns-query'
+    //         },
+    //         enableWss: true,
+    //         enableWebTransport: false,
+    //         enableRecursiveGateways: true,
+    //         enableGatewayProviders: false
+    //       }
+    //     })
+    //   } else {
+    //     // already set on root.
+    //   }
+    //   return response
+    // }
 
     // set config for the initial page
     await setConfig({
       page,
       config: {
-        autoReload: true,
-        gateways: [kuboGateway],
-        routers: [kuboGateway],
+        gateways: [process.env.KUBO_GATEWAY],
+        routers: [process.env.KUBO_GATEWAY],
         dnsJsonResolvers: {
           '.': 'https://delegated-ipfs.dev/dns-query'
-        }
+        },
+        debug: 'helia*,helia*:trace,libp2p*,libp2p*:trace,*,*:trace',
+        enableWss: false,
+        enableWebTransport: false,
+        enableRecursiveGateways: true,
+        enableGatewayProviders: false
       }
     })
 
