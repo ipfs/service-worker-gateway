@@ -1,5 +1,6 @@
 import { testPathRouting as test, expect } from './fixtures/config-test-fixtures.js'
 import { doRangeRequest } from './fixtures/do-range-request.js'
+import { setConfig } from './fixtures/set-sw-config.js'
 
 test.describe('byte-ranges', () => {
   test('should be able to get a single character', async ({ page }) => {
@@ -29,5 +30,33 @@ test.describe('byte-ranges', () => {
     expect(statusCode).toBe(206)
     expect(byteSize).toBe(872)
     expect(bytes).toStrictEqual(tailBytes)
+  })
+
+  test('ttfb video file', async ({ page }) => {
+    await setConfig({
+      page,
+      config: {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        gateways: [process.env.KUBO_GATEWAY!],
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        routers: [process.env.KUBO_GATEWAY!],
+        debug: 'helia*,helia*:trace,libp2p*,libp2p*:trace',
+        enableWss: true,
+        enableWebTransport: false,
+        enableRecursiveGateways: true,
+        enableGatewayProviders: false
+      }
+    })
+    const { bytes, byteSize, statusCode } = await doRangeRequest({ page, range: 'bytes=0-100', path: '/ipfs/bafybeiaelnma6kc5k2522f3277m4iw72l4kqbblnxmmoyjugjsaxcpeu7i' })
+
+    // also fetch from KUBO_GATEWAY to compare
+    const response = await fetch(`${process.env.KUBO_GATEWAY}/ipfs/bafybeiaelnma6kc5k2522f3277m4iw72l4kqbblnxmmoyjugjsaxcpeu7i`, { headers: { range: 'bytes=0-100' } })
+
+    const buffer = await response.arrayBuffer()
+    const kuboByteSize = buffer.byteLength
+    const kuboBytes = Array.from(new Uint8Array(buffer))
+    expect(statusCode).toBe(response.status)
+    expect(byteSize).toBe(kuboByteSize)
+    expect(bytes).toStrictEqual(kuboBytes)
   })
 })
