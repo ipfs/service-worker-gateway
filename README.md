@@ -11,7 +11,6 @@
 <p align="center">
   <a href="https://ipfs.tech"><img src="https://img.shields.io/badge/project-IPFS-blue.svg?style=flat-square" alt="Official Part of IPFS Project"></a>
   <a href="https://discuss.ipfs.tech"><img alt="Discourse Forum" src="https://img.shields.io/discourse/posts?server=https%3A%2F%2Fdiscuss.ipfs.tech"></a>
-  <a href="https://matrix.to/#/#ip-js:ipfs.io"><img alt="Matrix" src="https://img.shields.io/matrix/ipfs-space%3Aipfs.io?server_fqdn=matrix.org"></a>
   <a href="https://github.com/ipfs/service-worker-gateway/actions"><img src="https://img.shields.io/github/actions/workflow/status/ipfs/service-worker-gateway/main.yml?branch=main" alt="ci"></a>
   <a href="https://github.com/ipfs/service-worker-gateway/releases"><img alt="GitHub release" src="https://img.shields.io/github/v/release/ipfs/service-worker-gateway?filter=!*rc*"></a>
 </p>
