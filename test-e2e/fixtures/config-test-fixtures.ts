@@ -1,4 +1,4 @@
-import { test as base, type Page } from '@playwright/test'
+import { test as base } from '@playwright/test'
 import { setConfig } from './set-sw-config.js'
 import { waitForServiceWorker } from './wait-for-service-worker.js'
 

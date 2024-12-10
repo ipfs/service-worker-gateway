@@ -72,6 +72,7 @@ test.describe('video', () => {
   })
 })
 
+/* eslint-disable jsdoc/check-alignment */
 /**
 - **tmp**
 - **test: add test for big-buck-bunny ttfb**
