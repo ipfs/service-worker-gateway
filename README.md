@@ -38,6 +38,10 @@ happens on end user's machine) and reliability (ability to use multiple sources
 of content-addressed blocks) without reliance on a single HTTP server for IPFS
 tasks.
 
+<a href="http://ipshipyard.com/"><img align="right" src="https://github.com/user-attachments/assets/39ed3504-bb71-47f6-9bf8-cb9a1698f272" /></a>
+
+This project  was brought to you by the [Shipyard](http://ipshipyard.com/) team.
+
 
 ### Goals
 
