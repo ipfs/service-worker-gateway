@@ -15,7 +15,7 @@
 
 ### Miscellaneous Chores
 
-* adjust release verion ([8895691](https://github.com/ipfs/service-worker-gateway/commit/8895691df0b31a98b52293926bfea2f8f5770be6))
+* adjust release version ([8895691](https://github.com/ipfs/service-worker-gateway/commit/8895691df0b31a98b52293926bfea2f8f5770be6))
 
 ## [1.7.1](https://github.com/ipfs/service-worker-gateway/compare/v1.7.0...v1.7.1) (2024-11-22)
 
