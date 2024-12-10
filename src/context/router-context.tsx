@@ -1,10 +1,10 @@
-import React, { useCallback, useEffect } from 'react'
+import React, { useCallback, useEffect, type ReactElement } from 'react'
 
 export interface Route {
   default?: boolean
   path?: string
   shouldRender?(): Promise<boolean>
-  component: React.LazyExoticComponent<(...args: any[]) => React.JSX.Element | null>
+  component: React.LazyExoticComponent<(...args: any[]) => ReactElement | null>
 }
 
 export const RouteContext = React.createContext<{
@@ -13,7 +13,7 @@ export const RouteContext = React.createContext<{
   gotoPage(route?: string): void
 }>({ currentRoute: undefined, gotoPage: () => {} })
 
-export const RouterProvider = ({ children, routes }: { children: React.ReactNode, routes: Route[] }): JSX.Element => {
+export const RouterProvider: React.FC<{ children: React.ReactNode, routes: Route[] }> = ({ children, routes }) => {
   const [currentRoute, setCurrentRoute] = React.useState<Route | undefined>(undefined)
   /**
    * The default route is the first route in the list of routes,
