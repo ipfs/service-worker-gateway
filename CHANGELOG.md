@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.8.0](https://github.com/ipfs/service-worker-gateway/compare/v1.7.1...v1.8.0) (2024-12-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* config is always visible on landing page ([#496](https://github.com/ipfs/service-worker-gateway/issues/496))
+
+### Features
+
+* config is always visible on landing page ([#496](https://github.com/ipfs/service-worker-gateway/issues/496)) ([d21178c](https://github.com/ipfs/service-worker-gateway/commit/d21178c33fbe354face8325ec53ec6f3db50f73d))
+* subdomain detection is resilient ([#497](https://github.com/ipfs/service-worker-gateway/issues/497)) ([9c6e2df](https://github.com/ipfs/service-worker-gateway/commit/9c6e2df0b4abaa9ca222386cbae01bb68040bb8d))
+
+
+### Miscellaneous Chores
+
+* adjust release verion ([8895691](https://github.com/ipfs/service-worker-gateway/commit/8895691df0b31a98b52293926bfea2f8f5770be6))
+
 ## [1.7.1](https://github.com/ipfs/service-worker-gateway/compare/v1.7.0...v1.7.1) (2024-11-22)
 
 
