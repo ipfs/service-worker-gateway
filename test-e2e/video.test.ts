@@ -18,9 +18,9 @@ test.describe('video', () => {
   }
 
   /**
-   * We want to load the beach video fixture and ensure it starts playing.
+   * We want to load the video fixture and ensure it starts playing.
    */
-  test('time to play video is reasonable', async ({ page, protocol, rootDomain }) => {
+  test('starts playing automatically', async ({ page, protocol, rootDomain }) => {
     await page.goto(`${protocol}//${rootDomain}`)
     await setConfig({ page, config: testConfig })
     await waitForServiceWorker(page)
