@@ -2,11 +2,11 @@
  * Loading page to display after clicking "Load content" button
  */
 
-import React from 'react'
+import React, { type ReactElement } from 'react'
 import Header from '../components/Header.jsx'
 import './loading.css'
 
-export default function LoadingPage (): React.JSX.Element {
+export default function LoadingPage (): ReactElement {
   return (
     <>
     <Header />

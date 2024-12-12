@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, type ReactElement } from 'react'
 import { checkSubdomainSupport } from '../lib/check-subdomain-support.js'
 import { findOriginIsolationRedirect } from '../lib/path-or-subdomain.js'
 import { translateIpfsRedirectUrl } from '../lib/translate-ipfs-redirect-url.js'
@@ -11,7 +11,7 @@ import './default-page-styles.css'
  * is used by IPFS hosted versions of the service-worker-gateway when non-existent paths are requested.
  * This will only redirect if the URL is for a subdomain
  */
-export default function RedirectsInterstitial (): React.JSX.Element {
+export default function RedirectsInterstitial (): ReactElement {
   const [subdomainRedirectUrl, setSubdomainRedirectUrl] = React.useState<string | null>(null)
   const [isSubdomainCheckDone, setIsSubdomainCheckDone] = React.useState<boolean>(false)
   useEffect(() => {

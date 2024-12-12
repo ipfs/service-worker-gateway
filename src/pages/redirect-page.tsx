@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useMemo, useState, type ReactElement } from 'react'
 import Header from '../components/Header.jsx'
 import { ConfigProvider } from '../context/config-context.jsx'
 import { ServiceWorkerContext, ServiceWorkerProvider } from '../context/service-worker-context.jsx'
@@ -15,7 +15,7 @@ import './loading.css'
 const uiComponentLogger = getUiComponentLogger('redirect-page')
 const log = uiLogger.forComponent('redirect-page')
 
-const ConfigIframe = (): JSX.Element => {
+const ConfigIframe: React.FC = () => {
   const { parentDomain } = getSubdomainParts(window.location.href)
   let iframeSrc
   if (parentDomain == null || parentDomain === window.location.href) {
@@ -33,7 +33,7 @@ const ConfigIframe = (): JSX.Element => {
   )
 }
 
-function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean }): React.JSX.Element {
+function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean }): ReactElement {
   const [isAutoReloadEnabled] = useState(true)
   const { isServiceWorkerRegistered } = useContext(ServiceWorkerContext)
   const [reloadUrl, setReloadUrl] = useState(translateIpfsRedirectUrl(window.location.href).href)
@@ -107,7 +107,7 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
   )
 }
 
-export default (): React.JSX.Element => {
+export default (): ReactElement => {
   return (
     <ServiceWorkerProvider>
       <ConfigProvider>
