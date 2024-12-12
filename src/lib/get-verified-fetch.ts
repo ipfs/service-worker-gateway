@@ -45,7 +45,7 @@ export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogge
   const blockBrokers: Array<(components: any) => BlockBroker> = []
 
   if (config.enableGatewayProviders) {
-    blockBrokers.push(trustlessGateway())
+    blockBrokers.push(trustlessGateway({ allowLocal: true }))
   }
 
   const hashers = [blake3]
