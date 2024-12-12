@@ -8,7 +8,6 @@ import { getConfig, getConfigUi, setConfigViaUi } from './fixtures/set-sw-config
 test.describe('config-ui', () => {
   test('setting the config via UI actually works', async ({ page, protocol, rootDomain }) => {
     await page.goto(`${protocol}//${rootDomain}`)
-    // await waitForServiceWorker(page)
 
     // read the config from the page
     const config = await getConfigUi({ page })

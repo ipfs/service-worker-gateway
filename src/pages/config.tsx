@@ -136,13 +136,6 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
       setError(err as Error)
     } finally {
       setIsSaving(false)
-      await getConfig(uiComponentLogger).then((config) => {
-        // eslint-disable-next-line no-console
-        console.log('config directly from idb: ', config)
-      }).catch((err) => {
-        // eslint-disable-next-line no-console
-        console.error('error getting config directly from idb: ', err)
-      })
     }
   }, [gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport])
 
@@ -152,16 +145,6 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
     // now reload all the inputs
     setResetKey((prev) => prev + 1)
   }, [])
-
-  console.log('config-page: isLoading', isLoading)
-
-  // if (isLoading) {
-  //   return null
-  // }
-
-  // eslint-disable-next-line no-console
-  console.log('config is done loading: ', { gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport })
-  // console.log('config directly from idb: ')
 
   return (
     <>

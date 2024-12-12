@@ -228,15 +228,3 @@ export async function getConfig ({ page }: { page: Page }): Promise<ConfigDb> {
   return config
 }
 
-// export async function setSubdomainConfig ({ page, config }: { page: Page, config: Partial<ConfigDb> }): Promise<void> {
-//   await waitForServiceWorker(page)
-
-//   await page.evaluate(async (configInPage) => {
-//     // TODO: we shouldn't need this. We should be able to just post a message to the service worker to reload it's config.
-//     window.postMessage({ source: 'helia-sw-config-iframe', target: 'PARENT', action: 'RELOAD_CONFIG', config: configInPage }, { targetOrigin: window.location.origin })
-//   }, {
-//     gateways: [process.env.KUBO_GATEWAY],
-//     routers: [process.env.KUBO_GATEWAY],
-//     ...config
-//   })
-// }
