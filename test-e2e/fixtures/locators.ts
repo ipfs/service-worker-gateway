@@ -16,9 +16,14 @@ export const getConfigPage: GetLocator = (page) => page.locator('.e2e-config-pag
 export const getConfigPageInput: GetLocator = (page) => page.locator('.e2e-config-page-input')
 export const getConfigPageSaveButton: GetLocator = (page) => page.locator('.e2e-config-page-button#save-config')
 export const getIframeLocator: GetFrameLocator = (page) => page.frameLocator('iframe')
-export const getConfigGatewaysInput: GetLocator = (page) => page.locator('.e2e-config-page-input-gateways')
+export const getConfigEnableGatewayProviders: GetLocator = (page) => page.locator('.e2e-config-page-input-enableGatewayProviders')
+export const getConfigEnableWss: GetLocator = (page) => page.locator('.e2e-config-page-input-enableWss')
+export const getConfigEnableWebTransport: GetLocator = (page) => page.locator('.e2e-config-page-input-enableWebTransport')
 export const getConfigRoutersInput: GetLocator = (page) => page.locator('.e2e-config-page-input-routers')
-export const getConfigAutoReloadInput: GetLocator = (page) => page.locator('.e2e-config-page-input-autoreload')
+export const getConfigEnableRecursiveGateways: GetLocator = (page) => page.locator('.e2e-config-page-input-enableRecursiveGateways')
+export const getConfigGatewaysInput: GetLocator = (page) => page.locator('.e2e-config-page-input-gateways')
+export const getConfigDnsJsonResolvers: GetLocator = (page) => page.locator('.e2e-config-page-input-dnsJsonResolvers')
+export const getConfigDebug: GetLocator = (page) => page.locator('.e2e-config-page-input-debug')
 
 export const getNoServiceWorkerError: GetLocator = (page) => page.locator('.e2e-no-service-worker-error')
 
@@ -31,5 +36,4 @@ export const getAboutSection: GetLocator = (page) => page.locator('.e2e-about-se
 export const getConfigButtonIframe: GetLocator = (page) => getIframeLocator(page).locator('.e2e-collapsible-button')
 export const getConfigGatewaysInputIframe: GetLocator = (page) => getConfigGatewaysInput(getIframeLocator(page))
 export const getConfigRoutersInputIframe: GetLocator = (page) => getConfigRoutersInput(getIframeLocator(page))
-export const getConfigAutoReloadInputIframe: GetLocator = (page) => getConfigAutoReloadInput(getIframeLocator(page))
 export const getConfigPageSaveButtonIframe: GetLocator = (page) => getConfigPageSaveButton(getIframeLocator(page))

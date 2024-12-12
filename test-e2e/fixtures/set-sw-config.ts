@@ -4,24 +4,50 @@
  *
  * Note that this was only tested and confirmed working for subdomain pages.
  */
-import { getConfigAutoReloadInputIframe, getConfigButtonIframe, getConfigGatewaysInput, getConfigGatewaysInputIframe, getConfigPage, getConfigPageSaveButton, getConfigPageSaveButtonIframe, getConfigRoutersInput, getConfigRoutersInputIframe } from './locators.js'
+import { getConfigDebug, getConfigDnsJsonResolvers, getConfigEnableGatewayProviders, getConfigEnableRecursiveGateways, getConfigEnableWebTransport, getConfigEnableWss, getConfigGatewaysInput, getConfigGatewaysInputIframe, getConfigPage, getConfigPageSaveButton, getConfigPageSaveButtonIframe, getConfigRoutersInput, getConfigRoutersInputIframe } from './locators.js'
 import { waitForServiceWorker } from './wait-for-service-worker.js'
-import type { ConfigDb } from '../../src/lib/config-db.js'
+import type { ConfigDb, ConfigDbWithoutPrivateFields } from '../../src/lib/config-db.js'
 import type { Page } from '@playwright/test'
 
 export async function setConfigViaUiSubdomain ({ page, config }: { page: Page, config: Partial<ConfigDb> }): Promise<void> {
   await waitForServiceWorker(page)
 
-  await getConfigButtonIframe(page).isVisible()
-  await getConfigButtonIframe(page).click()
+  await getConfigGatewaysInputIframe(page).locator('input').fill([process.env.KUBO_GATEWAY].join('\n'))
+  await getConfigRoutersInputIframe(page).locator('input').fill([process.env.KUBO_GATEWAY].join('\n'))
 
-  for (const [key] of Object.entries(config)) {
-    if (key === 'autoReload') {
-      await getConfigAutoReloadInputIframe(page).click()
-    }
+  if (config.enableGatewayProviders != null) {
+    await getConfigEnableGatewayProviders(page).locator('input').setChecked(config.enableGatewayProviders)
   }
-  await getConfigGatewaysInputIframe(page).locator('input').fill(JSON.stringify([process.env.KUBO_GATEWAY]))
-  await getConfigRoutersInputIframe(page).locator('input').fill(JSON.stringify([process.env.KUBO_GATEWAY]))
+
+  if (config.enableWss != null) {
+    await getConfigEnableWss(page).locator('input').setChecked(config.enableWss)
+  }
+
+  if (config.enableWebTransport != null) {
+    await getConfigEnableWebTransport(page).locator('input').setChecked(config.enableWebTransport)
+  }
+
+  if (config.routers != null) {
+    await getConfigRoutersInputIframe(page).locator('input').fill(config.routers.join('\n'))
+  }
+
+  if (config.enableRecursiveGateways != null) {
+    await getConfigEnableRecursiveGateways(page).locator('input').setChecked(config.enableRecursiveGateways)
+  }
+
+  if (config.gateways != null) {
+    await getConfigGatewaysInputIframe(page).locator('input').fill(config.gateways.join('\n'))
+  }
+
+  // if (config.dnsJsonResolvers != null) {
+  //   await getConfigDnsJsonResolvers(page).locator('input').fill(config.dnsJsonResolvers.reduce((acc, [key, value]) => {
+  //     acc.push(`${key} ${value}`)
+  //     return acc
+  //   }, []).join('\n'))
+  // }
+  if (config.debug != null) {
+    await getConfigDebug(page).locator('input').fill(config.debug)
+  }
 
   await getConfigPageSaveButtonIframe(page).click()
 
@@ -33,12 +59,85 @@ export async function setConfigViaUi ({ page, config }: { page: Page, config: Pa
 
   await getConfigPage(page).isVisible()
 
-  await getConfigGatewaysInput(page).locator('input').fill(JSON.stringify([process.env.KUBO_GATEWAY]))
-  await getConfigRoutersInput(page).locator('input').fill(JSON.stringify([process.env.KUBO_GATEWAY]))
+  await getConfigGatewaysInput(page).locator('textarea').fill([process.env.KUBO_GATEWAY].join('\n'))
+  await getConfigRoutersInput(page).locator('textarea').fill([process.env.KUBO_GATEWAY].join('\n'))
+
+  if (config.enableGatewayProviders != null) {
+    // scroll to the element so it's visible
+    await getConfigEnableGatewayProviders(page).scrollIntoViewIfNeeded()
+    await getConfigEnableGatewayProviders(page).locator('input').setChecked(config.enableGatewayProviders)
+  }
+
+  if (config.enableWss != null) {
+    await getConfigEnableWss(page).scrollIntoViewIfNeeded()
+    await getConfigEnableWss(page).locator('input').setChecked(config.enableWss)
+  }
+
+  if (config.enableWebTransport != null) {
+    await getConfigEnableWebTransport(page).scrollIntoViewIfNeeded()
+    await getConfigEnableWebTransport(page).locator('input').setChecked(config.enableWebTransport)
+  }
+
+  if (config.routers != null) {
+    await getConfigRoutersInput(page).scrollIntoViewIfNeeded()
+    await getConfigRoutersInput(page).locator('textarea').fill(config.routers.join('\n'))
+  }
+
+  if (config.enableRecursiveGateways != null) {
+    await getConfigEnableRecursiveGateways(page).scrollIntoViewIfNeeded()
+    await getConfigEnableRecursiveGateways(page).locator('input').setChecked(config.enableRecursiveGateways)
+  }
+
+  if (config.gateways != null) {
+    await getConfigGatewaysInput(page).scrollIntoViewIfNeeded()
+    await getConfigGatewaysInput(page).locator('textarea').fill(config.gateways.join('\n'))
+  }
+
+  // if (config.dnsJsonResolvers != null) {
+  //   await getConfigDnsJsonResolvers(page).locator('input').fill(config.dnsJsonResolvers.reduce((acc, [key, value]) => {
+  //     acc.push(`${key} ${value}`)
+  //     return acc
+  //   }, []).join('\n'))
+  // }
+
+  if (config.debug != null) {
+    await getConfigDebug(page).scrollIntoViewIfNeeded()
+    await getConfigDebug(page).locator('textarea').fill(config.debug)
+  }
 
   await getConfigPageSaveButton(page).click()
+}
 
-  await getConfigPage(page).isHidden()
+export async function getConfigUi ({ page }: { page: Page }): Promise<ConfigDbWithoutPrivateFields> {
+  await waitForServiceWorker(page)
+
+  await getConfigPage(page).isVisible()
+
+  const enableGatewayProviders = await getConfigEnableGatewayProviders(page).locator('input').isChecked()
+  const enableWss = await getConfigEnableWss(page).locator('input').isChecked()
+  const enableWebTransport = await getConfigEnableWebTransport(page).locator('input').isChecked()
+  const routers = (await getConfigRoutersInput(page).locator('textarea').inputValue()).split('\n')
+  const enableRecursiveGateways = await getConfigEnableRecursiveGateways(page).locator('input').isChecked()
+  const gateways = (await getConfigGatewaysInput(page).locator('textarea').inputValue()).split('\n')
+  const dnsJsonResolvers = await getConfigDnsJsonResolvers(page).locator('textarea').inputValue().then((value) => {
+    return value.split('\n').reduce((acc, line) => {
+      const [key, value] = line.split(' ')
+      acc[key] = value
+      return acc
+    }, {})
+  })
+  const debug = await getConfigDebug(page).locator('textarea').inputValue()
+
+  return {
+    enableGatewayProviders,
+    enableWss,
+    enableWebTransport,
+    routers,
+    enableRecursiveGateways,
+    gateways,
+    dnsJsonResolvers,
+    debug
+  }
 }
 
 export async function setConfig ({ page, config }: { page: Page, config: Partial<ConfigDb> }): Promise<void> {
@@ -129,15 +228,15 @@ export async function getConfig ({ page }: { page: Page }): Promise<ConfigDb> {
   return config
 }
 
-export async function setSubdomainConfig ({ page, config }: { page: Page, config: Partial<ConfigDb> }): Promise<void> {
-  await waitForServiceWorker(page)
+// export async function setSubdomainConfig ({ page, config }: { page: Page, config: Partial<ConfigDb> }): Promise<void> {
+//   await waitForServiceWorker(page)
 
-  await page.evaluate(async (configInPage) => {
-    // TODO: we shouldn't need this. We should be able to just post a message to the service worker to reload it's config.
-    window.postMessage({ source: 'helia-sw-config-iframe', target: 'PARENT', action: 'RELOAD_CONFIG', config: configInPage }, { targetOrigin: window.location.origin })
-  }, {
-    gateways: [process.env.KUBO_GATEWAY],
-    routers: [process.env.KUBO_GATEWAY],
-    ...config
-  })
-}
+//   await page.evaluate(async (configInPage) => {
+//     // TODO: we shouldn't need this. We should be able to just post a message to the service worker to reload it's config.
+//     window.postMessage({ source: 'helia-sw-config-iframe', target: 'PARENT', action: 'RELOAD_CONFIG', config: configInPage }, { targetOrigin: window.location.origin })
+//   }, {
+//     gateways: [process.env.KUBO_GATEWAY],
+//     routers: [process.env.KUBO_GATEWAY],
+//     ...config
+//   })
+// }

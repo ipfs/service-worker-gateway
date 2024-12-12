@@ -81,65 +81,86 @@ export async function setConfig (config: ConfigDbWithoutPrivateFields, logger: C
   }
 }
 
+let getConfigPromise: Promise<ConfigDb> | null = null
+
 export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
-  const log = logger.forComponent('get-config')
-  let gateways = defaultGateways
-  let routers = defaultRouters
-  let dnsJsonResolvers = defaultDnsJsonResolvers
-  let enableRecursiveGateways
-  let enableWss
-  let enableWebTransport
-  let enableGatewayProviders
-  let debug = ''
-  let _supportsSubdomains = defaultSupportsSubdomains
-
-  try {
-    await configDb.open()
-
-    gateways = await configDb.get('gateways')
-
-    routers = await configDb.get('routers')
-
-    dnsJsonResolvers = await configDb.get('dnsJsonResolvers')
-
-    enableRecursiveGateways = await configDb.get('enableRecursiveGateways') ?? defaultEnableRecursiveGateways
-    enableWss = await configDb.get('enableWss') ?? defaultEnableWss
-    enableWebTransport = await configDb.get('enableWebTransport') ?? defaultEnableWebTransport
-    enableGatewayProviders = await configDb.get('enableGatewayProviders') ?? defaultEnableGatewayProviders
-
-    debug = await configDb.get('debug') ?? defaultDebug()
-    enable(debug)
-
-    _supportsSubdomains ??= await configDb.get('_supportsSubdomains')
-  } catch (err) {
-    log('error loading config from db', err)
-  } finally {
-    configDb.close()
+  if (getConfigPromise != null) {
+    /**
+     * If there is already a promise to get the config, return it.
+     * This is to prevent multiple calls to the db to get the same config, because
+     * each request will close the DB when done, and then the next request will fail at some point
+     */
+    return getConfigPromise
   }
 
-  if (gateways == null || gateways.length === 0) {
-    gateways = [...defaultGateways]
-  }
+  getConfigPromise = (async () => {
+    const log = logger.forComponent('get-config')
+    let gateways = defaultGateways
+    let routers = defaultRouters
+    let dnsJsonResolvers = defaultDnsJsonResolvers
+    let enableRecursiveGateways
+    let enableWss
+    let enableWebTransport
+    let enableGatewayProviders
+    let debug = ''
+    let _supportsSubdomains = defaultSupportsSubdomains
 
-  if (routers == null || routers.length === 0) {
-    routers = [...defaultRouters]
-  }
-  if (dnsJsonResolvers == null || Object.keys(dnsJsonResolvers).length === 0) {
-    dnsJsonResolvers = { ...defaultDnsJsonResolvers }
-  }
+    let config: ConfigDb
 
-  // always return the config, even if we failed to load it.
-  return {
-    gateways,
-    routers,
-    dnsJsonResolvers,
-    enableRecursiveGateways,
-    enableWss,
-    enableWebTransport,
-    enableGatewayProviders,
-    debug,
-    _supportsSubdomains
-  }
+    log('config-debug: getting config for domain %s', globalThis.location.origin)
+    try {
+      await configDb.open()
+
+      config = await configDb.getAll()
+      debug = config.debug ?? defaultDebug()
+      enable(debug)
+
+      gateways = config.gateways
+
+      routers = config.routers
+
+      dnsJsonResolvers = config.dnsJsonResolvers
+      enableRecursiveGateways = config.enableRecursiveGateways ?? defaultEnableRecursiveGateways
+      enableWss = config.enableWss ?? defaultEnableWss
+      enableWebTransport = config.enableWebTransport ?? defaultEnableWebTransport
+      enableGatewayProviders = config.enableGatewayProviders ?? defaultEnableGatewayProviders
+
+      _supportsSubdomains ??= config.thing
+    } catch (err) {
+      log('error loading config from db', err)
+    } finally {
+      configDb.close()
+    }
+
+    if (gateways == null || gateways.length === 0) {
+      gateways = [...defaultGateways]
+    }
+
+    if (routers == null || routers.length === 0) {
+      routers = [...defaultRouters]
+    }
+    if (dnsJsonResolvers == null || Object.keys(dnsJsonResolvers).length === 0) {
+      dnsJsonResolvers = { ...defaultDnsJsonResolvers }
+    }
+
+    // always return the config, even if we failed to load it.
+    return {
+      gateways,
+      routers,
+      dnsJsonResolvers,
+      enableRecursiveGateways,
+      enableWss,
+      enableWebTransport,
+      enableGatewayProviders,
+      debug,
+      _supportsSubdomains
+    }
+  })().finally(() => {
+    getConfigPromise = null
+  })
+
+  const result = await getConfigPromise
+  return result
 }
 
 export async function validateConfig (config: ConfigDbWithoutPrivateFields, logger: ComponentLogger): Promise<void> {

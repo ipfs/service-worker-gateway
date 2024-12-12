@@ -1,5 +1,5 @@
 import { test, testSubdomainRouting, expect } from './fixtures/config-test-fixtures.js'
-import { setConfig, setSubdomainConfig } from './fixtures/set-sw-config.js'
+import { setConfig } from './fixtures/set-sw-config.js'
 import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
 
 test.describe('subdomain-detection', () => {
@@ -18,7 +18,6 @@ test.describe('subdomain-detection', () => {
     await setConfig({
       page,
       config: {
-        autoReload: false,
         gateways,
         routers,
         dnsJsonResolvers: {
@@ -35,25 +34,6 @@ test.describe('subdomain-detection', () => {
     const bodyTextLocator = page.locator('body')
 
     await waitForServiceWorker(page)
-
-    await expect(bodyTextLocator).toContainText('hello')
-  })
-
-  test('enabling autoreload automatically loads the subdomain', async ({ page, rootDomain, protocol }) => {
-    await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/`, { waitUntil: 'networkidle' })
-    await setSubdomainConfig({
-      page,
-      config: {
-        autoReload: true,
-        gateways,
-        routers,
-        dnsJsonResolvers: {
-          '.': 'https://delegated-ipfs.dev/dns-query'
-        }
-      }
-    })
-
-    const bodyTextLocator = page.locator('body')
 
     await expect(bodyTextLocator).toContainText('hello')
   })

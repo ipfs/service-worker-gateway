@@ -7,7 +7,7 @@ import Input from '../components/textarea-input.jsx'
 import { ConfigContext, ConfigProvider } from '../context/config-context.jsx'
 import { RouteContext } from '../context/router-context.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
-import { setConfig as storeConfig } from '../lib/config-db.js'
+import { getConfig, setConfig as storeConfig } from '../lib/config-db.js'
 import { convertDnsResolverInputToObject, convertDnsResolverObjectToInput, convertUrlArrayToInput, convertUrlInputToArray } from '../lib/input-helpers.js'
 import { isConfigPage } from '../lib/is-config-page.js'
 import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
@@ -82,7 +82,7 @@ export interface ConfigPageProps extends React.HTMLProps<HTMLElement> {
 // Config Page can be loaded either as a page or as a component in the landing helper-ui page
 const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
   const { gotoPage } = useContext(RouteContext)
-  const { setConfig, resetConfig, gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, _supportsSubdomains } = useContext(ConfigContext)
+  const { isLoading, setConfig, resetConfig, gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, _supportsSubdomains } = useContext(ConfigContext)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [resetKey, setResetKey] = useState(0)
@@ -107,11 +107,14 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
   }, [gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport])
 
   useEffect(() => {
+    if (isLoading) {
+      return
+    }
     /**
      * On initial load, we want to send the config to the parent window, so that the reload page can auto-reload if enabled, and the subdomain registered service worker gets the latest config without user interaction.
      */
     void postFromIframeToParentSw()
-  }, [])
+  }, [isLoading])
 
   const saveConfig = useCallback(async () => {
     try {
@@ -133,6 +136,13 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
       setError(err as Error)
     } finally {
       setIsSaving(false)
+      await getConfig(uiComponentLogger).then((config) => {
+        // eslint-disable-next-line no-console
+        console.log('config directly from idb: ', config)
+      }).catch((err) => {
+        // eslint-disable-next-line no-console
+        console.error('error getting config directly from idb: ', err)
+      })
     }
   }, [gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport])
 
@@ -143,6 +153,16 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
     setResetKey((prev) => prev + 1)
   }, [])
 
+  console.log('config-page: isLoading', isLoading)
+
+  // if (isLoading) {
+  //   return null
+  // }
+
+  // eslint-disable-next-line no-console
+  console.log('config is done loading: ', { gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport })
+  // console.log('config directly from idb: ')
+
   return (
     <>
       {isConfigPage(window.location.hash) ? <Header /> : null}
@@ -150,7 +170,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
         <h1 className='pa0 f3 ma0 mb4 teal tc'>Configure your IPFS Gateway</h1>
         <InputSection label='Direct Retrieval'>
           <InputToggle
-            className="e2e-config-page-input"
+            className="e2e-config-page-input e2e-config-page-input-enableGatewayProviders"
             label="Enable Delegated HTTP Gateway Providers"
             description="Use gateway providers returned from delegated routers for direct retrieval."
             value={enableGatewayProviders}
@@ -158,7 +178,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
             resetKey={resetKey}
           />
           <InputToggle
-            className="e2e-config-page-input"
+            className="e2e-config-page-input e2e-config-page-input-enableWss"
             label="Enable Secure WebSocket Providers"
             description="Use Secure WebSocket providers returned from delegated routers for direct retrieval."
             value={enableWss}
@@ -166,7 +186,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
             resetKey={resetKey}
           />
           <InputToggle
-            className="e2e-config-page-input"
+            className="e2e-config-page-input e2e-config-page-input-enableWebTransport"
             label="Enable WebTransport Providers"
             description="Use WebTransport providers returned from delegated routers for direct retrieval."
             value={enableWebTransport}
@@ -186,7 +206,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
         </InputSection>
         <InputSection label='Fallback Retrieval'>
           <InputToggle
-            className="e2e-config-page-input"
+            className="e2e-config-page-input e2e-config-page-input-enableRecursiveGateways"
             label="Enable Recursive Gateways"
             description="Use recursive gateways configured below for retrieval of content."
             value={enableRecursiveGateways}
@@ -216,7 +236,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
             resetKey={resetKey}
           />
           <Input
-            className="e2e-config-page-input"
+            className="e2e-config-page-input e2e-config-page-input-debug"
             description="A string that enables debug logging. Use '*,*:trace' to enable all debug logging."
             label='Debug'
             value={debug}
