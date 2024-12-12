@@ -59,6 +59,34 @@ export class GenericIDB<T extends BaseDbConfig> {
     })
   }
 
+  async getAll (): Promise<T> {
+    if (this.db == null) {
+      throw new Error('Database not opened')
+    }
+    const transaction = this.db.transaction(this.storeName, 'readonly')
+    const store = transaction.objectStore(this.storeName)
+
+    return new Promise((resolve, reject) => {
+      // @ts-expect-error - its empty right now...
+      const result: { [K in keyof T]: T[K] } = {}
+      const request = store.openCursor()
+
+      request.onerror = () => {
+        reject(request.error ?? new Error(`Could not get all keys and values from store "${this.storeName}"`))
+      }
+
+      request.onsuccess = () => {
+        const cursor = request.result
+        if (cursor != null) {
+          result[cursor.key as keyof T] = cursor.value as T[keyof T]
+          cursor.continue()
+        } else {
+          resolve(result)
+        }
+      }
+    })
+  }
+
   close (): void {
     if (this.db != null) {
       this.db.close()

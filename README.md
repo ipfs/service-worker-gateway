@@ -11,7 +11,6 @@
 <p align="center">
   <a href="https://ipfs.tech"><img src="https://img.shields.io/badge/project-IPFS-blue.svg?style=flat-square" alt="Official Part of IPFS Project"></a>
   <a href="https://discuss.ipfs.tech"><img alt="Discourse Forum" src="https://img.shields.io/discourse/posts?server=https%3A%2F%2Fdiscuss.ipfs.tech"></a>
-  <a href="https://matrix.to/#/#ip-js:ipfs.io"><img alt="Matrix" src="https://img.shields.io/matrix/ipfs-space%3Aipfs.io?server_fqdn=matrix.org"></a>
   <a href="https://github.com/ipfs/service-worker-gateway/actions"><img src="https://img.shields.io/github/actions/workflow/status/ipfs/service-worker-gateway/main.yml?branch=main" alt="ci"></a>
   <a href="https://github.com/ipfs/service-worker-gateway/releases"><img alt="GitHub release" src="https://img.shields.io/github/v/release/ipfs/service-worker-gateway?filter=!*rc*"></a>
 </p>
@@ -38,6 +37,10 @@ It functions as an IPFS gateway within the browser, offering enhanced security
 happens on end user's machine) and reliability (ability to use multiple sources
 of content-addressed blocks) without reliance on a single HTTP server for IPFS
 tasks.
+
+<a href="http://ipshipyard.com/"><img align="right" src="https://github.com/user-attachments/assets/39ed3504-bb71-47f6-9bf8-cb9a1698f272" /></a>
+
+This project  was brought to you by the [Shipyard](http://ipshipyard.com/) team.
 
 
 ### Goals

@@ -30,4 +30,18 @@ test.describe('byte-ranges', () => {
     expect(byteSize).toBe(872)
     expect(bytes).toStrictEqual(tailBytes)
   })
+
+  test('video file first set of bytes match kubo gateway', async ({ page }) => {
+    const { bytes, byteSize, statusCode } = await doRangeRequest({ page, range: 'bytes=0-100', path: '/ipfs/bafybeie4vcqkutumw7s26ob2bwqwqi44m6lrssjmiirlhrzhs2akdqmkw4' })
+
+    // also fetch from KUBO_GATEWAY to compare
+    const response = await fetch(`${process.env.KUBO_GATEWAY}/ipfs/bafybeie4vcqkutumw7s26ob2bwqwqi44m6lrssjmiirlhrzhs2akdqmkw4`, { headers: { range: 'bytes=0-100' } })
+
+    const buffer = await response.arrayBuffer()
+    const kuboByteSize = buffer.byteLength
+    const kuboBytes = Array.from(new Uint8Array(buffer))
+    expect(statusCode).toBe(response.status)
+    expect(byteSize).toBe(kuboByteSize)
+    expect(bytes).toStrictEqual(kuboBytes)
+  })
 })
