@@ -227,4 +227,3 @@ export async function getConfig ({ page }: { page: Page }): Promise<ConfigDb> {
 
   return config
 }
-
