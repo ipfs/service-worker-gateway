@@ -150,7 +150,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
         <h1 className='pa0 f3 ma0 mb4 teal tc'>Configure your IPFS Gateway</h1>
         <InputSection label='Direct Retrieval'>
           <InputToggle
-            className="e2e-config-page-input"
+            className="e2e-config-page-input e2e-config-page-input-enableGatewayProviders"
             label="Enable Delegated HTTP Gateway Providers"
             description="Use gateway providers returned from delegated routers for direct retrieval."
             value={enableGatewayProviders}
@@ -158,7 +158,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
             resetKey={resetKey}
           />
           <InputToggle
-            className="e2e-config-page-input"
+            className="e2e-config-page-input e2e-config-page-input-enableWss"
             label="Enable Secure WebSocket Providers"
             description="Use Secure WebSocket providers returned from delegated routers for direct retrieval."
             value={enableWss}
@@ -166,7 +166,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
             resetKey={resetKey}
           />
           <InputToggle
-            className="e2e-config-page-input"
+            className="e2e-config-page-input e2e-config-page-input-enableWebTransport"
             label="Enable WebTransport Providers"
             description="Use WebTransport providers returned from delegated routers for direct retrieval."
             value={enableWebTransport}
@@ -186,7 +186,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
         </InputSection>
         <InputSection label='Fallback Retrieval'>
           <InputToggle
-            className="e2e-config-page-input"
+            className="e2e-config-page-input e2e-config-page-input-enableRecursiveGateways"
             label="Enable Recursive Gateways"
             description="Use recursive gateways configured below for retrieval of content."
             value={enableRecursiveGateways}
@@ -216,7 +216,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
             resetKey={resetKey}
           />
           <Input
-            className="e2e-config-page-input"
+            className="e2e-config-page-input e2e-config-page-input-debug"
             description="A string that enables debug logging. Use '*,*:trace' to enable all debug logging."
             label='Debug'
             value={debug}
