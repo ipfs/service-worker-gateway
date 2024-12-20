@@ -76,7 +76,7 @@
     "@types/react": "^19.0.1",
     "aegir": "^45.0.8",
     "cross-env": "^7.0.3",
-    "esbuild": "^0.24.0",
+    "esbuild": "^0.24.1",
     "execa": "^8.0.1",
     "glob": "^10.3.12",
     "http-server": "^14.1.1",
