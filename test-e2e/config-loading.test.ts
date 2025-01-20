@@ -1,4 +1,4 @@
-import { testSubdomainRouting as test, expect } from './fixtures/config-test-fixtures.js'
+import { test, expect } from './fixtures/config-test-fixtures.js'
 import { getConfig, setConfig } from './fixtures/set-sw-config.js'
 import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
 import type { ConfigDbWithoutPrivateFields } from '../src/lib/config-db.js'
@@ -52,5 +52,13 @@ test.describe('ipfs-sw configuration', () => {
     // ensure it equals the root config
     expect(subdomainConfig).toEqual(rootConfig)
     expect(subdomainConfig).toMatchObject(testConfig)
+
+    // now we know the subdomain has the right config, but does the serviceworker?
+    const serviceWorkerConfigJson = await page.evaluate(async () => {
+      const response = await fetch('/#/ipfs-sw-config-get')
+      return response.json()
+    })
+
+    expect(serviceWorkerConfigJson).toMatchObject(testConfig)
   })
 })
