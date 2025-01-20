@@ -3,7 +3,7 @@ import { RouteContext } from './context/router-context.jsx'
 import { checkSubdomainSupport } from './lib/check-subdomain-support.js'
 import './app.css'
 
-function App (): React.ReactElement {
+function App (): JSX.Element {
   const { currentRoute } = React.useContext(RouteContext)
 
   useEffect(() => {

@@ -1,4 +1,4 @@
-import React, { useState, type ReactElement } from 'react'
+import React, { useState } from 'react'
 
 export interface CollapsibleProps {
   children: React.ReactNode
@@ -7,7 +7,7 @@ export interface CollapsibleProps {
   collapsed: boolean
 }
 
-export function Collapsible ({ children, collapsedLabel, expandedLabel, collapsed }: CollapsibleProps): ReactElement {
+export function Collapsible ({ children, collapsedLabel, expandedLabel, collapsed }: CollapsibleProps): JSX.Element {
   const [cId] = useState(Math.random().toString(36).substring(7))
   const [isCollapsed, setCollapsed] = useState(collapsed)
 

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, type ReactElement } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { InputDescription } from './input-description.js'
 import { InputLabel } from './input-label.js'
 
@@ -13,7 +13,7 @@ export interface InputProps extends Omit<React.DetailedHTMLProps<React.HTMLAttri
   onChange(value: string): void
 }
 
-export default ({ resetKey, onChange, label, placeholder, validationFn, value, description, preSaveFormat, ...props }: InputProps): ReactElement => {
+export default ({ resetKey, onChange, label, placeholder, validationFn, value, description, preSaveFormat, ...props }: InputProps): JSX.Element => {
   const [internalValue, setInternalValue] = useState(value)
   const [error, setError] = useState<null | Error>(null)
 

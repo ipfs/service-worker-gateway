@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useState, type FunctionComponent, type ReactElement } from 'react'
+import React, { useCallback, useContext, useEffect, useState, type FunctionComponent } from 'react'
 import Header from '../components/Header.jsx'
 import { InputSection } from '../components/input-section.jsx'
 import { InputToggle } from '../components/input-toggle.jsx'
@@ -234,7 +234,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
   )
 }
 
-export default (): ReactElement => {
+export default (): React.JSX.Element => {
   return (
     <ServiceWorkerProvider>
       <ConfigProvider>

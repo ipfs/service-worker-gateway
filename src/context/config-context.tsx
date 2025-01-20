@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useEffect, useState, type ReactElement } from 'react'
+import React, { createContext, useCallback, useEffect, useState } from 'react'
 import { defaultDebug, defaultDnsJsonResolvers, defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, defaultGateways, defaultRouters, defaultSupportsSubdomains, getConfig, resetConfig, type ConfigDb } from '../lib/config-db.js'
 import { getUiComponentLogger } from '../lib/logger.js'
 import type { ComponentLogger } from '@libp2p/logger'
@@ -24,7 +24,7 @@ export const ConfigContext = createContext<ConfigContextType>({
   _supportsSubdomains: defaultSupportsSubdomains
 })
 
-export const ConfigProvider: React.FC<{ children: ReactElement[] | ReactElement, expanded?: boolean }> = ({ children }) => {
+export const ConfigProvider = ({ children }: { children: JSX.Element[] | JSX.Element, expanded?: boolean }): JSX.Element => {
   const [gateways, setGateways] = useState<string[]>(defaultGateways)
   const [routers, setRouters] = useState<string[]>(defaultRouters)
   const [dnsJsonResolvers, setDnsJsonResolvers] = useState<Record<string, string>>(defaultDnsJsonResolvers)

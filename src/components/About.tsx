@@ -1,6 +1,6 @@
-import React, { type ReactElement } from 'react'
+import React from 'react'
 
-export default function About (): ReactElement {
+export default function About (): JSX.Element {
   return (
         <aside className='mw7 lb-snow center w-100 lh-copy pa2 e2e-section-about'>
           <h1 className='pa0 f3 ma0 mb4 teal tc'>About the IPFS Gateway and Service Worker</h1>

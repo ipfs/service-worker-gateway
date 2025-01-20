@@ -1,6 +1,6 @@
-import React, { type ReactElement } from 'react'
+import React from 'react'
 
-export default ({ handleSubmit, requestPath, setRequestPath }): ReactElement => (
+export default ({ handleSubmit, requestPath, setRequestPath }): JSX.Element => (
   <form id='add-file' onSubmit={handleSubmit}>
     <label htmlFor='inputContent' className='f5 ma0 pb2 teal fw4 db'>CID, Content Path, or URL</label>
     <input

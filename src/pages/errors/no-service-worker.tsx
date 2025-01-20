@@ -2,12 +2,12 @@
  * Page to display a user friendly message when `navigator.serviceWorker` is not available.
  */
 
-import React, { type ReactElement } from 'react'
+import React from 'react'
 import About from '../../components/About.jsx'
 import Header from '../../components/Header.jsx'
 import '../default-page-styles.css'
 
-export default function NoServiceWorkerErrorPage (): ReactElement {
+export default function NoServiceWorkerErrorPage (): React.JSX.Element {
   return (
     <>
       <Header />

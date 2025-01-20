@@ -1,8 +1,8 @@
 import { CID } from 'multiformats/cid'
-import React, { type ReactElement } from 'react'
+import React from 'react'
 import { nativeProtocolRegex, pathRegex, subdomainRegex, type IpfsUriParts } from '../lib/regex.js'
 
-function FormatHelp (): ReactElement {
+function FormatHelp (): React.JSX.Element {
   return (
     <>
       <p>Invalid address, correct it and try again. For reference, accepted formats are:</p>
@@ -27,8 +27,8 @@ function FormatHelp (): ReactElement {
   )
 }
 
-function ValidationMessage ({ cidOrPeerIdOrDnslink, requestPath, protocol, children }): ReactElement {
-  let errorElement: ReactElement | null = null
+function ValidationMessage ({ cidOrPeerIdOrDnslink, requestPath, protocol, children }): React.JSX.Element {
+  let errorElement: React.JSX.Element | null = null
   if (requestPath == null || requestPath === '') {
     errorElement = <span><big className="f3">↑</big> Enter a valid IPFS/IPNS content path.</span>
   } else if (protocol !== 'ipfs' && protocol !== 'ipns') {
@@ -73,7 +73,7 @@ const parseInput = (uri: string): Partial<IpfsUriParts> => {
   return {}
 }
 
-export default function InputValidator ({ requestPath }: { requestPath: string }): ReactElement {
+export default function InputValidator ({ requestPath }: { requestPath: string }): React.JSX.Element {
   const { protocol, cidOrPeerIdOrDnslink, path } = parseInput(requestPath)
   const swPath = `/${protocol}/${cidOrPeerIdOrDnslink}${path ?? ''}`
 
