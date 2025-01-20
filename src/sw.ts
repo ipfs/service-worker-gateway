@@ -206,7 +206,6 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
   } else if (isSwConfigGETRequest(event)) {
     log.trace('sw-config GET request')
     event.waitUntil(new Promise<void>((resolve) => {
-      log.trace('sw-config GET request, resolving with config')
       event.respondWith(new Response(JSON.stringify(config), {
         headers: {
           'Content-Type': 'application/json'
@@ -452,7 +451,6 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
   if (verifiedFetch == null) {
     await updateVerifiedFetch()
   }
-  // verifiedFetch = verifiedFetch ?? await getVerifiedFetch(config, swLogger)
 
   /**
    * Note that there are existing bugs regarding service worker signal handling:
