@@ -74,7 +74,7 @@
     "@babel/preset-typescript": "^7.26.0",
     "@playwright/test": "^1.48.2",
     "@types/react": "^19.0.1",
-    "aegir": "^45.0.8",
+    "aegir": "^45.0.9",
     "cross-env": "^7.0.3",
     "esbuild": "^0.24.0",
     "execa": "^8.0.1",
