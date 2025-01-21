@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.1](https://github.com/ipfs/service-worker-gateway/compare/v1.8.0...v1.8.1) (2025-01-21)
+
+
+### Bug Fixes
+
+* config loading ([#547](https://github.com/ipfs/service-worker-gateway/issues/547)) ([5495199](https://github.com/ipfs/service-worker-gateway/commit/549519999196ff676bfa88a2cf18382c5c31e06e))
+
 ## [1.8.0](https://github.com/ipfs/service-worker-gateway/compare/v1.7.1...v1.8.0) (2024-12-12)
 
 
