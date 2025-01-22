@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.2](https://github.com/ipfs/service-worker-gateway/compare/v1.8.1...v1.8.2) (2025-01-22)
+
+
+### Bug Fixes
+
+* enable verified-fetch server-timing headers ([#552](https://github.com/ipfs/service-worker-gateway/issues/552)) ([08828d8](https://github.com/ipfs/service-worker-gateway/commit/08828d8ca33a923aca47483914ff533889e97d9e))
+
 ## [1.8.1](https://github.com/ipfs/service-worker-gateway/compare/v1.8.0...v1.8.1) (2025-01-21)
 
 
