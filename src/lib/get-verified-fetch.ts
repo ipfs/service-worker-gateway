@@ -85,7 +85,7 @@ export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogge
     })
   }
 
-  return createVerifiedFetch(helia, { contentTypeParser })
+  return createVerifiedFetch(helia, { contentTypeParser, withServerTiming: true })
 }
 
 type Libp2pDefaultsOptions = Pick<ConfigDb, 'routers' | 'enableWss' | 'enableWebTransport' | 'enableGatewayProviders'>
