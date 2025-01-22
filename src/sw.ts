@@ -562,6 +562,9 @@ async function errorPageResponse (fetchResponse: Response): Promise<Response> {
   /**
    * TODO: output configuration
    */
+  const mergedHeaders = new Headers(fetchResponse.headers)
+  mergedHeaders.set('Content-Type', 'text/html')
+
   return new Response(`<!DOCTYPE html>
     <html>
       <head>
@@ -595,9 +598,7 @@ async function errorPageResponse (fetchResponse: Response): Promise<Response> {
     </html>`, {
     status: fetchResponse.status,
     statusText: fetchResponse.statusText,
-    headers: new Headers({
-      'Content-Type': 'text/html'
-    })
+    headers: mergedHeaders
   })
 }
 
