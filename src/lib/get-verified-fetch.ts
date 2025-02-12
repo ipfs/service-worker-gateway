@@ -6,6 +6,7 @@ import { createHeliaHTTP } from '@helia/http'
 import { type BlockBroker } from '@helia/interface'
 import { httpGatewayRouting, delegatedHTTPRouting, libp2pRouting } from '@helia/routers'
 import { createVerifiedFetch, type VerifiedFetch } from '@helia/verified-fetch'
+import { dirIndexHtmlPluginFactory } from '@helia/verified-fetch/plugins'
 import { generateKeyPair } from '@libp2p/crypto/keys'
 import { dcutr } from '@libp2p/dcutr'
 import { identify, identifyPush } from '@libp2p/identify'
@@ -85,7 +86,7 @@ export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogge
     })
   }
 
-  return createVerifiedFetch(helia, { contentTypeParser, withServerTiming: true })
+  return createVerifiedFetch(helia, { contentTypeParser, withServerTiming: true, plugins: [dirIndexHtmlPluginFactory] })
 }
 
 type Libp2pDefaultsOptions = Pick<ConfigDb, 'routers' | 'enableWss' | 'enableWebTransport' | 'enableGatewayProviders'>
