@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.9.0](https://github.com/ipfs/service-worker-gateway/compare/v1.8.3...v1.9.0) (2025-02-12)
+
+
+### Features
+
+* support unixfs dir-index-html listing ([#576](https://github.com/ipfs/service-worker-gateway/issues/576)) ([bcb6e1f](https://github.com/ipfs/service-worker-gateway/commit/bcb6e1f50d19d53132bfb147fc6635b0579c0a7a)), closes [#342](https://github.com/ipfs/service-worker-gateway/issues/342)
+
+
+### Bug Fixes
+
+* error page merges verified-fetch headers ([#531](https://github.com/ipfs/service-worker-gateway/issues/531)) ([b9d062e](https://github.com/ipfs/service-worker-gateway/commit/b9d062e9464be305a19992749201c7c0a7038abf))
+
 ## [1.8.3](https://github.com/ipfs/service-worker-gateway/compare/v1.8.2...v1.8.3) (2025-02-11)
 
 
