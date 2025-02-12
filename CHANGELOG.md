@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.3](https://github.com/ipfs/service-worker-gateway/compare/v1.8.2...v1.8.3) (2025-02-11)
+
+
+### Bug Fixes
+
+* **ci:** timeout and cache playwright deps ([#566](https://github.com/ipfs/service-worker-gateway/issues/566)) ([3b29772](https://github.com/ipfs/service-worker-gateway/commit/3b29772cf9c7a3ff4a8b2974c477dd67821ba8cc))
+
 ## [1.8.2](https://github.com/ipfs/service-worker-gateway/compare/v1.8.1...v1.8.2) (2025-01-22)
 
 
