@@ -103,8 +103,14 @@ let verifiedFetch: VerifiedFetch
 const timeoutAbortEventType = 'verified-fetch-timeout'
 const ONE_HOUR_IN_SECONDS = 3600
 const urlInterceptRegex = [new RegExp(`${self.location.origin}/ip(n|f)s/`)]
+let config: ConfigDb
+
+const updateConfig = async (): Promise<void> => {
+  config = await getConfig(swLogger)
+}
 const updateVerifiedFetch = async (): Promise<void> => {
-  const config = await getConfig(swLogger)
+  await updateConfig()
+
   verifiedFetch = await getVerifiedFetch(config, swLogger)
 }
 let swIdb: GenericIDB<LocalSwConfig>
@@ -197,6 +203,17 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
       log.error('sw-config reload request, error updating verifiedFetch', err)
     }))
     return false
+  } else if (isSwConfigGETRequest(event)) {
+    log.trace('sw-config GET request')
+    event.waitUntil(new Promise<void>((resolve) => {
+      event.respondWith(new Response(JSON.stringify(config), {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }))
+      resolve()
+    }))
+    return false
   } else if (isSwAssetRequest(event)) {
     log.trace('sw-asset request, returning cached response ', event.request.url)
     /**
@@ -278,6 +295,10 @@ function isAggregateError (err: unknown): err is AggregateError {
 
 function isSwConfigReloadRequest (event: FetchEvent): boolean {
   return event.request.url.includes('/#/ipfs-sw-config-reload')
+}
+
+function isSwConfigGETRequest (event: FetchEvent): boolean {
+  return event.request.url.includes('/#/ipfs-sw-config-get')
 }
 
 function isSwAssetRequest (event: FetchEvent): boolean {
@@ -427,7 +448,9 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
    *
    * @see https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle
    */
-  verifiedFetch = verifiedFetch ?? await getVerifiedFetch(await getConfig(swLogger), swLogger)
+  if (verifiedFetch == null) {
+    await updateVerifiedFetch()
+  }
 
   /**
    * Note that there are existing bugs regarding service worker signal handling:
