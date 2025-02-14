@@ -81,7 +81,7 @@
     "glob": "^10.3.12",
     "http-server": "^14.1.1",
     "ipfsd-ctl": "^15.0.2",
-    "kubo": "^0.32.1",
+    "kubo": "^0.33.2",
     "kubo-rpc-client": "^5.0.2",
     "npm-run-all": "^4.1.5",
     "patch-package": "^8.0.0",
