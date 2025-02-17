@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.1](https://github.com/ipfs/service-worker-gateway/compare/v1.9.0...v1.9.1) (2025-02-17)
+
+
+### Bug Fixes
+
+* trigger release ([002ecf5](https://github.com/ipfs/service-worker-gateway/commit/002ecf5c4996d745420b00f3e9741df8e6b9c1e8))
+
 ## [1.9.0](https://github.com/ipfs/service-worker-gateway/compare/v1.8.3...v1.9.0) (2025-02-12)
 
 
