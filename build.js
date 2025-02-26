@@ -73,7 +73,6 @@ const calculateFileHash = (filePath) => {
  */
 const injectAssets = (metafile) => {
   const htmlFilePath = path.resolve('dist/index.html')
-  const nonce = gitRevision() // Use the git revision as the CSP nonce
 
   // Extract the output file names from the metafile
   const outputs = metafile.outputs
@@ -89,7 +88,7 @@ const injectAssets = (metafile) => {
   console.log(`Script hash (sha256): ${scriptHash}`)
   console.log(`CSS hash (sha256): ${cssHash}`)
 
-  const scriptTag = `<script type="module" nonce="${nonce}" src="${path.basename(scriptFile)}"></script>`
+  const scriptTag = `<script type="module" src="${path.basename(scriptFile)}"></script>`
   const linkTag = `<link rel="stylesheet" href="${path.basename(cssFile)}">`
 
   // Read the index.html file
