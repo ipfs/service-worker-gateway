@@ -2,6 +2,7 @@
 import { execSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
+import crypto from 'node:crypto'
 import esbuild from 'esbuild'
 
 const copyPublicFiles = () => {
@@ -53,23 +54,53 @@ function gitRevision () {
 }
 
 /**
+ * Calculate SHA-256 hash of a file
+ * 
+ * @param {string} filePath - Path to the file
+ * @returns {string} - Base64 encoded SHA-256 hash
+ */
+const calculateFileHash = (filePath) => {
+  const fileBuffer = fs.readFileSync(filePath)
+  const hashSum = crypto.createHash('sha256')
+  hashSum.update(fileBuffer)
+  return hashSum.digest('base64')
+}
+
+/**
  * Inject the dist/index.js and dist/index.css into the dist/index.html file
  *
  * @param {esbuild.Metafile} metafile
  */
 const injectAssets = (metafile) => {
   const htmlFilePath = path.resolve('dist/index.html')
+  const nonce = gitRevision() // Use the git revision as the CSP nonce
 
   // Extract the output file names from the metafile
   const outputs = metafile.outputs
   const scriptFile = Object.keys(outputs).find(file => file.endsWith('.js') && file.includes('ipfs-sw-index'))
   const cssFile = Object.keys(outputs).find(file => file.endsWith('.css') && file.includes('ipfs-sw-index'))
 
-  const scriptTag = `<script type="module" src="${path.basename(scriptFile)}"></script>`
+  // Calculate hashes for script and CSS files
+  const scriptPath = scriptFile // The metafile outputs already contain absolute paths
+  const cssPath = cssFile // The metafile outputs already contain absolute paths
+  const scriptHash = calculateFileHash(scriptPath)
+  const cssHash = calculateFileHash(cssPath)
+
+  console.log(`Script hash (sha256): ${scriptHash}`)
+  console.log(`CSS hash (sha256): ${cssHash}`)
+
+  const scriptTag = `<script type="module" nonce="${nonce}" src="${path.basename(scriptFile)}"></script>`
   const linkTag = `<link rel="stylesheet" href="${path.basename(cssFile)}">`
 
   // Read the index.html file
   let htmlContent = fs.readFileSync(htmlFilePath, 'utf8')
+
+  // Update the CSP header with the calculated hashes
+  const cspContent = `default-src 'none'; script-src 'self' 'sha256-${scriptHash}'; style-src 'self' 'sha256-${cssHash}'; img-src 'self'; font-src 'self'; manifest-src 'self'; connect-src 'self';`
+  htmlContent = htmlContent.replace(
+    /<meta http-equiv="Content-Security-Policy"[^>]*>/,
+    `<meta http-equiv="Content-Security-Policy" content="${cspContent}">`
+  )
 
   // Inject the link tag for CSS before the closing </head> tag
   htmlContent = htmlContent.replace('</head>', `${linkTag}</head>`)
@@ -82,7 +113,7 @@ const injectAssets = (metafile) => {
 
   // Write the modified HTML back to the index.html file
   fs.writeFileSync(htmlFilePath, htmlContent)
-  console.log(`Injected ${path.basename(scriptFile)} and ${path.basename(cssFile)} into index.html.`)
+  console.log(`Injected ${path.basename(scriptFile)} and ${path.basename(cssFile)} into index.html with CSP hashes.`)
 }
 
 /**
