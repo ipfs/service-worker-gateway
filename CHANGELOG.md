@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.2](https://github.com/ipfs/service-worker-gateway/compare/v1.9.1...v1.9.2) (2025-02-28)
+
+
+### Bug Fixes
+
+* recognize svg and json content-types ([#603](https://github.com/ipfs/service-worker-gateway/issues/603)) ([2d6ff74](https://github.com/ipfs/service-worker-gateway/commit/2d6ff749ec7988d176c0985401bbf3013ff1f1af))
+
 ## [1.9.1](https://github.com/ipfs/service-worker-gateway/compare/v1.9.0...v1.9.1) (2025-02-17)
 
 
