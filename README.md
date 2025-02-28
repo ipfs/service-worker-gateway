@@ -107,11 +107,9 @@ aiming to be a drop-in replacement for `ipfs.io`:
 - 🚧 **WIP: alpha quality** https://ipfs-service-worker-gateway.pages.dev hosts the `release` branch, with a stable [release](https://github.com/ipfs/service-worker-gateway/releases)
 - 🚧 **WIP: alpha quality** https://staging.ipfs-service-worker-gateway.pages.dev hosts the `staging` branch with development / testing version
 
+#### Deploying to `production` and `staging`
 
-#### Updating `production` and `staging`
-
-Make a PR to the respective branch. Once it is merged, new version will be
-deployed. The process takes between 1 and 5 minutes.
+Deploying to [production[(https://github.com/ipfs/service-worker-gateway/actions/workflows/deploy-to-production.yml) and [staging](https://github.com/ipfs/service-worker-gateway/actions/workflows/deploy-to-staging.yml) is done by manually running the deployment action and passing the release version to the action.
 
 ## License
 
