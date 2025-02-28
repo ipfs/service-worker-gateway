@@ -4,13 +4,32 @@ import { fileTypeFromBuffer } from '@sgtpooki/file-type'
 // default from verified-fetch is application/octect-stream, which forces a download. This is not what we want for MANY file types.
 export const defaultMimeType = 'text/html'
 
+function checkForSvg (bytes: Uint8Array): boolean {
+  return /^(<\?xml[^>]+>)?[^<^\w]+<svg/ig.test(new TextDecoder().decode(bytes.slice(0, 64)))
+}
+
+async function checkForJson (bytes: Uint8Array): Promise<boolean> {
+  try {
+    JSON.parse(new TextDecoder().decode(bytes))
+    return true
+  } catch (err) {
+    return false
+  }
+}
+
 export const contentTypeParser: ContentTypeParser = async (bytes, fileName) => {
   const detectedType = (await fileTypeFromBuffer(bytes))?.mime
   if (detectedType != null) {
     return detectedType
   }
+
   if (fileName == null) {
     // no other way to determine file-type.
+    if (checkForSvg(bytes)) {
+      return 'image/svg+xml'
+    } else if (await checkForJson(bytes)) {
+      return 'application/json'
+    }
     return defaultMimeType
   }
 
