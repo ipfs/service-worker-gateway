@@ -41,13 +41,13 @@ const ConfigIframe: React.FC = () => {
   }, [isServiceWorkerRegistered])
 
   return (
-    <div style={{ display: isVisible ? "block" : "none" }}>
+    <div style={{ display: isVisible ? 'block' : 'none' }}>
       <iframe id="redirect-config-iframe" src={iframeSrc} style={{ width: '100vw', height: '100vh', border: 'none' }} />
     </div>
   )
 }
 
-function RedirectPage({ showConfigIframe = true }: { showConfigIframe?: boolean }): ReactElement {
+function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean }): ReactElement {
   const [isAutoReloadEnabled] = useState(true)
   const { isServiceWorkerRegistered } = useContext(ServiceWorkerContext)
   const [reloadUrl, setReloadUrl] = useState(translateIpfsRedirectUrl(window.location.href).href)
@@ -59,7 +59,7 @@ function RedirectPage({ showConfigIframe = true }: { showConfigIframe?: boolean 
       setReloadUrl(window.location.href.replace('#/ipfs-sw-config', ''))
     }
 
-    async function doWork(config: ConfigDb): Promise<void> {
+    async function doWork (config: ConfigDb): Promise<void> {
       try {
         await setConfig(config, uiComponentLogger)
         await tellSwToReloadConfig()
