@@ -539,7 +539,9 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
 async function errorPageResponse (fetchResponse: Response): Promise<Response> {
   const responseContentType = fetchResponse.headers.get('Content-Type')
   let json: Record<string, any> | null = null
-  const responseBodyAsText: string | null = await fetchResponse.text()
+  // Clone the response before consuming the body
+  const responseCopy = fetchResponse.clone()
+  const responseBodyAsText: string | null = await responseCopy.text()
 
   if (responseContentType != null) {
     if (responseContentType.includes('text/html')) {
