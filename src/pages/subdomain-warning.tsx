@@ -4,7 +4,6 @@ import './default-page-styles.css'
 import './loading.css'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
-// import LoadingPage from './loading.jsx'
 
 function IpAddressRecommendations ({ currentHost }: { currentHost: string }): ReactNode {
   return (
@@ -45,8 +44,6 @@ export default function SubdomainWarningPage (): ReactNode {
     setIsSaving(true)
     // Store the user's choice in sessionStorage so it persists during the session
     sessionStorage.setItem('ipfs-sw-gateway-accepted-path-gateway-risk', 'true')
-    // Continue with path gateway by reloading the page
-    // window.location.reload()
     // post to SW to accept the risk
     try {
       await fetch('/#/ipfs-sw-accept-origin-isolation-warning').then(() => {
@@ -61,8 +58,6 @@ export default function SubdomainWarningPage (): ReactNode {
   }, [])
 
   useEffect(() => {
-    // eslint-disable-next-line no-console
-    console.log('originalUrl', originalUrl)
 
     if (acceptedRisk) {
       window.location.href = originalUrl ?? '/'
@@ -107,13 +102,6 @@ export default function SubdomainWarningPage (): ReactNode {
 
         <div className="flex justify-center mt4">
           <ServiceWorkerReadyButton id="accept-warning" label={isSaving ? 'Accepting...' : 'I understand the risks - Continue anyway'} waitingLabel='Waiting for service worker registration...' onClick={() => { void handleAcceptRisk() }} />
-          {/* <ServiceWorkerReadyButton className="f6 link dim br2 ph3 pv2 mb2 dib" id="accept-warning" label={isSaving ? 'Accepting...' : 'I understand the risks - Continue anyway'} waitingLabel='Waiting for service worker registration...' onClick={() => { void handleAcceptRisk() }} /> */}
-          {/* <button
-            className="f6 link dim br2 ph3 pv2 mb2 dib white bg-red pointer"
-            onClick={() => { void handleAcceptRisk() }}
-          >
-            I understand the risks - Continue anyway
-          </button> */}
         </div>
       </main>
     </ServiceWorkerProvider>

@@ -459,7 +459,6 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
     newUrl.pathname = '/'
     newUrl.hash = '/ipfs-sw-origin-isolation-warning'
     newUrl.searchParams.set('helia-sw', request.url)
-    // sessionStorage.setItem('ipfs-sw-gateway-accepted-path-gateway-risk', 'true')
     return new Response('Origin isolation is not supported, please accept the risk to continue.', {
       status: 307,
       headers: {
