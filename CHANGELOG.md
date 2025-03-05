@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.3](https://github.com/ipfs/service-worker-gateway/compare/v1.9.2...v1.9.3) (2025-03-05)
+
+
+### Bug Fixes
+
+* firefox video plays correctly ([#616](https://github.com/ipfs/service-worker-gateway/issues/616)) ([c0eb353](https://github.com/ipfs/service-worker-gateway/commit/c0eb3534a3f44dfbaef6a5f6607b5468faf1e516))
+
 ## [1.9.2](https://github.com/ipfs/service-worker-gateway/compare/v1.9.1...v1.9.2) (2025-02-28)
 
 
