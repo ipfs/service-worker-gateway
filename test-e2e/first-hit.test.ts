@@ -78,9 +78,6 @@ test.describe('first-hit direct-hosted', () => {
 
       await expect(page).toHaveURL('http://127.0.0.1:3333/ipfs/bafkqablimvwgy3y')
 
-      // // wait for loading page to finish '.loading-page' to be removed
-      // await page.waitForSelector('.loading-page', { state: 'detached' })
-
       // and we verify the content was returned
       await page.waitForSelector('text=hello', { timeout: 25000 })
     })

@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useState, type ReactNode } from 'react'
 import Header from '../components/Header.jsx'
 import './default-page-styles.css'
 import './loading.css'
+import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
+import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
 // import LoadingPage from './loading.jsx'
 
 function IpAddressRecommendations ({ currentHost }: { currentHost: string }): ReactNode {
@@ -36,10 +38,11 @@ function DefaultRecommendations ({ currentHost }: { currentHost: string }): Reac
  */
 export default function SubdomainWarningPage (): ReactNode {
   const [acceptedRisk, setAcceptedRisk] = useState(sessionStorage.getItem('ipfs-sw-gateway-accepted-path-gateway-risk') != null ?? false)
-
+  const [isSaving, setIsSaving] = useState(false)
   const originalUrl = new URL(window.location.href).searchParams.get('helia-sw')
 
   const handleAcceptRisk = useCallback(async () => {
+    setIsSaving(true)
     // Store the user's choice in sessionStorage so it persists during the session
     sessionStorage.setItem('ipfs-sw-gateway-accepted-path-gateway-risk', 'true')
     // Continue with path gateway by reloading the page
@@ -52,6 +55,8 @@ export default function SubdomainWarningPage (): ReactNode {
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Error accepting risk', error)
+    } finally {
+      setIsSaving(false)
     }
   }, [])
 
@@ -74,10 +79,10 @@ export default function SubdomainWarningPage (): ReactNode {
   }
 
   return (
-    <>
+    <ServiceWorkerProvider>
       <Header />
-      <main className='pa4-l bg-yellow-muted mw7 mb5 center pa4 e2e-subdomain-warning mt4'>
-        <div className="flex items-center mb3">
+      <main className='pa4-l bg-red mw7 mb5 center pa4 e2e-subdomain-warning mt4'>
+        <div className="flex items-center mb3 bg-red">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr2">
             <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
             <line x1="12" y1="9" x2="12" y2="13"></line>
@@ -86,7 +91,7 @@ export default function SubdomainWarningPage (): ReactNode {
           <h1 className="ma0 f3">Warning: Subdomain Gateway Not Available</h1>
         </div>
 
-        <div className="ba b--yellow-dark pa3 mb4 bg-yellow-light">
+        <div className="ba b--yellow-dark pa3 mb4 bg-red-muted">
           <p className="ma0 mb2 b">This website is using a path-based IPFS gateway without proper origin isolation.</p>
           <p className="ma0">
             Without subdomain support, the following features will be missing:
@@ -101,14 +106,16 @@ export default function SubdomainWarningPage (): ReactNode {
         <RecommendationsElement currentHost={currentHost} />
 
         <div className="flex justify-center mt4">
-          <button
+          <ServiceWorkerReadyButton id="accept-warning" label={isSaving ? 'Accepting...' : 'I understand the risks - Continue anyway'} waitingLabel='Waiting for service worker registration...' onClick={() => { void handleAcceptRisk() }} />
+          {/* <ServiceWorkerReadyButton className="f6 link dim br2 ph3 pv2 mb2 dib" id="accept-warning" label={isSaving ? 'Accepting...' : 'I understand the risks - Continue anyway'} waitingLabel='Waiting for service worker registration...' onClick={() => { void handleAcceptRisk() }} /> */}
+          {/* <button
             className="f6 link dim br2 ph3 pv2 mb2 dib white bg-red pointer"
             onClick={() => { void handleAcceptRisk() }}
           >
             I understand the risks - Continue anyway
-          </button>
+          </button> */}
         </div>
       </main>
-    </>
+    </ServiceWorkerProvider>
   )
 }
