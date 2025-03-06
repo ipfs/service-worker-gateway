@@ -17,19 +17,33 @@ const log = uiLogger.forComponent('redirect-page')
 
 const ConfigIframe: React.FC = () => {
   const { parentDomain } = getSubdomainParts(window.location.href)
+  const { isServiceWorkerRegistered } = useContext(ServiceWorkerContext)
+
   let iframeSrc
   if (parentDomain == null || parentDomain === window.location.href) {
     const url = new URL(window.location.href)
     url.pathname = '/'
     url.hash = `#/ipfs-sw-config@origin=${encodeURIComponent(window.location.origin)}`
+
     iframeSrc = url.href
   } else {
     const portString = window.location.port === '' ? '' : `:${window.location.port}`
     iframeSrc = `${window.location.protocol}//${parentDomain}${portString}/#/ipfs-sw-config@origin=${encodeURIComponent(window.location.origin)}`
   }
 
+  const [isVisible, setIsVisible] = useState(false)
+
+  useEffect(() => {
+    // Only show iframe after service worker is registered
+    if (isServiceWorkerRegistered) {
+      setIsVisible(true)
+    }
+  }, [isServiceWorkerRegistered])
+
   return (
-    <iframe id="redirect-config-iframe" src={iframeSrc} style={{ width: '100vw', height: '100vh', border: 'none' }} />
+    <div style={{ display: isVisible ? 'block' : 'none' }}>
+      <iframe id="redirect-config-iframe" src={iframeSrc} style={{ width: '100vw', height: '100vh', border: 'none' }} />
+    </div>
   )
 }
 
@@ -38,6 +52,7 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
   const { isServiceWorkerRegistered } = useContext(ServiceWorkerContext)
   const [reloadUrl, setReloadUrl] = useState(translateIpfsRedirectUrl(window.location.href).href)
   const [isLoadingContent, setIsLoadingContent] = useState(false)
+  const [isConfigLoading, setIsConfigLoading] = useState(true)
 
   useEffect(() => {
     if (isConfigPage(window.location.hash)) {
@@ -60,6 +75,7 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
         if (config != null) {
           void doWork(config as ConfigDb)
         }
+        setIsConfigLoading(false)
       }
     }
     window.addEventListener('message', listener)
@@ -90,7 +106,7 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
     }
   }, [isAutoReloadEnabled, isServiceWorkerRegistered, loadContent])
 
-  if (isLoadingContent) {
+  if (isLoadingContent || isConfigLoading) {
     return <LoadingPage />
   }
 
