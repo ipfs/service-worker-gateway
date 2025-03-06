@@ -33,8 +33,13 @@ export const test = base.extend<{ rootDomain: string, baseURL: string, protocol:
 export const testPathRouting = test.extend<{ rootDomain: string, baseURL: string, protocol: string }>({
   rootDomain: [rootDomain, { scope: 'test' }],
   protocol: [baseURLProtocol, { scope: 'test' }],
+  // eslint-disable-next-line no-empty-pattern
+  baseURL: async ({ }, use) => {
+    // Override baseURL to always be http://127.0.0.1:3333 for path routing tests
+    await use('http://127.0.0.1:3333')
+  },
   page: async ({ page, rootDomain }, use) => {
-    if (!rootDomain.includes('localhost')) {
+    if (!rootDomain.includes('localhost') && !rootDomain.includes('127.0.0.1')) {
       // for non localhost tests, we skip path routing tests
       testPathRouting.skip()
       return

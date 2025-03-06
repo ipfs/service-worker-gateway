@@ -28,7 +28,7 @@ export const findOriginIsolationRedirect = async (location: Pick<Location, 'prot
   const log = logger?.forComponent('find-origin-isolation-redirect')
   if (isPathGatewayRequest(location) && !isSubdomainGatewayRequest(location)) {
     log?.trace('checking for subdomain support')
-    if (await areSubdomainsSupported() === true) {
+    if (await areSubdomainsSupported(logger) === true) {
       log?.trace('subdomain support is enabled')
       return toSubdomainRequest(location)
     } else {

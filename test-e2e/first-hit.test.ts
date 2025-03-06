@@ -19,6 +19,10 @@ test.describe('first-hit ipfs-hosted', () => {
       expect(response?.status()).toBe(200)
       const headers = await response?.allHeaders()
 
+      // accept the origin isolation warning
+      await expect(page).toHaveURL(/#\/ipfs-sw-origin-isolation-warning/)
+      await page.click('.e2e-subdomain-warning button')
+
       expect(headers?.['content-type']).toContain('text/html')
 
       // wait for loading page to finish '.loading-page' to be removed
@@ -68,12 +72,11 @@ test.describe('first-hit direct-hosted', () => {
 
       // first loads the root page
       expect(response?.status()).toBe(200)
-      const headers = await response?.allHeaders()
 
-      expect(headers?.['content-type']).toContain('text/html')
+      await expect(page).toHaveURL(/#\/ipfs-sw-origin-isolation-warning/)
+      await page.click('.e2e-subdomain-warning button')
 
-      // wait for loading page to finish '.loading-page' to be removed
-      await page.waitForSelector('.loading-page', { state: 'detached' })
+      await expect(page).toHaveURL('http://127.0.0.1:3333/ipfs/bafkqablimvwgy3y')
 
       // and we verify the content was returned
       await page.waitForSelector('text=hello', { timeout: 25000 })

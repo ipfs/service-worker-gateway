@@ -36,3 +36,11 @@ export function shouldRenderRedirectsInterstitial (): boolean {
 export function shouldRenderNoServiceWorkerError (): boolean {
   return !('serviceWorker' in navigator)
 }
+
+export async function shouldRenderSubdomainWarningPage (): Promise<boolean> {
+  if (window.location.hash.startsWith('#/ipfs-sw-origin-isolation-warning')) {
+    return true
+  }
+
+  return false
+}
