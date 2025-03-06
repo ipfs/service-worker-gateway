@@ -58,7 +58,6 @@ export default function SubdomainWarningPage (): ReactNode {
   }, [])
 
   useEffect(() => {
-
     if (acceptedRisk) {
       window.location.href = originalUrl ?? '/'
     }
