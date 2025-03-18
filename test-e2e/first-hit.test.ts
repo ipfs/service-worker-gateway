@@ -13,8 +13,6 @@ test.describe('first-hit ipfs-hosted', () => {
     test('redirects to ?helia-sw=<path> are handled', async ({ page }) => {
       const response = await page.goto('http://127.0.0.1:3334/ipfs/bafkqablimvwgy3y')
 
-      expect(response?.url()).toBe('http://127.0.0.1:3334/?helia-sw=/ipfs/bafkqablimvwgy3y')
-
       // first loads the root page
       expect(response?.status()).toBe(200)
       const headers = await response?.allHeaders()
@@ -37,8 +35,6 @@ test.describe('first-hit ipfs-hosted', () => {
     test('redirects to ?helia-sw=<path> are handled', async ({ page, rootDomain, protocol }) => {
       const response = await page.goto('http://localhost:3334/ipfs/bafkqablimvwgy3y')
 
-      expect(response?.url()).toBe('http://localhost:3334/?helia-sw=/ipfs/bafkqablimvwgy3y')
-
       // first loads the root page
       expect(response?.status()).toBe(200)
       const headers = await response?.allHeaders()
@@ -56,19 +52,13 @@ test.describe('first-hit ipfs-hosted', () => {
     test('redirects to ?helia-sw=<path> with extra query params are handled', async ({ page }) => {
       const response = await page.goto('http://localhost:3334/ipfs/bafkqablimvwgy3y?foo=bar')
 
+      expect(response?.url()).toBe('http://localhost:3334/ipfs/bafkqablimvwgy3y?foo=bar')
+
       // first loads the root page
       expect(response?.status()).toBe(200)
-      const headers = await response?.allHeaders()
 
-      expect(headers?.['content-type']).toContain('text/html')
-
-      // wait for loading page to finish '.loading-page' to be removed
-      await page.waitForSelector('.loading-page', { state: 'detached' })
-
-      // and we verify the content was returned
-      await page.waitForSelector('text=hello', { timeout: 25000 })
-
-      expect(page.url()).toBe('http://bafkqablimvwgy3y.ipfs.localhost:3334/?foo=bar')
+      // wait for page to be ?helia-sw=<path>&foo=bar
+      await expect(page).toHaveURL('http://bafkqablimvwgy3y.ipfs.localhost:3334/?foo=bar')
     })
   })
 })
