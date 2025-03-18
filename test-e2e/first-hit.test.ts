@@ -54,7 +54,6 @@ test.describe('first-hit ipfs-hosted', () => {
 
       expect(response?.url()).toBe('http://localhost:3334/ipfs/bafkqablimvwgy3y?foo=bar')
 
-      // first loads the root page
       expect(response?.status()).toBe(200)
 
       await expect(page).toHaveURL('http://bafkqablimvwgy3y.ipfs.localhost:3334/?foo=bar')
