@@ -86,6 +86,30 @@ const injectAssets = (metafile) => {
 }
 
 /**
+ * Inject the ipfs-sw-first-hit.js into the ipfs-sw-first-hit.html file
+ *
+ * This was added when addressing an issue with redirects not preserving query parameters.
+ *
+ * The solution we're moving forward with is, instead of using 302 redirects with ipfs _redirects file, we are
+ * using 200 responses with the ipfs-sw-first-hit.html file. That file will include the ipfs-sw-first-hit.js script
+ * which will be injected into the index.html file, and handle the redirect logic for us.
+ *
+ * @see https://github.com/ipfs/service-worker-gateway/issues/628
+ *
+ * @param {esbuild.Metafile} metafile
+ */
+const injectFirstHitJs = (metafile) => {
+  const htmlFilePath = path.resolve('dist/ipfs-sw-first-hit.html')
+
+  const scriptFile = Object.keys(metafile.outputs).find(file => file.endsWith('.js') && file.includes('ipfs-sw-first-hit'))
+  const scriptTag = `<script src="/${path.basename(scriptFile)}"></script>`
+  let htmlContent = fs.readFileSync(htmlFilePath, 'utf8')
+  htmlContent = htmlContent.replace(/<%= GIT_VERSION %>/g, gitRevision())
+  htmlContent = htmlContent.replace('</body>', `${scriptTag}</body>`)
+  fs.writeFileSync(htmlFilePath, htmlContent)
+}
+
+/**
  * We need the service worker to have a consistent name
  *
  * @type {esbuild.Plugin}
@@ -126,6 +150,7 @@ const modifyBuiltFiles = {
     build.onEnd(async (result) => {
       copyPublicFiles()
       injectAssets(result.metafile)
+      injectFirstHitJs(result.metafile)
     })
   }
 }
@@ -149,7 +174,7 @@ const excludeFilesPlugin = (extensions) => ({
  * @type {esbuild.BuildOptions}
  */
 export const buildOptions = {
-  entryPoints: ['src/index.tsx', 'src/sw.ts'],
+  entryPoints: ['src/index.tsx', 'src/sw.ts', 'src/ipfs-sw-first-hit.ts'],
   bundle: true,
   outdir: 'dist',
   loader: {
