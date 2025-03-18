@@ -20,7 +20,6 @@ import { createHelia, type Helia, type Routing } from 'helia'
 import { createLibp2p, type Libp2pOptions } from 'libp2p'
 import * as libp2pInfo from 'libp2p/version'
 import { blake3 } from './blake3.js'
-import { contentTypeParser } from './content-type-parser.js'
 import type { ConfigDb } from './config-db.js'
 import type { ComponentLogger } from '@libp2p/logger'
 
@@ -86,7 +85,7 @@ export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogge
     })
   }
 
-  return createVerifiedFetch(helia, { contentTypeParser, withServerTiming: true, plugins: [dirIndexHtmlPluginFactory] })
+  return createVerifiedFetch(helia, { withServerTiming: true, plugins: [dirIndexHtmlPluginFactory] })
 }
 
 type Libp2pDefaultsOptions = Pick<ConfigDb, 'routers' | 'enableWss' | 'enableWebTransport' | 'enableGatewayProviders'>
