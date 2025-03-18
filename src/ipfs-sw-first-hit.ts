@@ -18,11 +18,6 @@ const handleFirstHit = (): void => {
     redirectUrl.searchParams.set(key, value)
   })
 
-  // eslint-disable-next-line no-console
-  console.log('redirectUrl', redirectUrl.toString())
-
-  // we should remove the history of the redirect to this page
-  // history.replaceState({}, '', redirectUrl.toString())
   // remove the current url from the history
   history.replaceState({}, '', redirectUrl.toString())
 
