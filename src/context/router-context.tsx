@@ -1,10 +1,10 @@
-import React, { useCallback, useEffect, type ReactElement } from 'react'
+import React, { useCallback, useEffect, type ReactNode } from 'react'
 
 export interface Route {
   default?: boolean
   path?: string
   shouldRender?(): Promise<boolean>
-  component: React.LazyExoticComponent<(...args: any[]) => ReactElement | null>
+  component: React.LazyExoticComponent<(...args: any[]) => ReactNode>
 }
 
 export const RouteContext = React.createContext<{

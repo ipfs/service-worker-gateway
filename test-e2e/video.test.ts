@@ -6,6 +6,16 @@ import type { ConfigDbWithoutPrivateFields } from '../src/lib/config-db.js'
 const cid = 'bafybeie4vcqkutumw7s26ob2bwqwqi44m6lrssjmiirlhrzhs2akdqmkw4' // big buck bunny webm trimmed to 15 seconds with `ffmpeg -i bigbuckbunny.webm -ss 00:00 -t 00:15 -c:a copy -c:v copy bigbuckbunny-mini.webm`
 
 test.describe('video', () => {
+  test.beforeEach(async ({ page }) => {
+    // we need to send a request to the service worker to accept the origin isolation warning
+    await page.evaluate(async () => {
+      const response = await fetch('/#/ipfs-sw-accept-origin-isolation-warning')
+      if (!response.ok) {
+        throw new Error('Failed to accept origin isolation warning')
+      }
+    })
+  })
+
   const testConfig: Partial<ConfigDbWithoutPrivateFields> = {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     gateways: [process.env.KUBO_GATEWAY!],

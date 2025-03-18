@@ -5,7 +5,7 @@ import { getSubdomainParts } from './lib/get-subdomain-parts.js'
 import { getVerifiedFetch } from './lib/get-verified-fetch.js'
 import { isConfigPage } from './lib/is-config-page.js'
 import { swLogger } from './lib/logger.js'
-import { findOriginIsolationRedirect } from './lib/path-or-subdomain.js'
+import { findOriginIsolationRedirect, isPathGatewayRequest } from './lib/path-or-subdomain.js'
 import type { VerifiedFetch } from '@helia/verified-fetch'
 
 /**
@@ -42,6 +42,7 @@ interface StoreReponseInCacheOptions {
  */
 interface LocalSwConfig {
   installTimestamp: number
+  originIsolationWarningAccepted: boolean
 }
 
 /**
@@ -203,6 +204,13 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
       log.error('sw-config reload request, error updating verifiedFetch', err)
     }))
     return false
+  } else if (isAcceptOriginIsolationWarningRequest(event)) {
+    event.waitUntil(setOriginIsolationWarningAccepted().then(() => {
+      log.trace('origin isolation warning accepted')
+    }).catch((err) => {
+      log.error('origin isolation warning accepted, error', err)
+    }))
+    return false
   } else if (isSwConfigGETRequest(event)) {
     log.trace('sw-config GET request')
     event.waitUntil(new Promise<void>((resolve) => {
@@ -299,6 +307,10 @@ function isSwConfigReloadRequest (event: FetchEvent): boolean {
 
 function isSwConfigGETRequest (event: FetchEvent): boolean {
   return event.request.url.includes('/#/ipfs-sw-config-get')
+}
+
+function isAcceptOriginIsolationWarningRequest (event: FetchEvent): boolean {
+  return event.request.url.includes('/#/ipfs-sw-accept-origin-isolation-warning')
 }
 
 function isSwAssetRequest (event: FetchEvent): boolean {
@@ -430,8 +442,9 @@ async function storeReponseInCache ({ response, isMutable, cacheKey, event }: St
 }
 
 async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise<Response> {
+  const originalUrl = new URL(request.url)
   // test and enforce origin isolation before anything else is executed
-  const originLocation = await findOriginIsolationRedirect(new URL(request.url), swLogger)
+  const originLocation = await findOriginIsolationRedirect(originalUrl, swLogger)
   if (originLocation !== null) {
     const body = 'Gateway supports subdomain mode, redirecting to ensure Origin isolation..'
     return new Response(body, {
@@ -439,6 +452,18 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
       headers: {
         'Content-Type': 'text/plain',
         Location: originLocation
+      }
+    })
+  } else if (isPathGatewayRequest(originalUrl) && !(await getOriginIsolationWarningAccepted())) {
+    const newUrl = new URL(originalUrl.href)
+    newUrl.pathname = '/'
+    newUrl.hash = '/ipfs-sw-origin-isolation-warning'
+    newUrl.searchParams.set('helia-sw', request.url)
+    return new Response('Origin isolation is not supported, please accept the risk to continue.', {
+      status: 307,
+      headers: {
+        'Content-Type': 'text/plain',
+        Location: newUrl.href
       }
     })
   }
@@ -668,6 +693,30 @@ async function addInstallTimestampToConfig (): Promise<void> {
     swidb.close()
   } catch (e) {
     log.error('addInstallTimestampToConfig error: ', e)
+  }
+}
+
+async function setOriginIsolationWarningAccepted (): Promise<void> {
+  try {
+    const swidb = getSwConfig()
+    await swidb.open()
+    await swidb.put('originIsolationWarningAccepted', true)
+    swidb.close()
+  } catch (e) {
+    log.error('addInstallTimestampToConfig error: ', e)
+  }
+}
+
+async function getOriginIsolationWarningAccepted (): Promise<boolean> {
+  try {
+    const swidb = getSwConfig()
+    await swidb.open()
+    const accepted = await swidb.get('originIsolationWarningAccepted')
+    swidb.close()
+    return accepted ?? false
+  } catch (e) {
+    log.error('getOriginIsolationWarningAccepted error: ', e)
+    return false
   }
 }
 
