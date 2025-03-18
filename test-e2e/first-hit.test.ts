@@ -57,7 +57,6 @@ test.describe('first-hit ipfs-hosted', () => {
       // first loads the root page
       expect(response?.status()).toBe(200)
 
-      // wait for page to be ?helia-sw=<path>&foo=bar
       await expect(page).toHaveURL('http://bafkqablimvwgy3y.ipfs.localhost:3334/?foo=bar')
     })
   })
