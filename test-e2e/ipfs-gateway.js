@@ -141,7 +141,6 @@ async function stopServices () {
   }
 }
 
-// Function to update IPFS with new dist files
 async function updateDistFiles () {
   log.trace('Checking for changes in dist directory...')
 
