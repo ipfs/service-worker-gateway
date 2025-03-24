@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.10.0](https://github.com/ipfs/service-worker-gateway/compare/v1.9.3...v1.10.0) (2025-03-18)
+
+
+### Features
+
+* display origin isolation warnings ([#615](https://github.com/ipfs/service-worker-gateway/issues/615)) ([815ea3c](https://github.com/ipfs/service-worker-gateway/commit/815ea3c8e162067b6e3ed0cdcd79095361533958))
+
+
+### Bug Fixes
+
+* prevent config UI flash on subdomain first load ([#580](https://github.com/ipfs/service-worker-gateway/issues/580)) ([a326451](https://github.com/ipfs/service-worker-gateway/commit/a3264517ff81b484b1319dab55e39f6d7613d9d3))
+
 ## [1.9.3](https://github.com/ipfs/service-worker-gateway/compare/v1.9.2...v1.9.3) (2025-03-05)
 
 
