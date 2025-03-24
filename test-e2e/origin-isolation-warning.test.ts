@@ -13,6 +13,8 @@ test.describe('origin isolation warning', () => {
     // now click the button to accept the warning
     await page.click('.e2e-subdomain-warning button')
 
+    await expect(page.locator('.e2e-subdomain-warning')).not.toBeVisible()
+
     // wait to be redirected to the test url
     await expect(page).toHaveURL(testUrl)
   })

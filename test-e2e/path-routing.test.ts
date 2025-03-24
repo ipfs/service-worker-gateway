@@ -20,7 +20,7 @@ test.describe('path-routing', () => {
 
     const headers = await response?.allHeaders()
 
-    expect(headers?.['content-type']).toBe('text/html')
+    expect(headers?.['content-type']).toBe('text/plain; charset=utf-8')
     expect(headers?.['cache-control']).toBe('public, max-age=29030400, immutable')
 
     // expect page content to contain 'hello'
