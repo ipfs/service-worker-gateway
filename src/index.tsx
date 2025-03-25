@@ -22,8 +22,6 @@ if ('serviceWorker' in navigator) {
   ErrorPage = null
 }
 
-void ensureSwScope()
-
 const routes: Route[] = [
   { default: true, component: ErrorPage ?? LazyHelperUi },
   { shouldRender: async () => renderChecks.shouldRenderNoServiceWorkerError(), component: LazyServiceWorkerErrorPage },
@@ -36,10 +34,12 @@ const routes: Route[] = [
   }
 ]
 
-root.render(
+void ensureSwScope().finally(() => {
+  root.render(
   <React.StrictMode>
     <RouterProvider routes={routes}>
       <App />
     </RouterProvider>
   </React.StrictMode>
-)
+  )
+})
