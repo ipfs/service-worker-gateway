@@ -2,6 +2,7 @@ import React, { type ReactElement } from 'react'
 import ReactDOMClient from 'react-dom/client'
 import App from './app.jsx'
 import { RouterProvider, type Route } from './context/router-context.jsx'
+import { ensureSwScope } from './lib/first-hit-helpers.js'
 import * as renderChecks from './lib/routing-render-checks.js'
 
 // SW did not trigger for this request
@@ -20,6 +21,8 @@ let ErrorPage: null | React.LazyExoticComponent<() => ReactElement> = LazyServic
 if ('serviceWorker' in navigator) {
   ErrorPage = null
 }
+
+void ensureSwScope()
 
 const routes: Route[] = [
   { default: true, component: ErrorPage ?? LazyHelperUi },

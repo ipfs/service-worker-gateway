@@ -5,7 +5,7 @@ import { uiLogger } from './lib/logger.js'
  */
 export async function registerServiceWorker (): Promise<ServiceWorkerRegistration> {
   const log = uiLogger.forComponent('register-service-worker')
-  const swRegistration = await navigator.serviceWorker.register(new URL('ipfs-sw-sw.js', import.meta.url))
+  const swRegistration = await navigator.serviceWorker.register(new URL('ipfs-sw-sw.js', import.meta.url), { scope: '/' })
   return new Promise((resolve, reject) => {
     swRegistration.addEventListener('updatefound', () => {
       const newWorker = swRegistration.installing
