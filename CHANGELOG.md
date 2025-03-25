@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.1](https://github.com/ipfs/service-worker-gateway/compare/v1.10.0...v1.10.1) (2025-03-24)
+
+
+### Bug Fixes
+
+* use default verified-fetch contentTypeParser ([#635](https://github.com/ipfs/service-worker-gateway/issues/635)) ([db8720a](https://github.com/ipfs/service-worker-gateway/commit/db8720acf6de8c640122a0c40e4b9532116e34f9))
+
 ## [1.10.0](https://github.com/ipfs/service-worker-gateway/compare/v1.9.3...v1.10.0) (2025-03-18)
 
 
