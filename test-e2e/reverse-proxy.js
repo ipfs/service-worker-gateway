@@ -35,7 +35,7 @@ const makeRequest = (options, req, res, attemptRootFallback = false) => {
   }
 
   // log where we're making the request to
-  log('Proxying request to %s:%s%s', options.headers.Host, options.port, options.path)
+  log('Proxying request from %s:%s to %s:%s%s', req.headers.host, req.url, options.headers.Host, options.port, options.path)
 
   const proxyReq = request(options, proxyRes => {
     if (!disableTryFiles && proxyRes.statusCode === 404) { // poor mans attempt to implement nginx style try_files

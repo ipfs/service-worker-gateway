@@ -1,5 +1,9 @@
 import { test, expect } from './fixtures/config-test-fixtures.js'
+import { swScopeVerification } from './fixtures/sw-scope-verification.js'
 
+test.afterEach(async ({ page }) => {
+  await swScopeVerification(page, expect)
+})
 test.describe('first-hit ipfs-hosted', () => {
   /**
    * "ipfs-hosted" tests verify that when the _redirects is hit and redirects to the <root>?helia-sw=<path> that navigation is handled correctly.
@@ -13,11 +17,12 @@ test.describe('first-hit ipfs-hosted', () => {
     test('redirects to ?helia-sw=<path> are handled', async ({ page }) => {
       const response = await page.goto('http://127.0.0.1:3334/ipfs/bafkqablimvwgy3y')
 
-      expect(response?.url()).toBe('http://127.0.0.1:3334/?helia-sw=/ipfs/bafkqablimvwgy3y')
-
       // first loads the root page
       expect(response?.status()).toBe(200)
       const headers = await response?.allHeaders()
+
+      // we redirect to the root path with query param so sw can be registered at the root path
+      await expect(page).toHaveURL('http://127.0.0.1:3334/?helia-sw=/ipfs/bafkqablimvwgy3y')
 
       // accept the origin isolation warning
       await expect(page).toHaveURL(/#\/ipfs-sw-origin-isolation-warning/)
@@ -37,7 +42,8 @@ test.describe('first-hit ipfs-hosted', () => {
     test('redirects to ?helia-sw=<path> are handled', async ({ page, rootDomain, protocol }) => {
       const response = await page.goto('http://localhost:3334/ipfs/bafkqablimvwgy3y')
 
-      expect(response?.url()).toBe('http://localhost:3334/?helia-sw=/ipfs/bafkqablimvwgy3y')
+      // we no longer redirect to ?helia-sw=<path> for subdomain routing, because we immediately redirect to the subdomain
+      // expect(response?.url()).toBe('http://localhost:3334/?helia-sw=/ipfs/bafkqablimvwgy3y')
 
       // first loads the root page
       expect(response?.status()).toBe(200)
@@ -101,6 +107,19 @@ test.describe('first-hit direct-hosted', () => {
 
       // and we verify the content was returned
       await page.waitForSelector('text=hello', { timeout: 25000 })
+    })
+
+    test('subdomain with path is redirected to root', async ({ page, rootDomain, protocol }) => {
+      const response = await page.goto(`${protocol}//${rootDomain}/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq/1 - Barrel - Part 1 - alt.txt`, { waitUntil: 'commit' })
+
+      // first loads the root page
+      expect(response?.status()).toBe(200)
+
+      // wait for loading page to finish '.loading-page' to be removed
+      await page.waitForSelector('.loading-page', { state: 'detached' })
+
+      // and we verify the content was returned
+      await page.waitForSelector('text=Don\'t we all.')
     })
   })
 })

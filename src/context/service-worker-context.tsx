@@ -13,6 +13,7 @@
  */
 import React, { createContext, useEffect, useState, type ReactElement } from 'react'
 import { getRedirectUrl, isDeregisterRequest } from '../lib/deregister-request.js'
+import { ensureSwScope } from '../lib/first-hit-helpers.js'
 import { uiLogger } from '../lib/logger.js'
 import { findOriginIsolationRedirect } from '../lib/path-or-subdomain.js'
 import { registerServiceWorker } from '../service-worker-utils.js'
@@ -50,6 +51,10 @@ export const ServiceWorkerProvider = ({ children }): ReactElement => {
           log.error('service worker not registered, cannot deregister')
         }
       }
+
+      // This should have already been handled, but we'll do it again to be safe
+      await ensureSwScope()
+
       const registration = await navigator.serviceWorker.getRegistration()
 
       if (registration != null) {
