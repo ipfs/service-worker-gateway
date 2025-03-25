@@ -112,7 +112,6 @@ test.describe('first-hit direct-hosted', () => {
     test('subdomain with path is redirected to root', async ({ page, rootDomain, protocol }) => {
       const response = await page.goto(`${protocol}//${rootDomain}/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq/1 - Barrel - Part 1 - alt.txt`, { waitUntil: 'commit' })
 
-      // await expect(page).toHaveURL(`${protocol}//bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq.ipfs.${rootDomain}?helia-sw=${encodeURIComponent('/1 - Barrel - Part 1 - alt.txt')}`)
       // first loads the root page
       expect(response?.status()).toBe(200)
 
