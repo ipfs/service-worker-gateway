@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.2](https://github.com/ipfs/service-worker-gateway/compare/v1.10.1...v1.10.2) (2025-03-25)
+
+
+### Bug Fixes
+
+* sw registers on root scope ([#647](https://github.com/ipfs/service-worker-gateway/issues/647)) ([f2d3030](https://github.com/ipfs/service-worker-gateway/commit/f2d30302d6c45118d5eddb51f21333aea2b2070a))
+
 ## [1.10.1](https://github.com/ipfs/service-worker-gateway/compare/v1.10.0...v1.10.1) (2025-03-24)
 
 
