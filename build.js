@@ -142,6 +142,37 @@ const renameSwPlugin = {
 }
 
 /**
+ * Injects any non _redirects files) in `dist` into the `_redirects` file as
+ * "/<fileNameAndExtension> /<fileNameAndExtension> 200" above the `/*` wildcard line
+ *
+ * @see https://github.com/ipfs/service-worker-gateway/pull/636#issuecomment-2751919132
+ */
+const injectIdentityRedirects = () => {
+  const distPath = path.resolve('dist')
+  const redirectsFilePath = path.join(distPath, '_redirects')
+  const redirectsFile = fs.readFileSync(redirectsFilePath, 'utf8')
+  const redirectsFileLines = redirectsFile.split('\n')
+  const wildcardLine = redirectsFileLines.findIndex(line => line.trim().startsWith('/*'))
+
+  if (wildcardLine === -1) {
+    throw new Error('Wildcard line "/*" not found in _redirects file.')
+  }
+
+  const files = fs.readdirSync(distPath)
+  const newRedirects = files
+    .filter(file => file !== '_redirects')
+    .map(file => `/${file} /${file} 200`)
+
+  const updatedLines = [
+    ...redirectsFileLines.slice(0, wildcardLine),
+    ...newRedirects,
+    ...redirectsFileLines.slice(wildcardLine)
+  ]
+
+  fs.writeFileSync(redirectsFilePath, updatedLines.join('\n'))
+}
+
+/**
  * @type {esbuild.Plugin}
  */
 const modifyBuiltFiles = {
@@ -151,6 +182,7 @@ const modifyBuiltFiles = {
       copyPublicFiles()
       injectAssets(result.metafile)
       injectFirstHitJs(result.metafile)
+      injectIdentityRedirects()
     })
   }
 }

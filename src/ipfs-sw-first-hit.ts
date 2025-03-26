@@ -13,7 +13,7 @@ const handleFirstHit = (): void => {
   const redirectUrl = new URL('', window.location.origin)
 
   // we need to redirect to ?helia-sw=<path> and preserve any query parameters
-  redirectUrl.searchParams.set('helia-sw', path)
+  redirectUrl.searchParams.set('helia-sw', encodeURIComponent(path))
   query.forEach((value, key) => {
     redirectUrl.searchParams.set(key, value)
   })
