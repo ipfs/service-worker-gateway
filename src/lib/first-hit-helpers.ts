@@ -46,3 +46,33 @@ export async function ensureSwScope (): Promise<void> {
     }
   }
 }
+
+/**
+ * This function handles the first hit to the service worker.
+ *
+ * It ensures that any query and hash params are preserved and returns the new URL with helia-sw parameter set correctly.
+ */
+export const getHeliaSwRedirectUrl = (currentUrl: string): URL => {
+  const url = new URL(currentUrl)
+  if (url.searchParams.has('helia-sw')) {
+    // eslint-disable-next-line no-console
+    console.log('helia-sw already exists, returning current url')
+    return url
+  } else {
+    // eslint-disable-next-line no-console
+    console.trace('helia-sw does not exist in %s, creating new url', currentUrl)
+  }
+  const redirectUrl = new URL('', url.origin)
+
+  // ensure any query and hash params are preserved
+  const heliaSwPath = `${url.pathname}${url.search}${url.hash}`
+
+  // eslint-disable-next-line no-console
+  console.log('heliaSwPath', heliaSwPath)
+  redirectUrl.searchParams.set('helia-sw', heliaSwPath)
+
+  // remove the current url from the history
+  // history.replaceState({}, '', redirectUrl.toString())
+
+  return redirectUrl
+}

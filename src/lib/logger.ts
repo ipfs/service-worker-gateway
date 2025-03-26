@@ -1,6 +1,6 @@
 import { prefixLogger, type ComponentLogger } from '@libp2p/logger'
 
-const host = globalThis.location.host.replace(':', '_')
+const host = globalThis.location?.host.replace(':', '_') ?? 'test'
 
 const swLogPrefix = `helia:sw-gateway:sw:${host}`
 const uiLogPrefix = `helia:sw-gateway:ui:${host}`
