@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.3](https://github.com/ipfs/service-worker-gateway/compare/v1.10.2...v1.10.3) (2025-03-31)
+
+
+### Bug Fixes
+
+* first-hit loads config properly ([#652](https://github.com/ipfs/service-worker-gateway/issues/652)) ([0ff5d2d](https://github.com/ipfs/service-worker-gateway/commit/0ff5d2da1b064ba46f1e9635662c2db28dbc6991))
+
 ## [1.10.2](https://github.com/ipfs/service-worker-gateway/compare/v1.10.1...v1.10.2) (2025-03-25)
 
 
