@@ -52,7 +52,7 @@ export const ServiceWorkerProvider = ({ children }): ReactElement => {
         }
       }
 
-      // This should have already been handled, but we'll do it again to be safe
+      // TODO: Handle this in index.tsx, before UI is loaded (but we need to ensure config loading is still handled properly)
       await ensureSwScope()
 
       const registration = await navigator.serviceWorker.getRegistration()
