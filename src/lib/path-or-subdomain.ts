@@ -3,6 +3,7 @@ import { base36 } from 'multiformats/bases/base36'
 import { CID } from 'multiformats/cid'
 import { areSubdomainsSupported } from './config-db.js'
 import { dnsLinkLabelEncoder } from './dns-link-labels.js'
+import { getHeliaSwRedirectUrl } from './first-hit-helpers.js'
 import { pathRegex, subdomainRegex } from './regex.js'
 import type { ComponentLogger } from '@libp2p/logger'
 
@@ -30,7 +31,7 @@ export const findOriginIsolationRedirect = async (location: Pick<Location, 'prot
     log?.trace('checking for subdomain support')
     if (await areSubdomainsSupported(logger) === true) {
       log?.trace('subdomain support is enabled')
-      return toSubdomainRequest(location)
+      return toSubdomainRequest(location, logger)
     } else {
       log?.trace('subdomain support is disabled')
     }
@@ -39,7 +40,8 @@ export const findOriginIsolationRedirect = async (location: Pick<Location, 'prot
   return null
 }
 
-const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' | 'pathname' | 'search' | 'hash'>): string => {
+const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' | 'pathname' | 'search' | 'hash'>, logger?: ComponentLogger): string => {
+  const log = logger?.forComponent('to-subdomain-request')
   const segments = location.pathname.split('/').filter(segment => segment !== '')
   const ns = segments[0]
   let id = segments[1]
@@ -73,14 +75,14 @@ const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' | 'path
   }
   const remainingPath = `/${segments.slice(2).join('/')}`
 
-  // create new URL with the subdomain but without the path
-  const newLocation = new URL(`${location.protocol}//${id}.${ns}.${location.host}/`)
+  const newLocation = new URL(`${location.protocol}//${id}.${ns}.${location.host}${remainingPath}${location.search}${location.hash}`)
 
-  // store the remaining path, existing search params, and hash in the helia-sw param
-  const fullPathToPreserve = `${remainingPath}${location.search}${location.hash}`
-  if (fullPathToPreserve !== '/') {
-    newLocation.searchParams.set('helia-sw', fullPathToPreserve)
-  }
+  // eslint-disable-next-line no-console
+  log?.('newLocation', newLocation.toString())
 
-  return newLocation.href
+  const actualNewLocation = getHeliaSwRedirectUrl(newLocation.toString()).toString()
+  // eslint-disable-next-line no-console
+  console.log('actualNewLocation', actualNewLocation)
+
+  return actualNewLocation
 }

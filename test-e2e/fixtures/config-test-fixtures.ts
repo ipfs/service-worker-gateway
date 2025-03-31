@@ -15,9 +15,20 @@ const baseURLProtocol = async ({ baseURL }, use): Promise<void> => {
   await use(url.protocol)
 }
 
-export const test = base.extend<{ rootDomain: string, baseURL: string, protocol: string }>({
+// // eslint-disable-next-line no-empty-pattern
+// const ipfsHostedPort = async ({ }, use): Promise<void> => {
+//   await use(3333)
+// }
+// // eslint-disable-next-line no-empty-pattern
+// const directHostedPort = async ({ }, use): Promise<void> => {
+//   await use(3334)
+// }
+
+export const test = base.extend<{ rootDomain: string, baseURL: string, protocol: string, ipfsHostedPort: number, directHostedPort: number }>({
   rootDomain: [rootDomain, { scope: 'test' }],
   protocol: [baseURLProtocol, { scope: 'test' }],
+  // ipfsHostedPort: [ipfsHostedPort, { scope: 'test' }],
+  // directHostedPort: [directHostedPort, { scope: 'test' }],
   page: async ({ page }, use) => {
     if (isNoServiceWorkerProject(test)) {
       test.skip()

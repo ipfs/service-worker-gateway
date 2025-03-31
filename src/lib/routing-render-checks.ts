@@ -30,6 +30,8 @@ export async function shouldRenderConfigPage (): Promise<boolean> {
 export function shouldRenderRedirectsInterstitial (): boolean {
   const url = new URL(window.location.href)
   const heliaSw = url.searchParams.get('helia-sw')
+  // eslint-disable-next-line no-console
+  console.log('shouldRenderRedirectsInterstitial shouldRender?', heliaSw != null)
   return heliaSw != null
 }
 

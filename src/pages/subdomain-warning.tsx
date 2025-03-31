@@ -40,6 +40,9 @@ export default function SubdomainWarningPage (): ReactNode {
   const [isSaving, setIsSaving] = useState(false)
   const originalUrl = new URL(window.location.href).searchParams.get('helia-sw')
 
+  // eslint-disable-next-line no-console
+  console.log('SubdomainWarningPage originalUrl', originalUrl)
+
   const handleAcceptRisk = useCallback(async () => {
     setIsSaving(true)
     // Store the user's choice in sessionStorage so it persists during the session

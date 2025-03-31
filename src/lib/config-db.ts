@@ -60,7 +60,8 @@ export async function resetConfig (logger: ComponentLogger): Promise<void> {
 
 export async function setConfig (config: ConfigDbWithoutPrivateFields, logger: ComponentLogger): Promise<void> {
   const log = logger.forComponent('set-config')
-  enable(config.debug ?? defaultDebug()) // set debug level first.
+  // enable(config.debug ?? defaultDebug()) // set debug level first.
+  enable('helia:sw-gateway*,helia:sw-gateway*:trace,helia:verified-fetch*,helia:verified-fetch*:trace')
   await validateConfig(config, logger)
   try {
     log('config-debug: setting config %O for domain %s', config, window.location.origin)
@@ -113,7 +114,8 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
 
       config = await configDb.getAll()
       debug = config.debug ?? defaultDebug()
-      enable(debug)
+      // enable(debug)
+      enable('helia:sw-gateway*,helia:sw-gateway*:trace,helia:verified-fetch*,helia:verified-fetch*:trace')
 
       gateways = config.gateways
 

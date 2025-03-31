@@ -6,5 +6,10 @@
  * @see https://github.com/ipfs/service-worker-gateway/issues/628
  */
 import { getHeliaSwRedirectUrl } from './lib/first-hit-helpers.js'
+import { isPathGatewayRequest } from './lib/path-or-subdomain.js'
 
-window.location.href = getHeliaSwRedirectUrl(window.location.href).toString()
+// check if we should redirect to origin isolation warning page
+if (isPathGatewayRequest(window.location) && !(await getOriginIsolationWarningAccepted()) && window.location.searchParams.get('helia-sw') === null) {
+
+  window.location.href = getHeliaSwRedirectUrl(window.location.href).toString()
+}

@@ -20,7 +20,7 @@ const IPFS_PATH = `${tempDir}/.ipfs/${Date.now()}`
 const kuboBin = path()
 
 const gatewayPort = Number(process.env.GATEWAY_PORT ?? 8088)
-
+const proxyPort = Number(process.env.PROXY_PORT ?? 3334)
 /**
  * @type {import('execa').Options}
  */
@@ -29,7 +29,7 @@ const execaOptions = {
   cleanup: true,
   env: {
     IPFS_PATH,
-    GOLOG_LOG_LEVEL: process.env.GOLOG_LOG_LEVEL ?? 'debug,*=debug',
+    GOLOG_LOG_LEVEL: process.env.GOLOG_LOG_LEVEL ?? 'debug,all=debug',
     DEBUG: 'reverse-proxy,reverse-proxy:*'
   }
 }
@@ -63,6 +63,29 @@ await $(execaOptions)`${kuboBin} config --json Gateway.DeserializedResponses tru
 await $(execaOptions)`${kuboBin} config --json Gateway.ExposeRoutingAPI false`
 await $(execaOptions)`${kuboBin} config --json Gateway.HTTPHeaders.Access-Control-Allow-Origin ${JSON.stringify(['*'])}`
 await $(execaOptions)`${kuboBin} config --json Gateway.HTTPHeaders.Access-Control-Allow-Methods  ${JSON.stringify(['GET', 'POST', 'PUT', 'OPTIONS'])}`
+await $(execaOptions)`${kuboBin} config --json Gateway.PublicGateways ${JSON.stringify({
+  [`localhost:${proxyPort}`]: {
+    // Paths: ['/ipfs', '/ipns'],
+    // NoDNSLink: true,
+    // InlineDNSLink: true,
+    DeserializedResponses: true,
+    UseSubdomains: true
+  },
+  [`127.0.0.1:${proxyPort}`]: {
+    // Paths: ['/ipfs', '/ipns'],
+    // NoDNSLink: true,
+    // InlineDNSLink: true,
+    DeserializedResponses: true,
+    UseSubdomains: true
+  },
+  [`ipfs-host.local:${proxyPort}`]: {
+    // Paths: ['/ipfs', '/ipns'],
+    // NoDNSLink: true,
+    // InlineDNSLink: true,
+    DeserializedResponses: true,
+    UseSubdomains: true
+  }
+})}`
 
 log('starting kubo')
 // need to stand up kubo daemon to serve the dist folder
@@ -98,7 +121,7 @@ execaOptions.env = {
   ...execaOptions.env,
   TARGET_HOST: 'localhost',
   BACKEND_PORT: gatewayPort.toString(),
-  PROXY_PORT: process.env.PROXY_PORT ?? '3334',
+  PROXY_PORT: proxyPort.toString(),
   SUBDOMAIN: `${cid.trim()}.ipfs`,
   DISABLE_TRY_FILES: 'true',
   X_FORWARDED_HOST: 'ipfs-host.local',

@@ -1,5 +1,6 @@
 import { getConfig, type ConfigDb } from './lib/config-db.js'
 import { getRedirectUrl, isDeregisterRequest } from './lib/deregister-request.js'
+import { getHeliaSwRedirectUrl } from './lib/first-hit-helpers.js'
 import { GenericIDB } from './lib/generic-db.js'
 import { getSubdomainParts } from './lib/get-subdomain-parts.js'
 import { getVerifiedFetch } from './lib/get-verified-fetch.js'
@@ -447,6 +448,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
   const originLocation = await findOriginIsolationRedirect(originalUrl, swLogger)
   if (originLocation !== null) {
     const body = 'Gateway supports subdomain mode, redirecting to ensure Origin isolation..'
+    log.trace('origin isolation redirect found, redirecting to', originLocation)
     return new Response(body, {
       status: 301,
       headers: {
@@ -454,11 +456,13 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
         Location: originLocation
       }
     })
-  } else if (isPathGatewayRequest(originalUrl) && !(await getOriginIsolationWarningAccepted())) {
-    const newUrl = new URL(originalUrl.href)
-    newUrl.pathname = '/'
+  }
+  if (isPathGatewayRequest(originalUrl) && !(await getOriginIsolationWarningAccepted()) && originalUrl.searchParams.get('helia-sw') === null) {
+    log.trace('origin isolation warning not accepted, redirecting to warning page')
+    log.trace('originalUrl', originalUrl.toString())
+    const newUrl = new URL(originalUrl.toString())
     newUrl.hash = '/ipfs-sw-origin-isolation-warning'
-    newUrl.searchParams.set('helia-sw', request.url)
+    log.trace('newUrl', newUrl.toString())
     return new Response('Origin isolation is not supported, please accept the risk to continue.', {
       status: 307,
       headers: {
