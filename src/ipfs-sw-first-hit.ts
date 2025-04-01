@@ -5,6 +5,14 @@
  *
  * @see https://github.com/ipfs/service-worker-gateway/issues/628
  */
-import { handleFirstHit } from './lib/first-hit-helpers.js'
+import { getHeliaSwRedirectUrl } from './lib/first-hit-helpers.js'
 
-handleFirstHit(window)
+const redirectUrl = getHeliaSwRedirectUrl(new URL(window.location.href), new URL(window.location.href))
+
+const newUrl = redirectUrl.toString()
+
+// remove the current url from the history
+history.replaceState({}, '', newUrl)
+
+// we need to redirect to the new url
+window.location.href = newUrl

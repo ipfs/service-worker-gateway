@@ -3,6 +3,7 @@ import { base36 } from 'multiformats/bases/base36'
 import { CID } from 'multiformats/cid'
 import { areSubdomainsSupported } from './config-db.js'
 import { dnsLinkLabelEncoder } from './dns-link-labels.js'
+import { getHeliaSwRedirectUrl } from './first-hit-helpers.js'
 import { pathRegex, subdomainRegex } from './regex.js'
 import type { ComponentLogger } from '@libp2p/logger'
 
@@ -24,7 +25,7 @@ export const isPathGatewayRequest = (location: Pick<Location, 'host' | 'pathname
  * Origin isolation check and enforcement
  * https://github.com/ipfs-shipyard/helia-service-worker-gateway/issues/30
  */
-export const findOriginIsolationRedirect = async (location: Pick<Location, 'protocol' | 'host' | 'pathname' | 'search' | 'hash' >, logger?: ComponentLogger): Promise<string | null> => {
+export const findOriginIsolationRedirect = async (location: Pick<Location, 'protocol' | 'host' | 'pathname' | 'search' | 'hash' | 'href' | 'origin'>, logger?: ComponentLogger): Promise<string | null> => {
   const log = logger?.forComponent('find-origin-isolation-redirect')
   if (isPathGatewayRequest(location) && !isSubdomainGatewayRequest(location)) {
     log?.trace('checking for subdomain support')
@@ -39,7 +40,7 @@ export const findOriginIsolationRedirect = async (location: Pick<Location, 'prot
   return null
 }
 
-const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' | 'pathname' | 'search' | 'hash'>): string => {
+const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' | 'pathname' | 'search' | 'hash' | 'href' | 'origin'>): string => {
   const segments = location.pathname.split('/').filter(segment => segment !== '')
   const ns = segments[0]
   let id = segments[1]
@@ -82,11 +83,21 @@ const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' | 'path
     newLocation.searchParams.set(key, value)
   })
 
-  // if there's a remaining path or hash, store it in helia-sw
-  // but don't include the search params since we've already added them directly
-  const pathAndHashToPreserve = remainingPath !== '/' ? `${remainingPath}${location.hash}` : location.hash
-  if (pathAndHashToPreserve !== '' && pathAndHashToPreserve !== '/') {
-    newLocation.searchParams.set('helia-sw', pathAndHashToPreserve)
+  // If there's a remaining path or hash, use getHeliaSwRedirectUrl to handle it
+  if (remainingPath !== '/' || location.hash !== '') {
+    // Create a newURL object with the remaining path
+    const pathUrl = new URL(location.origin)
+    pathUrl.pathname = remainingPath
+    pathUrl.hash = location.hash
+
+    // Use getHeliaSwRedirectUrl to get the helia-sw parameter properly set
+    const redirectUrl = getHeliaSwRedirectUrl(location, pathUrl)
+
+    // Get the helia-sw parameter value and add it to the newLocation
+    const heliaSwParam = redirectUrl.searchParams.get('helia-sw')
+    if (heliaSwParam !== null && heliaSwParam !== '') {
+      newLocation.searchParams.set('helia-sw', heliaSwParam)
+    }
   }
 
   return newLocation.href

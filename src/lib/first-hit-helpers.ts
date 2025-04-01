@@ -47,32 +47,19 @@ export async function ensureSwScope (): Promise<void> {
   }
 }
 
-export function getHeliaSwRedirectUrl (location: Pick<Location, 'href' | 'origin'>): URL {
-  const url = new URL(location.href)
-  const path = url.pathname
-  const query = url.searchParams
-  const redirectUrl = new URL('/', location.origin)
+/**
+ * This function returns a new URL with the ?helia-sw= parameter set to the original pathname.
+ * It also preserves any query parameters and hash from the original URL.
+ */
+export function getHeliaSwRedirectUrl (originalURL: URL, newURL: URL): URL {
+  const path = newURL.pathname
+  const query = newURL.searchParams
+  const hash = newURL.hash
+  const redirectUrl = new URL('/', originalURL.origin)
   redirectUrl.searchParams.set('helia-sw', path)
   query.forEach((value, key) => {
     redirectUrl.searchParams.set(key, value)
   })
+  redirectUrl.hash = hash
   return redirectUrl
-}
-
-/**
- * This function handles the first hit to the service worker when the first hit
- * is to /ipfs or /ipns and ipfs-sw-first-hit.html is loaded.
- *
- * It redirects to the subdomain root with a ?helia-sw= parameter.
- */
-export const handleFirstHit = ({ location, history }: { location: Pick<Location, 'href' | 'origin'>, history: Pick<History, 'replaceState'> }): void => {
-  const redirectUrl = getHeliaSwRedirectUrl(location)
-
-  const newUrl = redirectUrl.toString()
-
-  // remove the current url from the history
-  history.replaceState({}, '', newUrl)
-
-  // we need to redirect to the new url
-  location.href = newUrl
 }

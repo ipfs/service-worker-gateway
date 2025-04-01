@@ -1,46 +1,35 @@
 /* eslint-env mocha */
 import { expect } from 'aegir/chai'
-import { createSandbox, type SinonSandbox } from 'sinon'
-import { handleFirstHit } from '../src/lib/first-hit-helpers.js'
+import { getHeliaSwRedirectUrl } from '../src/lib/first-hit-helpers.js'
 
-function expectRedirect ({ from, to, sandbox }: { from: string, to: string, sandbox: SinonSandbox }): void {
-  const location = {
-    href: from,
-    origin: 'http://localhost:3334'
-  }
-  let setLocation: string = 'N/A'
-  sandbox.stub(location, 'href').set((value: string) => {
-    setLocation = value
-  })
-  sandbox.stub(location, 'href').get(() => {
-    return from
-  })
-  const history = {
-    replaceState: () => {}
-  }
+function expectRedirect ({ from, to }: { from: string, to: string }): void {
+  const fromURL = new URL(from)
+  const toURL = new URL(to)
 
-  handleFirstHit({ location, history })
-  expect(setLocation).to.equal(to)
+  const newURL = getHeliaSwRedirectUrl(fromURL, toURL)
+  expect(newURL.toString()).to.equal(to)
 }
 
 describe('first-hit-helpers', () => {
-  describe('handleFirstHit', () => {
-    const sandbox = createSandbox()
-    afterEach(() => {
-      sandbox.restore()
-    })
+  describe('getHeliaSwRedirectUrl', () => {
     it('should bounce to ?helia-sw=<path> url', () => {
       expectRedirect({
         from: 'http://localhost:3334/ipfs/bafkqablimvwgy3y',
-        to: `http://localhost:3334/?helia-sw=${encodeURIComponent('/ipfs/bafkqablimvwgy3y')}`,
-        sandbox
+        to: `http://localhost:3334/?helia-sw=${encodeURIComponent('/ipfs/bafkqablimvwgy3y')}`
       })
     })
+
     it('should bounce to ?helia-sw=<path> url with extra query params', () => {
       expectRedirect({
         from: 'http://localhost:3334/ipfs/bafkqablimvwgy3y?foo=bar',
-        to: `http://localhost:3334/?helia-sw=${encodeURIComponent('/ipfs/bafkqablimvwgy3y')}&foo=bar`,
-        sandbox
+        to: `http://localhost:3334/?helia-sw=${encodeURIComponent('/ipfs/bafkqablimvwgy3y')}&foo=bar`
+      })
+    })
+
+    it('should handle origin isolation redirect hash', () => {
+      expectRedirect({
+        from: 'http://localhost:3334/ipfs/bafkqablimvwgy3y#/ipfs-sw-origin-isolation-warning',
+        to: `http://localhost:3334/?helia-sw=${encodeURIComponent('/ipfs/bafkqablimvwgy3y')}#/ipfs-sw-origin-isolation-warning`
       })
     })
   })

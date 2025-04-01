@@ -1,5 +1,6 @@
 import { getConfig, type ConfigDb } from './lib/config-db.js'
 import { getRedirectUrl, isDeregisterRequest } from './lib/deregister-request.js'
+import { getHeliaSwRedirectUrl } from './lib/first-hit-helpers.js'
 import { GenericIDB } from './lib/generic-db.js'
 import { getSubdomainParts } from './lib/get-subdomain-parts.js'
 import { getVerifiedFetch } from './lib/get-verified-fetch.js'
@@ -459,13 +460,18 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
     newUrl.pathname = '/'
     newUrl.hash = '/ipfs-sw-origin-isolation-warning'
 
-    // Create a URL object to properly parse the request URL
+    // Use getHeliaSwRedirectUrl to handle the helia-sw parameter
     const requestUrl = new URL(request.url)
+    const redirectUrl = getHeliaSwRedirectUrl({
+      href: originalUrl.href,
+      origin: originalUrl.origin
+    }, requestUrl)
 
-    // Preserve the original pathname, search params, and hash in helia-sw
-    // This approach mirrors what's done in toSubdomainRequest in path-or-subdomain.ts
-    const pathWithParams = requestUrl.pathname + requestUrl.search + requestUrl.hash
-    newUrl.searchParams.set('helia-sw', pathWithParams)
+    // Copy the helia-sw parameter to our newUrl and keep the origin isolation warning hash
+    const heliaSwParam = redirectUrl.searchParams.get('helia-sw')
+    if (heliaSwParam !== null) {
+      newUrl.searchParams.set('helia-sw', heliaSwParam)
+    }
 
     return new Response('Origin isolation is not supported, please accept the risk to continue.', {
       status: 307,
