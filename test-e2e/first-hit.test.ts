@@ -69,6 +69,7 @@ test.describe('first-hit ipfs-hosted', () => {
 
       // wait for page to be ?helia-sw=<path>&foo=bar
       await expect(page).toHaveURL('http://bafkqablimvwgy3y.ipfs.localhost:3334/?foo=bar')
+      await page.waitForSelector('text=hello', { timeout: 25000 })
     })
   })
 })

@@ -36,5 +36,12 @@ describe('first-hit-helpers', () => {
         sandbox
       })
     })
+    it('should bounce to ?helia-sw=<path> url with extra query params', () => {
+      expectRedirect({
+        from: 'http://localhost:3334/ipfs/bafkqablimvwgy3y?foo=bar',
+        to: `http://localhost:3334/?helia-sw=${encodeURIComponent('/ipfs/bafkqablimvwgy3y')}&foo=bar`,
+        sandbox
+      })
+    })
   })
 })

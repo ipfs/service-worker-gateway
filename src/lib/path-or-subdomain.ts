@@ -76,10 +76,17 @@ const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' | 'path
   // create new URL with the subdomain but without the path
   const newLocation = new URL(`${location.protocol}//${id}.${ns}.${location.host}/`)
 
-  // store the remaining path, existing search params, and hash in the helia-sw param
-  const fullPathToPreserve = `${remainingPath}${location.search}${location.hash}`
-  if (fullPathToPreserve !== '/') {
-    newLocation.searchParams.set('helia-sw', fullPathToPreserve)
+  // parse and transfer original query parameters
+  const originalSearchParams = new URLSearchParams(location.search)
+  originalSearchParams.forEach((value, key) => {
+    newLocation.searchParams.set(key, value)
+  })
+
+  // if there's a remaining path or hash, store it in helia-sw
+  // but don't include the search params since we've already added them directly
+  const pathAndHashToPreserve = remainingPath !== '/' ? `${remainingPath}${location.hash}` : location.hash
+  if (pathAndHashToPreserve !== '' && pathAndHashToPreserve !== '/') {
+    newLocation.searchParams.set('helia-sw', pathAndHashToPreserve)
   }
 
   return newLocation.href
