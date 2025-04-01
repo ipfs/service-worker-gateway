@@ -21,7 +21,10 @@ export default {
       'tachyons',
 
       // playwright dependencies
-      'http-server'
+      'http-server',
+
+      // package.json or playwright.config.js deps
+      'wait-on'
     ],
     productionIgnorePatterns: [
       'webpack.config.js',
