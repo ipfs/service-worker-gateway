@@ -4,12 +4,13 @@
  */
 import { mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { dirname, join, relative } from 'node:path'
+import { dirname, relative } from 'node:path'
 import { cwd } from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { logger } from '@libp2p/logger'
 import { $, execa } from 'execa'
 import { path } from 'kubo'
+import { createReverseProxy } from './reverse-proxy.js'
 
 const log = logger('ipfs-host.local')
 const daemonLog = logger('ipfs-host.local:kubo')
@@ -93,22 +94,15 @@ await new Promise((resolve, reject) => {
   }, 5000)
 })
 
-// @ts-expect-error - overwriting type of NodeJS.ProcessEnv
-execaOptions.env = {
-  ...execaOptions.env,
-  TARGET_HOST: 'localhost',
-  BACKEND_PORT: gatewayPort.toString(),
-  PROXY_PORT: process.env.PROXY_PORT ?? '3334',
-  SUBDOMAIN: `${cid.trim()}.ipfs`,
-  DISABLE_TRY_FILES: 'true',
-  X_FORWARDED_HOST: 'ipfs-host.local',
-  DEBUG: process.env.DEBUG ?? 'reverse-proxy*,reverse-proxy*:trace'
-}
-const reverseProxy = execa('node', [`${join(__dirname, 'reverse-proxy.js')}`], execaOptions)
+// Create and start the reverse proxy
+const proxyPort = Number(process.env.PROXY_PORT ?? '3334')
 
-reverseProxy.stdout?.on('data', (data) => {
-  proxyLog(data.toString())
-})
-reverseProxy.stderr?.on('data', (data) => {
-  proxyLog.trace(data.toString())
+createReverseProxy({
+  targetHost: 'localhost',
+  backendPort: gatewayPort,
+  proxyPort,
+  subdomain: `${cid.trim()}.ipfs`,
+  disableTryFiles: true,
+  xForwardedHost: 'ipfs-host.local',
+  log: proxyLog
 })
