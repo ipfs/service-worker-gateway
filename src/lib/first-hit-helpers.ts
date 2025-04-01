@@ -47,6 +47,18 @@ export async function ensureSwScope (): Promise<void> {
   }
 }
 
+export function getHeliaSwRedirectUrl (location: Pick<Location, 'href' | 'origin'>): URL {
+  const url = new URL(location.href)
+  const path = url.pathname
+  const query = url.searchParams
+  const redirectUrl = new URL('/', location.origin)
+  redirectUrl.searchParams.set('helia-sw', path)
+  query.forEach((value, key) => {
+    redirectUrl.searchParams.set(key, value)
+  })
+  return redirectUrl
+}
+
 /**
  * This function handles the first hit to the service worker when the first hit
  * is to /ipfs or /ipns and ipfs-sw-first-hit.html is loaded.
@@ -54,16 +66,7 @@ export async function ensureSwScope (): Promise<void> {
  * It redirects to the subdomain root with a ?helia-sw= parameter.
  */
 export const handleFirstHit = ({ location, history }: { location: Pick<Location, 'href' | 'origin'>, history: Pick<History, 'replaceState'> }): void => {
-  const url = new URL(location.href)
-  const path = url.pathname
-  const query = url.searchParams
-  const redirectUrl = new URL('/', location.origin)
-
-  // we need to redirect to ?helia-sw=<path> and preserve any query parameters
-  redirectUrl.searchParams.set('helia-sw', path)
-  query.forEach((value, key) => {
-    redirectUrl.searchParams.set(key, value)
-  })
+  const redirectUrl = getHeliaSwRedirectUrl(location)
 
   const newUrl = redirectUrl.toString()
 

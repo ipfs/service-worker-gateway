@@ -22,7 +22,7 @@ test.describe('first-hit ipfs-hosted', () => {
       const headers = await response?.allHeaders()
 
       // we redirect to the root path with query param so sw can be registered at the root path
-      await expect(page).toHaveURL('http://127.0.0.1:3334/?helia-sw=/ipfs/bafkqablimvwgy3y')
+      await expect(page).toHaveURL(`http://127.0.0.1:3334/?helia-sw=${encodeURIComponent('/ipfs/bafkqablimvwgy3y')}`)
 
       // accept the origin isolation warning
       await expect(page).toHaveURL(/#\/ipfs-sw-origin-isolation-warning/)

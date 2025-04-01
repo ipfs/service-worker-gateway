@@ -458,7 +458,15 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
     const newUrl = new URL(originalUrl.href)
     newUrl.pathname = '/'
     newUrl.hash = '/ipfs-sw-origin-isolation-warning'
-    newUrl.searchParams.set('helia-sw', request.url)
+
+    // Create a URL object to properly parse the request URL
+    const requestUrl = new URL(request.url)
+
+    // Preserve the original pathname, search params, and hash in helia-sw
+    // This approach mirrors what's done in toSubdomainRequest in path-or-subdomain.ts
+    const pathWithParams = requestUrl.pathname + requestUrl.search + requestUrl.hash
+    newUrl.searchParams.set('helia-sw', pathWithParams)
+
     return new Response('Origin isolation is not supported, please accept the risk to continue.', {
       status: 307,
       headers: {
