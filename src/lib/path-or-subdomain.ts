@@ -83,21 +83,16 @@ const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' | 'path
     newLocation.searchParams.set(key, value)
   })
 
-  // If there's a remaining path or hash, use getHeliaSwRedirectUrl to handle it
+  // if there's a remaining path or hash, use getHeliaSwRedirectUrl to process them
   if (remainingPath !== '/' || location.hash !== '') {
-    // Create a newURL object with the remaining path
+    // create a URL object with the remaining path
     const pathUrl = new URL(location.origin)
     pathUrl.pathname = remainingPath
     pathUrl.hash = location.hash
 
-    // Use getHeliaSwRedirectUrl to get the helia-sw parameter properly set
-    const redirectUrl = getHeliaSwRedirectUrl(location, pathUrl)
-
-    // Get the helia-sw parameter value and add it to the newLocation
-    const heliaSwParam = redirectUrl.searchParams.get('helia-sw')
-    if (heliaSwParam !== null && heliaSwParam !== '') {
-      newLocation.searchParams.set('helia-sw', heliaSwParam)
-    }
+    // use getHeliaSwRedirectUrl with newLocation as the template
+    // this will return a new URL with everything properly set
+    return getHeliaSwRedirectUrl(location, pathUrl, newLocation).href
   }
 
   return newLocation.href

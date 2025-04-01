@@ -48,18 +48,58 @@ export async function ensureSwScope (): Promise<void> {
 }
 
 /**
- * This function returns a new URL with the ?helia-sw= parameter set to the original pathname.
- * It also preserves any query parameters and hash from the original URL.
+ * This function creates a URL with the ?helia-sw= parameter set to redirect to the desired path.
+ * It preserves query parameters and hash from the provided URL.
+ *
+ * When a targetURL is provided, it uses that as a template and preserves its structure,
+ * only adding the helia-sw parameter if the pathURL has a non-root path.
+ *
+ * @param originalURL - The original URL object with origin information
+ * @param pathURL - The URL containing the path, query params, and hash to be used for the redirect
+ * @param targetURL - Optional URL to use as a template for the redirect (defaults to '/' at originalURL.origin)
+ * @returns A new URL object with the helia-sw parameter and other preserved information
  */
-export function getHeliaSwRedirectUrl (originalURL: URL, newURL: URL): URL {
-  const path = newURL.pathname
-  const query = newURL.searchParams
-  const hash = newURL.hash
-  const redirectUrl = new URL('/', originalURL.origin)
-  redirectUrl.searchParams.set('helia-sw', path)
+export function getHeliaSwRedirectUrl (
+  originalURL: Pick<Location, 'href' | 'origin'>,
+  pathURL: URL,
+  targetURL?: URL | null
+): URL {
+  // Determine the path to use for the helia-sw parameter
+  let path = pathURL.pathname
+
+  if ('pathname' in originalURL && typeof (originalURL as URL).pathname === 'string') {
+    path = (originalURL as URL).pathname
+  }
+
+  // Decode the path to avoid double encoding
+  try {
+    path = decodeURIComponent(path)
+  } catch {
+    // If decoding fails, leave the path as is.
+  }
+
+  const query = pathURL.searchParams
+  const hash = pathURL.hash
+
+  // Use the provided targetURL as a template or create a new one at the root of the original origin
+  const redirectUrl = targetURL ?? new URL('/', originalURL.origin)
+
+  // Set helia-sw parameter to the path, if it's meaningful
+  if (path !== null && path !== undefined && path !== '/') {
+    redirectUrl.searchParams.set('helia-sw', path)
+  }
+
+  // Preserve existing query parameters from pathURL
   query.forEach((value, key) => {
-    redirectUrl.searchParams.set(key, value)
+    if (key !== 'helia-sw' && !(targetURL !== null && targetURL !== undefined && redirectUrl.searchParams.has(key))) {
+      redirectUrl.searchParams.set(key, value)
+    }
   })
-  redirectUrl.hash = hash
+
+  // Preserve hash
+  if (hash !== null && hash !== undefined && hash !== '') {
+    redirectUrl.hash = hash
+  }
+
   return redirectUrl
 }

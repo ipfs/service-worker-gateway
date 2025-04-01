@@ -1,13 +1,19 @@
 /**
  * This script is injected into the ipfs-sw-first-hit.html file.
  *
- * It handles the logic for the first hit to the service worker.
+ * It handles the logic for the first hit to the service worker and should only
+ * ever run when _redirects file redirects to ipfs-sw-first-hit.html for /ipns
+ * or /ipfs paths when the service worker is not yet intercepting requests.
  *
  * @see https://github.com/ipfs/service-worker-gateway/issues/628
  */
 import { getHeliaSwRedirectUrl } from './lib/first-hit-helpers.js'
 
-const redirectUrl = getHeliaSwRedirectUrl(new URL(window.location.href), new URL(window.location.href))
+// Create a URL object for the current location
+const locationUrl = new URL(window.location.href)
+
+// For first-hit, we want to use the same URL for both the origin and the path
+const redirectUrl = getHeliaSwRedirectUrl(locationUrl, locationUrl)
 
 const newUrl = redirectUrl.toString()
 
