@@ -93,7 +93,7 @@ export default defineConfig({
     },
     {
       command: 'npx wait-on "http://localhost:3000" && node test-e2e/ipfs-gateway.js',
-      timeout: 5 * 1000,
+      timeout: 10 * 1000,
       env: {
         PROXY_PORT: '3334',
         GATEWAY_PORT: '8088'

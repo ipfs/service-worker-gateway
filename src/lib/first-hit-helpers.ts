@@ -46,3 +46,30 @@ export async function ensureSwScope (): Promise<void> {
     }
   }
 }
+
+/**
+ * This function handles the first hit to the service worker when the first hit
+ * is to /ipfs or /ipns and ipfs-sw-first-hit.html is loaded.
+ *
+ * It redirects to the subdomain root with a ?helia-sw= parameter.
+ */
+export const handleFirstHit = ({ location, history }: { location: Pick<Location, 'href' | 'origin'>, history: Pick<History, 'replaceState'> }): void => {
+  const url = new URL(location.href)
+  const path = url.pathname
+  const query = url.searchParams
+  const redirectUrl = new URL('/', location.origin)
+
+  // we need to redirect to ?helia-sw=<path> and preserve any query parameters
+  redirectUrl.searchParams.set('helia-sw', path)
+  query.forEach((value, key) => {
+    redirectUrl.searchParams.set(key, value)
+  })
+
+  const newUrl = redirectUrl.toString()
+
+  // remove the current url from the history
+  history.replaceState({}, '', newUrl)
+
+  // we need to redirect to the new url
+  location.href = newUrl
+}
