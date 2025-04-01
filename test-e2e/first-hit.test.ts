@@ -58,6 +58,18 @@ test.describe('first-hit ipfs-hosted', () => {
       // and we verify the content was returned
       await page.waitForSelector('text=hello', { timeout: 25000 })
     })
+
+    test('redirects to ?helia-sw=<path> with extra query params are handled', async ({ page }) => {
+      const response = await page.goto('http://localhost:3334/ipfs/bafkqablimvwgy3y?foo=bar')
+
+      expect(response?.url()).toBe('http://localhost:3334/ipfs/bafkqablimvwgy3y?foo=bar')
+
+      // first loads the root page
+      expect(response?.status()).toBe(200)
+
+      // wait for page to be ?helia-sw=<path>&foo=bar
+      await expect(page).toHaveURL('http://bafkqablimvwgy3y.ipfs.localhost:3334/?foo=bar')
+    })
   })
 })
 

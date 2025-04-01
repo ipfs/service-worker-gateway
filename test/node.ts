@@ -38,7 +38,11 @@ describe(`verify-dist at ${distRoot}`, () => {
     },
     {
       filePath: '_redirects',
-      content: ['/* /?helia-sw=']
+      content: [
+        '/ipfs/* /ipfs-sw-first-hit.html 200',
+        '/ipns/* /ipfs-sw-first-hit.html 200',
+        '/* /index.html 200'
+      ]
     },
     {
       filePath: 'index.html',
