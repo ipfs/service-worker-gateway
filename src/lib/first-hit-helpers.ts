@@ -52,10 +52,9 @@ export async function ensureSwScope (): Promise<void> {
  * It preserves query parameters and hash from the provided URL.
  *
  * When a targetURL is provided, it uses that as a template and preserves its structure,
- * only adding the helia-sw parameter if the pathURL has a non-root path.
+ * only adding the helia-sw parameter if the originalURL has a non-root path.
  *
- * @param originalURL - The original URL object with origin information
- * @param pathURL - The URL containing the path, query params, and hash to be used for the redirect
+ * @param originalURL - The original URL with origin/path/query/hash
  * @param targetURL - Optional URL to use as a template for the redirect (defaults to '/' at originalURL.origin)
  * @returns A new URL object with the helia-sw parameter and other preserved information
  */
@@ -80,7 +79,7 @@ export function getHeliaSwRedirectUrl (
   const redirectUrl = targetURL ?? new URL('/', originalURL.origin)
 
   // Set helia-sw parameter to the path, if it's meaningful
-  if (path !== null && path !== undefined && path !== '/') {
+  if (path != null && path !== '/') {
     redirectUrl.searchParams.set('helia-sw', path)
   }
 
@@ -92,7 +91,7 @@ export function getHeliaSwRedirectUrl (
   })
 
   // Preserve hash
-  if (hash !== null && hash !== undefined && hash !== '') {
+  if (hash != null && hash !== '') {
     redirectUrl.hash = hash
   }
 
