@@ -65,11 +65,7 @@ export function getHeliaSwRedirectUrl (
   targetURL?: URL | null
 ): URL {
   // Determine the path to use for the helia-sw parameter
-  let path = pathURL.pathname
-
-  if ('pathname' in originalURL && typeof (originalURL as URL).pathname === 'string') {
-    path = (originalURL as URL).pathname
-  }
+  let path = originalURL.pathname
 
   // Decode the path to avoid double encoding
   try {
