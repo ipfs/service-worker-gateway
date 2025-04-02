@@ -86,17 +86,17 @@ const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' | 'path
   // if there's a remaining path or hash, use getHeliaSwRedirectUrl to process them
   if (remainingPath !== '/' || location.hash !== '') {
     // create a URL object with the remaining path
-    const pathUrl = new URL(location.origin)
-    pathUrl.pathname = remainingPath
-    pathUrl.hash = location.hash
+    // const pathUrl = new URL(location.origin)
+    // pathUrl.pathname = remainingPath
+    // pathUrl.hash = location.hash
 
     // Create a modified originalURL with only the remaining path instead of the full path
     const modifiedOriginalUrl = new URL(location.href)
     modifiedOriginalUrl.pathname = remainingPath
-
+    modifiedOriginalUrl.hash = location.hash
     // use getHeliaSwRedirectUrl with newLocation as the template
     // this will return a new URL with everything properly set
-    return getHeliaSwRedirectUrl(modifiedOriginalUrl, pathUrl, newLocation).href
+    return getHeliaSwRedirectUrl(modifiedOriginalUrl, newLocation).href
   }
 
   return newLocation.href

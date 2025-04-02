@@ -460,7 +460,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
     newUrl.pathname = '/'
     newUrl.hash = '/ipfs-sw-origin-isolation-warning'
 
-    const redirectUrl = getHeliaSwRedirectUrl(originalUrl, new URL(request.url), newUrl)
+    const redirectUrl = getHeliaSwRedirectUrl(originalUrl, newUrl)
 
     return new Response('Origin isolation is not supported, please accept the risk to continue.', {
       status: 307,

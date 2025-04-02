@@ -60,8 +60,7 @@ export async function ensureSwScope (): Promise<void> {
  * @returns A new URL object with the helia-sw parameter and other preserved information
  */
 export function getHeliaSwRedirectUrl (
-  originalURL: Pick<URL, 'href' | 'origin' | 'pathname' | 'searchParams'>,
-  pathURL: URL,
+  originalURL: URL,
   targetURL?: URL | null
 ): URL {
   // Determine the path to use for the helia-sw parameter
@@ -74,8 +73,8 @@ export function getHeliaSwRedirectUrl (
     // If decoding fails, leave the path as is.
   }
 
-  const query = pathURL.searchParams
-  const hash = pathURL.hash
+  const query = originalURL.searchParams
+  const hash = originalURL.hash
 
   // Use the provided targetURL as a template or create a new one at the root of the original origin
   const redirectUrl = targetURL ?? new URL('/', originalURL.origin)

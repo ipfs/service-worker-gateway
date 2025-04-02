@@ -13,7 +13,7 @@ import { getHeliaSwRedirectUrl } from './lib/first-hit-helpers.js'
 const locationUrl = new URL(window.location.href)
 
 // For first-hit, we want to use the same URL for both the origin and the path
-const redirectUrl = getHeliaSwRedirectUrl(locationUrl, locationUrl)
+const redirectUrl = getHeliaSwRedirectUrl(locationUrl)
 
 const newUrl = redirectUrl.toString()
 
