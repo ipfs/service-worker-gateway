@@ -11,6 +11,7 @@ function App (): React.ReactElement {
   }, [])
 
   return (
+    // TODO: replace with <LoadingPage />
     <Suspense fallback={<div>Loading...</div>}>
       {currentRoute?.component != null && <currentRoute.component />}
     </Suspense>

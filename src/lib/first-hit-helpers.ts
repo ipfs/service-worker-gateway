@@ -60,7 +60,7 @@ export async function ensureSwScope (): Promise<void> {
  * @returns A new URL object with the helia-sw parameter and other preserved information
  */
 export function getHeliaSwRedirectUrl (
-  originalURL: Pick<Location, 'href' | 'origin'>,
+  originalURL: Pick<URL, 'href' | 'origin' | 'pathname' | 'searchParams'>,
   pathURL: URL,
   targetURL?: URL | null
 ): URL {

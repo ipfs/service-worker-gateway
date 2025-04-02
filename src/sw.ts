@@ -455,15 +455,12 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
         Location: originLocation
       }
     })
-  } else if (!isSubdomainGatewayRequest(originalUrl) && isPathGatewayRequest(originalUrl) && !(await getOriginIsolationWarningAccepted())) {
+  } else if (!isSubdomainGatewayRequest(originalUrl) && isPathGatewayRequest(originalUrl) && !(await getOriginIsolationWarningAccepted()) && !originalUrl.searchParams.has('helia-sw')) {
     const newUrl = new URL(originalUrl.href)
     newUrl.pathname = '/'
     newUrl.hash = '/ipfs-sw-origin-isolation-warning'
 
-    const redirectUrl = getHeliaSwRedirectUrl({
-      href: originalUrl.href,
-      origin: originalUrl.origin
-    }, new URL(request.url), newUrl)
+    const redirectUrl = getHeliaSwRedirectUrl(originalUrl, new URL(request.url), newUrl)
 
     return new Response('Origin isolation is not supported, please accept the risk to continue.', {
       status: 307,
