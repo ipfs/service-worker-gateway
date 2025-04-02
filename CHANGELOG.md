@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.4](https://github.com/ipfs/service-worker-gateway/compare/v1.10.3...v1.10.4) (2025-04-02)
+
+
+### Bug Fixes
+
+* query parameters are preserved ([#636](https://github.com/ipfs/service-worker-gateway/issues/636)) ([7b0ad66](https://github.com/ipfs/service-worker-gateway/commit/7b0ad66ab392c47e13591569aed57006cd9de028))
+
 ## [1.10.3](https://github.com/ipfs/service-worker-gateway/compare/v1.10.2...v1.10.3) (2025-03-31)
 
 
