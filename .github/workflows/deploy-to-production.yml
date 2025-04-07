@@ -18,3 +18,10 @@ jobs:
       environment: production
     secrets:
       DEPLOYMENT_GITHUB_TOKEN: ${{ secrets.UCI_GITHUB_TOKEN }}
+  wait-for-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for deployment to complete
+        run: |
+          ./.github/scripts/wait-for-deploy.sh https://inbrowser.link ${{ inputs.tag }}
