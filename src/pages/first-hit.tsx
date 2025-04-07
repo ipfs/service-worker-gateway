@@ -11,7 +11,6 @@ import { getHeliaSwRedirectUrl } from '../lib/first-hit-helpers.js'
  * and we want to call `getHeliaSwRedirectUrl` with the current URL (except the ipfs-sw-first-hit.html part) to get the actual URL.
  */
 export default (): ReactElement => {
-  // get the current URL
   const currentUrl = new URL(window.location.href)
 
   currentUrl.pathname = currentUrl.pathname.replace('/ipfs-sw-first-hit.html', '')
