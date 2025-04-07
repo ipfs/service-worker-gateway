@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.5](https://github.com/ipfs/service-worker-gateway/compare/v1.10.4...v1.10.5) (2025-04-07)
+
+
+### Bug Fixes
+
+* cloudflare pages handles redirects properly ([#659](https://github.com/ipfs/service-worker-gateway/issues/659)) ([7ead1e9](https://github.com/ipfs/service-worker-gateway/commit/7ead1e9e405eec6a94602bcce511bf1ae814b782))
+
 ## [1.10.4](https://github.com/ipfs/service-worker-gateway/compare/v1.10.3...v1.10.4) (2025-04-02)
 
 
