@@ -15,6 +15,7 @@ const LazyRedirectPage = React.lazy(async () => import('./pages/redirect-page.js
 const LazyInterstitial = React.lazy(async () => import('./pages/redirects-interstitial.jsx'))
 const LazyServiceWorkerErrorPage = React.lazy(async () => import('./pages/errors/no-service-worker.jsx'))
 const LazySubdomainWarningPage = React.lazy(async () => import('./pages/subdomain-warning.jsx'))
+const LazyFirstHitPage = React.lazy(async () => import('./pages/first-hit.jsx'))
 
 let ErrorPage: null | React.LazyExoticComponent<() => ReactElement> = LazyServiceWorkerErrorPage
 if ('serviceWorker' in navigator) {
@@ -22,6 +23,7 @@ if ('serviceWorker' in navigator) {
 }
 
 const routes: Route[] = [
+  { shouldRender: renderChecks.shouldRenderFirstHitPage, component: LazyFirstHitPage },
   { default: true, component: ErrorPage ?? LazyHelperUi },
   { shouldRender: async () => renderChecks.shouldRenderNoServiceWorkerError(), component: LazyServiceWorkerErrorPage },
   { shouldRender: renderChecks.shouldRenderSubdomainWarningPage, component: LazySubdomainWarningPage },

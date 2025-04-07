@@ -5,6 +5,9 @@
  * ever run when _redirects file redirects to ipfs-sw-first-hit.html for /ipns
  * or /ipfs paths when the service worker is not yet intercepting requests.
  *
+ * Sometimes, redirect solutions do not support redirecting directly to this page, in which case first-hit.tsx
+ * will be rendered instead.
+ *
  * @see https://github.com/ipfs/service-worker-gateway/issues/628
  */
 import { getHeliaSwRedirectUrl } from './lib/first-hit-helpers.js'

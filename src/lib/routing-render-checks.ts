@@ -44,3 +44,7 @@ export async function shouldRenderSubdomainWarningPage (): Promise<boolean> {
 
   return false
 }
+
+export async function shouldRenderFirstHitPage (): Promise<boolean> {
+  return window.location.pathname.includes('ipfs-sw-first-hit')
+}

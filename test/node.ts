@@ -39,9 +39,8 @@ describe(`verify-dist at ${distRoot}`, () => {
     {
       filePath: '_redirects',
       content: [
-        '/ipfs/* /ipfs-sw-first-hit.html 200',
-        '/ipns/* /ipfs-sw-first-hit.html 200',
-        '/* /index.html 200'
+        '/ipfs/* /ipfs-sw-first-hit.html/ipfs/:splat 302',
+        '/ipns/* /ipfs-sw-first-hit.html/ipns/:splat 302'
       ]
     },
     {
