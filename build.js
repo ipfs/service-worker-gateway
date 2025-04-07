@@ -142,7 +142,7 @@ const renameSwPlugin = {
 }
 
 /**
- * For every file in the dist folder except for _redirects, and ipfs-sw-first-hit.html, we need to make sure that
+ * For every file in the dist folder except for _redirects, and index.html, we need to make sure that
  * redirects from /{splat}/ipfs-sw-{asset}.css and /{splat}/ipfs-sw-{asset}.js are redirected to root /ipfs-sw-{asset}.css and /ipfs-sw-{asset}.js
  * respectively.
  *
