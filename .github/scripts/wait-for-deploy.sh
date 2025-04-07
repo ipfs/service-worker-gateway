@@ -8,23 +8,34 @@ if [ "$#" -lt 2 ]; then
 fi
 
 ENDPOINT="$1"
-TARGET_HASH="$2"
-# If no third argument is provided, no delay is applied
-if [ "$#" -ge 3 ]; then
-  MAX_DELAY="$3"
+TARGET_STRING="$2"
+
+# If no third argument is provided, no maximum delay is applied
+MAX_DELAY="${3:-}"
+
+# If it starts with `v`, treat it as a tag
+if [[ "$TARGET_STRING" =~ ^v[0-9]+ ]]; then
+  echo "Interpreted '$TARGET_STRING' as a Git tag. Resolving to short SHA..."
+  SHORT_SHA="$(git rev-parse --short "refs/tags/$TARGET_STRING")" || {
+    echo "ERROR: Tag $TARGET_STRING is not present"
+    exit 1
+  }
+else
+  echo "Interpreted '$TARGET_STRING' as a short SHA (or unknown tag). Using it as-is..."
+  SHORT_SHA="$TARGET_STRING"
 fi
 
 # Initial delay in seconds (60, then doubles each time)
 DELAY=60
 
-echo "Watching $ENDPOINT for Build: staging@$TARGET_HASH ..."
+echo "Watching $ENDPOINT for Build: .*@${SHORT_SHA} ..."
 while true
 do
   PAGE_CONTENT="$(curl -s "$ENDPOINT")"
 
   # If the page contains the line with the hash:
-  if echo "$PAGE_CONTENT" | grep -q "Build: staging@${TARGET_HASH}"; then
-    echo "Found Build: staging@${TARGET_HASH}!"
+  if echo "$PAGE_CONTENT" | grep -q "Build: .*@${SHORT_SHA}"; then
+    echo "Found Build: .*@${SHORT_SHA}!"
     exit 0
   fi
 
@@ -35,7 +46,7 @@ do
   DELAY=$((DELAY * 2))
 
   # cap the delay if a maximum delay is provided
-  if [ -n "$MAX_DELAY" ] && [ $DELAY -gt $MAX_DELAY ]; then
-    DELAY=$MAX_DELAY
+  if [ -n "$MAX_DELAY" ] && [ "$DELAY" -gt "$MAX_DELAY" ]; then
+    DELAY="$MAX_DELAY"
   fi
 done
