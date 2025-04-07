@@ -13,8 +13,6 @@ import { getHeliaSwRedirectUrl } from '../lib/first-hit-helpers.js'
 export default (): ReactElement => {
   // get the current URL
   const currentUrl = new URL(window.location.href)
-  // remove the ipfs-sw-first-hit.html part
-  // const urlWithoutFirstHit = currentUrl.href.replace('/ipfs-sw-first-hit.html', '')
 
   currentUrl.pathname = currentUrl.pathname.replace('/ipfs-sw-first-hit.html', '')
   // call getHeliaSwRedirectUrl with the remaining URL
