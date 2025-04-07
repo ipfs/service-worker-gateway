@@ -151,7 +151,6 @@ const renameSwPlugin = {
 const modifyRedirects = () => {
   const redirectsFilePath = path.resolve('dist/_redirects')
   const redirectsContent = fs.readFileSync(redirectsFilePath, 'utf8')
-  // loop over all files in dist except for _redirects and ipfs-sw-first-hit.html
   const files = fs.readdirSync(path.resolve('dist')).filter(file => !['_redirects', 'index.html'].includes(file))
   const lines = redirectsContent.split('\n')
   files.forEach(file => {
