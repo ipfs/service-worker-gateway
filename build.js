@@ -151,7 +151,7 @@ const renameSwPlugin = {
 const modifyRedirects = () => {
   const redirectsFilePath = path.resolve('dist/_redirects')
   const redirectsContent = fs.readFileSync(redirectsFilePath, 'utf8')
-  const files = fs.readdirSync(path.resolve('dist')).filter(file => !['_redirects', 'index.html'].includes(file))
+  const files = fs.readdirSync(path.resolve('dist')).filter(file => !['_redirects', 'index.html', '_kubo_redirects'].includes(file))
   const lines = redirectsContent.split('\n')
   files.forEach(file => {
     lines.push(`/*/${file} /${file}`)
