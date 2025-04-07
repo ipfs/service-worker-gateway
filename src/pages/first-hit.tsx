@@ -17,9 +17,6 @@ export default (): ReactElement => {
   // call getHeliaSwRedirectUrl with the remaining URL
   const redirectUrl = getHeliaSwRedirectUrl(currentUrl)
 
-  // eslint-disable-next-line no-console
-  console.log('redirecting to', redirectUrl)
-
   history.replaceState({}, '', redirectUrl.toString())
   // redirect to the actual URL
   window.location.href = redirectUrl.toString()
