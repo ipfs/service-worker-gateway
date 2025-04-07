@@ -142,6 +142,26 @@ const renameSwPlugin = {
 }
 
 /**
+ * For every file in the dist folder except for _redirects, and ipfs-sw-first-hit.html, we need to make sure that
+ * redirects from /{splat}/ipfs-sw-{asset}.css and /{splat}/ipfs-sw-{asset}.js are redirected to root /ipfs-sw-{asset}.css and /ipfs-sw-{asset}.js
+ * respectively.
+ *
+ * This is only needed when hosting the `./dist` folder on cloudflare pages. When hosting with an IPFS gateway, the _redirects file should be replaced with the _kubo_redirects file
+ */
+const modifyRedirects = () => {
+  const redirectsFilePath = path.resolve('dist/_redirects')
+  const redirectsContent = fs.readFileSync(redirectsFilePath, 'utf8')
+  // loop over all files in dist except for _redirects and ipfs-sw-first-hit.html
+  const files = fs.readdirSync(path.resolve('dist')).filter(file => !['_redirects', 'index.html'].includes(file))
+  const lines = redirectsContent.split('\n')
+  files.forEach(file => {
+    lines.push(`/*/${file} /${file}`)
+  })
+
+  fs.writeFileSync(redirectsFilePath, lines.join('\n'))
+}
+
+/**
  * @type {esbuild.Plugin}
  */
 const modifyBuiltFiles = {
@@ -151,6 +171,7 @@ const modifyBuiltFiles = {
       copyPublicFiles()
       injectAssets(result.metafile)
       injectFirstHitJs(result.metafile)
+      modifyRedirects()
     })
   }
 }

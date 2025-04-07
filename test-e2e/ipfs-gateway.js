@@ -2,9 +2,9 @@
 /**
  * This file is used to simulate hosting the dist folder on an ipfs gateway, so we can handle _redirects
  */
-import { mkdir } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { dirname, relative } from 'node:path'
+import { dirname, join, relative } from 'node:path'
 import { cwd } from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { logger } from '@libp2p/logger'
@@ -43,6 +43,14 @@ try {
   // ignore
 }
 log('using IPFS_PATH: ', IPFS_PATH)
+
+/**
+ * cloudflare redirects and Kubo gateway redirects are different, so we need to replace the dist/_redirects with dist/_kubo_redirects before adding to IPFS
+ */
+const kuboRedirects = await readFile(join(cwd(), './dist/_kubo_redirects'), 'utf-8')
+
+await writeFile(join(cwd(), './dist/_redirects'), kuboRedirects)
+
 const { stdout: cid } = await $(execaOptions)`${kuboBin} add -r -Q ${relative(cwd(), '../dist')} --cid-version 1`
 
 log('sw-gateway dist CID: ', cid.trim())
