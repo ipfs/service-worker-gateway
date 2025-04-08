@@ -4,11 +4,12 @@
  */
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { dirname, join, relative } from 'node:path'
+import { dirname, join, relative, resolve } from 'node:path'
 import { cwd } from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { logger } from '@libp2p/logger'
 import { $, execa } from 'execa'
+import { glob } from 'glob'
 import { path } from 'kubo'
 import { createReverseProxy } from './reverse-proxy.js'
 
@@ -72,6 +73,12 @@ await $(execaOptions)`${kuboBin} config --json Gateway.DeserializedResponses tru
 await $(execaOptions)`${kuboBin} config --json Gateway.ExposeRoutingAPI false`
 await $(execaOptions)`${kuboBin} config --json Gateway.HTTPHeaders.Access-Control-Allow-Origin ${JSON.stringify(['*'])}`
 await $(execaOptions)`${kuboBin} config --json Gateway.HTTPHeaders.Access-Control-Allow-Methods  ${JSON.stringify(['GET', 'POST', 'PUT', 'OPTIONS'])}`
+
+for (const carFile of await glob([`${resolve(__dirname, 'fixtures', 'data')}/**/*.car`])) {
+  log('Loading *.car fixture %s', carFile)
+  const { stdout } = await $(execaOptions)`${kuboBin} dag import --pin-roots=false --offline ${carFile}`
+  stdout.split('\n').forEach(log)
+}
 
 log('starting kubo')
 // need to stand up kubo daemon to serve the dist folder
