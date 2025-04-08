@@ -1,4 +1,5 @@
-import { test as base } from '@playwright/test'
+import { test as base, type Response } from '@playwright/test'
+import { captureAllSwResponses } from './capture-all-sw-responses.js'
 import { setConfig } from './set-sw-config.js'
 import { waitForServiceWorker } from './wait-for-service-worker.js'
 
@@ -15,9 +16,37 @@ const baseURLProtocol = async ({ baseURL }, use): Promise<void> => {
   await use(url.protocol)
 }
 
-export const test = base.extend<{ rootDomain: string, baseURL: string, protocol: string }>({
+/**
+ * A fixture that captures all the responses from the service worker.
+ */
+const swResponses = async ({ page }, use): Promise<void> => {
+  const capturedResponses: Response[] = []
+  const controller = new AbortController()
+  const signal = controller.signal;
+
+  // background capture
+  (async () => {
+    try {
+      for await (const response of captureAllSwResponses(page, signal)) {
+        capturedResponses.push(response)
+      }
+    } catch (err) {
+      // do not kill the test runner, just log the error
+      // eslint-disable-next-line no-console
+      console.error('Error in SW capture:', err)
+    }
+  })().catch(() => {})
+
+  await use(capturedResponses)
+
+  // stop the capture loop because the test is done
+  controller.abort()
+}
+
+export const test = base.extend<{ rootDomain: string, baseURL: string, protocol: string, swResponses: Response[] }>({
   rootDomain: [rootDomain, { scope: 'test' }],
   protocol: [baseURLProtocol, { scope: 'test' }],
+  swResponses,
   page: async ({ page }, use) => {
     if (isNoServiceWorkerProject(test)) {
       test.skip()
