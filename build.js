@@ -1,28 +1,27 @@
 /* eslint-disable no-console */
 import { execSync } from 'node:child_process'
-import fs from 'node:fs'
+import fs from 'node:fs/promises'
 import path from 'node:path'
 import esbuild from 'esbuild'
 
-const copyPublicFiles = () => {
+const copyPublicFiles = async () => {
   const srcDir = path.resolve('public')
   const destDir = path.resolve('dist')
 
   // Ensure the destination directory exists
-  if (!fs.existsSync(destDir)) {
-    fs.mkdirSync(destDir, { recursive: true })
-  }
+  await fs.mkdir(destDir, { recursive: true })
 
   // Read all files in the source directory
-  const files = fs.readdirSync(srcDir)
+  const files = await fs.readdir(srcDir)
 
-  // Copy each file to the destination directory
-  files.forEach(file => {
-    const srcFile = path.join(srcDir, file)
-    const destFile = path.join(destDir, file)
-    fs.copyFileSync(srcFile, destFile)
-    console.log(`${file} copied to dist folder.`)
-  })
+  await Promise.all(
+    files.map(async (file) => {
+      const srcFile = path.join(srcDir, file)
+      const destFile = path.join(destDir, file)
+      await fs.copyFile(srcFile, destFile)
+      console.log(`${file} copied to dist folder.`)
+    })
+  )
 }
 
 function gitRevision () {
@@ -55,33 +54,32 @@ function gitRevision () {
 /**
  * Inject the dist/index.js and dist/index.css into the dist/index.html file
  *
- * @param {esbuild.Metafile} metafile
+ * @param {esbuild.Metafile} metafile - esbuild's metafile to extract output file names
+ * @param {string} revision - Pre-computed Git revision string
  */
-const injectAssets = (metafile) => {
+const injectAssets = async (metafile, revision) => {
   const htmlFilePath = path.resolve('dist/index.html')
-
-  // Extract the output file names from the metafile
   const outputs = metafile.outputs
+
+  // Get the built JS and CSS filenames
   const scriptFile = Object.keys(outputs).find(file => file.endsWith('.js') && file.includes('ipfs-sw-index'))
   const cssFile = Object.keys(outputs).find(file => file.endsWith('.css') && file.includes('ipfs-sw-index'))
+
+  if (!scriptFile || !cssFile) {
+    console.error('Could not find the required assets in the metafile.')
+    return
+  }
 
   const scriptTag = `<script type="module" src="${path.basename(scriptFile)}"></script>`
   const linkTag = `<link rel="stylesheet" href="${path.basename(cssFile)}">`
 
-  // Read the index.html file
-  let htmlContent = fs.readFileSync(htmlFilePath, 'utf8')
+  let htmlContent = await fs.readFile(htmlFilePath, 'utf8')
+  htmlContent = htmlContent
+    .replace('</head>', `${linkTag}</head>`)
+    .replace('</body>', `${scriptTag}</body>`)
+    .replace(/<%= GIT_VERSION %>/g, revision)
 
-  // Inject the link tag for CSS before the closing </head> tag
-  htmlContent = htmlContent.replace('</head>', `${linkTag}</head>`)
-
-  // Inject the script tag for JS before the closing </body> tag
-  htmlContent = htmlContent.replace('</body>', `${scriptTag}</body>`)
-
-  // Inject the git revision into the index
-  htmlContent = htmlContent.replace(/<%= GIT_VERSION %>/g, gitRevision())
-
-  // Write the modified HTML back to the index.html file
-  fs.writeFileSync(htmlFilePath, htmlContent)
+  await fs.writeFile(htmlFilePath, htmlContent)
   console.log(`Injected ${path.basename(scriptFile)} and ${path.basename(cssFile)} into index.html.`)
 }
 
@@ -96,93 +94,113 @@ const injectAssets = (metafile) => {
  *
  * @see https://github.com/ipfs/service-worker-gateway/issues/628
  *
- * @param {esbuild.Metafile} metafile
+ * @param {esbuild.Metafile} metafile - esbuild's metafile to extract output file names
+ * @param {string} revision - Pre-computed Git revision string
  */
-const injectFirstHitJs = (metafile) => {
+const injectFirstHitJs = async (metafile, revision) => {
   const htmlFilePath = path.resolve('dist/ipfs-sw-first-hit.html')
 
   const scriptFile = Object.keys(metafile.outputs).find(file => file.endsWith('.js') && file.includes('ipfs-sw-first-hit'))
+
+  if (!scriptFile) {
+    console.error('Could not find the ipfs-sw-first-hit JS file in the metafile.')
+    return
+  }
+
   const scriptTag = `<script src="/${path.basename(scriptFile)}"></script>`
-  let htmlContent = fs.readFileSync(htmlFilePath, 'utf8')
-  htmlContent = htmlContent.replace(/<%= GIT_VERSION %>/g, gitRevision())
-  htmlContent = htmlContent.replace('</body>', `${scriptTag}</body>`)
-  fs.writeFileSync(htmlFilePath, htmlContent)
+  let htmlContent = await fs.readFile(htmlFilePath, 'utf8')
+  htmlContent = htmlContent
+    .replace(/<%= GIT_VERSION %>/g, revision)
+    .replace('</body>', `${scriptTag}</body>`)
+
+  await fs.writeFile(htmlFilePath, htmlContent)
 }
 
 /**
- * We need the service worker to have a consistent name
+ * Asynchronously modify the _redirects file by appending entries for all files
+ * in the dist folder except for index.html, _redirects, and _kubo_redirects.
+ */
+const modifyRedirects = async () => {
+  const redirectsFilePath = path.resolve('dist/_redirects')
+  const redirectsContent = await fs.readFile(redirectsFilePath, 'utf8')
+  const distFiles = await fs.readdir(path.resolve('dist'))
+  const files = distFiles.filter(file => !['_redirects', 'index.html', '_kubo_redirects'].includes(file))
+  const lines = redirectsContent.split('\n')
+  files.forEach(file => {
+    lines.push(`/*/${file} /${file}`)
+  })
+  await fs.writeFile(redirectsFilePath, lines.join('\n'))
+}
+
+/**
+ * Plugin to ensure the service worker has a consistent name.
  *
  * @type {esbuild.Plugin}
  */
 const renameSwPlugin = {
   name: 'rename-sw-plugin',
   setup (build) {
-    build.onEnd(() => {
+    build.onEnd(async () => {
       const outdir = path.resolve('dist')
-      const files = fs.readdirSync(outdir)
+      const files = await fs.readdir(outdir)
 
-      files.forEach(file => {
-        if (file.startsWith('ipfs-sw-sw-')) {
-          // everything after the dot
-          const extension = file.slice(file.indexOf('.'))
-          const oldPath = path.join(outdir, file)
-          const newPath = path.join(outdir, `ipfs-sw-sw${extension}`)
-          fs.renameSync(oldPath, newPath)
-          console.log(`Renamed ${file} to ipfs-sw-sw${extension}`)
-          if (extension === '.js') {
-            // Replace sourceMappingURL with new path
-            const contents = fs.readFileSync(newPath, 'utf8')
-            const newContents = contents.replace(/sourceMappingURL=.*\.js\.map/, 'sourceMappingURL=ipfs-sw-sw.js.map')
-            fs.writeFileSync(newPath, newContents)
+      await Promise.all(
+        files.map(async file => {
+          if (file.startsWith('ipfs-sw-sw-')) {
+            const extension = file.slice(file.indexOf('.'))
+            const oldPath = path.join(outdir, file)
+            const newPath = path.join(outdir, `ipfs-sw-sw${extension}`)
+            await fs.rename(oldPath, newPath)
+            console.log(`Renamed ${file} to ipfs-sw-sw${extension}`)
+            if (extension === '.js') {
+              const contents = await fs.readFile(newPath, 'utf8')
+              const newContents = contents.replace(/sourceMappingURL=.*\.js\.map/, 'sourceMappingURL=ipfs-sw-sw.js.map')
+              await fs.writeFile(newPath, newContents)
+            }
           }
-        }
-      })
+        })
+      )
     })
   }
 }
 
 /**
- * For every file in the dist folder except for _redirects, and index.html, we need to make sure that
- * redirects from /{splat}/ipfs-sw-{asset}.css and /{splat}/ipfs-sw-{asset}.js are redirected to root /ipfs-sw-{asset}.css and /ipfs-sw-{asset}.js
- * respectively.
+ * Plugin to modify built files by running post-build tasks.
  *
- * This is only needed when hosting the `./dist` folder on cloudflare pages. When hosting with an IPFS gateway, the _redirects file should be replaced with the _kubo_redirects file
- */
-const modifyRedirects = () => {
-  const redirectsFilePath = path.resolve('dist/_redirects')
-  const redirectsContent = fs.readFileSync(redirectsFilePath, 'utf8')
-  const files = fs.readdirSync(path.resolve('dist')).filter(file => !['_redirects', 'index.html', '_kubo_redirects'].includes(file))
-  const lines = redirectsContent.split('\n')
-  files.forEach(file => {
-    lines.push(`/*/${file} /${file}`)
-  })
-
-  fs.writeFileSync(redirectsFilePath, lines.join('\n'))
-}
-
-/**
  * @type {esbuild.Plugin}
  */
 const modifyBuiltFiles = {
   name: 'modify-built-files',
   setup (build) {
     build.onEnd(async (result) => {
-      copyPublicFiles()
-      injectAssets(result.metafile)
-      injectFirstHitJs(result.metafile)
-      modifyRedirects()
+      // Cache the Git revision once
+      const revision = gitRevision()
+
+      // Run copyPublicFiles first to make sure public assets are in place
+      await copyPublicFiles()
+
+      // Run injection tasks concurrently since they modify separate files
+      await Promise.all([
+        injectAssets(result.metafile, revision),
+        injectFirstHitJs(result.metafile, revision)
+      ])
+
+      // Modify the redirects file last
+      await modifyRedirects()
     })
   }
 }
 
 /**
- * @param {string[]} extensions - The extension of the imported files to exclude. Must match the fill ending path in the import(js) or url(css) statement.
- * @returns {esbuild.Plugin}
+ * Creates a plugin that excludes files with the given extensions.
+ *
+ * @param {string[]} extensions - The extension strings to exclude (e.g. ['.eot?#iefix'])
+ * @returns {esbuild.Plugin} - An esbuild plugin.
  */
 const excludeFilesPlugin = (extensions) => ({
   name: 'exclude-files',
   setup (build) {
-    build.onResolve({ filter: /.*/ }, async (args) => {
+    build.onResolve({ filter: /.*/ }, (args) => {
       if (extensions.some(ext => args.path.endsWith(ext))) {
         return { path: args.path, namespace: 'exclude', external: true }
       }
