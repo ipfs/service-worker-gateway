@@ -4,12 +4,11 @@
  */
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { dirname, join, relative, resolve } from 'node:path'
+import { dirname, join, relative } from 'node:path'
 import { cwd } from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { logger } from '@libp2p/logger'
 import { $, execa } from 'execa'
-import { glob } from 'glob'
 import { path } from 'kubo'
 import { createReverseProxy } from './reverse-proxy.js'
 
