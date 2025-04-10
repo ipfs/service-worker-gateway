@@ -92,7 +92,7 @@ export default defineConfig({
       stderr: process.env.CI ? undefined : 'pipe'
     },
     {
-      command: 'npx wait-on "http://localhost:3000" && node dist-tsc/test-e2e/ipfs-gateway-ts.js',
+      command: 'npx wait-on "http://localhost:3000" && node dist-tsc/test-e2e/ipfs-gateway.js',
       timeout: 15 * 1000,
       env: {
         PROXY_PORT: '3334',
