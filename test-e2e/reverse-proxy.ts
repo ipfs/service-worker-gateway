@@ -1,9 +1,9 @@
 /* eslint-disable no-console */
-import { request, createServer } from 'node:http'
+import { request, createServer, type Server, type ServerResponse, type IncomingMessage, type RequestOptions } from 'node:http'
 import { pathToFileURL } from 'node:url'
 import { logger } from '@libp2p/logger'
 
-const setCommonHeaders = (res) => {
+const setCommonHeaders = (res: ServerResponse): void => {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range, User-Agent, X-Requested-With')
   res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS')
@@ -21,7 +21,7 @@ const setCommonHeaders = (res) => {
  * @param {boolean} [options.disableTryFiles] - Whether to disable try_files behavior (defaults to process.env.DISABLE_TRY_FILES === 'true')
  * @param {string} [options.xForwardedHost] - Value for X-Forwarded-Host header (defaults to process.env.X_FORWARDED_HOST)
  * @param {object} [options.log] - Logger instance to use (defaults to logger('reverse-proxy'))
- * @returns {object} The HTTP server instance
+ * @returns {import('node:http').Server} The HTTP server instance
  */
 export function createReverseProxy ({
   targetHost = process.env.TARGET_HOST ?? 'localhost',
@@ -32,8 +32,11 @@ export function createReverseProxy ({
   disableTryFiles = process.env.DISABLE_TRY_FILES === 'true',
   xForwardedHost = process.env.X_FORWARDED_HOST,
   log = logger('reverse-proxy')
-} = {}) {
-  const makeRequest = (options, req, res, attemptRootFallback = false) => {
+} = {}): Server {
+  const makeRequest = (options: RequestOptions, req: IncomingMessage, res: ServerResponse, attemptRootFallback = false): void => {
+    if (options.headers == null) {
+      options.headers = {}
+    }
     options.headers.Host = targetHost
     const clientIp = req.connection.remoteAddress
     options.headers['X-Forwarded-For'] = clientIp
@@ -56,8 +59,8 @@ export function createReverseProxy ({
       if (!disableTryFiles && proxyRes.statusCode === 404) { // poor mans attempt to implement nginx style try_files
         if (!attemptRootFallback) {
           // Split the path and pop the last segment
-          const pathSegments = options.path.split('/')
-          const lastSegment = pathSegments.pop() || ''
+          const pathSegments = options.path?.split('/') ?? []
+          const lastSegment = pathSegments.pop() ?? ''
 
           // Attempt to request the last segment at the root
           makeRequest({ ...options, path: `/${lastSegment}` }, req, res, true)
@@ -67,7 +70,7 @@ export function createReverseProxy ({
         }
       } else {
         setCommonHeaders(res)
-        res.writeHead(proxyRes.statusCode, proxyRes.headers)
+        res.writeHead(proxyRes.statusCode ?? 500, proxyRes.headers)
         proxyRes.pipe(res, { end: true })
       }
     })

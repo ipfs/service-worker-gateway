@@ -8,10 +8,11 @@
  * - `npx`
  */
 
-import { readFile } from 'node:fs/promises'
-import { dirname, relative, resolve } from 'node:path'
+import { readFile, readdir } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { basename, dirname, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { logger } from '@libp2p/logger'
+import { enable, logger } from '@libp2p/logger'
 import { $ } from 'execa'
 import { glob } from 'glob'
 
@@ -19,12 +20,15 @@ import { glob } from 'glob'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const log = logger('kubo-init')
+if (process.env.CI === 'true') {
+  enable('kubo-init*,kubo-init*:trace')
+}
 
 // This needs to match the `repo` property provided to `ipfsd-ctl` in `createKuboNode` so our kubo instance in tests use the same repo
-export const kuboRepoDir = resolve(__dirname, 'data/test-repo')
+export const kuboRepoDir = `${tmpdir()}/.ipfs/${Date.now()}`
 export const GWC_FIXTURES_PATH = resolve(__dirname, 'data/gateway-conformance-fixtures')
 
-export async function loadKuboFixtures (): Promise<void> {
+export async function loadKuboFixtures (): Promise<string> {
   await $`mkdir -p ${kuboRepoDir}`
   await $`mkdir -p ${GWC_FIXTURES_PATH}`
 
@@ -32,7 +36,7 @@ export async function loadKuboFixtures (): Promise<void> {
 
   await downloadFixtures()
 
-  await loadFixtures()
+  return loadFixtures()
 }
 
 function getExecaOptions ({ cwd, ipfsNsMap }: { cwd?: string, ipfsNsMap?: string } = {}): { cwd: string, env: Record<string, string | undefined> } {
@@ -112,14 +116,25 @@ async function loadFixtures (): Promise<string> {
     stdout.split('\n').forEach(log)
   }
 
-  // TODO: re-enable this when we resolve CI issue: see https://github.com/ipfs-shipyard/service-worker-gateway/actions/runs/8442583023/job/23124336180?pr=159#step:6:13
-  // for (const ipnsRecord of await glob([`${GWC_FIXTURES_PATH}/**/*.ipns-record`])) {
-  //   const key = basename(ipnsRecord, '.ipns-record')
-  //   const relativePath = relative(GWC_FIXTURES_PATH, ipnsRecord)
-  //   log('Loading *.ipns-record fixture %s', relativePath)
-  //   const { stdout } = await $(({ ...execaOptions }))`cd ${GWC_FIXTURES_PATH} && npx -y kubo routing put --allow-offline "/ipns/${key}" "${relativePath}"`
-  //   stdout.split('\n').forEach(log)
-  // }
+  log('cwd', process.cwd())
+  log('GWC_FIXTURES_PATH contents:')
+  try {
+    const files = await readdir(GWC_FIXTURES_PATH)
+    for (const file of files) {
+      log('  %s', file)
+    }
+  } catch (err) {
+    log.error(err)
+  }
+
+  for (const ipnsRecord of await glob([`${GWC_FIXTURES_PATH}/**/*.ipns-record`])) {
+    log('Loading *.ipns-record fixture fullpath: %s', ipnsRecord)
+    const key = basename(ipnsRecord, '.ipns-record')
+    const relativePath = relative(GWC_FIXTURES_PATH, ipnsRecord)
+    log('Loading *.ipns-record fixture relativepath: %s', relativePath)
+    const { stdout } = await $({ ...execaOptions, cwd: GWC_FIXTURES_PATH })`npx -y kubo routing put --allow-offline "/ipns/${key}" "${relativePath}"`
+    stdout.split('\n').forEach(log)
+  }
 
   const json = await readFile(`${GWC_FIXTURES_PATH}/dnslinks.json`, 'utf-8')
   const { subdomains, domains } = JSON.parse(json)

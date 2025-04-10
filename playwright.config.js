@@ -82,26 +82,6 @@ export default defineConfig({
   // TODO: disable webservers when testing `deployed` project
   webServer: [
     {
-      command: 'node test-e2e/reverse-proxy.js',
-      timeout: 5 * 1000,
-      env: {
-        BACKEND_PORT: '3000',
-        PROXY_PORT: '3333'
-      },
-      stdout: process.env.CI ? undefined : 'pipe',
-      stderr: process.env.CI ? undefined : 'pipe'
-    },
-    {
-      command: 'npx wait-on "http://localhost:3000" && node dist-tsc/test-e2e/ipfs-gateway.js',
-      timeout: 15 * 1000,
-      env: {
-        PROXY_PORT: '3334',
-        GATEWAY_PORT: '8088'
-      },
-      stdout: process.env.CI ? undefined : 'pipe',
-      stderr: process.env.CI ? undefined : 'pipe'
-    },
-    {
       // need to use built assets due to service worker loading issue.
       command: process.env.SHOULD_BUILD !== 'false' ? 'npm run build && npx http-server --silent -p 3000 dist' : 'npx http-server --silent -p 3000 dist',
       port: 3000,
