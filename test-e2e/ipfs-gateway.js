@@ -4,7 +4,7 @@
  */
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { dirname, join, relative, resolve } from 'node:path'
+import { basename, dirname, join, relative, resolve } from 'node:path'
 import { cwd } from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { logger } from '@libp2p/logger'
@@ -24,7 +24,7 @@ const kuboBin = path()
 const gatewayPort = Number(process.env.GATEWAY_PORT ?? 8088)
 
 /**
- * @type {import('execa').Options}
+ * @type {import('execa').Options & { env: Record<string, string | undefined> }}
  */
 const execaOptions = {
   cwd: __dirname,
@@ -74,11 +74,62 @@ await $(execaOptions)`${kuboBin} config --json Gateway.ExposeRoutingAPI false`
 await $(execaOptions)`${kuboBin} config --json Gateway.HTTPHeaders.Access-Control-Allow-Origin ${JSON.stringify(['*'])}`
 await $(execaOptions)`${kuboBin} config --json Gateway.HTTPHeaders.Access-Control-Allow-Methods  ${JSON.stringify(['GET', 'POST', 'PUT', 'OPTIONS'])}`
 
+const FIXTURES_DATA_PATH = resolve(__dirname, 'fixtures', 'data')
+const GWC_FIXTURES_PATH = resolve(FIXTURES_DATA_PATH, 'gateway-conformance-fixtures')
 for (const carFile of await glob([`${resolve(__dirname, 'fixtures', 'data')}/**/*.car`])) {
   log('Loading *.car fixture %s', carFile)
   const { stdout } = await $(execaOptions)`${kuboBin} dag import --pin-roots=false --offline ${carFile}`
   stdout.split('\n').forEach(log)
 }
+
+async function downloadFixtures (force = false) {
+  if (!force) {
+  // if the fixtures are already downloaded, we don't need to download them again
+    const allFixtures = await glob([`${GWC_FIXTURES_PATH}/**/*.car`, `${GWC_FIXTURES_PATH}/**/*.ipns-record`, `${GWC_FIXTURES_PATH}/dnslinks.json`])
+    if (allFixtures.length > 0) {
+      log('Fixtures already downloaded')
+      return
+    }
+  }
+
+  log('Downloading fixtures')
+  try {
+    await $`docker run -v ${process.cwd()}:/workspace -w /workspace ghcr.io/ipfs/gateway-conformance:v0.4.2 extract-fixtures --directory ${relative('.', GWC_FIXTURES_PATH)} --merged false`
+  } catch (e) {
+    log.error('Error downloading fixtures, assuming current or previous success', e)
+  }
+}
+
+async function loadFixtures () {
+  for (const carFile of await glob([`${FIXTURES_DATA_PATH}/**/*.car`])) {
+    log('Loading *.car fixture %s', carFile)
+    const { stdout } = await $(execaOptions)`npx -y kubo dag import --pin-roots=false --offline ${carFile}`
+    stdout.split('\n').forEach(log)
+  }
+
+  // TODO: re-enable this when we resolve CI issue: see https://github.com/ipfs-shipyard/service-worker-gateway/actions/runs/8442583023/job/23124336180?pr=159#step:6:13
+  for (const ipnsRecord of await glob([`${FIXTURES_DATA_PATH}/**/*.ipns-record`])) {
+    const key = basename(ipnsRecord, '.ipns-record')
+    const relativePath = relative(FIXTURES_DATA_PATH, ipnsRecord)
+    log('Loading *.ipns-record fixture %s', relativePath)
+    const { stdout } = await $(({ ...execaOptions }))`cd ${GWC_FIXTURES_PATH} && npx -y kubo routing put --allow-offline "/ipns/${key}" "${relativePath}"`
+    stdout.split('\n').forEach(log)
+  }
+
+  const json = await readFile(`${GWC_FIXTURES_PATH}/dnslinks.json`, 'utf-8')
+  const { subdomains, domains } = JSON.parse(json)
+  const subdomainDnsLinks = Object.entries(subdomains).map(([key, value]) => `${key}.example.com:${value}`).join(',')
+  const domainDnsLinks = Object.entries(domains).map(([key, value]) => `${key}:${value}`).join(',')
+  const ipfsNsMap = `${domainDnsLinks},${subdomainDnsLinks}`
+
+  // TODO: provide this to kubo instance in tests
+  return ipfsNsMap
+}
+
+await downloadFixtures()
+const ipfsNsMap = await loadFixtures()
+
+execaOptions.env.IPFS_NS_MAP = ipfsNsMap
 
 log('starting kubo')
 // need to stand up kubo daemon to serve the dist folder

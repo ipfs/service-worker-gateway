@@ -105,7 +105,7 @@ export default defineConfig({
       // need to use built assets due to service worker loading issue.
       command: 'npm run build && npx http-server --silent -p 3000 dist',
       port: 3000,
-      timeout: 15 * 1000,
+      timeout: 60 * 1000,
       reuseExistingServer: !process.env.CI,
       stdout: process.env.CI ? undefined : 'pipe',
       stderr: process.env.CI ? undefined : 'pipe'

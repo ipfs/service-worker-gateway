@@ -55,4 +55,18 @@ test.describe('smoke test', () => {
     expect(await shortHashLink?.innerText()).toContain('bafy...lo7q')
     expect(await shortHashLink?.getAttribute('href')).toContain('http://localhost:3334/ipfs/bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q?filename=root4')
   })
+
+  /**
+   * @see https://github.com/ipfs/service-worker-gateway/issues/662
+   */
+  test('request to /ipns/<libp2p-key> returns expected content', async ({ page, protocol, swResponses }) => {
+    await navigateAndGetSwResponse(page, {
+      url: `${protocol}//localhost:3334/ipns/k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam`,
+      swScope: 'http://k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam.ipns.localhost:3334'
+    })
+    const response = swResponses[swResponses.length - 1]
+    expect(response?.status()).toBe(200)
+    expect(response?.headers()['content-type']).toBe('text/html; charset=utf-8')
+    expect(await response?.text()).toContain('hello')
+  })
 })

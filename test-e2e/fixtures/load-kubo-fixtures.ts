@@ -85,11 +85,11 @@ async function configureKubo (): Promise<void> {
   }
 }
 
-async function downloadFixtures (force = false): Promise<void> {
+export async function downloadFixtures (force = false): Promise<void> {
   if (!force) {
   // if the fixtures are already downloaded, we don't need to download them again
     const allFixtures = await glob([`${GWC_FIXTURES_PATH}/**/*.car`, `${GWC_FIXTURES_PATH}/**/*.ipns-record`, `${GWC_FIXTURES_PATH}/dnslinks.json`])
-    if (allFixtures.length > 4) {
+    if (allFixtures.length > 0) {
       log('Fixtures already downloaded')
       return
     }
@@ -103,7 +103,7 @@ async function downloadFixtures (force = false): Promise<void> {
   }
 }
 
-async function loadFixtures (): Promise<string> {
+export async function loadFixtures (): Promise<string> {
   const execaOptions = getExecaOptions()
 
   for (const carFile of await glob([`${resolve(__dirname, 'data')}/**/*.car`])) {
