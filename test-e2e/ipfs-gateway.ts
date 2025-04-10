@@ -15,6 +15,7 @@ import { createReverseProxy } from './reverse-proxy.js'
 const log = logger('ipfs-host.local')
 const daemonLog = logger('ipfs-host.local:kubo')
 const proxyLog = logger('ipfs-host.local:proxy')
+// eslint-disable-next-line @typescript-eslint/naming-convention
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const tempDir = tmpdir()
 const IPFS_PATH = `${tempDir}/.ipfs/${Date.now()}`
@@ -50,8 +51,8 @@ log('using IPFS_PATH: ', IPFS_PATH)
 const kuboRedirects = await readFile(join(cwd(), './dist/_kubo_redirects'), 'utf-8')
 
 await writeFile(join(cwd(), './dist/_redirects'), kuboRedirects)
-
-const { stdout: cid } = await $(execaOptions)`${kuboBin} add -r -Q ${relative(cwd(), '../dist')} --cid-version 1`
+const distPath = relative(cwd(), '../../dist')
+const { stdout: cid } = await $(execaOptions)`${kuboBin} add -r -Q ${distPath} --cid-version 1`
 
 log('sw-gateway dist CID: ', cid.trim())
 const { stdout: pinStdout } = await $(execaOptions)`${kuboBin} pin add -r /ipfs/${cid.trim()}`
@@ -77,7 +78,7 @@ log('starting kubo')
 // need to stand up kubo daemon to serve the dist folder
 const daemon = execa(kuboBin, ['daemon', '--offline'], execaOptions)
 
-if (daemon == null || (daemon.stdout == null || daemon.stderr == null)) {
+if (daemon.stdout == null || daemon.stderr == null) {
   throw new Error('failed to start kubo daemon')
 }
 daemon.stdout.on('data', (data) => {
@@ -89,7 +90,7 @@ daemon.stderr.on('data', (data) => {
 
 // check for "daemon is ready" message
 await new Promise((resolve, reject) => {
-  daemon.stdout?.on('data', (data) => {
+  daemon.stdout?.on('data', (data: string) => {
     if (data.includes('Daemon is ready')) {
       // @ts-expect-error - nothing needed here.
       resolve()

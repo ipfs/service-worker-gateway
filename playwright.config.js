@@ -92,7 +92,7 @@ export default defineConfig({
       stderr: process.env.CI ? undefined : 'pipe'
     },
     {
-      command: 'npx wait-on "http://localhost:3000" && node test-e2e/ipfs-gateway.js',
+      command: 'npx wait-on "http://localhost:3000" && node dist-tsc/test-e2e/ipfs-gateway.js',
       timeout: 15 * 1000,
       env: {
         PROXY_PORT: '3334',
@@ -103,7 +103,7 @@ export default defineConfig({
     },
     {
       // need to use built assets due to service worker loading issue.
-      command: 'npm run build && npx http-server --silent -p 3000 dist',
+      command: process.env.SHOULD_BUILD !== 'false' ? 'npm run build && npx http-server --silent -p 3000 dist' : 'npx http-server --silent -p 3000 dist',
       port: 3000,
       timeout: 15 * 1000,
       reuseExistingServer: !process.env.CI,
