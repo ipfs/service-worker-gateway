@@ -8,7 +8,7 @@
  * - `npx`
  */
 
-import { readFile } from 'node:fs/promises'
+import { readFile, readdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, dirname, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -116,11 +116,23 @@ async function loadFixtures (): Promise<string> {
     stdout.split('\n').forEach(log)
   }
 
+  log('cwd', process.cwd())
+  log('GWC_FIXTURES_PATH contents:')
+  try {
+    const files = await readdir(GWC_FIXTURES_PATH)
+    for (const file of files) {
+      log('  %s', file)
+    }
+  } catch (err) {
+    log.error(err)
+  }
+
   for (const ipnsRecord of await glob([`${GWC_FIXTURES_PATH}/**/*.ipns-record`])) {
+    log('Loading *.ipns-record fixture fullpath: %s', ipnsRecord)
     const key = basename(ipnsRecord, '.ipns-record')
     const relativePath = relative(GWC_FIXTURES_PATH, ipnsRecord)
-    log('Loading *.ipns-record fixture %s', relativePath)
-    const { stdout } = await $(execaOptions)`cd ${GWC_FIXTURES_PATH} && npx -y kubo routing put --allow-offline "/ipns/${key}" "${relativePath}"`
+    log('Loading *.ipns-record fixture relativepath: %s', relativePath)
+    const { stdout } = await $({ ...execaOptions, cwd: GWC_FIXTURES_PATH })`npx -y kubo routing put --allow-offline "/ipns/${key}" "${relativePath}"`
     stdout.split('\n').forEach(log)
   }
 
