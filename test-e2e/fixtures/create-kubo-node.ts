@@ -59,7 +59,7 @@ export async function getKuboDistCid (): Promise<string> {
   return cid.trim()
 }
 
-export async function createKuboNode (): Promise<KuboNode> {
+export async function createKuboNode (IPFS_NS_MAP?: string): Promise<KuboNode> {
   // eslint-disable-next-line no-console
   log('process.env.GATEWAY_PORT', process.env.GATEWAY_PORT)
   const cid = await getKuboDistCid()
@@ -72,7 +72,12 @@ export async function createKuboNode (): Promise<KuboNode> {
 
   log('config.Addresses.Gateway: ', JSON.parse(await readFile(join(IPFS_PATH, 'config'), 'utf-8')).Addresses.Gateway)
 
-  const IPFS_NS_MAP = [['ipfs-host.local', `/ipfs/${cid.trim()}`]].map(([host, path]) => `${host}:${path}`).join(',')
+  if (IPFS_NS_MAP == null) {
+    IPFS_NS_MAP = [['ipfs-host.local', `/ipfs/${cid.trim()}`]].map(([host, path]) => `${host}:${path}`).join(',')
+  } else {
+    IPFS_NS_MAP += `,ipfs-host.local:/ipfs/${cid.trim()}`
+  }
+
   const gatewayAddress = `/ip4/127.0.0.1/tcp/${gatewayPort}`
   log('gatewayAddress: ', gatewayAddress)
   const node = await createNode({

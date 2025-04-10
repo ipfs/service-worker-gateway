@@ -6,9 +6,9 @@ import { createReverseProxy } from './reverse-proxy.js'
 
 export default async function globalSetup (config: Config): Promise<void> {
   process.env.PLAYWRIGHT = 'true'
-  await loadKuboFixtures()
+  const IPFS_NS_MAP = await loadKuboFixtures()
 
-  const controller = await createKuboNode()
+  const controller = await createKuboNode(IPFS_NS_MAP)
   await controller.start()
 
   const info = await controller.info()
