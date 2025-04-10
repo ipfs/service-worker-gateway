@@ -49,7 +49,7 @@ export async function setupIpfsGateway (): Promise<KuboNodeInstance> {
 
   return {
     stop: async () => {
-      await reverseProxy.close()
+      await new Promise(resolve => reverseProxy.close(resolve))
       await controller?.stop()
     }
   }
