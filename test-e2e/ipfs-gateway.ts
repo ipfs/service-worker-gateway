@@ -53,7 +53,6 @@ const kuboRedirects = await readFile(join(cwd(), './dist/_kubo_redirects'), 'utf
 
 await writeFile(join(cwd(), './dist/_redirects'), kuboRedirects)
 const distPath = relative(cwd(), '../../dist')
-console.log('distPath: ', join(__dirname, distPath))
 const { stdout: cid } = await $(execaOptions)`${kuboBin} add -r -Q ${distPath} --cid-version 1`
 
 log('sw-gateway dist CID: ', cid.trim())
@@ -76,17 +75,11 @@ await $(execaOptions)`${kuboBin} config --json Gateway.ExposeRoutingAPI false`
 await $(execaOptions)`${kuboBin} config --json Gateway.HTTPHeaders.Access-Control-Allow-Origin ${JSON.stringify(['*'])}`
 await $(execaOptions)`${kuboBin} config --json Gateway.HTTPHeaders.Access-Control-Allow-Methods  ${JSON.stringify(['GET', 'POST', 'PUT', 'OPTIONS'])}`
 
-for (const carFile of await glob([`${resolve(__dirname, 'fixtures', 'data')}/**/*.car`])) {
-  log('Loading *.car fixture %s', carFile)
-  const { stdout } = await $(execaOptions)`${kuboBin} dag import --pin-roots=false --offline ${carFile}`
-  stdout.split('\n').forEach(log)
-}
-
 log('starting kubo')
 // need to stand up kubo daemon to serve the dist folder
 const daemon = execa(kuboBin, ['daemon', '--offline'], execaOptions)
 
-if (daemon?.stdout == null || daemon.stderr == null) {
+if (daemon.stdout == null || daemon.stderr == null) {
   throw new Error('failed to start kubo daemon')
 }
 daemon.stdout.on('data', (data) => {
