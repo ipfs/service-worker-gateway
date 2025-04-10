@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile, cp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { dirname, join, relative } from 'node:path'
+import { dirname, join } from 'node:path'
 import { cwd } from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { logger } from '@libp2p/logger'
