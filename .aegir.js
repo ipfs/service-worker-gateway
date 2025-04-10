@@ -33,7 +33,8 @@ export default {
       '.aegir.js',
       '/test',
       'dist',
-      'build.js'
+      'build.js',
+      'serve.js'
     ]
   }
 }

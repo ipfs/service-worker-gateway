@@ -22,7 +22,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const log = logger('kubo-init')
 
 // This needs to match the `repo` property provided to `ipfsd-ctl` in `createKuboNode` so our kubo instance in tests use the same repo
-// export const kuboRepoDir = resolve(__dirname, 'data/test-repo')
 export const kuboRepoDir = `${tmpdir()}/.ipfs/${Date.now()}`
 export const GWC_FIXTURES_PATH = resolve(__dirname, 'data/gateway-conformance-fixtures')
 
