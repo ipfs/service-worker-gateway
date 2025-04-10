@@ -12,7 +12,7 @@ import { readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, dirname, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { logger } from '@libp2p/logger'
+import { enable, logger } from '@libp2p/logger'
 import { $ } from 'execa'
 import { glob } from 'glob'
 
@@ -20,6 +20,9 @@ import { glob } from 'glob'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const log = logger('kubo-init')
+if (process.env.CI === 'true') {
+  enable('kubo-init*,kubo-init*:trace')
+}
 
 // This needs to match the `repo` property provided to `ipfsd-ctl` in `createKuboNode` so our kubo instance in tests use the same repo
 export const kuboRepoDir = `${tmpdir()}/.ipfs/${Date.now()}`
@@ -117,7 +120,7 @@ async function loadFixtures (): Promise<string> {
     const key = basename(ipnsRecord, '.ipns-record')
     const relativePath = relative(GWC_FIXTURES_PATH, ipnsRecord)
     log('Loading *.ipns-record fixture %s', relativePath)
-    const { stdout } = await $(({ ...execaOptions }))`cd ${GWC_FIXTURES_PATH} && npx -y kubo routing put --allow-offline "/ipns/${key}" "${relativePath}"`
+    const { stdout } = await $(execaOptions)`cd ${GWC_FIXTURES_PATH} && npx -y kubo routing put --allow-offline "/ipns/${key}" "${relativePath}"`
     stdout.split('\n').forEach(log)
   }
 
