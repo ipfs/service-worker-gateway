@@ -659,7 +659,7 @@ function getResponseDetails (response: Response, responseBody: string): Response
     headers[key] = value
   })
 
-  if (response.headers.get('Content-Type')?.includes('application/json')) {
+  if (response.headers.get('Content-Type')?.includes('application/json') === true) {
     try {
       responseBody = JSON.parse(responseBody)
     } catch (e) {
