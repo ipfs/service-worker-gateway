@@ -1,11 +1,10 @@
 import { type Config } from '@playwright/test'
-import { createKuboNode } from './fixtures/create-kubo-node.js'
-import { loadKuboFixtures } from './fixtures/load-kubo-fixtures.js'
+import { serve } from '../serve.js'
 
 export default async function globalSetup (config: Config): Promise<void> {
-  await loadKuboFixtures()
-  const controller = await createKuboNode()
-  await controller.start()
+  process.env.PLAYWRIGHT = 'true'
+
+  const { controller } = await serve({ shouldLoadFixtures: true, shouldStartFrontend: false })
 
   const info = await controller.info()
 
