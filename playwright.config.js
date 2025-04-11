@@ -1,5 +1,23 @@
 import { defineConfig, devices } from '@playwright/test'
 
+function getWebServerCommand () {
+  if (process.env.BASE_URL != null) {
+    // we need to make sure the webserver doesn't exit before the tests are done, but we don't want to build or serve if the BASE_URL is set
+    return `
+    echo "BASE_URL is set to ${process.env.BASE_URL}, skipping http-server setup"
+    while true; do
+      sleep 100
+    done
+    `
+  }
+
+  const serveCommand = 'npx http-server --silent -p 3000 dist'
+  if (process.env.SHOULD_BUILD !== 'false') {
+    return `npm run build && ${serveCommand}`
+  }
+  return serveCommand
+}
+
 export default defineConfig({
   testDir: './test-e2e',
   testMatch: /(.+\.)?(test|spec)\.[jt]s/,
@@ -79,11 +97,11 @@ export default defineConfig({
       }
     }
   ],
-  // TODO: disable webservers when testing `deployed` project
+
   webServer: [
     {
       // need to use built assets due to service worker loading issue.
-      command: process.env.SHOULD_BUILD !== 'false' ? 'npm run build && npx http-server --silent -p 3000 dist' : 'npx http-server --silent -p 3000 dist',
+      command: getWebServerCommand(),
       port: 3000,
       timeout: 15 * 1000,
       reuseExistingServer: !process.env.CI,

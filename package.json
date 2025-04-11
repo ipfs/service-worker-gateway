@@ -29,6 +29,7 @@
     "test:no-sw": "playwright test -c playwright.config.js --project no-service-worker",
     "test:firefox": "playwright test -c playwright.config.js --project firefox --project no-service-worker",
     "test:deployed": "playwright test -c playwright.config.js --project deployed",
+    "test:local-binary": "cross-env BASE_URL='http://localhost:3000' playwright test -c playwright.config.js --project deployed",
     "test:inbrowser-dev": "cross-env BASE_URL='https://inbrowser.dev' playwright test -c playwright.config.js --project deployed",
     "test:inbrowser-prod": "cross-env BASE_URL='https://inbrowser.link' playwright test -c playwright.config.js --project deployed",
     "test:node": "aegir test -t node -f dist-tsc/test/node.js --cov",
