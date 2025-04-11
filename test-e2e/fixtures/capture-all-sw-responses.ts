@@ -22,7 +22,7 @@ export async function * captureAllSwResponses (page: Page, signal: AbortSignal):
 
   // Set up the response listener
   const onResponse = (response: Response): void => {
-    if (!response.fromServiceWorker()) {
+    if (response.headers()['ipfs-sw'] !== 'true') {
       return
     }
     if (resolveNext != null) {

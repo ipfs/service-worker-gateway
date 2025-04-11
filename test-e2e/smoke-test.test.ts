@@ -66,7 +66,7 @@ test.describe('smoke test', () => {
     })
     const response = swResponses[swResponses.length - 1]
     expect(response?.status()).toBe(200)
-    expect(response?.headers()['content-type']).toBe('text/html; charset=utf-8')
+    expect(response?.headers()['content-type']).toBe('text/plain; charset=utf-8')
     expect(await response?.text()).toContain('hello')
   })
 })
