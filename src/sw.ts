@@ -538,6 +538,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
       log.error('fetchHandler: response not ok: ', response)
       return await errorPageResponse(response)
     }
+    response.headers.set('ipfs-sw', 'true')
     return response
   } catch (err: unknown) {
     const errorMessages: string[] = []
@@ -585,6 +586,8 @@ async function errorPageResponse (fetchResponse: Response): Promise<Response> {
   }
   if (json == null) {
     json = { error: { message: `${fetchResponse.statusText}: ${responseBodyAsText}`, stack: null } }
+  } else if (json.error == null) {
+    json.error = { message: json.errors.map(e => `<li>${e.message}</li>`).join(''), stack: json.errors.map(e => `<li>${e.stack}</li>`).join('\n') }
   }
 
   const responseDetails = getResponseDetails(fetchResponse, responseBodyAsText)
@@ -655,6 +658,14 @@ function getResponseDetails (response: Response, responseBody: string): Response
   response.headers.forEach((value, key) => {
     headers[key] = value
   })
+
+  if (response.headers.get('Content-Type')?.includes('application/json') === true) {
+    try {
+      responseBody = JSON.parse(responseBody)
+    } catch (e) {
+      log.error('error parsing json for error page response', e)
+    }
+  }
 
   return {
     responseBody,
