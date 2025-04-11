@@ -19,31 +19,26 @@ Make sure you have installed all of the following prerequisites on your developm
 > npm start
 ```
 
-Now open your browser at `http://sw.localhost:3000`
+Now open your browser at `http://localhost:3333`
 
+If you are editing code actively and wanting to see the changes, you will want to use the `3333` port because the IPFS hosted content is generated at build time and the x-forwarded-host header and stubbed DNSLink of `ipfs-host.local` will still be pointing to the old content.
 
 ### Enabling subdomains
 
-You can enable support for subdomains with a simple nginx configuration:
+Subdomains are enabled by default when you run `npm start`. You will want to access the service worker gateway via a reverse proxy that ensures subdomain support:
 
-```nginx
-    # simple proxy from sw.localhost to localhost:3000
-    server {
-        listen       80;
+* `http://localhost:3333`
+* `http://localhost:3334`
 
-        server_name ~^(?<subdomain>.+)\.ipfs\.sw.localhost$ ~^(?<subdomain>.+)\.ipns\.sw.localhost$ .sw.localhost;
 
-        location / {
-            proxy_pass http://localhost:3000;
-            proxy_set_header Host $host;
-            proxy_set_header X-Forwarded-For $remote_addr;
-        }
-    }
-```
+### Testing without subdomains
 
-You can then run `npm start`, start your nginx server, and then visit <http://specs-ipfs-tech.ipns.sw.localhost> in your browser to load the `specs.ipfs.tech` website via Helia-based verified-fetch library, completely from the Service Worker.
+Unless you have some other reverse proxy setup, you can access a path-only gateway by accessing:
 
-You can also try <http://sw.localhost/ipns/specs.ipfs.tech> to automatically be redirected to <http://specs-ipfs-tech.ipns.sw.localhost>. If you are not redirected, your reverse proxy may not be set up correctly.
+* `http://localhost:8345`
+* `http://127.0.0.1:8345`
+* `http://127.0.0.1:3333`
+* `http://127.0.0.1:3334`
 
 ## Demo links
 
@@ -52,7 +47,7 @@ You can also try <http://sw.localhost/ipns/specs.ipfs.tech> to automatically be 
 You have to visit the landing page first, and make sure the SW is loaded. Once it is, the below links should work for you.
 
 Notes:
-- ⚠️ Deployment of this service worker on environments that don't enable subdomain pathing is not recommended. Path-only gateways do not provide [Origin isolation](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway). NEVER use path-only gateways for loading dapps with sensitive information such as keys, passwords, wallets. 
+- ⚠️ Deployment of this service worker on environments that don't enable subdomain pathing is not recommended. Path-only gateways do not provide [Origin isolation](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway). NEVER use path-only gateways for loading dapps with sensitive information such as keys, passwords, wallets.
 * Attempting a few refreshes, clearing site data (cache/cookies/sw/indexDb/etc..), etc, may resolve your problem (though may be indicative of issues you can fix with a PR!)
 * Some content-types are not *previewable* with certain browsers. If you receive a download prompt you didn't expect: double check the returned content-type and make sure your browser supports previewing that content-type.
 
@@ -60,24 +55,24 @@ Notes:
 
 #### Static website and it's nested content
 
-* ipfs.tech/images directory listing page - http://sw.localhost:3000/ipfs/QmeUdoMyahuQUPHS2odrZEL6yk2HnNfBJ147BeLXsZuqLJ/images
-* ipfs.tech/images/images/ipfs-desktop-hex.png - http://sw.localhost:3000/ipfs/QmeUdoMyahuQUPHS2odrZEL6yk2HnNfBJ147BeLXsZuqLJ/images/ipfs-desktop-hex.png
-* ipfs.tech website - http://sw.localhost:3000/ipfs/QmeUdoMyahuQUPHS2odrZEL6yk2HnNfBJ147BeLXsZuqLJ
+* ipfs.tech/images directory listing page - http://localhost:3333/ipfs/QmeUdoMyahuQUPHS2odrZEL6yk2HnNfBJ147BeLXsZuqLJ/images
+* ipfs.tech/images/images/ipfs-desktop-hex.png - http://localhost:3333/ipfs/QmeUdoMyahuQUPHS2odrZEL6yk2HnNfBJ147BeLXsZuqLJ/images/ipfs-desktop-hex.png
+* ipfs.tech website - http://localhost:3333/ipfs/QmeUdoMyahuQUPHS2odrZEL6yk2HnNfBJ147BeLXsZuqLJ
 
 #### Single images
 
-* router image - http://sw.localhost:3000/ipfs/bafkreicafxt3zr4cshf7qteztjzl62ouxqrofu647e44wt7s2iaqjn7bra
-* web3.storage logo - http://sw.localhost:3000/ipfs/bafkreif4ufrfpfcmqn5ltjvmeisgv4k7ykqz2mjygpngtwt4bijxosidqa
+* router image - http://localhost:3333/ipfs/bafkreicafxt3zr4cshf7qteztjzl62ouxqrofu647e44wt7s2iaqjn7bra
+* web3.storage logo - http://localhost:3333/ipfs/bafkreif4ufrfpfcmqn5ltjvmeisgv4k7ykqz2mjygpngtwt4bijxosidqa
 
 #### Videos
 
-* skateboarder stock video - http://sw.localhost:3000/ipfs/bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq
-* big buck bunny video - http://sw.localhost:3000/ipfs/bafybeidsp6fva53dexzjycntiucts57ftecajcn5omzfgjx57pqfy3kwbq
+* skateboarder stock video - http://localhost:3333/ipfs/bafkreiezuss4xkt5gu256vjccx7vocoksxk77vwmdrpwoumfbbxcy2zowq
+* big buck bunny video - http://localhost:3333/ipfs/bafybeidsp6fva53dexzjycntiucts57ftecajcn5omzfgjx57pqfy3kwbq
 
 #### IPNS paths
 
-* /ipns/libp2p.io - http://sw.localhost:3000/ipns/libp2p.io
-* /ipns/ipfs.tech - http://sw.localhost:3000/ipns/ipfs.tech
+* /ipns/libp2p.io - http://localhost:3333/ipns/libp2p.io
+* /ipns/ipfs.tech - http://localhost:3333/ipns/ipfs.tech
 
 #### DNSLink paths
 

@@ -19,6 +19,7 @@
     "types/svg.d.ts",
     "test",
     "test-e2e",
-    "playwright.config.js"
+    "playwright.config.js",
+    "serve.ts"
   ]
 }
