@@ -42,8 +42,10 @@ test.describe('ipfs-sw configuration', () => {
     })
     const rootConfig = await getConfig({ page })
 
+    // eslint-disable-next-line no-console
+    console.log('trying to go to: ', `${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/`)
     // now query a new subdomain and make sure that the config on this page is the same as the root after the page loads
-    await page.goto(`${protocol}://bafkqablimvwgy3y.ipfs.${rootDomain}/`, { waitUntil: 'networkidle' })
+    await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/`, { waitUntil: 'networkidle' })
 
     // now get the config from the subdomain
     await waitForServiceWorker(page)

@@ -40,7 +40,9 @@ testSubdomainRouting.describe('smoketests', () => {
     testSubdomainRouting('only config and header are visible on /#/ipfs-sw-config requests', async ({ page, baseURL, rootDomain, protocol }) => {
       await page.goto(baseURL, { waitUntil: 'networkidle' })
       await waitForServiceWorker(page)
-      await page.goto(`${protocol}://bafkqablimvwgy3y.ipfs.${rootDomain}/#/ipfs-sw-config`, { waitUntil: 'networkidle' })
+      // eslint-disable-next-line no-console
+      console.log('trying to go to', `${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/#/ipfs-sw-config`)
+      await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/#/ipfs-sw-config`, { waitUntil: 'networkidle' })
 
       await waitForServiceWorker(page)
 
