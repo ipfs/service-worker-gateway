@@ -6,16 +6,14 @@
  *
  * This file expects that `build:tsc` was ran first, and this will be handled for you if ran via `npm run start`
  */
-import { type Server } from 'node:http'
 import { pathToFileURL } from 'node:url'
 import { logger } from '@libp2p/logger'
-import { execa, type ExecaChildProcess } from 'execa'
+import { execa } from 'execa'
 import { createKuboNode } from './test-e2e/fixtures/create-kubo-node.js'
 import { loadIpnsRecords } from './test-e2e/fixtures/load-ipns-records.js'
 import { downloadFixtures, getIpfsNsMap, loadCarFixtures } from './test-e2e/fixtures/load-kubo-fixtures.js'
 import { setupIpfsGateway } from './test-e2e/ipfs-gateway.js'
 import { createReverseProxy } from './test-e2e/reverse-proxy.js'
-import type { KuboNodeInstance } from './test-e2e/ipfs-gateway.js'
 import type { KuboNode } from 'ipfsd-ctl'
 
 const log = logger('serve')
