@@ -16,7 +16,7 @@
     "build:tsc": "tsc",
     "build:esbuild": "node build.js",
     "prestart": "run-s build:tsc",
-    "start": "node serve.js",
+    "start": "node dist-tsc/serve.js",
     "start:frontend": "node build.js --watch --serve",
     "start:cloudflare": "npm run build && npx wrangler pages dev dist",
     "prestart:hosted": "run-s build:tsc",

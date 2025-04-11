@@ -105,7 +105,7 @@ export function createReverseProxy ({
   })
 
   proxyServer.listen(proxyPort, () => {
-    log(`Proxy server listening on port ${proxyPort}`)
+    log(`Proxy server listening on port ${proxyPort}, pointing to ${targetHost}:${backendPort}`)
   })
 
   return proxyServer

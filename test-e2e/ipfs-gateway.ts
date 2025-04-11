@@ -12,21 +12,30 @@ import type { KuboNode } from 'ipfsd-ctl'
 const proxyLog = logger('ipfs-gateway:proxy')
 const log = logger('ipfs-gateway')
 
-interface KuboNodeInstance {
+export interface KuboNodeInstance {
   stop(): Promise<void>
+}
+
+async function isKuboRunning (): Promise<boolean> {
+  if (process.env.KUBO_RUNNING === 'true' || process.env.PLAYWRIGHT === 'true') {
+    return true
+  }
+  try {
+    await waitOn({
+      resources: [`tcp:${gatewayPort}`],
+      interval: 100,
+      timeout: 500
+    })
+    return true
+  } catch (error) {
+    return false
+  }
 }
 
 export async function setupIpfsGateway (): Promise<KuboNodeInstance> {
   // if we are running via playwright, we need to wait for the gateway to be open, otherwise we need to start the kubo node via createKuboNode
   let controller: KuboNode | undefined
-  if (process.env.PLAYWRIGHT === 'true') {
-    log('Waiting for gateway to be open')
-    await waitOn({
-      resources: [`tcp:${gatewayPort}`],
-      interval: 1000,
-      timeout: 15000
-    })
-  } else {
+  if (!await isKuboRunning()) {
     log('Starting kubo node')
     controller = await createKuboNode()
     await controller.start()

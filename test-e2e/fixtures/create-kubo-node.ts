@@ -23,7 +23,7 @@ const execaOptions = {
   cleanup: true,
   env: {
     IPFS_PATH,
-    GOLOG_LOG_LEVEL: process.env.GOLOG_LOG_LEVEL ?? 'debug,*=debug',
+    GOLOG_LOG_LEVEL: process.env.GOLOG_LOG_LEVEL ?? 'info,*=info',
     DEBUG: 'reverse-proxy,reverse-proxy:*'
   }
 }
@@ -38,6 +38,10 @@ export async function getKuboDistCid (): Promise<string> {
   if (kuboDistCid != null) {
     return kuboDistCid
   }
+
+  const uniqueIpfsPath = `${tmpdir()}/.ipfs/${Date.now()}_${Math.random()}`
+  // init kubo in a completely different and unique directory so we can generate the CID for the dist folder
+  const uniqueExecaOptions = { ...execaOptions, env: { ...execaOptions.env, IPFS_PATH: uniqueIpfsPath } }
   // copy the dist folder to a temporary directory and then replace the _redirects file with the kubo_redirects file
   await mkdir(kuboDistPath, { recursive: true })
   await cp(join(cwd(), './dist'), kuboDistPath, { recursive: true })
@@ -48,11 +52,12 @@ export async function getKuboDistCid (): Promise<string> {
 
   await mkdir(IPFS_PATH, { recursive: true })
   try {
-    await $(execaOptions)`${kuboBin} init`
+    log('initializing kubo node at %s', uniqueIpfsPath)
+    await $(uniqueExecaOptions)`${kuboBin} init`
   } catch (error) {
     log('error: ', error)
   }
-  const { stdout: cid } = await $(execaOptions)`${kuboBin} add -r -Q ${kuboDistPath} --cid-version 1`
+  const { stdout: cid } = await $(uniqueExecaOptions)`${kuboBin} add --only-hash -r -Q ${kuboDistPath} --cid-version 1`
 
   log('sw-gateway dist CID: ', cid.trim())
 
@@ -60,26 +65,16 @@ export async function getKuboDistCid (): Promise<string> {
 }
 
 export async function createKuboNode (IPFS_NS_MAP?: string): Promise<KuboNode> {
-  // eslint-disable-next-line no-console
-  log('process.env.GATEWAY_PORT', process.env.GATEWAY_PORT)
-  const cid = await getKuboDistCid()
-
-  const { stdout: pinStdout } = await $(execaOptions)`${kuboBin} pin add -r /ipfs/${cid.trim()}`
-
-  // we need to set this because ipfsd-ctl doesn't currently.. see https://github.com/ipfs/js-ipfsd-ctl/pull/857
-  await $(execaOptions)`${kuboBin} config Addresses.Gateway /ip4/127.0.0.1/tcp/${gatewayPort}`
-  log('pinStdout: ', pinStdout)
-
-  log('config.Addresses.Gateway: ', JSON.parse(await readFile(join(IPFS_PATH, 'config'), 'utf-8')).Addresses.Gateway)
-
+  const cidString1 = (await getKuboDistCid()).trim()
+  const localNsMap = `ipfs-host.local:/ipfs/${cidString1}`
   if (IPFS_NS_MAP == null) {
-    IPFS_NS_MAP = [['ipfs-host.local', `/ipfs/${cid.trim()}`]].map(([host, path]) => `${host}:${path}`).join(',')
+    IPFS_NS_MAP = localNsMap
   } else {
-    IPFS_NS_MAP += `,ipfs-host.local:/ipfs/${cid.trim()}`
+    IPFS_NS_MAP += `,${localNsMap}`
   }
 
   const gatewayAddress = `/ip4/127.0.0.1/tcp/${gatewayPort}`
-  log('gatewayAddress: ', gatewayAddress)
+  log('IPFS_PATH for kubo node: ', IPFS_PATH)
   const node = await createNode({
     type: 'kubo',
     bin: kuboPath(),
@@ -88,14 +83,12 @@ export async function createKuboNode (IPFS_NS_MAP?: string): Promise<KuboNode> {
     disposable: false,
     repo: IPFS_PATH,
     env: {
-      // ...execaOptions.env,
       IPFS_NS_MAP
     },
     start: {
       args: ['--offline']
     },
     init: {
-      // emptyRepo: false,
       config: {
         Addresses: {
           Gateway: gatewayAddress,
@@ -124,13 +117,19 @@ export async function createKuboNode (IPFS_NS_MAP?: string): Promise<KuboNode> {
     args: []
   })
 
+  // now actually load the dist folder into our running kubo node
+  const { stdout: cidString2 } = await $(execaOptions)`${kuboBin} add -r -Q ${kuboDistPath} --cid-version 1`
+
+  if (cidString1 !== cidString2) {
+    // if for some reason the CID generated in order to add to IPFS_NS_MAP is different from the CID generated for our running kubo node, throw an error
+    throw new Error(`CID mismatch, ${cidString1} !== ${cidString2}`)
+  }
+
+  await $(execaOptions)`${kuboBin} pin add -r /ipfs/${cidString2}`
+
   // log the gateway info
   const info = await node.info()
   log('node info %O', info)
-
-  // log contents of info.repo/config
-  const config = await readFile(join(info.repo, 'config'), 'utf-8')
-  log('config.Addresses.Gateway: ', JSON.parse(config).Addresses.Gateway)
 
   return node
 }
