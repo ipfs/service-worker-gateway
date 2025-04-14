@@ -7,6 +7,7 @@ type ConfigKey = keyof ConfigDb
 export interface ConfigContextType extends ConfigDb {
   setConfig(key: ConfigKey, value: any): void
   resetConfig(logger?: ComponentLogger): Promise<void>
+  isLoading: boolean
 }
 
 export const ConfigContext = createContext<ConfigContextType>({
@@ -21,10 +22,12 @@ export const ConfigContext = createContext<ConfigContextType>({
   enableGatewayProviders: defaultEnableGatewayProviders,
   enableRecursiveGateways: defaultEnableRecursiveGateways,
   debug: defaultDebug(),
-  _supportsSubdomains: defaultSupportsSubdomains
+  _supportsSubdomains: defaultSupportsSubdomains,
+  isLoading: true
 })
 
 export const ConfigProvider: React.FC<{ children: ReactElement[] | ReactElement, expanded?: boolean }> = ({ children }) => {
+  const [isLoading, setIsLoading] = useState(true)
   const [gateways, setGateways] = useState<string[]>(defaultGateways)
   const [routers, setRouters] = useState<string[]>(defaultRouters)
   const [dnsJsonResolvers, setDnsJsonResolvers] = useState<Record<string, string>>(defaultDnsJsonResolvers)
@@ -54,6 +57,8 @@ export const ConfigProvider: React.FC<{ children: ReactElement[] | ReactElement,
   useEffect(() => {
     void loadConfig().catch((err) => {
       log.error('Error loading config', err)
+    }).finally(() => {
+      setIsLoading(false)
     })
   }, [])
 
@@ -100,8 +105,23 @@ export const ConfigProvider: React.FC<{ children: ReactElement[] | ReactElement,
     await loadConfig()
   }
 
+  const finalConfigContext: ConfigContextType = {
+    setConfig: setConfigLocal,
+    resetConfig: resetConfigLocal,
+    gateways,
+    routers,
+    dnsJsonResolvers,
+    enableWss,
+    enableWebTransport,
+    enableGatewayProviders,
+    enableRecursiveGateways,
+    debug,
+    _supportsSubdomains,
+    isLoading
+  }
+
   return (
-    <ConfigContext.Provider value={{ setConfig: setConfigLocal, resetConfig: resetConfigLocal, gateways, routers, dnsJsonResolvers, enableWss, enableWebTransport, enableGatewayProviders, enableRecursiveGateways, debug, _supportsSubdomains }}>
+    <ConfigContext.Provider value={finalConfigContext}>
       {children}
     </ConfigContext.Provider>
   )
