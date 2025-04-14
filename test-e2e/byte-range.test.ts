@@ -5,7 +5,7 @@ test.describe('byte-ranges', () => {
   test.beforeEach(async ({ page }) => {
     // we need to send a request to the service worker to accept the origin isolation warning
     await page.evaluate(async () => {
-      const response = await fetch('/#/ipfs-sw-accept-origin-isolation-warning')
+      const response = await fetch('?ipfs-sw-accept-origin-isolation-warning=true')
       if (!response.ok) {
         throw new Error('Failed to accept origin isolation warning')
       }

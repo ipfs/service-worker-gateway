@@ -324,7 +324,8 @@ function isSwConfigGETRequest (event: FetchEvent): boolean {
 }
 
 function isAcceptOriginIsolationWarningRequest (event: FetchEvent): boolean {
-  return event.request.url.includes('/#/ipfs-sw-accept-origin-isolation-warning')
+  const url = new URL(event.request.url)
+  return url.pathname.includes('/#/ipfs-sw-accept-origin-isolation-warning') || url.searchParams.get('ipfs-sw-accept-origin-isolation-warning') === 'true'
 }
 
 function isSwAssetRequest (event: FetchEvent): boolean {

@@ -45,7 +45,7 @@ export default function SubdomainWarningPage (): ReactNode {
     sessionStorage.setItem('ipfs-sw-gateway-accepted-path-gateway-risk', 'true')
     // post to SW to accept the risk
     try {
-      await fetch('/#/ipfs-sw-accept-origin-isolation-warning').then(() => {
+      await fetch('?ipfs-sw-accept-origin-isolation-warning=true').then(() => {
         setAcceptedRisk(true)
       })
     } catch (error) {
