@@ -1,8 +1,10 @@
 import { testPathRouting as test, expect } from './fixtures/config-test-fixtures.js'
 import { doRangeRequest } from './fixtures/do-range-request.js'
+import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
 
 test.describe('byte-ranges', () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, baseURL }) => {
+    await waitForServiceWorker(page, baseURL)
     // we need to send a request to the service worker to accept the origin isolation warning
     await page.evaluate(async () => {
       const response = await fetch('?ipfs-sw-accept-origin-isolation-warning=true')
