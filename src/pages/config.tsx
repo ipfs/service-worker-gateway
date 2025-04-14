@@ -9,11 +9,11 @@ import { RouteContext } from '../context/router-context.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
 import { setConfig as storeConfig } from '../lib/config-db.js'
 import { convertDnsResolverInputToObject, convertDnsResolverObjectToInput, convertUrlArrayToInput, convertUrlInputToArray } from '../lib/input-helpers.js'
+import { isConfigPage } from '../lib/is-config-page.js'
 import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
 import './default-page-styles.css'
 import { isSubdomainGatewayRequest } from '../lib/path-or-subdomain'
 import { tellSwToReloadConfig } from '../lib/sw-comms.js'
-import { isConfigPage } from '../lib/is-config-page.js'
 
 const uiComponentLogger = getUiComponentLogger('config-page')
 const log = uiLogger.forComponent('config-page')
@@ -145,10 +145,6 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
     // now reload all the inputs
     setResetKey((prev) => prev + 1)
   }, [])
-
-  if (isConfigDataLoading) {
-    return <div>Loading...</div>
-  }
 
   let HeaderComponent: ReactElement | null = null
   if (!isLoadedInIframe && !isConfigDataLoading && isConfigPage(window.location.hash) && isSubdomainGatewayRequest(window.location)) {

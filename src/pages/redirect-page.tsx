@@ -9,8 +9,6 @@ import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
 import { tellSwToReloadConfig } from '../lib/sw-comms.js'
 import { translateIpfsRedirectUrl } from '../lib/translate-ipfs-redirect-url.js'
 import './default-page-styles.css'
-import LoadingPage from './loading.jsx'
-import './loading.css'
 
 const uiComponentLogger = getUiComponentLogger('redirect-page')
 const log = uiLogger.forComponent('redirect-page')
@@ -105,11 +103,6 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
       loadContent()
     }
   }, [isAutoReloadEnabled, isServiceWorkerRegistered, isConfigLoading, isLoadingContent])
-
-  // if (isLoadingContent || isConfigLoading) {
-  //   // return <LoadingPage />
-  //   return <div>LoadingPage should be rendered here2</div>
-  // }
 
   return (
     <>

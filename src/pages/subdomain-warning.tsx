@@ -1,9 +1,8 @@
 import React, { useCallback, useEffect, useState, type ReactNode } from 'react'
 import Header from '../components/Header.jsx'
-import './default-page-styles.css'
-import './loading.css'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
+import './default-page-styles.css'
 
 function IpAddressRecommendations ({ currentHost }: { currentHost: string }): ReactNode {
   return (
