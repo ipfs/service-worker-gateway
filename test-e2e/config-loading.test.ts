@@ -26,7 +26,7 @@ test.describe('ipfs-sw configuration', () => {
 
   test('setting the config actually works', async ({ page, baseURL }) => {
     await page.goto(baseURL, { waitUntil: 'networkidle' })
-    await waitForServiceWorker(page)
+    await waitForServiceWorker(page, baseURL)
 
     await setConfig({ page, config: testConfig })
     expect(await getConfig({ page })).toMatchObject(testConfig)
@@ -34,7 +34,7 @@ test.describe('ipfs-sw configuration', () => {
 
   test('root config is propagated to subdomain', async ({ page, baseURL, rootDomain, protocol }) => {
     await page.goto(baseURL, { waitUntil: 'networkidle' })
-    await waitForServiceWorker(page)
+    await waitForServiceWorker(page, baseURL)
     // set the config on the root..
     await setConfig({
       page,
@@ -43,19 +43,24 @@ test.describe('ipfs-sw configuration', () => {
     const rootConfig = await getConfig({ page })
 
     // now query a new subdomain and make sure that the config on this page is the same as the root after the page loads
-    await page.goto(`${protocol}://bafkqablimvwgy3y.ipfs.${rootDomain}/`, { waitUntil: 'networkidle' })
+    await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/`)
+
+    // wait for the service worker to be registered
+    await waitForServiceWorker(page, `${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}`)
+
+    // wait for config loading and final redirect to complete
+    await page.waitForLoadState('networkidle')
 
     // now get the config from the subdomain
-    await waitForServiceWorker(page)
     const subdomainConfig = await getConfig({ page })
 
-    // ensure it equals the root config
-    expect(subdomainConfig).toEqual(rootConfig)
+    // ensure it equals the root config (except for _supportsSubdomains which only matters on the root and won't be set on subdomains)
+    expect({ ...subdomainConfig, _supportsSubdomains: rootConfig._supportsSubdomains }).toEqual(rootConfig)
     expect(subdomainConfig).toMatchObject(testConfig)
 
     // now we know the subdomain has the right config, but does the serviceworker?
     const serviceWorkerConfigJson = await page.evaluate(async () => {
-      const response = await fetch('/#/ipfs-sw-config-get')
+      const response = await fetch('?ipfs-sw-config-get=true')
       return response.json()
     })
 

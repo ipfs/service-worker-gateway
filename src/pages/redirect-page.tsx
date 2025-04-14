@@ -64,6 +64,7 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
         await setConfig(config, uiComponentLogger)
         await tellSwToReloadConfig()
         log.trace('redirect-page: RELOAD_CONFIG_SUCCESS on %s', window.location.origin)
+        setIsConfigLoading(false)
       } catch (err) {
         log.error('redirect-page: error setting config on subdomain', err)
       }
@@ -75,7 +76,6 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
         if (config != null) {
           void doWork(config as ConfigDb)
         }
-        setIsConfigLoading(false)
       }
     }
     window.addEventListener('message', listener)
@@ -84,7 +84,7 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
     }
   }, [])
 
-  const displayString = useMemo(() => {
+  const displayString: string = useMemo(() => {
     if (!isServiceWorkerRegistered) {
       return 'Registering Helia service worker...'
     }
@@ -101,14 +101,15 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
   }, [reloadUrl])
 
   useEffect(() => {
-    if (isAutoReloadEnabled && isServiceWorkerRegistered && !isConfigPage(window.location.hash)) {
+    if (isAutoReloadEnabled && isServiceWorkerRegistered && !isConfigPage(window.location.hash) && !isLoadingContent && !isConfigLoading) {
       loadContent()
     }
-  }, [isAutoReloadEnabled, isServiceWorkerRegistered, loadContent])
+  }, [isAutoReloadEnabled, isServiceWorkerRegistered, isConfigLoading, isLoadingContent])
 
-  if (isLoadingContent || isConfigLoading) {
-    return <LoadingPage />
-  }
+  // if (isLoadingContent || isConfigLoading) {
+  //   // return <LoadingPage />
+  //   return <div>LoadingPage should be rendered here2</div>
+  // }
 
   return (
     <>

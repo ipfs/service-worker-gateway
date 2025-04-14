@@ -33,12 +33,12 @@ test.describe('video', () => {
    */
   test('starts playing automatically', async ({ page }) => {
     await setConfig({ page, config: testConfig })
-    await waitForServiceWorker(page)
+    await waitForServiceWorker(page, 'http://127.0.0.1:3333')
     const response = await page.goto(`http://127.0.0.1:3333/ipfs/${cid}`, { waitUntil: 'commit' })
     const start = performance.now()
 
     expect(response?.status()).toBe(200)
-    await waitForServiceWorker(page)
+    await waitForServiceWorker(page, 'http://127.0.0.1:3333')
 
     // expect a video player
     await page.waitForSelector('video')

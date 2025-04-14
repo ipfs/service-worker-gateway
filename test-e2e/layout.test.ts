@@ -39,10 +39,10 @@ testSubdomainRouting.describe('smoketests', () => {
   testSubdomainRouting.describe('config section on subdomains', () => {
     testSubdomainRouting('only config and header are visible on /#/ipfs-sw-config requests', async ({ page, baseURL, rootDomain, protocol }) => {
       await page.goto(baseURL, { waitUntil: 'networkidle' })
-      await waitForServiceWorker(page)
-      await page.goto(`${protocol}://bafkqablimvwgy3y.ipfs.${rootDomain}/#/ipfs-sw-config`, { waitUntil: 'networkidle' })
+      await waitForServiceWorker(page, baseURL)
+      await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/#/ipfs-sw-config`, { waitUntil: 'networkidle' })
 
-      await waitForServiceWorker(page)
+      await waitForServiceWorker(page, baseURL)
 
       const configPage = getConfigPage(page)
       await expect(configPage).toBeVisible()

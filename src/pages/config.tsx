@@ -1,5 +1,4 @@
 import React, { useCallback, useContext, useEffect, useState, type FunctionComponent, type ReactElement } from 'react'
-import Header from '../components/Header.jsx'
 import { InputSection } from '../components/input-section.jsx'
 import { InputToggle } from '../components/input-toggle.jsx'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
@@ -9,7 +8,6 @@ import { RouteContext } from '../context/router-context.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
 import { setConfig as storeConfig } from '../lib/config-db.js'
 import { convertDnsResolverInputToObject, convertDnsResolverObjectToInput, convertUrlArrayToInput, convertUrlInputToArray } from '../lib/input-helpers.js'
-import { isConfigPage } from '../lib/is-config-page.js'
 import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
 import './default-page-styles.css'
 import { tellSwToReloadConfig } from '../lib/sw-comms.js'
@@ -82,7 +80,7 @@ export interface ConfigPageProps extends React.HTMLProps<HTMLElement> {
 // Config Page can be loaded either as a page or as a component in the landing helper-ui page
 const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
   const { gotoPage } = useContext(RouteContext)
-  const { setConfig, resetConfig, gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, _supportsSubdomains } = useContext(ConfigContext)
+  const { setConfig, resetConfig, gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, _supportsSubdomains, isLoading: isConfigDataLoading } = useContext(ConfigContext)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [resetKey, setResetKey] = useState(0)
@@ -96,7 +94,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
     // we get the iframe origin from a query parameter called 'origin', if this is loaded in an iframe
     const targetOrigin = decodeURIComponent(window.location.hash.split('@origin=')[1])
     const config = { gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, _supportsSubdomains }
-    log.trace('config-page: postMessage config to origin ', config, targetOrigin)
+    log.trace('config-page: postMessage config to origin ', JSON.stringify(config), targetOrigin)
     /**
      * The reload page in the parent window is listening for this message, and then it passes a RELOAD_CONFIG message to the service worker
      */
@@ -107,11 +105,13 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
   }, [gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport])
 
   useEffect(() => {
-    /**
-     * On initial load, we want to send the config to the parent window, so that the reload page can auto-reload if enabled, and the subdomain registered service worker gets the latest config without user interaction.
-     */
-    void postFromIframeToParentSw()
-  }, [])
+    if (!isConfigDataLoading) {
+      /**
+       * On initial load, once the config is done loading from IDB, we want to send the config to the parent window, so that the subdomain registered service worker gets the latest config without user interaction.
+       */
+      void postFromIframeToParentSw()
+    }
+  }, [isConfigDataLoading, postFromIframeToParentSw])
 
   const saveConfig = useCallback(async () => {
     try {
@@ -143,9 +143,12 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
     setResetKey((prev) => prev + 1)
   }, [])
 
+  if (isConfigDataLoading) {
+    return <div>Loading...</div>
+  }
+
   return (
     <>
-      {isConfigPage(window.location.hash) ? <Header /> : null}
       <section className='e2e-config-page pa4-l bg-snow mw7 center pa4'>
         <h1 className='pa0 f3 ma0 mb4 teal tc'>Configure your IPFS Gateway</h1>
         <InputSection label='Direct Retrieval'>

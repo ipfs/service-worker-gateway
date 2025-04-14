@@ -199,11 +199,22 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
     return false
   } else if (isSwConfigReloadRequest(event)) {
     log.trace('sw-config reload request, updating verifiedFetch')
-    event.waitUntil(updateVerifiedFetch().then(() => {
-      log.trace('sw-config reload request, verifiedFetch updated')
-    }).catch((err) => {
-      log.error('sw-config reload request, error updating verifiedFetch', err)
-    }))
+    // Wait for the update to complete before sending response
+    event.respondWith(
+      updateVerifiedFetch()
+        .then(() => {
+          log.trace('sw-config reload request, verifiedFetch updated')
+          return new Response('sw-config reload request, verifiedFetch updated', {
+            status: 200
+          })
+        })
+        .catch((err) => {
+          log.error('sw-config reload request, error updating verifiedFetch', err)
+          return new Response('Failed to update verifiedFetch: ' + err.message, {
+            status: 500
+          })
+        })
+    )
     return false
   } else if (isAcceptOriginIsolationWarningRequest(event)) {
     event.waitUntil(setOriginIsolationWarningAccepted().then(() => {
@@ -303,11 +314,13 @@ function isAggregateError (err: unknown): err is AggregateError {
 }
 
 function isSwConfigReloadRequest (event: FetchEvent): boolean {
-  return event.request.url.includes('/#/ipfs-sw-config-reload')
+  const url = new URL(event.request.url)
+  return url.pathname.includes('/#/ipfs-sw-config-reload') || url.searchParams.get('ipfs-sw-config-reload') === 'true'
 }
 
 function isSwConfigGETRequest (event: FetchEvent): boolean {
-  return event.request.url.includes('/#/ipfs-sw-config-get')
+  const url = new URL(event.request.url)
+  return url.pathname.includes('/#/ipfs-sw-config-get') || url.searchParams.get('ipfs-sw-config-get') === 'true'
 }
 
 function isAcceptOriginIsolationWarningRequest (event: FetchEvent): boolean {

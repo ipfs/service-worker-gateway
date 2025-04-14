@@ -77,7 +77,7 @@ export const testPathRouting = test.extend<{ rootDomain: string, baseURL: string
       throw new Error('KUBO_GATEWAY not set')
     }
     await page.goto('http://127.0.0.1:3333', { waitUntil: 'networkidle' })
-    await waitForServiceWorker(page)
+    await waitForServiceWorker(page, 'http://127.0.0.1:3333')
     await setConfig({
       page,
       config: {
@@ -118,7 +118,7 @@ export const testSubdomainRouting = test.extend<{ rootDomain: string, baseURL: s
   protocol: [baseURLProtocol, { scope: 'test' }],
   page: async ({ page, baseURL }, use) => {
     await page.goto(baseURL, { waitUntil: 'networkidle' })
-    await waitForServiceWorker(page)
+    await waitForServiceWorker(page, baseURL)
 
     if (process.env.KUBO_GATEWAY == null || process.env.KUBO_GATEWAY === '') {
       throw new Error('KUBO_GATEWAY not set')
