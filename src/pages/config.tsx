@@ -12,7 +12,7 @@ import { convertDnsResolverInputToObject, convertDnsResolverObjectToInput, conve
 import { isConfigPage } from '../lib/is-config-page.js'
 import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
 import './default-page-styles.css'
-import { isSubdomainGatewayRequest } from '../lib/path-or-subdomain'
+import { isSubdomainGatewayRequest } from '../lib/path-or-subdomain.js'
 import { tellSwToReloadConfig } from '../lib/sw-comms.js'
 
 const uiComponentLogger = getUiComponentLogger('config-page')
