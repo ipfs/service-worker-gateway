@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useEffect, useState, type FunctionComponent, type ReactElement } from 'react'
+import Header from '../components/Header.jsx'
 import { InputSection } from '../components/input-section.jsx'
 import { InputToggle } from '../components/input-toggle.jsx'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
@@ -10,7 +11,9 @@ import { setConfig as storeConfig } from '../lib/config-db.js'
 import { convertDnsResolverInputToObject, convertDnsResolverObjectToInput, convertUrlArrayToInput, convertUrlInputToArray } from '../lib/input-helpers.js'
 import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
 import './default-page-styles.css'
+import { isSubdomainGatewayRequest } from '../lib/path-or-subdomain'
 import { tellSwToReloadConfig } from '../lib/sw-comms.js'
+import { isConfigPage } from '../lib/is-config-page.js'
 
 const uiComponentLogger = getUiComponentLogger('config-page')
 const log = uiLogger.forComponent('config-page')
@@ -147,8 +150,14 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
     return <div>Loading...</div>
   }
 
+  let HeaderComponent: ReactElement | null = null
+  if (!isLoadedInIframe && !isConfigDataLoading && isConfigPage(window.location.hash) && isSubdomainGatewayRequest(window.location)) {
+    HeaderComponent = <Header />
+  }
+
   return (
     <>
+      {HeaderComponent}
       <section className='e2e-config-page pa4-l bg-snow mw7 center pa4'>
         <h1 className='pa0 f3 ma0 mb4 teal tc'>Configure your IPFS Gateway</h1>
         <InputSection label='Direct Retrieval'>
