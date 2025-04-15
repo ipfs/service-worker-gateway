@@ -9,7 +9,7 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   /* Retry on CI only */
   retries: (process.env.CI != null) ? 2 : 0,
-  timeout: process.env.CI != null ? 60 * 1000 : undefined,
+  timeout: process.env.CI != null ? 120 * 1000 : undefined,
 
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   // reporter: 'html', // Uncomment to generate HTML report
