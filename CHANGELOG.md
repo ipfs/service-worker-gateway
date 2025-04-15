@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.11.0](https://github.com/ipfs/service-worker-gateway/compare/v1.10.5...v1.11.0) (2025-04-15)
+
+
+### Features
+
+* npm start boots up fully operational sw-gateway ([#670](https://github.com/ipfs/service-worker-gateway/issues/670)) ([49fe12d](https://github.com/ipfs/service-worker-gateway/commit/49fe12db8d36a3fb3ba013945277e76efa1d8829))
+* updated error page ([#664](https://github.com/ipfs/service-worker-gateway/issues/664)) ([b3de5a6](https://github.com/ipfs/service-worker-gateway/commit/b3de5a611ace42d94a16ae7aae79ca7a1bb0e8e8))
+
+
+### Bug Fixes
+
+* subdomain config loads from root ([#677](https://github.com/ipfs/service-worker-gateway/issues/677)) ([4752c41](https://github.com/ipfs/service-worker-gateway/commit/4752c4144bc3125588a9b10646e486341c72fba4))
+
 ## [1.10.5](https://github.com/ipfs/service-worker-gateway/compare/v1.10.4...v1.10.5) (2025-04-07)
 
 
