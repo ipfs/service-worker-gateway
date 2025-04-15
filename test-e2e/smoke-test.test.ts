@@ -61,7 +61,8 @@ test.describe('smoke test', () => {
     const kuboResponse = await page.goto(`${protocol}//k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam.ipns.localhost:8088`)
     expect(await kuboResponse?.text()).toContain('hello')
 
-    await page.goto(`${protocol}//k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam.ipns.localhost:3334`)
+    await page.goto(`${protocol}//localhost:3334/ipns/k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam`)
+    // await page.goto(`${protocol}//k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam.ipns.localhost:3334`)
     // then validate that the service worker gateway returns the same content
     await page.waitForURL('http://k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam.ipns.localhost:3334')
     await page.waitForLoadState('networkidle')
