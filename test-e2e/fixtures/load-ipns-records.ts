@@ -6,6 +6,8 @@ import type { Logger } from '@libp2p/logger'
 import type { KuboNode } from 'ipfsd-ctl'
 
 export async function loadIpnsRecords (node: KuboNode, log?: Logger): Promise<void> {
+  // eslint-disable-next-line no-console
+  console.log('loading ipns records')
   let loadedIpnsRecords = 0
   for (const ipnsRecord of await glob([`${process.cwd()}/test-e2e/fixtures/data/**/*.ipns-record`])) {
     loadedIpnsRecords++
@@ -16,4 +18,6 @@ export async function loadIpnsRecords (node: KuboNode, log?: Logger): Promise<vo
     await itAll(node.api.routing.put(`/ipns/${key}`, record, { allowOffline: true }))
   }
   log?.('Loaded %d ipns records', loadedIpnsRecords)
+  // eslint-disable-next-line no-console
+  console.log('loaded %d ipns records', loadedIpnsRecords)
 }
