@@ -52,6 +52,18 @@ export const test = base.extend<{ rootDomain: string, baseURL: string, protocol:
       test.skip()
       return
     }
+
+    await page.route('**/*', async (route) => {
+      const url = new URL(route.request().url())
+      if (!url.host.includes('localhost') && !url.host.includes('127.0.0.1')) {
+        // eslint-disable-next-line no-console
+        console.log('preventing access to route', url)
+        await route.abort()
+      } else {
+        await route.continue()
+      }
+    })
+
     await use(page)
   }
 })

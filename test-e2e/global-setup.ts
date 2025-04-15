@@ -3,9 +3,8 @@ import { type Config } from '@playwright/test'
 import { serve } from '../serve.js'
 
 export default async function globalSetup (config: Config): Promise<void> {
-  if (process.env.CI === 'true') {
-    enable('kubo-init*,kubo-init*:trace,ipfs-host.local*,ipfs-host.local*:trace')
-  }
+  enable('kubo-init*,kubo-init*:trace,ipfs-host.local*,ipfs-host.local*:trace')
+
   process.env.PLAYWRIGHT = 'true'
 
   const { controller } = await serve({ shouldLoadFixtures: true, shouldStartFrontend: false })
