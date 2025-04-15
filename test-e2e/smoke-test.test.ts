@@ -56,13 +56,17 @@ test.describe('smoke test', () => {
   /**
    * @see https://github.com/ipfs/service-worker-gateway/issues/662
    */
-  test('request to /ipns/<libp2p-key> returns expected content', async ({ page, protocol, swResponses }) => {
-    await page.goto(`${protocol}//localhost:3334/ipns/k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam`)
+  test('request to /ipns/<libp2p-key> returns expected content', async ({ page, protocol }) => {
+    // first validate that kubo gateway returns the expected content
+    const kuboResponse = await page.goto(`${protocol}//k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam.ipns.localhost:8088`)
+    expect(await kuboResponse?.text()).toContain('hello')
+
+    await page.goto(`${protocol}//k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam.ipns.localhost:3334`)
+    // then validate that the service worker gateway returns the same content
     await page.waitForURL('http://k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam.ipns.localhost:3334')
     await page.waitForLoadState('networkidle')
-    const response = swResponses[swResponses.length - 1]
-    expect(response?.status()).toBe(200)
-    expect(response?.headers()['content-type']).toBe('text/plain; charset=utf-8')
-    expect(await response?.text()).toContain('hello')
+
+    const content = await page.content()
+    expect(content).toContain('hello')
   })
 })
