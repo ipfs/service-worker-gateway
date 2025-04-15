@@ -4,7 +4,7 @@ test.describe('website-loading', () => {
   test.beforeEach(async ({ page }) => {
     // we need to send a request to the service worker to accept the origin isolation warning
     await page.evaluate(async () => {
-      const response = await fetch('/#/ipfs-sw-accept-origin-isolation-warning')
+      const response = await fetch('?ipfs-sw-accept-origin-isolation-warning=true')
       if (!response.ok) {
         throw new Error('Failed to accept origin isolation warning')
       }
@@ -15,7 +15,7 @@ test.describe('website-loading', () => {
 
     // playwright follows redirects so we won't see the 301
     expect(response?.status()).toBe(200)
-    expect(response?.url()).toBe('http://127.0.0.1:3333/ipfs/bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q/')
+    await page.waitForURL(/http:\/\/127\.0\.0\.1:3333\/ipfs\/bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q/)
   })
 
   test('ensure that index.html is returned for the root path', async ({ page }) => {

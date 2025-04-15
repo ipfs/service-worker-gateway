@@ -9,8 +9,8 @@ import { waitForServiceWorker } from './wait-for-service-worker.js'
 import type { ConfigDb, ConfigDbWithoutPrivateFields } from '../../src/lib/config-db.js'
 import type { Page } from '@playwright/test'
 
-export async function setConfigViaUiSubdomain ({ page, config }: { page: Page, config: Partial<ConfigDb> }): Promise<void> {
-  await waitForServiceWorker(page)
+export async function setConfigViaUiSubdomain ({ page, config, expectedSwScope }: { page: Page, config: Partial<ConfigDb>, expectedSwScope: string }): Promise<void> {
+  await waitForServiceWorker(page, expectedSwScope)
 
   await getConfigGatewaysInputIframe(page).locator('input').fill([process.env.KUBO_GATEWAY].join('\n'))
   await getConfigRoutersInputIframe(page).locator('input').fill([process.env.KUBO_GATEWAY].join('\n'))
@@ -54,8 +54,8 @@ export async function setConfigViaUiSubdomain ({ page, config }: { page: Page, c
   await getConfigPage(page).isHidden()
 }
 
-export async function setConfigViaUi ({ page, config }: { page: Page, config: Partial<ConfigDb> }): Promise<void> {
-  await waitForServiceWorker(page)
+export async function setConfigViaUi ({ page, config, expectedSwScope }: { page: Page, config: Partial<ConfigDb>, expectedSwScope: string }): Promise<void> {
+  await waitForServiceWorker(page, expectedSwScope)
 
   await getConfigPage(page).isVisible()
 
@@ -108,8 +108,8 @@ export async function setConfigViaUi ({ page, config }: { page: Page, config: Pa
   await getConfigPageSaveButton(page).click()
 }
 
-export async function getConfigUi ({ page }: { page: Page }): Promise<ConfigDbWithoutPrivateFields> {
-  await waitForServiceWorker(page)
+export async function getConfigUi ({ page, expectedSwScope }: { page: Page, expectedSwScope: string }): Promise<ConfigDbWithoutPrivateFields> {
+  await waitForServiceWorker(page, expectedSwScope)
 
   await getConfigPage(page).isVisible()
 
@@ -172,7 +172,7 @@ export async function setConfig ({ page, config }: { page: Page, config: Partial
 
     db.close()
 
-    const resp = await fetch('/#/ipfs-sw-config-reload')
+    const resp = await fetch('?ipfs-sw-config-reload=true')
 
     if (!resp.ok) {
       throw new Error('Failed to reload config')

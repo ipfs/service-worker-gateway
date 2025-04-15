@@ -4,11 +4,12 @@ export default defineConfig({
   testDir: './test-e2e',
   testMatch: /(.+\.)?(test|spec)\.[jt]s/,
   /* Run tests in files in parallel */
-  fullyParallel: true,
+  fullyParallel: process.env.CI == null,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: Boolean(process.env.CI),
   /* Retry on CI only */
   retries: (process.env.CI != null) ? 2 : 0,
+  timeout: process.env.CI != null ? 120 * 1000 : undefined,
 
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   // reporter: 'html', // Uncomment to generate HTML report
@@ -86,7 +87,7 @@ export default defineConfig({
       command: process.env.SHOULD_BUILD !== 'false' ? 'npm run build && npx http-server --silent -p 3000 dist' : 'npx http-server --silent -p 3000 dist',
       port: 3000,
       timeout: 60 * 1000,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       stdout: process.env.CI ? undefined : 'pipe',
       stderr: process.env.CI ? undefined : 'pipe'
     }

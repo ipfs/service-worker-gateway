@@ -13,7 +13,7 @@ export interface ConfigDbWithoutPrivateFields extends BaseDbConfig {
 }
 
 /**
- * Private fields for app-only config.
+ * Private fields for app-only config added to ConfigDbWithoutPrivateFields
  * These are not configurable by the user, and are only for programmatic use and changing functionality.
  */
 export interface ConfigDb extends ConfigDbWithoutPrivateFields {
@@ -63,7 +63,7 @@ export async function setConfig (config: ConfigDbWithoutPrivateFields, logger: C
   enable(config.debug ?? defaultDebug()) // set debug level first.
   await validateConfig(config, logger)
   try {
-    log('config-debug: setting config %O for domain %s', config, window.location.origin)
+    log('config-debug: setting config %s for domain %s', JSON.stringify(config), window.location.origin)
     await configDb.open()
     await configDb.put('gateways', config.gateways)
     await configDb.put('routers', config.routers)

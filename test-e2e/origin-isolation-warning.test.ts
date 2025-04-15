@@ -1,4 +1,5 @@
 import { testPathRouting as test, expect } from './fixtures/config-test-fixtures.js'
+import { handleOriginIsolationWarning } from './fixtures/handle-origin-isolation-warning.js'
 
 test.describe('origin isolation warning', () => {
   test('displays when requesting path gateway', async ({ page, baseURL, rootDomain, protocol }) => {
@@ -9,12 +10,7 @@ test.describe('origin isolation warning', () => {
 
     await expect(page).toHaveURL(new RegExp(`${encodeURIComponent(testURL.pathname)}#/ipfs-sw-origin-isolation-warning`))
 
-    await expect(page.locator('.e2e-subdomain-warning')).toBeVisible()
-
-    // now click the button to accept the warning
-    await page.click('.e2e-subdomain-warning button')
-
-    await expect(page.locator('.e2e-subdomain-warning')).not.toBeVisible()
+    await handleOriginIsolationWarning(page)
 
     // wait to be redirected to the test url
     await expect(page).toHaveURL(testUrl)

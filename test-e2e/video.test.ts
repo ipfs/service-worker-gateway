@@ -9,7 +9,7 @@ test.describe('video', () => {
   test.beforeEach(async ({ page }) => {
     // we need to send a request to the service worker to accept the origin isolation warning
     await page.evaluate(async () => {
-      const response = await fetch('/#/ipfs-sw-accept-origin-isolation-warning')
+      const response = await fetch('?ipfs-sw-accept-origin-isolation-warning=true')
       if (!response.ok) {
         throw new Error('Failed to accept origin isolation warning')
       }
@@ -33,12 +33,12 @@ test.describe('video', () => {
    */
   test('starts playing automatically', async ({ page }) => {
     await setConfig({ page, config: testConfig })
-    await waitForServiceWorker(page)
+    await waitForServiceWorker(page, 'http://127.0.0.1:3333')
     const response = await page.goto(`http://127.0.0.1:3333/ipfs/${cid}`, { waitUntil: 'commit' })
     const start = performance.now()
 
     expect(response?.status()).toBe(200)
-    await waitForServiceWorker(page)
+    await waitForServiceWorker(page, 'http://127.0.0.1:3333')
 
     // expect a video player
     await page.waitForSelector('video')

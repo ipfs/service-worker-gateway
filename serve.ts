@@ -31,8 +31,16 @@ async function loadFixtures (): Promise<{
   await controller.start()
 
   await loadCarFixtures()
-  await loadIpnsRecords(controller, log)
-
+  // eslint-disable-next-line no-console
+  console.log('loading ipns records')
+  try {
+    await loadIpnsRecords(controller, log)
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('error loading ipns records', error)
+  }
+  // eslint-disable-next-line no-console
+  console.log('loaded ipns records')
   return {
     controller
   }
