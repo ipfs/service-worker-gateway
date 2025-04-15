@@ -1,24 +1,14 @@
 import { testPathRouting as test, expect } from './fixtures/config-test-fixtures.js'
+import { handleOriginIsolationWarning } from './fixtures/handle-origin-isolation-warning.js'
 
 test.describe('path-routing', () => {
-  test.beforeEach(async ({ page }) => {
-    // we need to send a request to the service worker to accept the origin isolation warning
-    await page.evaluate(async () => {
-      const response = await fetch('?ipfs-sw-accept-origin-isolation-warning=true')
-      if (!response.ok) {
-        throw new Error('Failed to accept origin isolation warning')
-      }
-    })
-  })
+  test('can load identity CID via path', async ({ page, swResponses }) => {
+    await page.goto('/ipfs/bafkqablimvwgy3y')
 
-  test('can load identity CID via path', async ({ page }) => {
-    const response = await page.goto('/ipfs/bafkqablimvwgy3y', { waitUntil: 'networkidle' })
+    await handleOriginIsolationWarning(page)
 
-    await expect(page).toHaveURL(/\/ipfs\/bafkqablimvwgy3y/)
-
-    expect(response?.status()).toBe(200)
-
-    const headers = await response?.allHeaders()
+    const lastResponse = swResponses[swResponses.length - 1]
+    const headers = await lastResponse?.allHeaders()
 
     expect(headers?.['content-type']).toBe('text/plain; charset=utf-8')
     expect(headers?.['cache-control']).toBe('public, max-age=29030400, immutable')

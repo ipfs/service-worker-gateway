@@ -79,8 +79,8 @@ export async function createKuboNode (IPFS_NS_MAP?: string): Promise<KuboNode> {
     type: 'kubo',
     bin: kuboPath(),
     rpc: create,
-    test: false,
-    disposable: false,
+    test: true,
+    disposable: true,
     repo: IPFS_PATH,
     env: {
       IPFS_NS_MAP
