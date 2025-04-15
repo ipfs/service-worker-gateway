@@ -538,6 +538,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
         log.trace(`${e.type}: `, e.detail)
       }
     })
+    response.headers.set('ipfs-sw', 'true')
     /**
      * Now that we've got a response back from Helia, don't abort the promise since any additional networking calls
      * that may performed by Helia would be dropped.
@@ -552,7 +553,6 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
       log.error('fetchHandler: response not ok: ', response)
       return await errorPageResponse(response)
     }
-    response.headers.set('ipfs-sw', 'true')
     return response
   } catch (err: unknown) {
     const errorMessages: string[] = []
