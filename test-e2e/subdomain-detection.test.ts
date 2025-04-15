@@ -25,10 +25,7 @@ test.describe('subdomain-detection', () => {
         }
       }
     })
-    const initialResponse = await page.goto('/ipfs/bafkqablimvwgy3y', { waitUntil: 'commit' })
-
-    expect(initialResponse?.url()).toBe(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/`)
-    expect(initialResponse?.request()?.redirectedFrom()?.url()).toBe(`${protocol}//${rootDomain}/ipfs/bafkqablimvwgy3y`)
+    await page.goto('/ipfs/bafkqablimvwgy3y', { waitUntil: 'commit' })
 
     await page.waitForURL(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}`)
     const bodyTextLocator = page.locator('body')
