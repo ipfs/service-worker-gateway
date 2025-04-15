@@ -57,7 +57,7 @@ test.describe('smoke test', () => {
    * @see https://github.com/ipfs/service-worker-gateway/issues/662
    * TODO: re-enable when github CI is fixed..
    */
-  test.skip('request to /ipns/<libp2p-key> returns expected content', async ({ page, protocol }) => {
+  test('request to /ipns/<libp2p-key> returns expected content', async ({ page, protocol }) => {
     // first validate that kubo gateway returns the expected content
     const kuboResponse = await page.goto(`${protocol}//k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam.ipns.localhost:8088`)
     expect(await kuboResponse?.text()).toContain('hello')
