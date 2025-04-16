@@ -22,6 +22,7 @@ export const ConfigContext = createContext<ConfigContextType>({
   enableGatewayProviders: defaultEnableGatewayProviders,
   enableRecursiveGateways: defaultEnableRecursiveGateways,
   debug: defaultDebug(),
+  fetchTimeout: 30 * 1000,
   _supportsSubdomains: defaultSupportsSubdomains,
   isLoading: true
 })
@@ -36,6 +37,7 @@ export const ConfigProvider: React.FC<{ children: ReactElement[] | ReactElement,
   const [enableGatewayProviders, setEnableGatewayProviders] = useState(defaultEnableGatewayProviders)
   const [enableRecursiveGateways, setEnableRecursiveGateways] = useState(defaultEnableRecursiveGateways)
   const [debug, setDebug] = useState(defaultDebug())
+  const [fetchTimeout, setFetchTimeout] = useState(30 * 1000)
   const [_supportsSubdomains, setSupportsSubdomains] = useState(defaultSupportsSubdomains)
   const logger = getUiComponentLogger('config-context')
   const log = logger.forComponent('main')
@@ -50,6 +52,7 @@ export const ConfigProvider: React.FC<{ children: ReactElement[] | ReactElement,
     setEnableGatewayProviders(config.enableGatewayProviders)
     setEnableRecursiveGateways(config.enableRecursiveGateways)
     setDebug(config.debug)
+    setFetchTimeout(config.fetchTimeout)
   }
   /**
    * We need to make sure that the configDb types are loaded with the values from IDB
@@ -91,6 +94,9 @@ export const ConfigProvider: React.FC<{ children: ReactElement[] | ReactElement,
       case 'debug':
         setDebug(value)
         break
+      case 'fetchTimeout':
+        setFetchTimeout(value)
+        break
       case '_supportsSubdomains':
         setSupportsSubdomains(value)
         break
@@ -115,6 +121,7 @@ export const ConfigProvider: React.FC<{ children: ReactElement[] | ReactElement,
     enableWebTransport,
     enableGatewayProviders,
     enableRecursiveGateways,
+    fetchTimeout,
     debug,
     _supportsSubdomains,
     isLoading

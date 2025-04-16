@@ -1,5 +1,8 @@
 // see https://github.com/ipfs/service-worker-gateway/issues/502
+import { type Response } from 'playwright-core'
 import { testSubdomainRouting as test, expect } from './fixtures/config-test-fixtures.js'
+import { handleOriginIsolationWarning } from './fixtures/handle-origin-isolation-warning'
+import { setConfig } from './fixtures/set-sw-config'
 
 test.describe('smoke test', () => {
   test('loads a dag-json jpeg', async ({ page, protocol, swResponses }) => {
@@ -70,5 +73,49 @@ test.describe('smoke test', () => {
 
     const content = await page.content()
     expect(content).toContain('hello')
+  })
+
+  test('configurable timeout value is respected', async ({ page, protocol, swResponses }) => {
+    await page.goto(`${protocol}//127.0.0.1:3334`)
+    await page.waitForLoadState('networkidle')
+    await setConfig({ page, config: { fetchTimeout: 25 } })
+    await page.evaluate(async () => {
+      await fetch('?ipfs-sw-accept-origin-isolation-warning=true')
+    })
+
+    // await page.request.get(`${protocol}//127.0.0.1:3334/ipfs/bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze/wiki/Antarctica`)
+    // await page.goto(`${protocol}//localhost:3334/ipfs/bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze/wiki/Antarctica`)
+    // do not await the page.goto, otherwise the test will hang
+    void page.goto(`${protocol}//127.0.0.1:3334/ipfs/bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze/wiki/Antarctica`)
+    // await handleOriginIsolationWarning(page)
+    // await page.waitForRequest(`${protocol}//bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze.ipfs.localhost:3334/wiki/Antarctica`)
+
+    // let response: Response | null
+
+    const response = await new Promise<Response | null>((resolve) => {
+      page.on('requestfailed', async (request) => {
+        // eslint-disable-next-line no-console
+        console.log('requestfailed', request.url())
+        if (request.url().includes('bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze.ipfs.localhost:3334/wiki/Antarctica')) {
+          resolve(request.response())
+        }
+      })
+      page.on('requestfinished', (request) => {
+      // eslint-disable-next-line no-console
+        console.log('requestfinished', request.url())
+        if (request.url().includes('bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze.ipfs.localhost:3334/wiki/Antarctica')) {
+          resolve(request.response())
+        }
+      })
+    })
+
+    // const response = await page.waitForResponse(`${protocol}//bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze.ipfs.localhost:3334/wiki/Antarctica`)
+    // await page.waitForURL(`${protocol}//bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze.ipfs.localhost:3334/58wiki/03`)
+    // await page.waitForURL()
+    // await page.waitForLoadState('networkidle')
+
+    // const response = swResponses[swResponses.length - 1]
+    expect(response?.status()).toBe(504)
+    expect(await response?.text()).toContain('heliaFetch error aborted due to timeout')
   })
 })
