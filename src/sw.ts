@@ -1,3 +1,4 @@
+import { anySignal } from 'any-signal'
 import { getConfig, type ConfigDb } from './lib/config-db.js'
 import { getRedirectUrl, isDeregisterRequest } from './lib/deregister-request.js'
 import { getHeliaSwRedirectUrl } from './lib/first-hit-helpers.js'
@@ -371,6 +372,7 @@ function getCacheKey (event: FetchEvent): string {
 
 async function fetchAndUpdateCache (event: FetchEvent, url: URL, cacheKey: string): Promise<Response> {
   const response = await fetchHandler({ path: url.pathname, request: event.request, event })
+  log.trace('got response from fetchHandler')
 
   // log all of the headers:
   response.headers.forEach((value, key) => {
@@ -417,15 +419,16 @@ async function getResponseFromCacheOrFetch (event: FetchEvent): Promise<Response
 
 function shouldCacheResponse ({ event, response }: { event: FetchEvent, response: Response }): boolean {
   if (!response.ok) {
+    log.trace('response not ok, not caching', response)
     return false
   }
   const statusCodesToNotCache = [206]
   if (statusCodesToNotCache.some(code => code === response.status)) {
-    log('not caching response with status %s', response.status)
+    log.trace('not caching response with status %s', response.status)
     return false
   }
   if (event.request.headers.get('pragma') === 'no-cache' || event.request.headers.get('cache-control') === 'no-cache') {
-    log('request indicated no-cache, not caching')
+    log.trace('request indicated no-cache, not caching')
     return false
   }
 
@@ -499,36 +502,44 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
    * * https://bugs.chromium.org/p/chromium/issues/detail?id=823697
    * * https://bugzilla.mozilla.org/show_bug.cgi?id=1394102
    */
-  const abortController = new AbortController()
-  const signal = abortController.signal
-  const abortFn = (event: Pick<AbortSignalEventMap['abort'], 'type'>): void => {
-    clearTimeout(signalAbortTimeout)
-    if (event?.type === timeoutAbortEventType) {
-      log.trace('timeout waiting for response from @helia/verified-fetch')
-      abortController.abort('timeout')
-    } else {
-      log.trace('request signal aborted')
-      abortController.abort('request signal aborted')
-    }
-  }
+  // const abortController = new AbortController()
+  // const signal = abortController.signal
+  // // let signalAbortTimeout: NodeJS.Timeout
+  // const abortFn = (event: Pick<AbortSignalEventMap['abort'], 'type'>): void => {
+  //   log.trace('abortFn called')
+  //   // clearTimeout(signalAbortTimeout)
+  //   if (event?.type === timeoutAbortEventType) {
+  //     log.trace('timeout waiting for response from @helia/verified-fetch')
+  //     abortController.abort('timeout')
+  //   } else {
+  //     log.trace('request signal aborted')
+  //     abortController.abort('request signal aborted')
+  //   }
+  // }
 
-  /**
-   * @see https://github.com/ipfs/service-worker-gateway/issues/674
-   */
-  const signalAbortTimeout = setTimeout(() => {
-    abortFn({ type: timeoutAbortEventType })
-  }, config.fetchTimeout ?? 30 * 1000)
   // if the fetch event is aborted, we need to abort the signal we give to @helia/verified-fetch
-  event.request.signal.addEventListener('abort', abortFn)
+  // event.request.signal.addEventListener('abort', abortFn)
 
+  const headers = request.headers
+  headers.forEach((value, key) => {
+    log.trace('fetchHandler: request headers: %s: %s', key, value)
+  })
+  log('verifiedFetch for ', event.request.url)
+
+  const signal = anySignal([event.request.signal, AbortSignal.timeout(1)])
+  signal.addEventListener('abort', () => {
+    log.trace('fetchHandler: signal aborted')
+  })
   try {
-    log('verifiedFetch for ', event.request.url)
+    /**
+     * @see https://github.com/ipfs/service-worker-gateway/issues/674
+     */
+    // const configuredTimeout = AbortSignal.timeout(config.fetchTimeout)
 
-    const headers = request.headers
-    headers.forEach((value, key) => {
-      log.trace('fetchHandler: request headers: %s: %s', key, value)
-    })
-
+    // configuredTimeout.addEventListener('abort', () => {
+    //   log.trace('configuredTimeout aborted')
+    //   abortFn({ type: timeoutAbortEventType })
+    // })
     const response = await verifiedFetch(event.request.url, {
       signal,
       headers,
@@ -547,13 +558,20 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
      * Note: we haven't awaited the arrayBuffer, blob, json, etc. `await verifiedFetch` only awaits the construction of
      * the response object, regardless of it's inner content
      */
-    clearTimeout(signalAbortTimeout)
+    // clearTimeout(signalAbortTimeout)
     if (response.status >= 400) {
       log.error('fetchHandler: response not ok: ', response)
       return await errorPageResponse(response)
     }
+    if (signal.aborted) {
+      log.trace('fetchHandler: signal aborted, verifiedFetch response status: ', response.status)
+      const response504 = new Response('heliaFetch error aborted due to timeout: ' + signal.reason, { status: 504 })
+      response504.headers.set('ipfs-sw', 'true')
+      return response504
+    }
     return response
   } catch (err: unknown) {
+    log.trace('fetchHandler: error: ', err)
     const errorMessages: string[] = []
     if (isAggregateError(err)) {
       log.error('fetchHandler aggregate error: ', err.message)
@@ -567,11 +585,15 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
     }
     const errorMessage = errorMessages.join('\n')
 
-    if (errorMessage.includes('aborted')) {
+    if (errorMessage.includes('aborted') || signal.aborted) {
       // TODO: https://github.com/ipfs/service-worker-gateway/issues/676
-      return new Response('heliaFetch error aborted due to timeout: ' + errorMessage, { status: 408 })
+      const response = new Response('heliaFetch error aborted due to timeout: ' + errorMessage, { status: 504 })
+      response.headers.set('ipfs-sw', 'true')
+      return response
     }
-    return new Response('heliaFetch error: ' + errorMessage, { status: 500 })
+    const response = new Response('heliaFetch error: ' + errorMessage, { status: 500 })
+    response.headers.set('ipfs-sw', 'true')
+    return response
   }
 }
 
@@ -611,6 +633,7 @@ async function errorPageResponse (fetchResponse: Response): Promise<Response> {
    */
   const mergedHeaders = new Headers(fetchResponse.headers)
   mergedHeaders.set('Content-Type', 'text/html')
+  mergedHeaders.set('ipfs-sw', 'true')
 
   return new Response(`<!DOCTYPE html>
     <html>
