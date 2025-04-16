@@ -4,7 +4,7 @@
  *
  * Note that this was only tested and confirmed working for subdomain pages.
  */
-import { getConfigDebug, getConfigDnsJsonResolvers, getConfigEnableGatewayProviders, getConfigEnableRecursiveGateways, getConfigEnableWebTransport, getConfigEnableWss, getConfigGatewaysInput, getConfigGatewaysInputIframe, getConfigPage, getConfigPageSaveButton, getConfigPageSaveButtonIframe, getConfigRoutersInput, getConfigRoutersInputIframe } from './locators.js'
+import { getConfigDebug, getConfigDnsJsonResolvers, getConfigEnableGatewayProviders, getConfigEnableRecursiveGateways, getConfigEnableWebTransport, getConfigEnableWss, getConfigFetchTimeout, getConfigGatewaysInput, getConfigGatewaysInputIframe, getConfigPage, getConfigPageSaveButton, getConfigPageSaveButtonIframe, getConfigRoutersInput, getConfigRoutersInputIframe } from './locators.js'
 import { waitForServiceWorker } from './wait-for-service-worker.js'
 import type { ConfigDb, ConfigDbWithoutPrivateFields } from '../../src/lib/config-db.js'
 import type { Page } from '@playwright/test'
@@ -119,6 +119,7 @@ export async function getConfigUi ({ page, expectedSwScope }: { page: Page, expe
   const routers = (await getConfigRoutersInput(page).locator('textarea').inputValue()).split('\n')
   const enableRecursiveGateways = await getConfigEnableRecursiveGateways(page).locator('input').isChecked()
   const gateways = (await getConfigGatewaysInput(page).locator('textarea').inputValue()).split('\n')
+  const fetchTimeout = parseInt(await getConfigFetchTimeout(page).locator('textarea').inputValue(), 10)
   const dnsJsonResolvers = await getConfigDnsJsonResolvers(page).locator('textarea').inputValue().then((value) => {
     return value.split('\n').reduce((acc, line) => {
       const [key, value] = line.split(' ')
@@ -136,7 +137,8 @@ export async function getConfigUi ({ page, expectedSwScope }: { page: Page, expe
     enableRecursiveGateways,
     gateways,
     dnsJsonResolvers,
-    debug
+    debug,
+    fetchTimeout
   }
 }
 
@@ -217,7 +219,8 @@ export async function getConfig ({ page }: { page: Page }): Promise<ConfigDb> {
       enableRecursiveGateways: await get('enableRecursiveGateways'),
       enableGatewayProviders: await get('enableGatewayProviders'),
       debug: await get('debug'),
-      _supportsSubdomains: await get('_supportsSubdomains')
+      _supportsSubdomains: await get('_supportsSubdomains'),
+      fetchTimeout: await get('fetchTimeout')
     }
 
     db.close()

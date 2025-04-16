@@ -10,6 +10,7 @@ export interface ConfigDbWithoutPrivateFields extends BaseDbConfig {
   enableGatewayProviders: boolean
   enableRecursiveGateways: boolean
   debug: string
+  fetchTimeout: number
 }
 
 /**
@@ -50,6 +51,7 @@ export async function resetConfig (logger: ComponentLogger): Promise<void> {
     await configDb.put('enableRecursiveGateways', defaultEnableRecursiveGateways)
     await configDb.put('enableGatewayProviders', defaultEnableGatewayProviders)
     await configDb.put('debug', defaultDebug())
+    await configDb.put('fetchTimeout', 30 * 1000)
     // leave private/app-only fields as is
   } catch (err) {
     log('error resetting config in db', err)
@@ -73,6 +75,7 @@ export async function setConfig (config: ConfigDbWithoutPrivateFields, logger: C
     await configDb.put('enableWebTransport', config.enableWebTransport)
     await configDb.put('enableGatewayProviders', config.enableGatewayProviders)
     await configDb.put('debug', config.debug ?? defaultDebug())
+    await configDb.put('fetchTimeout', config.fetchTimeout ?? 30 * 1000)
     // ignore private/app-only fields
   } catch (err) {
     log('error setting config in db', err)
@@ -102,6 +105,7 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
     let enableWss
     let enableWebTransport
     let enableGatewayProviders
+    let fetchTimeout
     let debug = ''
     let _supportsSubdomains = defaultSupportsSubdomains
 
@@ -124,8 +128,8 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
       enableWss = config.enableWss ?? defaultEnableWss
       enableWebTransport = config.enableWebTransport ?? defaultEnableWebTransport
       enableGatewayProviders = config.enableGatewayProviders ?? defaultEnableGatewayProviders
-
-      _supportsSubdomains ??= config.thing
+      fetchTimeout = config.fetchTimeout ?? 30 * 1000
+      _supportsSubdomains ??= config._supportsSubdomains
     } catch (err) {
       log('error loading config from db', err)
     } finally {
@@ -153,6 +157,7 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
       enableWebTransport,
       enableGatewayProviders,
       debug,
+      fetchTimeout,
       _supportsSubdomains
     }
   })().finally(() => {

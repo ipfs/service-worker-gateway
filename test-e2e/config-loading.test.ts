@@ -14,7 +14,8 @@ test.describe('ipfs-sw configuration', () => {
     enableWss: false,
     enableWebTransport: true,
     enableRecursiveGateways: false,
-    enableGatewayProviders: false
+    enableGatewayProviders: false,
+    fetchTimeout: 29 * 1000
   }
   test.beforeAll(async () => {
     if (process.env.KUBO_GATEWAY == null || process.env.KUBO_GATEWAY === '') {

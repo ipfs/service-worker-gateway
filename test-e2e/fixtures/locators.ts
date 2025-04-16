@@ -24,7 +24,7 @@ export const getConfigEnableRecursiveGateways: GetLocator = (page) => page.locat
 export const getConfigGatewaysInput: GetLocator = (page) => page.locator('.e2e-config-page-input-gateways')
 export const getConfigDnsJsonResolvers: GetLocator = (page) => page.locator('.e2e-config-page-input-dnsJsonResolvers')
 export const getConfigDebug: GetLocator = (page) => page.locator('.e2e-config-page-input-debug')
-
+export const getConfigFetchTimeout: GetLocator = (page) => page.locator('.e2e-config-page-input-fetchTimeout')
 export const getNoServiceWorkerError: GetLocator = (page) => page.locator('.e2e-no-service-worker-error')
 
 export const getHelperUi: GetLocator = (page) => page.locator('.e2e-helper-ui')

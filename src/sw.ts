@@ -511,14 +511,13 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
       abortController.abort('request signal aborted')
     }
   }
+
   /**
-   * five minute delay to get the initial response.
-   *
-   * @todo reduce to 2 minutes?
+   * @see https://github.com/ipfs/service-worker-gateway/issues/674
    */
   const signalAbortTimeout = setTimeout(() => {
     abortFn({ type: timeoutAbortEventType })
-  }, 5 * 60 * 1000)
+  }, config.fetchTimeout ?? 30 * 1000)
   // if the fetch event is aborted, we need to abort the signal we give to @helia/verified-fetch
   event.request.signal.addEventListener('abort', abortFn)
 
@@ -569,6 +568,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
     const errorMessage = errorMessages.join('\n')
 
     if (errorMessage.includes('aborted')) {
+      // TODO: https://github.com/ipfs/service-worker-gateway/issues/676
       return new Response('heliaFetch error aborted due to timeout: ' + errorMessage, { status: 408 })
     }
     return new Response('heliaFetch error: ' + errorMessage, { status: 500 })
