@@ -103,7 +103,6 @@ const CURRENT_CACHES = Object.freeze({
   swAssets: `sw-assets-v${CACHE_VERSION}`
 })
 let verifiedFetch: VerifiedFetch
-const timeoutAbortEventType = 'verified-fetch-timeout'
 const ONE_HOUR_IN_SECONDS = 3600
 const urlInterceptRegex = [new RegExp(`${self.location.origin}/ip(n|f)s/`)]
 let config: ConfigDb
@@ -508,29 +507,6 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
     await updateVerifiedFetch()
   }
 
-  /**
-   * Note that there are existing bugs regarding service worker signal handling:
-   * * https://bugs.chromium.org/p/chromium/issues/detail?id=823697
-   * * https://bugzilla.mozilla.org/show_bug.cgi?id=1394102
-   */
-  // const abortController = new AbortController()
-  // const signal = abortController.signal
-  // // let signalAbortTimeout: NodeJS.Timeout
-  // const abortFn = (event: Pick<AbortSignalEventMap['abort'], 'type'>): void => {
-  //   log.trace('abortFn called')
-  //   // clearTimeout(signalAbortTimeout)
-  //   if (event?.type === timeoutAbortEventType) {
-  //     log.trace('timeout waiting for response from @helia/verified-fetch')
-  //     abortController.abort('timeout')
-  //   } else {
-  //     log.trace('request signal aborted')
-  //     abortController.abort('request signal aborted')
-  //   }
-  // }
-
-  // if the fetch event is aborted, we need to abort the signal we give to @helia/verified-fetch
-  // event.request.signal.addEventListener('abort', abortFn)
-
   const headers = request.headers
   headers.forEach((value, key) => {
     log.trace('fetchHandler: request headers: %s: %s', key, value)
@@ -543,6 +519,11 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
     controller.abort()
   }, config.fetchTimeout)
 
+  /**
+   * Note that there are existing bugs regarding service worker signal handling:
+   * * https://bugs.chromium.org/p/chromium/issues/detail?id=823697
+   * * https://bugzilla.mozilla.org/show_bug.cgi?id=1394102
+   */
   const signal = anySignal([event.request.signal, abortSignal])
 
   try {
