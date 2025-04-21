@@ -246,7 +246,11 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
         return cachedResponse
       }
       const response = await fetch(event.request)
-      await cache.put(event.request, response.clone())
+      try {
+        await cache.put(event.request, response.clone())
+      } catch (err) {
+        log.error('error caching response', err)
+      }
       return response
     }))
     return false
@@ -456,7 +460,14 @@ async function storeReponseInCache ({ response, isMutable, cacheKey, event }: St
 
   log('storing response for key %s in cache', cacheKey)
   // do not await this.. large responses will delay [TTFB](https://web.dev/articles/ttfb) and [TTI](https://web.dev/articles/tti)
-  void cache.put(cacheKey, respToCache)
+
+  try {
+    void cache.put(cacheKey, respToCache).catch((err) => {
+      log.error('error storing response in cache', err)
+    })
+  } catch (err) {
+    log.error('error storing response in cache', err)
+  }
 }
 
 async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise<Response> {
@@ -526,20 +537,19 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
   })
   log('verifiedFetch for ', event.request.url)
 
-  const signal = anySignal([event.request.signal, AbortSignal.timeout(1)])
-  signal.addEventListener('abort', () => {
-    log.trace('fetchHandler: signal aborted')
-  })
+  const controller = new AbortController()
+  const abortSignal = controller.signal
+  const timeout = setTimeout(() => {
+    controller.abort()
+  }, config.fetchTimeout)
+
+  const signal = anySignal([event.request.signal, abortSignal])
+
   try {
     /**
      * @see https://github.com/ipfs/service-worker-gateway/issues/674
      */
-    // const configuredTimeout = AbortSignal.timeout(config.fetchTimeout)
 
-    // configuredTimeout.addEventListener('abort', () => {
-    //   log.trace('configuredTimeout aborted')
-    //   abortFn({ type: timeoutAbortEventType })
-    // })
     const response = await verifiedFetch(event.request.url, {
       signal,
       headers,
@@ -594,6 +604,9 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
     const response = new Response('heliaFetch error: ' + errorMessage, { status: 500 })
     response.headers.set('ipfs-sw', 'true')
     return response
+  } finally {
+    clearTimeout(timeout)
+    signal.clear()
   }
 }
 
