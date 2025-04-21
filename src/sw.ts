@@ -524,7 +524,8 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
    * * https://bugs.chromium.org/p/chromium/issues/detail?id=823697
    * * https://bugzilla.mozilla.org/show_bug.cgi?id=1394102
    */
-  const signal = anySignal([event.request.signal, abortSignal])
+  // const signal = anySignal([event.request.signal, abortSignal])
+  const signal = abortSignal
 
   try {
     /**
@@ -587,7 +588,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
     return response
   } finally {
     clearTimeout(timeout)
-    signal.clear()
+    // signal.clear()
   }
 }
 

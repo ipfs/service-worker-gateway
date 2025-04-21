@@ -3,6 +3,28 @@ import { testSubdomainRouting as test, expect } from './fixtures/config-test-fix
 import { setConfig } from './fixtures/set-sw-config.js'
 
 test.describe('smoke test', () => {
+  test.beforeEach(async ({ page, protocol }) => {
+    if (process.env.KUBO_GATEWAY == null || process.env.KUBO_GATEWAY === '') {
+      throw new Error('KUBO_GATEWAY not set')
+    }
+    const kuboGateway = process.env.KUBO_GATEWAY
+
+    await page.goto(`${protocol}//localhost:3334`)
+
+    // set config for the initial page
+    await setConfig({
+      page,
+      config: {
+        gateways: [kuboGateway],
+        routers: [kuboGateway],
+        dnsJsonResolvers: {
+          '.': 'https://delegated-ipfs.dev/dns-query'
+        },
+        fetchTimeout: 30000
+      }
+    })
+  })
+
   test('loads a dag-json jpeg', async ({ page, protocol, swResponses }) => {
     await page.goto(`${protocol}//localhost:3334/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi`)
 
@@ -73,7 +95,7 @@ test.describe('smoke test', () => {
     expect(content).toContain('hello')
   })
 
-  test('configurable timeout value is respected', async ({ page, protocol, swResponses }) => {
+  test('configurable timeout value is respected', async ({ page, protocol }) => {
     await page.goto(`${protocol}//127.0.0.1:3334`)
     await page.waitForLoadState('networkidle')
     await setConfig({ page, config: { fetchTimeout: 200 } })
