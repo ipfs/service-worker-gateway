@@ -46,18 +46,21 @@ const ConfigIframe: React.FC = () => {
 }
 
 function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean }): ReactElement {
-  const [isAutoReloadEnabled] = useState(true)
   const { isServiceWorkerRegistered } = useContext(ServiceWorkerContext)
   const [reloadUrl, setReloadUrl] = useState(translateIpfsRedirectUrl(window.location.href).href)
   const [isLoadingContent, setIsLoadingContent] = useState(false)
   const [isConfigLoading, setIsConfigLoading] = useState(true)
 
   useEffect(() => {
+    // eslint-disable-next-line no-console
+    console.log('redirect-page: main useEffect')
     if (isConfigPage(window.location.hash)) {
       setReloadUrl(window.location.href.replace('#/ipfs-sw-config', ''))
     }
 
     async function doWork (config: ConfigDb): Promise<void> {
+      // eslint-disable-next-line no-console
+      console.log('doWork: doing work')
       try {
         await setConfig(config, uiComponentLogger)
         await tellSwToReloadConfig()
@@ -68,11 +71,16 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
       }
     }
     const listener = (event: MessageEvent): void => {
+      // eslint-disable-next-line no-console
+      console.log('redirect-page: received message', event)
       if (event.data?.source === 'helia-sw-config-iframe') {
         log.trace('redirect-page: received RELOAD_CONFIG message from iframe', event.data)
         const config = event.data?.config
         if (config != null) {
           void doWork(config as ConfigDb)
+        } else {
+          // eslint-disable-next-line no-console
+          console.log('redirect-page: received RELOAD_CONFIG message from iframe, but no config', event.data)
         }
       }
     }
@@ -86,23 +94,32 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
     if (!isServiceWorkerRegistered) {
       return 'Registering Helia service worker...'
     }
-    if (isAutoReloadEnabled && !isConfigPage(window.location.hash)) {
+    if (isServiceWorkerRegistered && !isConfigPage(window.location.hash) && !isLoadingContent && !isConfigLoading) {
       return 'Redirecting you because Auto Reload is enabled.'
     }
 
-    return 'Click below to load the content with the specified config.'
-  }, [isAutoReloadEnabled, isServiceWorkerRegistered])
+    // eslint-disable-next-line no-console
+    console.log('isConfigLoading', isConfigLoading)
+    // eslint-disable-next-line no-console
+    console.log('isLoadingContent', isLoadingContent)
+    // eslint-disable-next-line no-console
+    console.log('isServiceWorkerRegistered', isServiceWorkerRegistered)
+    // eslint-disable-next-line no-console
+    console.log('isConfigPage(window.location.hash)', isConfigPage(window.location.hash))
+
+    return 'Loading content...'
+  }, [isServiceWorkerRegistered, isConfigLoading, isLoadingContent])
 
   const loadContent = useCallback(() => {
-    setIsLoadingContent(true)
+    // setIsLoadingContent(true)
     window.location.href = reloadUrl
   }, [reloadUrl])
 
   useEffect(() => {
-    if (isAutoReloadEnabled && isServiceWorkerRegistered && !isConfigPage(window.location.hash) && !isLoadingContent && !isConfigLoading) {
+    if (isServiceWorkerRegistered && !isConfigPage(window.location.hash) && !isLoadingContent && !isConfigLoading) {
       loadContent()
     }
-  }, [isAutoReloadEnabled, isServiceWorkerRegistered, isConfigLoading, isLoadingContent])
+  }, [isServiceWorkerRegistered, isConfigLoading, isLoadingContent])
 
   return (
     <>
@@ -111,7 +128,7 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
         <div className="pa4-l mw7 mv5 center pa4">
           <h3 className="mt5">{displayString}</h3>
         </div>
-        {showConfigIframe && <ConfigIframe />}
+        <ConfigIframe />
       </div>
     </>
   )

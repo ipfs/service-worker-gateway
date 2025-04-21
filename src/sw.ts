@@ -513,19 +513,31 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
   })
   log('verifiedFetch for ', event.request.url)
 
-  const controller = new AbortController()
-  const abortSignal = controller.signal
-  const timeout = setTimeout(() => {
-    controller.abort()
-  }, config.fetchTimeout)
-
   /**
    * Note that there are existing bugs regarding service worker signal handling:
    * * https://bugs.chromium.org/p/chromium/issues/detail?id=823697
    * * https://bugzilla.mozilla.org/show_bug.cgi?id=1394102
    */
-  // const signal = anySignal([event.request.signal, abortSignal])
-  const signal = abortSignal
+  const abortController = new AbortController()
+  const signal = abortController.signal
+  const abortFn = (event: Pick<AbortSignalEventMap['abort'], 'type'>): void => {
+    clearTimeout(signalAbortTimeout)
+    if (event?.type === 'gateway-timeout') {
+      log.trace('timeout waiting for response from @helia/verified-fetch')
+      abortController.abort('timeout')
+    } else {
+      log.trace('request signal aborted')
+      // abortController.abort('request signal aborted')
+    }
+  }
+  /**
+   * abort the signal after the configured timeout.
+   */
+  const signalAbortTimeout = setTimeout(() => {
+    abortFn({ type: 'gateway-timeout' })
+  }, config.fetchTimeout)
+  // if the fetch event is aborted, we need to abort the signal we give to @helia/verified-fetch
+  event.request.signal.addEventListener('abort', abortFn)
 
   try {
     /**
@@ -587,7 +599,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
     response.headers.set('ipfs-sw', 'true')
     return response
   } finally {
-    clearTimeout(timeout)
+    clearTimeout(signalAbortTimeout)
     // signal.clear()
   }
 }
