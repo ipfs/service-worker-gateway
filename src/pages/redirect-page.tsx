@@ -95,23 +95,14 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
       return 'Registering Helia service worker...'
     }
     if (isServiceWorkerRegistered && !isConfigPage(window.location.hash) && !isLoadingContent && !isConfigLoading) {
-      return 'Redirecting you because Auto Reload is enabled.'
+      return 'Redirecting to your requested content...'
     }
 
-    // eslint-disable-next-line no-console
-    console.log('isConfigLoading', isConfigLoading)
-    // eslint-disable-next-line no-console
-    console.log('isLoadingContent', isLoadingContent)
-    // eslint-disable-next-line no-console
-    console.log('isServiceWorkerRegistered', isServiceWorkerRegistered)
-    // eslint-disable-next-line no-console
-    console.log('isConfigPage(window.location.hash)', isConfigPage(window.location.hash))
-
-    return 'Loading content...'
+    return 'Loading...'
   }, [isServiceWorkerRegistered, isConfigLoading, isLoadingContent])
 
   const loadContent = useCallback(() => {
-    // setIsLoadingContent(true)
+    setIsLoadingContent(true)
     window.location.href = reloadUrl
   }, [reloadUrl])
 

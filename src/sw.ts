@@ -1,4 +1,3 @@
-import { anySignal } from 'any-signal'
 import { getConfig, type ConfigDb } from './lib/config-db.js'
 import { getRedirectUrl, isDeregisterRequest } from './lib/deregister-request.js'
 import { getHeliaSwRedirectUrl } from './lib/first-hit-helpers.js'
