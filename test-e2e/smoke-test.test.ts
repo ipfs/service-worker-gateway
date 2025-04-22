@@ -1,5 +1,6 @@
 // see https://github.com/ipfs/service-worker-gateway/issues/502
 import { testSubdomainRouting as test, expect } from './fixtures/config-test-fixtures.js'
+import { setConfig } from './fixtures/set-sw-config.js'
 
 test.describe('smoke test', () => {
   test('loads a dag-json jpeg', async ({ page, protocol, swResponses }) => {
@@ -70,5 +71,18 @@ test.describe('smoke test', () => {
 
     const content = await page.content()
     expect(content).toContain('hello')
+  })
+
+  test('configurable timeout value is respected', async ({ page, protocol }) => {
+    await page.goto(`${protocol}//127.0.0.1:3334`)
+    await page.waitForLoadState('networkidle')
+    await setConfig({ page, config: { fetchTimeout: 200 } })
+    await page.evaluate(async () => {
+      await fetch('?ipfs-sw-accept-origin-isolation-warning=true')
+    })
+
+    const response = await page.goto(`${protocol}//127.0.0.1:3334/ipfs/bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze/wiki/Antarctica`)
+    expect(response?.status()).toBe(504)
+    expect(await response?.text()).toContain('Gateway timeout due to configured timeout of 200ms')
   })
 })

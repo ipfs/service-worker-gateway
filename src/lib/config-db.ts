@@ -10,6 +10,11 @@ export interface ConfigDbWithoutPrivateFields extends BaseDbConfig {
   enableGatewayProviders: boolean
   enableRecursiveGateways: boolean
   debug: string
+
+  /**
+   * The timeout for fetching content from the gateway, in milliseconds. User input is in seconds, but we store in milliseconds.
+   */
+  fetchTimeout: number
 }
 
 /**
@@ -32,9 +37,14 @@ export const defaultEnableGatewayProviders = true
 export const defaultSupportsSubdomains: null | boolean = null
 
 /**
+ * The default fetch timeout for the gateway, in seconds.
+ */
+export const defaultFetchTimeout = 30
+
+/**
  * On dev/testing environments, (inbrowser.dev, localhost:${port}, or 127.0.0.1) we should set the default debug config to helia:sw-gateway*,helia:sw-gateway*:trace so we don't need to go set it manually
  */
-export const defaultDebug = (): string => self.location.hostname.search(/localhost|inbrowser\.dev|127\.0\.0\.1/) === -1 ? '' : 'helia:sw-gateway*,helia:sw-gateway*:trace'
+export const defaultDebug = (): string => self.location.hostname.search(/localhost|inbrowser\.dev|127\.0\.0\.1/) === -1 ? '' : 'helia:sw-gateway*,helia:sw-gateway*:trace,helia*,helia*:trace'
 
 const configDb = new GenericIDB<ConfigDb>('helia-sw', 'config')
 
@@ -50,6 +60,7 @@ export async function resetConfig (logger: ComponentLogger): Promise<void> {
     await configDb.put('enableRecursiveGateways', defaultEnableRecursiveGateways)
     await configDb.put('enableGatewayProviders', defaultEnableGatewayProviders)
     await configDb.put('debug', defaultDebug())
+    await configDb.put('fetchTimeout', defaultFetchTimeout * 1000)
     // leave private/app-only fields as is
   } catch (err) {
     log('error resetting config in db', err)
@@ -73,6 +84,7 @@ export async function setConfig (config: ConfigDbWithoutPrivateFields, logger: C
     await configDb.put('enableWebTransport', config.enableWebTransport)
     await configDb.put('enableGatewayProviders', config.enableGatewayProviders)
     await configDb.put('debug', config.debug ?? defaultDebug())
+    await configDb.put('fetchTimeout', config.fetchTimeout ?? (defaultFetchTimeout * 1000))
     // ignore private/app-only fields
   } catch (err) {
     log('error setting config in db', err)
@@ -102,6 +114,7 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
     let enableWss
     let enableWebTransport
     let enableGatewayProviders
+    let fetchTimeout
     let debug = ''
     let _supportsSubdomains = defaultSupportsSubdomains
 
@@ -124,8 +137,8 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
       enableWss = config.enableWss ?? defaultEnableWss
       enableWebTransport = config.enableWebTransport ?? defaultEnableWebTransport
       enableGatewayProviders = config.enableGatewayProviders ?? defaultEnableGatewayProviders
-
-      _supportsSubdomains ??= config.thing
+      fetchTimeout = config.fetchTimeout ?? (defaultFetchTimeout * 1000)
+      _supportsSubdomains ??= config._supportsSubdomains
     } catch (err) {
       log('error loading config from db', err)
     } finally {
@@ -153,6 +166,7 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
       enableWebTransport,
       enableGatewayProviders,
       debug,
+      fetchTimeout,
       _supportsSubdomains
     }
   })().finally(() => {
