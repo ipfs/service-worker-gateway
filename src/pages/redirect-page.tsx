@@ -52,8 +52,6 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
   const [isConfigLoading, setIsConfigLoading] = useState(true)
 
   useEffect(() => {
-    // eslint-disable-next-line no-console
-    console.log('redirect-page: main useEffect')
     if (isConfigPage(window.location.hash)) {
       setReloadUrl(window.location.href.replace('#/ipfs-sw-config', ''))
     }
