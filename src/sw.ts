@@ -565,12 +565,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
       log.error('fetchHandler: response not ok: ', response)
       return await errorPageResponse(response)
     }
-    if (signal.aborted) {
-      log.trace('fetchHandler: signal aborted, verifiedFetch response status: ', response.status)
-      const response504 = new Response(`Gateway timeout due to configured timeout of ${config.fetchTimeout}ms: ${signal.reason}`, { status: 504 })
-      response504.headers.set('ipfs-sw', 'true')
-      return response504
-    }
+
     return response
   } catch (err: unknown) {
     log.trace('fetchHandler: error: ', err)
@@ -588,10 +583,15 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
     const errorMessage = errorMessages.join('\n')
 
     if (errorMessage.includes('aborted') || signal.aborted) {
-      // TODO: https://github.com/ipfs/service-worker-gateway/issues/676
-      const response = new Response(`Gateway timeout due to configured timeout of ${config.fetchTimeout}ms: ${errorMessage}`, { status: 504 })
-      response.headers.set('ipfs-sw', 'true')
-      return response
+      const response504 = await fetch(new URL('/ipfs-sw-504.html', event.request.url))
+
+      return new Response(response504.body, {
+        status: 504,
+        headers: {
+          'Content-Type': 'text/html',
+          'ipfs-sw': 'true'
+        }
+      })
     }
     const response = new Response('Service Worker IPFS Gateway error: ' + errorMessage, { status: 500 })
     response.headers.set('ipfs-sw', 'true')

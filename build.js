@@ -117,6 +117,45 @@ const injectFirstHitJs = async (metafile, revision) => {
 }
 
 /**
+ * Inject all ipfs-sw-*.html pages in the dist folder with CSS, git revision, and logo.
+ *
+ * @param {esbuild.Metafile} metafile - esbuild's metafile to extract output file names
+ * @param {string} revision - Pre-computed Git revision string
+ */
+const injectHtmlPages = async (metafile, revision) => {
+  const htmlFilePaths = await fs.readdir(path.resolve('dist'), { withFileTypes: true })
+    .then(files => files.filter(file => file.isFile() && file.name.startsWith('ipfs-sw-') && file.name.endsWith('.html') && !file.name.includes('first-hit')))
+    .then(files => files.map(file => path.resolve('dist', file.name)))
+
+  for (const htmlFilePath of htmlFilePaths) {
+    // find the -index-*.css file in the metafile results
+    const cssFile = Object.keys(metafile.outputs).find(file => file.endsWith('.css') && file.includes('ipfs-sw-index'))
+
+    if (!cssFile) {
+      console.error('Could not find the ipfs-sw-index CSS file in the metafile.')
+      return
+    }
+
+    const logoFile = Object.keys(metafile.outputs).find(file => file.endsWith('.svg') && file.includes('ipfs-sw-ipfs-logo'))
+
+    if (!logoFile) {
+      console.error('Could not find the ipfs-sw-ipfs-logo SVG file in the metafile.')
+      return
+    }
+
+    const cssTag = `<link rel="stylesheet" href="/${path.basename(cssFile)}">`
+
+    let htmlContent = await fs.readFile(htmlFilePath, 'utf8')
+    htmlContent = htmlContent
+      .replace(/<%= CSS_STYLES %>/g, cssTag)
+      .replace(/<%= IPFS_LOGO_PATH %>/g, logoFile.replace('dist/', '/'))
+      .replace(/<%= GIT_VERSION %>/g, revision)
+
+    await fs.writeFile(htmlFilePath, htmlContent)
+  }
+}
+
+/**
  * Asynchronously modify the _redirects file by appending entries for all files
  * in the dist folder except for index.html, _redirects, and _kubo_redirects.
  */
@@ -182,7 +221,8 @@ const modifyBuiltFiles = {
       // Run injection tasks concurrently since they modify separate files
       await Promise.all([
         injectAssets(result.metafile, revision),
-        injectFirstHitJs(result.metafile, revision)
+        injectFirstHitJs(result.metafile, revision),
+        injectHtmlPages(result.metafile, revision)
       ])
 
       // Modify the redirects file last
