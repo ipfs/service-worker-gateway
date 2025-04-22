@@ -561,7 +561,6 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
      * Note: we haven't awaited the arrayBuffer, blob, json, etc. `await verifiedFetch` only awaits the construction of
      * the response object, regardless of it's inner content
      */
-    // clearTimeout(signalAbortTimeout)
     if (response.status >= 400) {
       log.error('fetchHandler: response not ok: ', response)
       return await errorPageResponse(response)
