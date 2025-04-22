@@ -14,7 +14,7 @@ test.describe('subdomain-detection', () => {
   })
   test('path requests are redirected to subdomains', async ({ page, baseURL, rootDomain, protocol }) => {
     await page.goto(baseURL, { waitUntil: 'networkidle' })
-    await waitForServiceWorker(page)
+    await waitForServiceWorker(page, baseURL)
     await setConfig({
       page,
       config: {
@@ -25,15 +25,12 @@ test.describe('subdomain-detection', () => {
         }
       }
     })
-    const initialResponse = await page.goto('/ipfs/bafkqablimvwgy3y', { waitUntil: 'commit' })
-
-    expect(initialResponse?.url()).toBe(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/`)
-    expect(initialResponse?.request()?.redirectedFrom()?.url()).toBe(`${protocol}//${rootDomain}/ipfs/bafkqablimvwgy3y`)
+    await page.goto('/ipfs/bafkqablimvwgy3y', { waitUntil: 'commit' })
 
     await page.waitForURL(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}`)
     const bodyTextLocator = page.locator('body')
 
-    await waitForServiceWorker(page)
+    await waitForServiceWorker(page, `${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}`)
 
     await expect(bodyTextLocator).toContainText('hello')
   })

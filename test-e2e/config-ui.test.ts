@@ -10,7 +10,7 @@ test.describe('config-ui', () => {
     await page.goto(`${protocol}//${rootDomain}`)
 
     // read the config from the page
-    const config = await getConfigUi({ page })
+    const config = await getConfigUi({ page, expectedSwScope: `${protocol}//${rootDomain}` })
 
     // change the config
     const testConfig: typeof config = {
@@ -20,14 +20,14 @@ test.describe('config-ui', () => {
     }
 
     // change the UI & save it
-    await setConfigViaUi({ page, config: testConfig })
+    await setConfigViaUi({ page, config: testConfig, expectedSwScope: `${protocol}//${rootDomain}` })
 
     // verify that the IndexedDB has the new config
     expect(await getConfig({ page })).toMatchObject(testConfig)
 
     // reload the page, and ensure the config is the same as the one we set
     await page.reload()
-    expect(await getConfigUi({ page })).toMatchObject(testConfig)
+    expect(await getConfigUi({ page, expectedSwScope: `${protocol}//${rootDomain}` })).toMatchObject(testConfig)
     expect(await getConfig({ page })).toMatchObject(testConfig)
   })
 })

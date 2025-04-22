@@ -9,8 +9,6 @@ import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
 import { tellSwToReloadConfig } from '../lib/sw-comms.js'
 import { translateIpfsRedirectUrl } from '../lib/translate-ipfs-redirect-url.js'
 import './default-page-styles.css'
-import LoadingPage from './loading.jsx'
-import './loading.css'
 
 const uiComponentLogger = getUiComponentLogger('redirect-page')
 const log = uiLogger.forComponent('redirect-page')
@@ -48,7 +46,6 @@ const ConfigIframe: React.FC = () => {
 }
 
 function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean }): ReactElement {
-  const [isAutoReloadEnabled] = useState(true)
   const { isServiceWorkerRegistered } = useContext(ServiceWorkerContext)
   const [reloadUrl, setReloadUrl] = useState(translateIpfsRedirectUrl(window.location.href).href)
   const [isLoadingContent, setIsLoadingContent] = useState(false)
@@ -64,6 +61,7 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
         await setConfig(config, uiComponentLogger)
         await tellSwToReloadConfig()
         log.trace('redirect-page: RELOAD_CONFIG_SUCCESS on %s', window.location.origin)
+        setIsConfigLoading(false)
       } catch (err) {
         log.error('redirect-page: error setting config on subdomain', err)
       }
@@ -74,8 +72,9 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
         const config = event.data?.config
         if (config != null) {
           void doWork(config as ConfigDb)
+        } else {
+          log.error('redirect-page: received RELOAD_CONFIG message from iframe, but no config', event.data)
         }
-        setIsConfigLoading(false)
       }
     }
     window.addEventListener('message', listener)
@@ -84,16 +83,16 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
     }
   }, [])
 
-  const displayString = useMemo(() => {
+  const displayString: string = useMemo(() => {
     if (!isServiceWorkerRegistered) {
       return 'Registering Helia service worker...'
     }
-    if (isAutoReloadEnabled && !isConfigPage(window.location.hash)) {
-      return 'Redirecting you because Auto Reload is enabled.'
+    if (!isConfigPage(window.location.hash)) {
+      return 'Redirecting you.'
     }
 
-    return 'Click below to load the content with the specified config.'
-  }, [isAutoReloadEnabled, isServiceWorkerRegistered])
+    return 'Loading...'
+  }, [isServiceWorkerRegistered])
 
   const loadContent = useCallback(() => {
     setIsLoadingContent(true)
@@ -101,14 +100,10 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
   }, [reloadUrl])
 
   useEffect(() => {
-    if (isAutoReloadEnabled && isServiceWorkerRegistered && !isConfigPage(window.location.hash)) {
+    if (isServiceWorkerRegistered && !isConfigPage(window.location.hash) && !isLoadingContent && !isConfigLoading) {
       loadContent()
     }
-  }, [isAutoReloadEnabled, isServiceWorkerRegistered, loadContent])
-
-  if (isLoadingContent || isConfigLoading) {
-    return <LoadingPage />
-  }
+  }, [isServiceWorkerRegistered, isConfigLoading, isLoadingContent])
 
   return (
     <>

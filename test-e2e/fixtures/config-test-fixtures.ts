@@ -1,4 +1,5 @@
-import { test as base } from '@playwright/test'
+import { test as base, type Response } from '@playwright/test'
+import { captureAllSwResponses } from './capture-all-sw-responses.js'
 import { setConfig } from './set-sw-config.js'
 import { waitForServiceWorker } from './wait-for-service-worker.js'
 
@@ -15,14 +16,54 @@ const baseURLProtocol = async ({ baseURL }, use): Promise<void> => {
   await use(url.protocol)
 }
 
-export const test = base.extend<{ rootDomain: string, baseURL: string, protocol: string }>({
+/**
+ * A fixture that captures all the responses from the service worker.
+ */
+const swResponses = async ({ page }, use): Promise<void> => {
+  const capturedResponses: Response[] = []
+  const controller = new AbortController()
+  const signal = controller.signal;
+
+  // background capture
+  (async () => {
+    try {
+      for await (const response of captureAllSwResponses(page, signal)) {
+        capturedResponses.push(response)
+      }
+    } catch (err) {
+      // do not kill the test runner, just log the error
+      // eslint-disable-next-line no-console
+      console.error('Error in SW capture:', err)
+    }
+  })().catch(() => {})
+
+  await use(capturedResponses)
+
+  // stop the capture loop because the test is done
+  controller.abort()
+}
+
+export const test = base.extend<{ rootDomain: string, baseURL: string, protocol: string, swResponses: Response[] }>({
   rootDomain: [rootDomain, { scope: 'test' }],
   protocol: [baseURLProtocol, { scope: 'test' }],
+  swResponses,
   page: async ({ page }, use) => {
     if (isNoServiceWorkerProject(test)) {
       test.skip()
       return
     }
+
+    await page.route('**/*', async (route) => {
+      const url = new URL(route.request().url())
+      if (!url.host.includes('localhost') && !url.host.includes('127.0.0.1')) {
+        // eslint-disable-next-line no-console
+        console.log('preventing access to route', url)
+        await route.abort()
+      } else {
+        await route.continue()
+      }
+    })
+
     await use(page)
   }
 })
@@ -48,7 +89,7 @@ export const testPathRouting = test.extend<{ rootDomain: string, baseURL: string
       throw new Error('KUBO_GATEWAY not set')
     }
     await page.goto('http://127.0.0.1:3333', { waitUntil: 'networkidle' })
-    await waitForServiceWorker(page)
+    await waitForServiceWorker(page, 'http://127.0.0.1:3333')
     await setConfig({
       page,
       config: {
@@ -89,7 +130,7 @@ export const testSubdomainRouting = test.extend<{ rootDomain: string, baseURL: s
   protocol: [baseURLProtocol, { scope: 'test' }],
   page: async ({ page, baseURL }, use) => {
     await page.goto(baseURL, { waitUntil: 'networkidle' })
-    await waitForServiceWorker(page)
+    await waitForServiceWorker(page, baseURL)
 
     if (process.env.KUBO_GATEWAY == null || process.env.KUBO_GATEWAY === '') {
       throw new Error('KUBO_GATEWAY not set')

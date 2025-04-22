@@ -1,4 +1,5 @@
 import React, { Suspense, useEffect } from 'react'
+import LoadingIndicator from './components/loading-indicator.jsx'
 import { RouteContext } from './context/router-context.jsx'
 import { checkSubdomainSupport } from './lib/check-subdomain-support.js'
 import './app.css'
@@ -11,8 +12,7 @@ function App (): React.ReactElement {
   }, [])
 
   return (
-    // TODO: replace with <LoadingPage />
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<LoadingIndicator />}>
       {currentRoute?.component != null && <currentRoute.component />}
     </Suspense>
   )

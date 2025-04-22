@@ -2,8 +2,9 @@ import React, { useCallback, useContext, useEffect, useState, type FunctionCompo
 import Header from '../components/Header.jsx'
 import { InputSection } from '../components/input-section.jsx'
 import { InputToggle } from '../components/input-toggle.jsx'
+import NumberInput from '../components/number-input.jsx'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
-import Input from '../components/textarea-input.jsx'
+import TextInput from '../components/textarea-input.jsx'
 import { ConfigContext, ConfigProvider } from '../context/config-context.jsx'
 import { RouteContext } from '../context/router-context.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
@@ -12,6 +13,7 @@ import { convertDnsResolverInputToObject, convertDnsResolverObjectToInput, conve
 import { isConfigPage } from '../lib/is-config-page.js'
 import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
 import './default-page-styles.css'
+import { isSubdomainGatewayRequest } from '../lib/path-or-subdomain.js'
 import { tellSwToReloadConfig } from '../lib/sw-comms.js'
 
 const uiComponentLogger = getUiComponentLogger('config-page')
@@ -82,7 +84,7 @@ export interface ConfigPageProps extends React.HTMLProps<HTMLElement> {
 // Config Page can be loaded either as a page or as a component in the landing helper-ui page
 const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
   const { gotoPage } = useContext(RouteContext)
-  const { setConfig, resetConfig, gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, _supportsSubdomains } = useContext(ConfigContext)
+  const { setConfig, resetConfig, gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, fetchTimeout, _supportsSubdomains, isLoading: isConfigDataLoading } = useContext(ConfigContext)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [resetKey, setResetKey] = useState(0)
@@ -95,8 +97,8 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
     }
     // we get the iframe origin from a query parameter called 'origin', if this is loaded in an iframe
     const targetOrigin = decodeURIComponent(window.location.hash.split('@origin=')[1])
-    const config = { gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, _supportsSubdomains }
-    log.trace('config-page: postMessage config to origin ', config, targetOrigin)
+    const config = { gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, fetchTimeout, _supportsSubdomains }
+    log.trace('config-page: postMessage config to origin ', JSON.stringify(config), targetOrigin)
     /**
      * The reload page in the parent window is listening for this message, and then it passes a RELOAD_CONFIG message to the service worker
      */
@@ -104,18 +106,20 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
       targetOrigin
     })
     log.trace('config-page: RELOAD_CONFIG sent to parent window')
-  }, [gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport])
+  }, [gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, fetchTimeout])
 
   useEffect(() => {
-    /**
-     * On initial load, we want to send the config to the parent window, so that the reload page can auto-reload if enabled, and the subdomain registered service worker gets the latest config without user interaction.
-     */
-    void postFromIframeToParentSw()
-  }, [])
+    if (!isConfigDataLoading) {
+      /**
+       * On initial load, once the config is done loading from IDB, we want to send the config to the parent window, so that the subdomain registered service worker gets the latest config without user interaction.
+       */
+      void postFromIframeToParentSw()
+    }
+  }, [isConfigDataLoading, postFromIframeToParentSw])
 
   const saveConfig = useCallback(async () => {
     try {
-      const config = { gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport }
+      const config = { gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, fetchTimeout }
       setIsSaving(true)
       await storeConfig(config, uiComponentLogger)
       log.trace('config-page: sending RELOAD_CONFIG to service worker')
@@ -134,7 +138,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
     } finally {
       setIsSaving(false)
     }
-  }, [gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport])
+  }, [gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, fetchTimeout])
 
   const doResetConfig = useCallback(async () => {
     // we need to clear out the localStorage items and make sure default values are set, and that all of our inputs are updated
@@ -143,9 +147,14 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
     setResetKey((prev) => prev + 1)
   }, [])
 
+  let HeaderComponent: ReactElement | null = null
+  if (!isLoadedInIframe && !isConfigDataLoading && isConfigPage(window.location.hash) && isSubdomainGatewayRequest(window.location)) {
+    HeaderComponent = <Header />
+  }
+
   return (
     <>
-      {isConfigPage(window.location.hash) ? <Header /> : null}
+      {HeaderComponent}
       <section className='e2e-config-page pa4-l bg-snow mw7 center pa4'>
         <h1 className='pa0 f3 ma0 mb4 teal tc'>Configure your IPFS Gateway</h1>
         <InputSection label='Direct Retrieval'>
@@ -173,7 +182,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
             onChange={(value) => { setConfig('enableWebTransport', value) }}
             resetKey={resetKey}
           />
-          <Input
+          <TextInput
             className="e2e-config-page-input e2e-config-page-input-routers"
             description="A newline delimited list of delegated IPFS router URLs."
             label='Routers'
@@ -193,7 +202,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
             onChange={(value) => { setConfig('enableRecursiveGateways', value) }}
             resetKey={resetKey}
           />
-          <Input
+          <TextInput
             className="e2e-config-page-input e2e-config-page-input-gateways"
             description="A newline delimited list of recursive trustless gateway URLs."
             label='Recursive Gateways'
@@ -205,7 +214,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
           />
         </InputSection>
         <InputSection label='Other'>
-          <Input
+          <TextInput
             className="e2e-config-page-input e2e-config-page-input-dnsJsonResolvers"
             description="A newline delimited list of space delimited key+value pairs for DNS (application/dns-json) resolvers. The key is the domain suffix, and the value is the URL of the DNS resolver."
             label='DNS'
@@ -215,7 +224,22 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
             preSaveFormat={(value) => convertDnsResolverInputToObject(value)}
             resetKey={resetKey}
           />
-          <Input
+          <NumberInput
+            className="e2e-config-page-input e2e-config-page-input-fetchTimeout"
+            description="The timeout for fetching content from the gateway, in seconds"
+            label='Fetch Timeout'
+            value={fetchTimeout / 1000}
+            validationFn={(value) => {
+              if (value < 0.1) {
+                return new Error('Fetch timeout must be at least 0.1 seconds')
+              }
+              return null
+            }}
+            preSaveFormat={(value) => value * 1000}
+            onChange={(value) => { setConfig('fetchTimeout', value) }}
+            resetKey={resetKey}
+          />
+          <TextInput
             className="e2e-config-page-input e2e-config-page-input-debug"
             description="A string that enables debug logging. Use '*,*:trace' to enable all debug logging."
             label='Debug'

@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useEffect, useState, type ReactElement } from 'react'
-import { defaultDebug, defaultDnsJsonResolvers, defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, defaultGateways, defaultRouters, defaultSupportsSubdomains, getConfig, resetConfig, type ConfigDb } from '../lib/config-db.js'
+import { defaultDebug, defaultDnsJsonResolvers, defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, defaultFetchTimeout, defaultGateways, defaultRouters, defaultSupportsSubdomains, getConfig, resetConfig, type ConfigDb } from '../lib/config-db.js'
 import { getUiComponentLogger } from '../lib/logger.js'
 import type { ComponentLogger } from '@libp2p/logger'
 
@@ -7,6 +7,7 @@ type ConfigKey = keyof ConfigDb
 export interface ConfigContextType extends ConfigDb {
   setConfig(key: ConfigKey, value: any): void
   resetConfig(logger?: ComponentLogger): Promise<void>
+  isLoading: boolean
 }
 
 export const ConfigContext = createContext<ConfigContextType>({
@@ -21,10 +22,13 @@ export const ConfigContext = createContext<ConfigContextType>({
   enableGatewayProviders: defaultEnableGatewayProviders,
   enableRecursiveGateways: defaultEnableRecursiveGateways,
   debug: defaultDebug(),
-  _supportsSubdomains: defaultSupportsSubdomains
+  fetchTimeout: defaultFetchTimeout,
+  _supportsSubdomains: defaultSupportsSubdomains,
+  isLoading: true
 })
 
 export const ConfigProvider: React.FC<{ children: ReactElement[] | ReactElement, expanded?: boolean }> = ({ children }) => {
+  const [isLoading, setIsLoading] = useState(true)
   const [gateways, setGateways] = useState<string[]>(defaultGateways)
   const [routers, setRouters] = useState<string[]>(defaultRouters)
   const [dnsJsonResolvers, setDnsJsonResolvers] = useState<Record<string, string>>(defaultDnsJsonResolvers)
@@ -33,6 +37,7 @@ export const ConfigProvider: React.FC<{ children: ReactElement[] | ReactElement,
   const [enableGatewayProviders, setEnableGatewayProviders] = useState(defaultEnableGatewayProviders)
   const [enableRecursiveGateways, setEnableRecursiveGateways] = useState(defaultEnableRecursiveGateways)
   const [debug, setDebug] = useState(defaultDebug())
+  const [fetchTimeout, setFetchTimeout] = useState(defaultFetchTimeout)
   const [_supportsSubdomains, setSupportsSubdomains] = useState(defaultSupportsSubdomains)
   const logger = getUiComponentLogger('config-context')
   const log = logger.forComponent('main')
@@ -47,6 +52,7 @@ export const ConfigProvider: React.FC<{ children: ReactElement[] | ReactElement,
     setEnableGatewayProviders(config.enableGatewayProviders)
     setEnableRecursiveGateways(config.enableRecursiveGateways)
     setDebug(config.debug)
+    setFetchTimeout(config.fetchTimeout)
   }
   /**
    * We need to make sure that the configDb types are loaded with the values from IDB
@@ -54,6 +60,8 @@ export const ConfigProvider: React.FC<{ children: ReactElement[] | ReactElement,
   useEffect(() => {
     void loadConfig().catch((err) => {
       log.error('Error loading config', err)
+    }).finally(() => {
+      setIsLoading(false)
     })
   }, [])
 
@@ -86,6 +94,9 @@ export const ConfigProvider: React.FC<{ children: ReactElement[] | ReactElement,
       case 'debug':
         setDebug(value)
         break
+      case 'fetchTimeout':
+        setFetchTimeout(value)
+        break
       case '_supportsSubdomains':
         setSupportsSubdomains(value)
         break
@@ -100,8 +111,24 @@ export const ConfigProvider: React.FC<{ children: ReactElement[] | ReactElement,
     await loadConfig()
   }
 
+  const finalConfigContext: ConfigContextType = {
+    setConfig: setConfigLocal,
+    resetConfig: resetConfigLocal,
+    gateways,
+    routers,
+    dnsJsonResolvers,
+    enableWss,
+    enableWebTransport,
+    enableGatewayProviders,
+    enableRecursiveGateways,
+    fetchTimeout,
+    debug,
+    _supportsSubdomains,
+    isLoading
+  }
+
   return (
-    <ConfigContext.Provider value={{ setConfig: setConfigLocal, resetConfig: resetConfigLocal, gateways, routers, dnsJsonResolvers, enableWss, enableWebTransport, enableGatewayProviders, enableRecursiveGateways, debug, _supportsSubdomains }}>
+    <ConfigContext.Provider value={finalConfigContext}>
       {children}
     </ConfigContext.Provider>
   )

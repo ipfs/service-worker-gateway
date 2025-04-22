@@ -28,7 +28,7 @@ test.describe('smoketests', () => {
       const inputLocator = getConfigPageInput(page)
       // see https://playwright.dev/docs/locators#strictness
       await inputLocator.first().waitFor()
-      expect(await inputLocator.count()).toEqual(8)
+      expect(await inputLocator.count()).toEqual(9)
       const submitButton = getConfigPageSaveButton(page)
       await expect(submitButton).toBeVisible()
     })
@@ -39,12 +39,10 @@ testSubdomainRouting.describe('smoketests', () => {
   testSubdomainRouting.describe('config section on subdomains', () => {
     testSubdomainRouting('only config and header are visible on /#/ipfs-sw-config requests', async ({ page, baseURL, rootDomain, protocol }) => {
       await page.goto(baseURL, { waitUntil: 'networkidle' })
-      await waitForServiceWorker(page)
-      // eslint-disable-next-line no-console
-      console.log('trying to go to', `${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/#/ipfs-sw-config`)
+      await waitForServiceWorker(page, baseURL)
       await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/#/ipfs-sw-config`, { waitUntil: 'networkidle' })
 
-      await waitForServiceWorker(page)
+      await waitForServiceWorker(page, baseURL)
 
       const configPage = getConfigPage(page)
       await expect(configPage).toBeVisible()

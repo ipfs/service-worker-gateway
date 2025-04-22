@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures/config-test-fixtures.js'
+import { handleOriginIsolationWarning } from './fixtures/handle-origin-isolation-warning.js'
 import { swScopeVerification } from './fixtures/sw-scope-verification.js'
 
 test.afterEach(async ({ page }) => {
@@ -24,9 +25,7 @@ test.describe('first-hit ipfs-hosted', () => {
       // we redirect to the root path with query param so sw can be registered at the root path
       await expect(page).toHaveURL(`http://127.0.0.1:3334/?helia-sw=${encodeURIComponent('/ipfs/bafkqablimvwgy3y')}`)
 
-      // accept the origin isolation warning
-      await expect(page).toHaveURL(/#\/ipfs-sw-origin-isolation-warning/)
-      await page.click('.e2e-subdomain-warning button')
+      await handleOriginIsolationWarning(page)
 
       expect(headers?.['content-type']).toContain('text/html')
 
@@ -92,10 +91,9 @@ test.describe('first-hit direct-hosted', () => {
       // first loads the root page
       expect(response?.status()).toBe(200)
 
-      await expect(page).toHaveURL(/#\/ipfs-sw-origin-isolation-warning/)
-      await page.click('.e2e-subdomain-warning button')
+      await handleOriginIsolationWarning(page)
 
-      await expect(page).toHaveURL('http://127.0.0.1:3333/ipfs/bafkqablimvwgy3y')
+      await page.waitForURL('http://127.0.0.1:3333/ipfs/bafkqablimvwgy3y')
 
       // and we verify the content was returned
       await page.waitForSelector('text=hello', { timeout: 25000 })

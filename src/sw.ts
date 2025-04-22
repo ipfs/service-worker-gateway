@@ -102,7 +102,6 @@ const CURRENT_CACHES = Object.freeze({
   swAssets: `sw-assets-v${CACHE_VERSION}`
 })
 let verifiedFetch: VerifiedFetch
-const timeoutAbortEventType = 'verified-fetch-timeout'
 const ONE_HOUR_IN_SECONDS = 3600
 const urlInterceptRegex = [new RegExp(`${self.location.origin}/ip(n|f)s/`)]
 let config: ConfigDb
@@ -199,11 +198,22 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
     return false
   } else if (isSwConfigReloadRequest(event)) {
     log.trace('sw-config reload request, updating verifiedFetch')
-    event.waitUntil(updateVerifiedFetch().then(() => {
-      log.trace('sw-config reload request, verifiedFetch updated')
-    }).catch((err) => {
-      log.error('sw-config reload request, error updating verifiedFetch', err)
-    }))
+    // Wait for the update to complete before sending response
+    event.respondWith(
+      updateVerifiedFetch()
+        .then(() => {
+          log.trace('sw-config reload request, verifiedFetch updated')
+          return new Response('sw-config reload request, verifiedFetch updated', {
+            status: 200
+          })
+        })
+        .catch((err) => {
+          log.error('sw-config reload request, error updating verifiedFetch', err)
+          return new Response('Failed to update verifiedFetch: ' + err.message, {
+            status: 500
+          })
+        })
+    )
     return false
   } else if (isAcceptOriginIsolationWarningRequest(event)) {
     event.waitUntil(setOriginIsolationWarningAccepted().then(() => {
@@ -234,7 +244,11 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
         return cachedResponse
       }
       const response = await fetch(event.request)
-      await cache.put(event.request, response.clone())
+      try {
+        await cache.put(event.request, response.clone())
+      } catch (err) {
+        log.error('error caching response', err)
+      }
       return response
     }))
     return false
@@ -303,15 +317,18 @@ function isAggregateError (err: unknown): err is AggregateError {
 }
 
 function isSwConfigReloadRequest (event: FetchEvent): boolean {
-  return event.request.url.includes('/#/ipfs-sw-config-reload')
+  const url = new URL(event.request.url)
+  return url.pathname.includes('/#/ipfs-sw-config-reload') || url.searchParams.get('ipfs-sw-config-reload') === 'true'
 }
 
 function isSwConfigGETRequest (event: FetchEvent): boolean {
-  return event.request.url.includes('/#/ipfs-sw-config-get')
+  const url = new URL(event.request.url)
+  return url.pathname.includes('/#/ipfs-sw-config-get') || url.searchParams.get('ipfs-sw-config-get') === 'true'
 }
 
 function isAcceptOriginIsolationWarningRequest (event: FetchEvent): boolean {
-  return event.request.url.includes('/#/ipfs-sw-accept-origin-isolation-warning')
+  const url = new URL(event.request.url)
+  return url.pathname.includes('/#/ipfs-sw-accept-origin-isolation-warning') || url.searchParams.get('ipfs-sw-accept-origin-isolation-warning') === 'true'
 }
 
 function isSwAssetRequest (event: FetchEvent): boolean {
@@ -357,6 +374,7 @@ function getCacheKey (event: FetchEvent): string {
 
 async function fetchAndUpdateCache (event: FetchEvent, url: URL, cacheKey: string): Promise<Response> {
   const response = await fetchHandler({ path: url.pathname, request: event.request, event })
+  log.trace('got response from fetchHandler')
 
   // log all of the headers:
   response.headers.forEach((value, key) => {
@@ -403,15 +421,16 @@ async function getResponseFromCacheOrFetch (event: FetchEvent): Promise<Response
 
 function shouldCacheResponse ({ event, response }: { event: FetchEvent, response: Response }): boolean {
   if (!response.ok) {
+    log.trace('response not ok, not caching', response)
     return false
   }
   const statusCodesToNotCache = [206]
   if (statusCodesToNotCache.some(code => code === response.status)) {
-    log('not caching response with status %s', response.status)
+    log.trace('not caching response with status %s', response.status)
     return false
   }
   if (event.request.headers.get('pragma') === 'no-cache' || event.request.headers.get('cache-control') === 'no-cache') {
-    log('request indicated no-cache, not caching')
+    log.trace('request indicated no-cache, not caching')
     return false
   }
 
@@ -439,7 +458,14 @@ async function storeReponseInCache ({ response, isMutable, cacheKey, event }: St
 
   log('storing response for key %s in cache', cacheKey)
   // do not await this.. large responses will delay [TTFB](https://web.dev/articles/ttfb) and [TTI](https://web.dev/articles/tti)
-  void cache.put(cacheKey, respToCache)
+
+  try {
+    void cache.put(cacheKey, respToCache).catch((err) => {
+      log.error('error storing response in cache', err)
+    })
+  } catch (err) {
+    log.error('error storing response in cache', err)
+  }
 }
 
 async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise<Response> {
@@ -480,6 +506,12 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
     await updateVerifiedFetch()
   }
 
+  const headers = request.headers
+  headers.forEach((value, key) => {
+    log.trace('fetchHandler: request headers: %s: %s', key, value)
+  })
+  log('verifiedFetch for ', event.request.url)
+
   /**
    * Note that there are existing bugs regarding service worker signal handling:
    * * https://bugs.chromium.org/p/chromium/issues/detail?id=823697
@@ -489,7 +521,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
   const signal = abortController.signal
   const abortFn = (event: Pick<AbortSignalEventMap['abort'], 'type'>): void => {
     clearTimeout(signalAbortTimeout)
-    if (event?.type === timeoutAbortEventType) {
+    if (event?.type === 'gateway-timeout') {
       log.trace('timeout waiting for response from @helia/verified-fetch')
       abortController.abort('timeout')
     } else {
@@ -498,23 +530,18 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
     }
   }
   /**
-   * five minute delay to get the initial response.
-   *
-   * @todo reduce to 2 minutes?
+   * abort the signal after the configured timeout.
    */
   const signalAbortTimeout = setTimeout(() => {
-    abortFn({ type: timeoutAbortEventType })
-  }, 5 * 60 * 1000)
+    abortFn({ type: 'gateway-timeout' })
+  }, config.fetchTimeout)
   // if the fetch event is aborted, we need to abort the signal we give to @helia/verified-fetch
   event.request.signal.addEventListener('abort', abortFn)
 
   try {
-    log('verifiedFetch for ', event.request.url)
-
-    const headers = request.headers
-    headers.forEach((value, key) => {
-      log.trace('fetchHandler: request headers: %s: %s', key, value)
-    })
+    /**
+     * @see https://github.com/ipfs/service-worker-gateway/issues/674
+     */
 
     const response = await verifiedFetch(event.request.url, {
       signal,
@@ -524,6 +551,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
         log.trace(`${e.type}: `, e.detail)
       }
     })
+    response.headers.set('ipfs-sw', 'true')
     /**
      * Now that we've got a response back from Helia, don't abort the promise since any additional networking calls
      * that may performed by Helia would be dropped.
@@ -533,13 +561,19 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
      * Note: we haven't awaited the arrayBuffer, blob, json, etc. `await verifiedFetch` only awaits the construction of
      * the response object, regardless of it's inner content
      */
-    clearTimeout(signalAbortTimeout)
     if (response.status >= 400) {
       log.error('fetchHandler: response not ok: ', response)
       return await errorPageResponse(response)
     }
+    if (signal.aborted) {
+      log.trace('fetchHandler: signal aborted, verifiedFetch response status: ', response.status)
+      const response504 = new Response(`Gateway timeout due to configured timeout of ${config.fetchTimeout}ms: ${signal.reason}`, { status: 504 })
+      response504.headers.set('ipfs-sw', 'true')
+      return response504
+    }
     return response
   } catch (err: unknown) {
+    log.trace('fetchHandler: error: ', err)
     const errorMessages: string[] = []
     if (isAggregateError(err)) {
       log.error('fetchHandler aggregate error: ', err.message)
@@ -553,10 +587,17 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
     }
     const errorMessage = errorMessages.join('\n')
 
-    if (errorMessage.includes('aborted')) {
-      return new Response('heliaFetch error aborted due to timeout: ' + errorMessage, { status: 408 })
+    if (errorMessage.includes('aborted') || signal.aborted) {
+      // TODO: https://github.com/ipfs/service-worker-gateway/issues/676
+      const response = new Response(`Gateway timeout due to configured timeout of ${config.fetchTimeout}ms: ${errorMessage}`, { status: 504 })
+      response.headers.set('ipfs-sw', 'true')
+      return response
     }
-    return new Response('heliaFetch error: ' + errorMessage, { status: 500 })
+    const response = new Response('Service Worker IPFS Gateway error: ' + errorMessage, { status: 500 })
+    response.headers.set('ipfs-sw', 'true')
+    return response
+  } finally {
+    clearTimeout(signalAbortTimeout)
   }
 }
 
@@ -585,6 +626,8 @@ async function errorPageResponse (fetchResponse: Response): Promise<Response> {
   }
   if (json == null) {
     json = { error: { message: `${fetchResponse.statusText}: ${responseBodyAsText}`, stack: null } }
+  } else if (json.error == null) {
+    json.error = { message: json.errors.map(e => `<li>${e.message}</li>`).join(''), stack: json.errors.map(e => `<li>${e.stack}</li>`).join('\n') }
   }
 
   const responseDetails = getResponseDetails(fetchResponse, responseBodyAsText)
@@ -594,6 +637,7 @@ async function errorPageResponse (fetchResponse: Response): Promise<Response> {
    */
   const mergedHeaders = new Headers(fetchResponse.headers)
   mergedHeaders.set('Content-Type', 'text/html')
+  mergedHeaders.set('ipfs-sw', 'true')
 
   return new Response(`<!DOCTYPE html>
     <html>
@@ -655,6 +699,14 @@ function getResponseDetails (response: Response, responseBody: string): Response
   response.headers.forEach((value, key) => {
     headers[key] = value
   })
+
+  if (response.headers.get('Content-Type')?.includes('application/json') === true) {
+    try {
+      responseBody = JSON.parse(responseBody)
+    } catch (e) {
+      log.error('error parsing json for error page response', e)
+    }
+  }
 
   return {
     responseBody,
