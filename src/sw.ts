@@ -526,7 +526,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
       abortController.abort('timeout')
     } else {
       log.trace('request signal aborted')
-      // abortController.abort('request signal aborted')
+      abortController.abort('request signal aborted')
     }
   }
   /**
@@ -568,7 +568,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
     }
     if (signal.aborted) {
       log.trace('fetchHandler: signal aborted, verifiedFetch response status: ', response.status)
-      const response504 = new Response('heliaFetch error aborted due to timeout: ' + signal.reason, { status: 504 })
+      const response504 = new Response(`Gateway timeout due to configured timeout of ${config.fetchTimeout}ms: ${signal.reason}`, { status: 504 })
       response504.headers.set('ipfs-sw', 'true')
       return response504
     }
@@ -590,16 +590,15 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
 
     if (errorMessage.includes('aborted') || signal.aborted) {
       // TODO: https://github.com/ipfs/service-worker-gateway/issues/676
-      const response = new Response('heliaFetch error aborted due to timeout: ' + errorMessage, { status: 504 })
+      const response = new Response(`Gateway timeout due to configured timeout of ${config.fetchTimeout}ms: ${errorMessage}`, { status: 504 })
       response.headers.set('ipfs-sw', 'true')
       return response
     }
-    const response = new Response('heliaFetch error: ' + errorMessage, { status: 500 })
+    const response = new Response('Service Worker IPFS Gateway error: ' + errorMessage, { status: 500 })
     response.headers.set('ipfs-sw', 'true')
     return response
   } finally {
     clearTimeout(signalAbortTimeout)
-    // signal.clear()
   }
 }
 

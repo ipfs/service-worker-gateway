@@ -39,7 +39,6 @@ test.describe('smoke test', () => {
 
   test('request to /ipfs/dir-cid redirects to /ipfs/dir-cid/', async ({ page, protocol, swResponses }) => {
     await page.goto(`${protocol}//localhost:3334/ipfs/bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui/root2/root3/root4`)
-    // await page.goto(`${protocol}//bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui.ipfs.localhost:3334/root2/root3/root4`)
     await page.waitForURL(`${protocol}//bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui.ipfs.localhost:3334/root2/root3/root4/`)
     await page.waitForLoadState('networkidle')
     const response = swResponses[swResponses.length - 1]
@@ -55,8 +54,7 @@ test.describe('smoke test', () => {
     await page.goto(`${protocol}//localhost:3334/ipfs/bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui/root2/root3`)
     await page.waitForURL(`${protocol}//bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui.ipfs.localhost:3334/root2/root3/`)
     await page.waitForLoadState('networkidle')
-    const response = await page.goto(`${protocol}//bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui.ipfs.localhost:3334/root2/root3/`, { waitUntil: 'domcontentloaded' })
-    // const response = swResponses[swResponses.length - 1]
+    const response = swResponses[swResponses.length - 1]
     expect(response?.status()).toBe(200)
     expect(response?.headers()['content-type']).toBe('text/html')
     // there should be a dir listing that has the CID of the root3 node, and the name of the root4 node with a short name
@@ -107,6 +105,6 @@ test.describe('smoke test', () => {
 
     const response = await page.goto(`${protocol}//127.0.0.1:3334/ipfs/bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze/wiki/Antarctica`)
     expect(response?.status()).toBe(504)
-    expect(await response?.text()).toContain('heliaFetch error aborted due to timeout')
+    expect(await response?.text()).toContain('Gateway timeout due to configured timeout of 200ms')
   })
 })

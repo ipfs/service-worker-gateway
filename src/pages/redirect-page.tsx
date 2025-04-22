@@ -59,8 +59,6 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
     }
 
     async function doWork (config: ConfigDb): Promise<void> {
-      // eslint-disable-next-line no-console
-      console.log('doWork: doing work')
       try {
         await setConfig(config, uiComponentLogger)
         await tellSwToReloadConfig()
@@ -71,16 +69,13 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
       }
     }
     const listener = (event: MessageEvent): void => {
-      // eslint-disable-next-line no-console
-      console.log('redirect-page: received message', event)
       if (event.data?.source === 'helia-sw-config-iframe') {
         log.trace('redirect-page: received RELOAD_CONFIG message from iframe', event.data)
         const config = event.data?.config
         if (config != null) {
           void doWork(config as ConfigDb)
         } else {
-          // eslint-disable-next-line no-console
-          console.log('redirect-page: received RELOAD_CONFIG message from iframe, but no config', event.data)
+          log.error('redirect-page: received RELOAD_CONFIG message from iframe, but no config', event.data)
         }
       }
     }
@@ -94,12 +89,12 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
     if (!isServiceWorkerRegistered) {
       return 'Registering Helia service worker...'
     }
-    if (isServiceWorkerRegistered && !isConfigPage(window.location.hash) && !isLoadingContent && !isConfigLoading) {
-      return 'Redirecting to your requested content...'
+    if (!isConfigPage(window.location.hash)) {
+      return 'Redirecting you.'
     }
 
     return 'Loading...'
-  }, [isServiceWorkerRegistered, isConfigLoading, isLoadingContent])
+  }, [isServiceWorkerRegistered])
 
   const loadContent = useCallback(() => {
     setIsLoadingContent(true)
@@ -119,7 +114,7 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
         <div className="pa4-l mw7 mv5 center pa4">
           <h3 className="mt5">{displayString}</h3>
         </div>
-        <ConfigIframe />
+        {showConfigIframe && <ConfigIframe />}
       </div>
     </>
   )
