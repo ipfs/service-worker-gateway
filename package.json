@@ -15,6 +15,7 @@
     "build": "run-s build:tsc build:esbuild",
     "build:tsc": "tsc",
     "build:esbuild": "node build.js",
+    "prebuild:binary": "npm run build",
     "build:binary": "go build -o service-worker-gateway main.go",
     "predev": "run-s build:tsc",
     "dev": "node dist-tsc/serve.js",
