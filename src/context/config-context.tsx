@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useEffect, useState, type ReactElement } from 'react'
-import { defaultDebug, defaultDnsJsonResolvers, defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, defaultGateways, defaultRouters, defaultSupportsSubdomains, getConfig, resetConfig, type ConfigDb } from '../lib/config-db.js'
+import { defaultDebug, defaultDnsJsonResolvers, defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, defaultFetchTimeout, defaultGateways, defaultRouters, defaultSupportsSubdomains, getConfig, resetConfig, type ConfigDb } from '../lib/config-db.js'
 import { getUiComponentLogger } from '../lib/logger.js'
 import type { ComponentLogger } from '@libp2p/logger'
 
@@ -22,7 +22,7 @@ export const ConfigContext = createContext<ConfigContextType>({
   enableGatewayProviders: defaultEnableGatewayProviders,
   enableRecursiveGateways: defaultEnableRecursiveGateways,
   debug: defaultDebug(),
-  fetchTimeout: 30 * 1000,
+  fetchTimeout: defaultFetchTimeout,
   _supportsSubdomains: defaultSupportsSubdomains,
   isLoading: true
 })
@@ -37,7 +37,7 @@ export const ConfigProvider: React.FC<{ children: ReactElement[] | ReactElement,
   const [enableGatewayProviders, setEnableGatewayProviders] = useState(defaultEnableGatewayProviders)
   const [enableRecursiveGateways, setEnableRecursiveGateways] = useState(defaultEnableRecursiveGateways)
   const [debug, setDebug] = useState(defaultDebug())
-  const [fetchTimeout, setFetchTimeout] = useState(30 * 1000)
+  const [fetchTimeout, setFetchTimeout] = useState(defaultFetchTimeout)
   const [_supportsSubdomains, setSupportsSubdomains] = useState(defaultSupportsSubdomains)
   const logger = getUiComponentLogger('config-context')
   const log = logger.forComponent('main')

@@ -2,8 +2,9 @@ import React, { useCallback, useContext, useEffect, useState, type FunctionCompo
 import Header from '../components/Header.jsx'
 import { InputSection } from '../components/input-section.jsx'
 import { InputToggle } from '../components/input-toggle.jsx'
+import NumberInput from '../components/number-input.jsx'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
-import Input from '../components/textarea-input.jsx'
+import TextInput from '../components/textarea-input.jsx'
 import { ConfigContext, ConfigProvider } from '../context/config-context.jsx'
 import { RouteContext } from '../context/router-context.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
@@ -181,7 +182,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
             onChange={(value) => { setConfig('enableWebTransport', value) }}
             resetKey={resetKey}
           />
-          <Input
+          <TextInput
             className="e2e-config-page-input e2e-config-page-input-routers"
             description="A newline delimited list of delegated IPFS router URLs."
             label='Routers'
@@ -201,7 +202,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
             onChange={(value) => { setConfig('enableRecursiveGateways', value) }}
             resetKey={resetKey}
           />
-          <Input
+          <TextInput
             className="e2e-config-page-input e2e-config-page-input-gateways"
             description="A newline delimited list of recursive trustless gateway URLs."
             label='Recursive Gateways'
@@ -213,7 +214,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
           />
         </InputSection>
         <InputSection label='Other'>
-          <Input
+          <TextInput
             className="e2e-config-page-input e2e-config-page-input-dnsJsonResolvers"
             description="A newline delimited list of space delimited key+value pairs for DNS (application/dns-json) resolvers. The key is the domain suffix, and the value is the URL of the DNS resolver."
             label='DNS'
@@ -223,15 +224,22 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
             preSaveFormat={(value) => convertDnsResolverInputToObject(value)}
             resetKey={resetKey}
           />
-          <Input
+          <NumberInput
             className="e2e-config-page-input e2e-config-page-input-fetchTimeout"
-            description="The timeout for fetching content from the gateway."
+            description="The timeout for fetching content from the gateway, in seconds"
             label='Fetch Timeout'
-            value={`${fetchTimeout}`}
-            onChange={(value) => { setConfig('fetchTimeout', parseInt(value, 10)) }}
+            value={fetchTimeout / 1000}
+            validationFn={(value) => {
+              if (value < 0.1) {
+                return new Error('Fetch timeout must be at least 0.1 seconds')
+              }
+              return null
+            }}
+            preSaveFormat={(value) => value * 1000}
+            onChange={(value) => { setConfig('fetchTimeout', value) }}
             resetKey={resetKey}
           />
-          <Input
+          <TextInput
             className="e2e-config-page-input e2e-config-page-input-debug"
             description="A string that enables debug logging. Use '*,*:trace' to enable all debug logging."
             label='Debug'

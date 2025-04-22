@@ -119,7 +119,7 @@ export async function getConfigUi ({ page, expectedSwScope }: { page: Page, expe
   const routers = (await getConfigRoutersInput(page).locator('textarea').inputValue()).split('\n')
   const enableRecursiveGateways = await getConfigEnableRecursiveGateways(page).locator('input').isChecked()
   const gateways = (await getConfigGatewaysInput(page).locator('textarea').inputValue()).split('\n')
-  const fetchTimeout = parseInt(await getConfigFetchTimeout(page).locator('textarea').inputValue(), 10)
+  const fetchTimeout = parseInt(await getConfigFetchTimeout(page).locator('input').inputValue(), 10) * 1000
   const dnsJsonResolvers = await getConfigDnsJsonResolvers(page).locator('textarea').inputValue().then((value) => {
     return value.split('\n').reduce((acc, line) => {
       const [key, value] = line.split(' ')
