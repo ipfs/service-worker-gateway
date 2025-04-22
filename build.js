@@ -117,7 +117,7 @@ const injectFirstHitJs = async (metafile, revision) => {
 }
 
 /**
- * Inject all ipfs-sw-*.html pages in the dist folder with CSS, git revision, and logo.
+ * Inject all ipfs-sw-*.html pages (not index.html and not ipfs-sw-first-hit.html) in the dist folder with CSS, git revision, and logo.
  *
  * @param {esbuild.Metafile} metafile - esbuild's metafile to extract output file names
  * @param {string} revision - Pre-computed Git revision string
