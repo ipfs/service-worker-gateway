@@ -161,8 +161,8 @@ jobs:
         run: |
           BIN="service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
           codesign --force --timestamp --options runtime \
-                  --sign "Developer ID Application" "$BIN"
-          codesign --verify -v "$BIN"
+                  --sign "Developer ID Application" "$BIN" --verbose=4
+          codesign --verify -v "$BIN" --verbose=4
 
       - name: MacOS - Store notarization credentials
         if: runner.os == 'macOS'
