@@ -60,13 +60,10 @@ test.describe('smoke test', () => {
    */
   test('request to /ipns/<libp2p-key> returns expected content', async ({ page, protocol, rootDomain }) => {
     await page.goto(`${protocol}//${rootDomain}/ipns/k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam`)
-    // await page.goto(`${protocol}//k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam.ipns.${rootDomain}`)
     // then validate that the service worker gateway returns the same content
     await page.waitForURL(`http://k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam.ipns.${rootDomain}`)
     await page.waitForLoadState('networkidle')
 
-    // const content = await page.content()
-    // expect(content).toContain('hello')
     await page.waitForFunction(async () => document.body.textContent?.includes('hello'), { timeout: 10000 })
   })
 
