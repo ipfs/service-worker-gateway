@@ -33,7 +33,7 @@
     "test:no-sw": "playwright test -c playwright.config.js --project no-service-worker",
     "test:firefox": "playwright test -c playwright.config.js --project firefox no-service-worker",
     "test:deployed": "playwright test -c playwright.config.js --project deployed",
-    "test:local-binary": "concurrently -k -s last -n \"binary,tests\" \"npm run start\" \"cross-env SHOULD_BUILD=false BASE_URL='http://localhost:3000' playwright test -c playwright.config.js --project deployed no-service-worker\" ",
+    "test:local-binary": "concurrently -k --success first -n \"binary,tests\" \"npm run start\" \"cross-env SHOULD_BUILD=false BASE_URL='http://localhost:3000' playwright test -c playwright.config.js --project deployed no-service-worker\"",
     "test:inbrowser-dev": "cross-env BASE_URL='https://inbrowser.dev' playwright test -c playwright.config.js --project deployed",
     "test:inbrowser-prod": "cross-env BASE_URL='https://inbrowser.link' playwright test -c playwright.config.js --project deployed",
     "test:node": "aegir test -t node -f dist-tsc/test/node.js --cov",
