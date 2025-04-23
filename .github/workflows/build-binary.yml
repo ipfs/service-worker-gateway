@@ -123,7 +123,7 @@ jobs:
 
           & $signtool.FullName sign `
             /f win-cert.p12 /p $Env:PFX_PWD `
-            /fd sha256 /tr http://timestamp.digicert.com `
+            /fd sha256 /td sha256 /tr http://timestamp.digicert.com `
             "service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
       ###
       # End Windows signing
