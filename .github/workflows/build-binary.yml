@@ -98,14 +98,26 @@ jobs:
         env:
           PFX_PWD: ${{ secrets.WINDOWS_CERTS_PASSWORD }}
         run: |
-          # Find the first x64 signtool.exe inside the Windows 10 SDK
-          $sdkRoot = "$Env:ProgramFiles(x86)\Windows Kits\10\bin"
-          $signtool = Get-ChildItem $sdkRoot -Recurse -Filter signtool.exe |
-                      Where-Object { $_.FullName -match '\\x64\\' } |
-                      Select-Object -First 1
+          # Define search order: prefer x64, then arm64, then x86
+          $architectures = @('x64', 'arm64', 'x86')
+          $sdkRoot = "${env:ProgramFiles(x86)}\Windows Kits\10\bin"
+          $signtool = $null
+
+          foreach ($arch in $architectures) {
+            $found = Get-ChildItem $sdkRoot -Recurse -Filter signtool.exe |
+                    Where-Object { $_.FullName -match "\\$arch\\" } |
+                    Sort-Object -Property FullName -Descending |
+                    Select-Object -First 1
+
+            if ($found) {
+              $signtool = $found
+              Write-Host "Found $arch signtool at: $($signtool.FullName)"
+              break
+            }
+          }
 
           if (-not $signtool) {
-            Write-Error "signtool.exe (x64) not found under $sdkRoot"
+            Write-Error "signtool.exe not found under $sdkRoot for any architecture"
             exit 1
           }
 
