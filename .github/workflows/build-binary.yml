@@ -30,6 +30,11 @@ jobs:
             goarch: amd64
             arch: x86_64-pc-windows-msvc
             output_suffix: '.exe'
+          - os: windows-latest
+            goos: windows
+            goarch: arm64
+            arch: aarch64-pc-windows-msvc
+            output_suffix: '.exe'
           - os: macos-latest
             goos: darwin
             goarch: amd64
