@@ -1,0 +1,79 @@
+name: Build Binary
+
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'The release tag to attach assets to (must already exist)'
+        required: true
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            arch: x86_64-unknown-linux-gnu
+            output_suffix: ''
+          - os: ubuntu-latest
+            goos: linux
+            goarch: arm64
+            arch: aarch64-unknown-linux-gnu
+            output_suffix: ''
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
+            arch: x86_64-pc-windows-msvc
+            output_suffix: '.exe'
+          - os: macos-latest
+            goos: darwin
+            goarch: amd64
+            arch: x86_64-apple-darwin
+            output_suffix: ''
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
+            arch: aarch64-apple-darwin
+            output_suffix: ''
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Set Release Tag
+        id: set_release_tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "release_tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "release_tag=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.set_release_tag.outputs.release_tag }}
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24'
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          echo "Building for GOOS=${GOOS} GOARCH=${GOARCH}"
+          go build -o service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }} main.go
+
+      - name: Upload release asset
+        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2.2.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          asset_path: ./service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}
+          asset_name: service-worker-gateway-${{ runner.os }}-${{ matrix.arch }}${{ matrix.output_suffix }}
+          asset_content_type: application/octet-stream

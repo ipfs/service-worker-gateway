@@ -11,7 +11,7 @@ test.describe('first-hit ipfs-hosted', () => {
    */
   test.describe('path-routing', () => {
     test.beforeAll(async ({ rootDomain }) => {
-      if (!rootDomain.includes('localhost')) {
+      if (!rootDomain.includes('localhost') || process.env.BASE_URL != null) {
         test.skip()
       }
     })
@@ -80,7 +80,7 @@ test.describe('first-hit direct-hosted', () => {
    */
   test.describe('path-routing', () => {
     test.beforeAll(async ({ rootDomain }) => {
-      if (!rootDomain.includes('localhost')) {
+      if (!rootDomain.includes('localhost') || process.env.BASE_URL != null) {
         test.skip()
       }
     })

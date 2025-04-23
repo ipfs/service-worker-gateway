@@ -19,14 +19,15 @@ Make sure you have installed all of the following prerequisites on your developm
 > npm start
 ```
 
-Now open your browser at `http://localhost:3333`
+Now open your browser at `http://localhost:3000`
 
-If you are editing code actively and wanting to see the changes, you will want to use the `3333` port because the IPFS hosted content is generated at build time and the x-forwarded-host header and stubbed DNSLink of `ipfs-host.local` will still be pointing to the old content.
+If you are editing code actively and wanting to see the changes, you will want to use `npm run dev` and the `http://localhost:3333` because the IPFS hosted content (at port 3334) is generated at build time and the x-forwarded-host header and stubbed DNSLink of `ipfs-host.local` will still be pointing to the old content.
 
 ### Enabling subdomains
 
-Subdomains are enabled by default when you run `npm start`. You will want to access the service worker gateway via a reverse proxy that ensures subdomain support:
+Subdomains are enabled by default when you run `npm start` or `npm run dev`. You will want to access the service worker gateway via a reverse proxy that ensures subdomain support:
 
+* `http://localhost:3000`
 * `http://localhost:3333`
 * `http://localhost:3334`
 
@@ -35,10 +36,11 @@ Subdomains are enabled by default when you run `npm start`. You will want to acc
 
 Unless you have some other reverse proxy setup, you can access a path-only gateway by accessing:
 
-* `http://localhost:8345`
-* `http://127.0.0.1:8345`
-* `http://127.0.0.1:3333`
-* `http://127.0.0.1:3334`
+* `http://127.0.0.1:3000` - `npm run start`
+* `http://localhost:8345` - `npm run dev`
+* `http://127.0.0.1:8345` - `npm run dev`
+* `http://127.0.0.1:3333` - `npm run dev`
+* `http://127.0.0.1:3334` - `npm run dev`
 
 ## Demo links
 
