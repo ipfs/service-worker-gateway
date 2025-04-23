@@ -156,11 +156,13 @@ jobs:
                     | head -n1)
           echo "TEAM_ID=$TEAM_ID" >>"$GITHUB_ENV"
 
-      - name: MacOS - Codesign Go binary
+      - name: macOS – Codesign Go binary
         if: runner.os == 'macOS'
         run: |
           BIN="service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
-          codesign --force --timestamp --options runtime \
+          # sign, but skip timestamp to avoid network wait
+          codesign --force --options runtime \
+                  --timestamp=none \
                   --sign "Developer ID Application" "$BIN" --verbose=4
           codesign --verify -v "$BIN" --verbose=4
 
