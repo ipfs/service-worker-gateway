@@ -198,11 +198,19 @@ jobs:
         with:
           node-version: lts/*
       - uses: ipfs/aegir/actions/cache-node-modules@main
+      - name: Cache Playwright dependencies
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+      - run: npx playwright install --with-deps
       - name: Setup Go
         uses: actions/setup-go@v4
         with:
           go-version: '1.24'
-
       - run: npx xvfb-maybe npm run --if-present test:local-binary
 
   release-please:
