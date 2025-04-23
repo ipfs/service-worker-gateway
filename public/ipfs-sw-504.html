@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<!--
+This file is used to display a 504 error page when a gateway timeout occurs.
+
+@see https://github.com/ipfs/service-worker-gateway/issues/676
+-->
+<html lang="en">
+<head>
+    <!--
+
+      This HTML page is used to display a 504 error page when a gateway timeout occurs.
+      Build: <%= GIT_VERSION %>
+
+      The HTTP server behind this HTTP URL does not host this website.
+      Instead, it sends basic website code along with JavaScript. The JS sets
+      up a tool called IPFS Service Worker Gateway in the user's browser and
+      uses https://www.npmjs.com/package/@helia/verified-fetch to get IPFS blocks
+      from content providers.
+
+      CID hash verification and data assembly happens in the browser.
+
+      Learn more about it here: https://github.com/ipfs/service-worker-gateway
+
+    -->
+    <meta name="description" content="Error 504 (Gateway timeout) when trying to fetch content from the IPFS network.">
+    <title>504 Gateway timeout</title>
+    <%= CSS_STYLES %>
+</head>
+<body class="f4">
+    <header class="e2e-header flex items-center pa2 bg-navy bb bw3 b--aqua tc justify-between">
+      <div>
+        <a href="https://ipfs.tech" title="IPFS Project" target="_blank" rel="noopener noreferrer" aria-label="Open IPFS Project's website">
+            <img alt='IPFS logo' id="ipfs-logo" src="<%= IPFS_LOGO_PATH %>" style="height: 50px;" class="v-top" />
+        </a>
+      </div>
+      <div class="pb1 ma0 inline-flex items-center">
+        <h1 class="e2e-header-title f3 fw2 aqua ttu sans-serif">Service Worker Gateway <small class="gray">(beta)</small></h1>
+      </div>
+    </header>
+    <main id="main" class="pa2 pa4-l bg-snow mw7 mv5-l center">
+        <header>
+            <strong class="f2">504 Gateway timeout</strong>
+        </header>
+        <section class="container">
+            <p>
+            The <a href="https://docs.ipfs.tech/concepts/glossary/#gateway" target="_blank" rel="noopener noreferrer">gateway</a> is taking too long to fetch your content from the <a href="https://docs.ipfs.tech/concepts/glossary/#mainnet" target="_blank" rel="noopener noreferrer">public IPFS network</a>. This could be due to several reasons:
+            <ul>
+                <li>There are no providers for CID in the IPFS network</li>
+                <li>The provider node for the CID is offline, on a slow network connection, or is overloaded</li>
+            </ul>
+            </p>
+            <p>
+                You might try waiting for a while and trying again. To prevent having this problem in the future,
+                why not self-host a node? You will be able to get all the content in the IPFS network straight
+                from its source! For more information see
+                <a
+                    target="_blank" rel="noopener noreferrer"
+                    href="https://docs.ipfs.tech/concepts/ipfs-implementations">the
+                    implementations page</a>. You
+                might also want to have a look at the
+                <a
+                    target="_blank" rel="noopener noreferrer"
+                    href="https://docs.ipfs.tech/install/ipfs-companion">IPFS
+                    companion browser extension</a> which
+                will allow your browser to seamlessly fetch content from your local node.
+            </p>
+            <p>How you can proceed:</p>
+            <ul>
+                <li>Verify the URL and try again.</li>
+                <li>Self-host and run an <a
+                        href="https://docs.ipfs.tech/concepts/ipfs-implementations/"
+                        target="_blank"
+                        rel="noopener noreferrer">IPFS client</a> that verifies your data.</li>
+                <li>Try diagnosing your request with the <a
+                        href="https://docs.ipfs.tech/reference/diagnostic-tools/"
+                        target="_blank"
+                        rel="noopener noreferrer">IPFS diagnostic tools</a>.</li>
+                <li>Inspect the <a href="https://cid.ipfs.tech/"
+                        target="_blank"
+                        rel="noopener noreferrer">CID</a> or <a
+                        href="https://explore.ipld.io/"
+                        target="_blank"
+                        rel="noopener noreferrer">DAG</a>.</li>
+                <li>Increase the timeout in the <a href="/#/ipfs-sw-config" target="_blank" rel="noopener noreferrer">config page</a> for this Service Worker Gateway instance.</li>
+            </ul>
+            <a class="check-cid-link dn no-underline br2 f4 bn bg-teal white pa3 ph2 ma3 mh0" href="https://check.ipfs.network/" target="_blank" rel="noopener noreferrer">Debug retrievability of CID</a>
+        </section>
+    </main>
+    <script>
+      // @ts-check
+      const subdomainRegex = /^(?:https?:\/\/|\/\/)?(?<cid>[^/]+)\.ipfs\.(?<parentDomain>[^/?#]*)(?<path>.*)$/;
+      const pathRegex = /^.*\/ipfs\/(?<cid>[^/?#]*)(?<path>.*)$/;
+
+      function checkUrl() {
+        const currentUrl = window.location.href;
+        let match = currentUrl.match(pathRegex) || currentUrl.match(subdomainRegex)
+
+        if (match?.groups?.cid != null) {
+          const cid = match.groups.cid
+          const $anchor = /** @type {HTMLAnchorElement} */ (document.querySelector('.check-cid-link'))
+          if ($anchor) {
+            $anchor.href = `https://check.ipfs.network/?cid=${cid}`
+            $anchor.classList.remove('dn')
+            $anchor.classList.add('dib')
+          }
+        }
+        checkUrl()
+    </script>
+</body>
+
+</html>

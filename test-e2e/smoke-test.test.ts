@@ -84,6 +84,8 @@ test.describe('smoke test', () => {
 
     const response = swResponses[swResponses.length - 1]
     expect(response?.status()).toBe(504)
-    expect(await response?.text()).toContain('Gateway timeout due to configured timeout of 200ms')
+    const text = await response?.text()
+    expect(text).toContain('504 Gateway timeout')
+    expect(text).toContain('Increase the timeout in the')
   })
 })
