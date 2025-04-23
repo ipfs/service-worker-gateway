@@ -77,6 +77,90 @@ jobs:
           echo "Building for GOOS=${GOOS} GOARCH=${GOARCH}"
           go build -o service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }} main.go
 
+      ###
+      # Windows signing
+      ###
+      - name: Decode Windows signing cert
+        if: runner.os == 'windows-latest'
+        shell: bash
+        run: |
+          echo "${{ secrets.WINDOWS_CERTS }}" | base64 -d > win-cert.p12
+
+      # Authenticode-sign the exe
+      - name: Sign EXE with signtool
+        if: runner.os == 'windows-latest'
+        shell: powershell
+        env:
+          PFX_PWD: ${{ secrets.WINDOWS_CERTS_PASSWORD }}
+        run: |
+          # first signtool found in the Windows SDK
+          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse `
+                      -Filter signtool.exe | Select-Object -First 1
+          & $signtool.FullName sign /f win-cert.p12 /p $Env:PFX_PWD `
+            /fd sha256 /tr http://timestamp.digicert.com `
+            "service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
+      ###
+      # End Windows signing
+      ###
+
+      ###
+      # MacOS signing
+      ###
+      - name: Import Developer-ID cert
+        id: import_mac_certs
+        if: runner.os == 'macos-latest'
+        shell: bash
+        env:
+          MAC_CERTS:          ${{ secrets.MAC_CERTS }}
+          MAC_CERTS_PASSWORD: ${{ secrets.MAC_CERTS_PASSWORD }}
+        run: |
+          echo "$MAC_CERTS" | base64 -d > mac-cert.p12
+
+          # throw-away keychain that lives only for this job
+          security create-keychain -p '' build.keychain
+          security import mac-cert.p12 -k build.keychain \
+                  -P "$MAC_CERTS_PASSWORD" -T /usr/bin/codesign
+          security unlock-keychain -p '' build.keychain
+          security list-keychain -d user -s build.keychain
+
+          # Extract Team-ID (OU=XXXXXXXXXX) from the cert for later
+          TEAM_ID=$(security find-certificate -c "Developer ID Application" -p build.keychain \
+                    | openssl x509 -noout -subject \
+                    | sed -n 's/.*OU=\([A-Z0-9]\{10\}\).*/\1/p' \
+                    | head -n1)
+          echo "TEAM_ID=$TEAM_ID" >>"$GITHUB_ENV"
+
+      - name: Codesign Go binary
+        if: runner.os == 'macos-latest'
+        run: |
+          BIN="service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
+          codesign --force --timestamp --options runtime \
+                  --sign "Developer ID Application" "$BIN"
+          codesign --verify -v "$BIN"
+
+      - name: Store notarization credentials
+        if: runner.os == 'macos-latest'
+        env:
+          APPLEID:     ${{ secrets.APPLE_ID }}
+          APPLEIDPASS: ${{ secrets.APPLE_ID_PASS }}
+          TEAM_ID:     ${{ steps.import_mac_certs.outputs.TEAM_ID }}
+        run: |
+          xcrun notarytool store-credentials AC_PASSWORD \
+                --apple-id "$APPLEID" \
+                --password "$APPLEIDPASS" \
+                --team-id "$TEAM_ID"
+
+      - name: Notarize & staple
+        if: runner.os == 'macos-latest'
+        run: |
+          BIN="service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
+          xcrun notarytool submit "$BIN" --keychain-profile AC_PASSWORD --wait
+          xcrun stapler staple "$BIN"
+      ###
+      # End MacOS signing
+      ###
+
+
       - name: Upload release asset
         if: steps.set_release_tag.outputs.release_tag != ''   # safety check
         uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2.2.1
