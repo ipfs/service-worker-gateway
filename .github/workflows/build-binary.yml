@@ -81,14 +81,14 @@ jobs:
       # Windows signing
       ###
       - name: Decode Windows signing cert
-        if: runner.os == 'windows-latest'
+        if: runner.os == 'Windows'
         shell: bash
         run: |
           echo "${{ secrets.WINDOWS_CERTS }}" | base64 -d > win-cert.p12
 
       # Authenticode-sign the exe
       - name: Sign EXE with signtool
-        if: runner.os == 'windows-latest'
+        if: runner.os == 'Windows'
         shell: powershell
         env:
           PFX_PWD: ${{ secrets.WINDOWS_CERTS_PASSWORD }}
@@ -108,7 +108,7 @@ jobs:
       ###
       - name: Import Developer-ID cert
         id: import_mac_certs
-        if: runner.os == 'macos-latest'
+        if: runner.os == 'macOS'
         shell: bash
         env:
           MAC_CERTS:          ${{ secrets.MAC_CERTS }}
@@ -131,7 +131,7 @@ jobs:
           echo "TEAM_ID=$TEAM_ID" >>"$GITHUB_ENV"
 
       - name: Codesign Go binary
-        if: runner.os == 'macos-latest'
+        if: runner.os == 'macOS'
         run: |
           BIN="service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
           codesign --force --timestamp --options runtime \
@@ -139,7 +139,7 @@ jobs:
           codesign --verify -v "$BIN"
 
       - name: Store notarization credentials
-        if: runner.os == 'macos-latest'
+        if: runner.os == 'macOS'
         env:
           APPLEID:     ${{ secrets.APPLE_ID }}
           APPLEIDPASS: ${{ secrets.APPLE_ID_PASS }}
@@ -151,7 +151,7 @@ jobs:
                 --team-id "$TEAM_ID"
 
       - name: Notarize & staple
-        if: runner.os == 'macos-latest'
+        if: runner.os == 'macOS'
         run: |
           BIN="service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
           xcrun notarytool submit "$BIN" --keychain-profile AC_PASSWORD --wait
