@@ -83,6 +83,8 @@ test.describe('smoke test', () => {
 
     const response = await page.goto(`${protocol}//127.0.0.1:3334/ipfs/bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze/wiki/Antarctica`)
     expect(response?.status()).toBe(504)
-    expect(await response?.text()).toContain('Gateway timeout due to configured timeout of 200ms')
+    const text = await response?.text()
+    expect(text).toContain('504 Gateway timeout')
+    expect(text).toContain('Increase the timeout in the')
   })
 })
