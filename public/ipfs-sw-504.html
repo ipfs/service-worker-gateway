@@ -83,9 +83,11 @@ This file is used to display a 504 error page when a gateway timeout occurs.
                         rel="noopener noreferrer">DAG</a>.</li>
                 <li>Increase the timeout in the <a href="/#/ipfs-sw-config" target="_blank" rel="noopener noreferrer">config page</a> for this Service Worker Gateway instance.</li>
             </ul>
+            <a class="check-cid-link dn no-underline br2 f4 bn bg-teal white pa3 ph2 ma3 mh0" href="https://check.ipfs.network/" target="_blank" rel="noopener noreferrer">Debug retrievability of CID</a>
         </section>
     </main>
     <script>
+      // @ts-check
       const subdomainRegex = /^(?:https?:\/\/|\/\/)?(?<cid>[^/]+)\.ipfs\.(?<parentDomain>[^/?#]*)(?<path>.*)$/;
       const pathRegex = /^.*\/ipfs\/(?<cid>[^/?#]*)(?<path>.*)$/;
 
@@ -93,26 +95,13 @@ This file is used to display a 504 error page when a gateway timeout occurs.
         const currentUrl = window.location.href;
         let match = currentUrl.match(pathRegex) || currentUrl.match(subdomainRegex)
 
-        if (match && match.groups.cid) {
+        if (match?.groups?.cid != null) {
           const cid = match.groups.cid
-          const anchor = document.createElement('a')
-          anchor.target = '_blank';
-
-          anchor.textContent = 'Debug retrievability of CID'
-          anchor.href = `https://check.ipfs.network/?cid=${cid}`
-          anchor.style.cssText = `
-            display: inline-block;
-            background-color: #3B8C90;
-            color: var(--near-white);
-            border: none;
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            border-radius: var(--radius);
-            text-decoration: none;
-            margin: 20px 0;
-            `
-            document.querySelector('.container').appendChild(anchor)
+          const $anchor = /** @type {HTMLAnchorElement} */ (document.querySelector('.check-cid-link'))
+          if ($anchor) {
+            $anchor.href = `https://check.ipfs.network/?cid=${cid}`
+            $anchor.classList.remove('dn')
+            $anchor.classList.add('dib')
           }
         }
         checkUrl()
