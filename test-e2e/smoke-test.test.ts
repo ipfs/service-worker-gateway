@@ -3,10 +3,10 @@ import { testSubdomainRouting as test, expect } from './fixtures/config-test-fix
 import { setConfig } from './fixtures/set-sw-config.js'
 
 test.describe('smoke test', () => {
-  test('loads a dag-json jpeg', async ({ page, protocol, swResponses }) => {
-    await page.goto(`${protocol}//localhost:3334/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi`)
+  test('loads a dag-json jpeg', async ({ page, protocol, swResponses, rootDomain }) => {
+    await page.goto(`${protocol}//${rootDomain}/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi`)
 
-    await page.waitForURL('http://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi.ipfs.localhost:3334')
+    await page.waitForURL(`http://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi.ipfs.${rootDomain}`)
     await page.waitForLoadState('networkidle')
 
     const response = swResponses[swResponses.length - 1]
@@ -15,9 +15,9 @@ test.describe('smoke test', () => {
     expect(response?.headers()['content-type']).toBe('image/jpeg')
   })
 
-  test('request to /ipfs/dir-cid redirects to /ipfs/dir-cid/', async ({ page, protocol, swResponses }) => {
-    await page.goto(`${protocol}//localhost:3334/ipfs/bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui/root2/root3/root4`)
-    await page.waitForURL(`${protocol}//bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui.ipfs.localhost:3334/root2/root3/root4/`)
+  test('request to /ipfs/dir-cid redirects to /ipfs/dir-cid/', async ({ page, protocol, swResponses, rootDomain }) => {
+    await page.goto(`${protocol}//${rootDomain}/ipfs/bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui/root2/root3/root4`)
+    await page.waitForURL(`${protocol}//bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui.ipfs.${rootDomain}/root2/root3/root4/`)
     await page.waitForLoadState('networkidle')
     const response = swResponses[swResponses.length - 1]
     expect(response?.status()).toBe(200)
@@ -28,9 +28,9 @@ test.describe('smoke test', () => {
   /**
    * TODO: address issues mentioned in https://github.com/ipfs/helia-verified-fetch/issues/208
    */
-  test('request to /ipfs/dir-cid without index.html returns dir listing', async ({ page, protocol, swResponses }) => {
-    await page.goto(`${protocol}//localhost:3334/ipfs/bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui/root2/root3`)
-    await page.waitForURL(`${protocol}//bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui.ipfs.localhost:3334/root2/root3/`)
+  test('request to /ipfs/dir-cid without index.html returns dir listing', async ({ page, protocol, swResponses, rootDomain }) => {
+    await page.goto(`${protocol}//${rootDomain}/ipfs/bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui/root2/root3`)
+    await page.waitForURL(`${protocol}//bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui.ipfs.${rootDomain}/root2/root3/`)
     await page.waitForLoadState('networkidle')
     const response = swResponses[swResponses.length - 1]
     expect(response?.status()).toBe(200)
@@ -51,37 +51,38 @@ test.describe('smoke test', () => {
     expect(await nameLink?.innerText()).toBe('root4')
     expect(await nameLink?.getAttribute('href')).toBe('root4')
     expect(await shortHashLink?.innerText()).toContain('bafy...lo7q')
-    expect(await shortHashLink?.getAttribute('href')).toContain('http://localhost:3334/ipfs/bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q?filename=root4')
+    expect(await shortHashLink?.getAttribute('href')).toContain(`http://${rootDomain}/ipfs/bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q?filename=root4`)
   })
 
   /**
    * @see https://github.com/ipfs/service-worker-gateway/issues/662
    * TODO: re-enable when github CI is fixed..
    */
-  test.skip('request to /ipns/<libp2p-key> returns expected content', async ({ page, protocol }) => {
-    // first validate that kubo gateway returns the expected content
-    const kuboResponse = await page.goto(`${protocol}//k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam.ipns.localhost:8088`)
-    expect(await kuboResponse?.text()).toContain('hello')
-
-    await page.goto(`${protocol}//localhost:3334/ipns/k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam`)
-    // await page.goto(`${protocol}//k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam.ipns.localhost:3334`)
+  test('request to /ipns/<libp2p-key> returns expected content', async ({ page, protocol, rootDomain }) => {
+    await page.goto(`${protocol}//${rootDomain}/ipns/k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam`)
+    // await page.goto(`${protocol}//k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam.ipns.${rootDomain}`)
     // then validate that the service worker gateway returns the same content
-    await page.waitForURL('http://k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam.ipns.localhost:3334')
+    await page.waitForURL(`http://k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam.ipns.${rootDomain}`)
     await page.waitForLoadState('networkidle')
 
-    const content = await page.content()
-    expect(content).toContain('hello')
+    // const content = await page.content()
+    // expect(content).toContain('hello')
+    await page.waitForFunction(async () => document.body.textContent?.includes('hello'), { timeout: 10000 })
   })
 
-  test('configurable timeout value is respected', async ({ page, protocol }) => {
-    await page.goto(`${protocol}//127.0.0.1:3334`)
+  test('configurable timeout value is respected', async ({ page, protocol, rootDomain, swResponses }) => {
+    await page.goto(`${protocol}//${rootDomain}`)
     await page.waitForLoadState('networkidle')
     await setConfig({ page, config: { fetchTimeout: 200 } })
     await page.evaluate(async () => {
       await fetch('?ipfs-sw-accept-origin-isolation-warning=true')
     })
 
-    const response = await page.goto(`${protocol}//127.0.0.1:3334/ipfs/bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze/wiki/Antarctica`)
+    await page.goto(`${protocol}//${rootDomain}/ipfs/bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze/wiki/Antarctica`)
+    await page.waitForURL(`${protocol}//bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze.ipfs.${rootDomain}/wiki/Antarctica`)
+    await page.waitForLoadState('networkidle')
+
+    const response = swResponses[swResponses.length - 1]
     expect(response?.status()).toBe(504)
     expect(await response?.text()).toContain('Gateway timeout due to configured timeout of 200ms')
   })
