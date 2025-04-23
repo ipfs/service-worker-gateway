@@ -81,23 +81,30 @@ jobs:
       ###
       # Windows signing
       ###
-      - name: Decode Windows signing cert
+      - name: Windows - Decode Windows signing cert
         if: runner.os == 'Windows'
         shell: bash
         run: |
           echo "${{ secrets.WINDOWS_CERTS }}" | base64 -d > win-cert.p12
 
-      # Authenticode-sign the exe
-      - name: Sign EXE with signtool
+      - name: Windows - Sign EXE with signtool
         if: runner.os == 'Windows'
         shell: powershell
         env:
           PFX_PWD: ${{ secrets.WINDOWS_CERTS_PASSWORD }}
         run: |
-          # Path returned is the x64 signtool that Microsoft puts on PATH
-          $signtool = (Get-Command signtool.exe).Source
+          # Find the first x64 signtool.exe inside the Windows 10 SDK
+          $sdkRoot = "$Env:ProgramFiles(x86)\Windows Kits\10\bin"
+          $signtool = Get-ChildItem $sdkRoot -Recurse -Filter signtool.exe |
+                      Where-Object { $_.FullName -match '\\x64\\' } |
+                      Select-Object -First 1
 
-          & $signtool sign `
+          if (-not $signtool) {
+            Write-Error "signtool.exe (x64) not found under $sdkRoot"
+            exit 1
+          }
+
+          & $signtool.FullName sign `
             /f win-cert.p12 /p $Env:PFX_PWD `
             /fd sha256 /tr http://timestamp.digicert.com `
             "service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
@@ -108,7 +115,7 @@ jobs:
       ###
       # MacOS signing
       ###
-      - name: Import Developer-ID cert
+      - name: MacOS - Import Developer-ID cert
         id: import_mac_certs
         if: runner.os == 'macOS'
         shell: bash
@@ -132,7 +139,7 @@ jobs:
                     | head -n1)
           echo "TEAM_ID=$TEAM_ID" >>"$GITHUB_ENV"
 
-      - name: Codesign Go binary
+      - name: MacOS - Codesign Go binary
         if: runner.os == 'macOS'
         run: |
           BIN="service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
@@ -140,7 +147,7 @@ jobs:
                   --sign "Developer ID Application" "$BIN"
           codesign --verify -v "$BIN"
 
-      - name: Store notarization credentials
+      - name: MacOS - Store notarization credentials
         if: runner.os == 'macOS'
         env:
           APPLEID:     ${{ secrets.APPLE_ID }}
@@ -152,7 +159,7 @@ jobs:
                 --password "$APPLEIDPASS" \
                 --team-id "$TEAM_ID"
 
-      - name: Notarize & staple
+      - name: MacOS - Notarize & staple
         if: runner.os == 'macOS'
         run: |
           BIN="service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
@@ -161,7 +168,6 @@ jobs:
       ###
       # End MacOS signing
       ###
-
 
       - name: Upload release asset
         if: steps.set_release_tag.outputs.release_tag != ''   # safety check
