@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.12.0](https://github.com/ipfs/service-worker-gateway/compare/v1.11.0...v1.12.0) (2025-04-23)
+
+
+### Features
+
+* configurable 30s timeout ([#681](https://github.com/ipfs/service-worker-gateway/issues/681)) ([fc1b9ec](https://github.com/ipfs/service-worker-gateway/commit/fc1b9ec3310d63ad82a8172aad322bfb55bff55d))
+* display 504 error page with helpful info ([#689](https://github.com/ipfs/service-worker-gateway/issues/689)) ([9275bc6](https://github.com/ipfs/service-worker-gateway/commit/9275bc68e5d1c442e4ec26a7a139227ec610e367))
+* single sw-gateway binary ([#673](https://github.com/ipfs/service-worker-gateway/issues/673)) ([4cd09ee](https://github.com/ipfs/service-worker-gateway/commit/4cd09eed5d1d350e97267fe7920fa743a32c6b98))
+
 ## [1.11.0](https://github.com/ipfs/service-worker-gateway/compare/v1.10.5...v1.11.0) (2025-04-15)
 
 
