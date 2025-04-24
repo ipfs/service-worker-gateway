@@ -175,8 +175,7 @@ jobs:
           echo "Using Team ID (truncated): ${TEAM_ID:0:3}...${TEAM_ID:(-3)}"
           BIN="service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
           # find the exact identity (match Team ID to be safe)
-          IDENTITY=$(security find-identity -v -p codesigning build.keychain |
-                    awk '/Developer ID Application/ && /$TEAM_ID/ {print $2; exit}')
+          IDENTITY=$(security find-identity -v -p codesigning build.keychain | awk '/[A-F0-9]{40}/{print $2; exit}')
           echo "Using identity: $IDENTITY"
 
           codesign --force --options runtime --timestamp=none \
