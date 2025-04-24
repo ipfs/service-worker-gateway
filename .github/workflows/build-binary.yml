@@ -175,7 +175,8 @@ jobs:
           IDENTITY=$(security find-identity -v -p codesigning build.keychain | awk '/[A-F0-9]{40}/{print $2; exit}')
           echo "Using identity: $IDENTITY"
 
-          codesign --force --options runtime --timestamp=none \
+          codesign --force --options runtime \
+                  --timestamp \
                   --sign "$IDENTITY" --verbose "$BIN"
           codesign --verify -v --verbose "$BIN"
 
