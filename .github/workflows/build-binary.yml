@@ -195,12 +195,32 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           BIN="service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
+
           # Create a zip file for notarization
           ditto -c -k --keepParent "$BIN" "${BIN}.zip"
-          # Submit the zip for notarization
-          xcrun notarytool submit "${BIN}.zip" --keychain-profile AC_PASSWORD --wait
-          # Staple the original binary after notarization
-          xcrun stapler staple "$BIN"
+
+          # Submit the zip for notarization and capture the submission ID
+          SUBMISSION_OUTPUT=$(xcrun notarytool submit "${BIN}.zip" --keychain-profile AC_PASSWORD --wait)
+          echo "$SUBMISSION_OUTPUT"
+
+          # Extract the submission ID
+          SUBMISSION_ID=$(echo "$SUBMISSION_OUTPUT" | grep "id:" | head -1 | awk '{print $2}')
+          echo "Submission ID: $SUBMISSION_ID"
+
+          # Check the notarization status and logs
+          if [ -n "$SUBMISSION_ID" ]; then
+            echo "Getting notarization log for $SUBMISSION_ID"
+            xcrun notarytool log "$SUBMISSION_ID" --keychain-profile AC_PASSWORD
+          fi
+
+          # Check if the submission was successful
+          if echo "$SUBMISSION_OUTPUT" | grep -q "status: Accepted"; then
+            echo "Notarization successful, proceeding with stapling"
+            xcrun stapler staple "$BIN"
+          else
+            echo "Notarization failed, skipping stapling"
+            exit 1
+          fi
       ###
       # End macOS signing
       ###
