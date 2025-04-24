@@ -179,12 +179,11 @@ jobs:
         env:
           APPLEID:     ${{ secrets.APPLE_ID }}
           APPLEIDPASS: ${{ secrets.APPLE_ID_PASS }}
-          TEAM_ID:     ${{ steps.import_mac_certs.outputs.TEAM_ID }}
         run: |
           xcrun notarytool store-credentials AC_PASSWORD \
                 --apple-id "$APPLEID" \
                 --password "$APPLEIDPASS" \
-                --team-id "$TEAM_ID"
+                --team-id "${{ steps.import_mac_certs.outputs.TEAM_ID }}"
 
       - name: macOS - Notarize & staple
         if: runner.os == 'macOS'
