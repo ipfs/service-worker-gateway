@@ -86,7 +86,7 @@ jobs:
       ###
       # Windows signing
       ###
-      - name: Windows - Decode Windows signing cert
+      - name: Windows - Decode code-signing cert
         if: runner.os == 'Windows'
         shell: bash
         run: |
@@ -122,6 +122,7 @@ jobs:
           }
 
           & $signtool.FullName sign `
+            /a                             `# auto-select the leaf code-signing cert`
             /f win-cert.p12 /p $Env:PFX_PWD `
             /fd sha256 /td sha256 /tr http://timestamp.digicert.com `
             "service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
