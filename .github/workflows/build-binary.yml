@@ -121,11 +121,8 @@ jobs:
             exit 1
           }
 
-          & $signtool.FullName sign `
-            /a                             `# auto-select the leaf code-signing cert`
-            /f win-cert.p12 /p $Env:PFX_PWD `
-            /fd sha256 /td sha256 /tr http://timestamp.digicert.com `
-            "service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
+          # Execute signtool with proper parameters
+          & $signtool.FullName sign /a /f win-cert.p12 /p $Env:PFX_PWD /fd sha256 /td sha256 /tr http://timestamp.digicert.com "service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
       ###
       # End Windows signing
       ###
