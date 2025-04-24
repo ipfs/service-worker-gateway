@@ -197,8 +197,8 @@ jobs:
         run: |
           BIN="service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
 
-          # Create a zip file for notarization
-          ditto -c -k --keepParent "$BIN" "${BIN}.zip"
+          # Create a zip file for notarization without the extra directory level
+          ditto -c -k "$BIN" "${BIN}.zip"
 
           # Submit the zip for notarization and capture the submission ID
           SUBMISSION_OUTPUT=$(xcrun notarytool submit "${BIN}.zip" --keychain-profile AC_PASSWORD --wait)
