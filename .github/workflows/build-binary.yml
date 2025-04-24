@@ -166,20 +166,11 @@ jobs:
           security list-keychain -d user -s build.keychain
           security unlock-keychain -p '' build.keychain
 
-          # 4. Extract Team ID (OU=XXXXXXXXXX) for notarytool
-          TEAM_ID=$(security find-certificate -c "Developer ID Application" -p build.keychain |
-                    openssl x509 -noout -subject |
-                    sed -n 's/.*OU=\([A-Z0-9]\{10\}\).*/\1/p' |
-                    head -n1)
-
-          echo "Extracted Team ID (truncated): ${TEAM_ID:0:3}...${TEAM_ID:(-3)}"
-          echo "TEAM_ID=$TEAM_ID" >>"$GITHUB_OUTPUT"
-
       - name: macOS – Codesign Go binary
         if: runner.os == 'macOS'
         shell: bash
         env:
-          TEAM_ID: ${{ steps.import_mac_certs.outputs.TEAM_ID }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           echo "Using Team ID (truncated): ${TEAM_ID:0:3}...${TEAM_ID:(-3)}"
           BIN="service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
@@ -197,7 +188,7 @@ jobs:
         env:
           APPLEID:     ${{ secrets.APPLE_ID }}
           APPLEIDPASS: ${{ secrets.APPLE_ID_PASS }}
-          TEAM_ID: ${{ steps.import_mac_certs.outputs.TEAM_ID }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           echo "Using Team ID (truncated): ${TEAM_ID:0:3}...${TEAM_ID:(-3)}"
           xcrun notarytool store-credentials AC_PASSWORD \
