@@ -169,10 +169,7 @@ jobs:
       - name: macOS – Codesign Go binary
         if: runner.os == 'macOS'
         shell: bash
-        env:
-          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          echo "Using Team ID (truncated): ${TEAM_ID:0:3}...${TEAM_ID:(-3)}"
           BIN="service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
           # find the exact identity (match Team ID to be safe)
           IDENTITY=$(security find-identity -v -p codesigning build.keychain | awk '/[A-F0-9]{40}/{print $2; exit}')
@@ -189,7 +186,6 @@ jobs:
           APPLEIDPASS: ${{ secrets.APPLE_ID_PASS }}
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          echo "Using Team ID (truncated): ${TEAM_ID:0:3}...${TEAM_ID:(-3)}"
           xcrun notarytool store-credentials AC_PASSWORD \
                 --apple-id "$APPLEID" \
                 --password "$APPLEIDPASS" \
