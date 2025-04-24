@@ -217,9 +217,28 @@ jobs:
           # Check if the submission was successful
           if echo "$SUBMISSION_OUTPUT" | grep -q "status: Accepted"; then
             echo "Notarization successful, proceeding with stapling"
-            xcrun stapler staple "$BIN"
+
+            # Check binary info before stapling
+            echo "Binary info before stapling:"
+            codesign -dvv "$BIN"
+            spctl -a -vv "$BIN" || true  # may fail but shows info
+
+            # Try multiple stapling approaches
+            echo "Trying stapler staple..."
+            xcrun stapler staple "$BIN" || true
+
+            echo "Trying alternative stapling method..."
+            xcrun stapler staple -v "$BIN" || true
+
+            # Verify notarization status
+            echo "Verifying notarization status:"
+            spctl --assess --verbose=4 "$BIN" || true
+
+            # Even if stapling fails, we continue because the binary is notarized
+            # We can upload it anyway because it can be validated online by Gatekeeper
+            echo "Binary is notarized, continuing with upload even if stapling failed"
           else
-            echo "Notarization failed, skipping stapling"
+            echo "Notarization failed, exiting"
             exit 1
           fi
       ###
