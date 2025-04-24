@@ -83,63 +83,63 @@ jobs:
           echo "Building for GOOS=${GOOS} GOARCH=${GOARCH}"
           go build -o service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }} main.go
 
-      ###
-      # Windows signing
-      ###
-      - name: Windows - Decode code-signing cert
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          echo "${{ secrets.WINDOWS_CERTS }}" | base64 -d > win-cert.p12
+      # ###
+      # # Windows signing -- disabled because we don't have a valid cert
+      # ###
+      # - name: Windows - Decode code-signing cert
+      #   if: runner.os == 'Windows'
+      #   shell: bash
+      #   run: |
+      #     echo "${{ secrets.WINDOWS_CERTS }}" | base64 -d > win-cert.p12
 
-      - name: Windows - Sign EXE with signtool
-        if: runner.os == 'Windows'
-        shell: powershell
-        env:
-          PFX_PWD: ${{ secrets.WINDOWS_CERTS_PASSWORD }}
-        run: |
-          # Define search order: prefer x64, then arm64, then x86
-          $architectures = @('x64', 'arm64', 'x86')
-          $sdkRoot = "${env:ProgramFiles(x86)}\Windows Kits\10\bin"
-          $signtool = $null
+      # - name: Windows - Sign EXE with signtool
+      #   if: runner.os == 'Windows'
+      #   shell: powershell
+      #   env:
+      #     PFX_PWD: ${{ secrets.WINDOWS_CERTS_PASSWORD }}
+      #   run: |
+      #     # Define search order: prefer x64, then arm64, then x86
+      #     $architectures = @('x64', 'arm64', 'x86')
+      #     $sdkRoot = "${env:ProgramFiles(x86)}\Windows Kits\10\bin"
+      #     $signtool = $null
 
-          foreach ($arch in $architectures) {
-            $found = Get-ChildItem $sdkRoot -Recurse -Filter signtool.exe |
-                    Where-Object { $_.FullName -match "\\$arch\\" } |
-                    Sort-Object -Property FullName -Descending |
-                    Select-Object -First 1
+      #     foreach ($arch in $architectures) {
+      #       $found = Get-ChildItem $sdkRoot -Recurse -Filter signtool.exe |
+      #               Where-Object { $_.FullName -match "\\$arch\\" } |
+      #               Sort-Object -Property FullName -Descending |
+      #               Select-Object -First 1
 
-            if ($found) {
-              $signtool = $found
-              Write-Host "Found $arch signtool at: $($signtool.FullName)"
-              break
-            }
-          }
+      #       if ($found) {
+      #         $signtool = $found
+      #         Write-Host "Found $arch signtool at: $($signtool.FullName)"
+      #         break
+      #       }
+      #     }
 
-          if (-not $signtool) {
-            Write-Error "signtool.exe not found under $sdkRoot for any architecture"
-            exit 1
-          }
+      #     if (-not $signtool) {
+      #       Write-Error "signtool.exe not found under $sdkRoot for any architecture"
+      #       exit 1
+      #     }
 
-          # Check the certificate details (without showing sensitive info)
-          Write-Host "Examining certificate in win-cert.p12..."
-          & $signtool.FullName verify /pa /v win-cert.p12
+      #     # Check the certificate details (without showing sensitive info)
+      #     Write-Host "Examining certificate in win-cert.p12..."
+      #     & $signtool.FullName verify /pa /v win-cert.p12
 
-          # First try listing certificates in the file
-          & $signtool.FullName sign /v /fd sha256 /f win-cert.p12 /p $Env:PFX_PWD /csp "Microsoft Enhanced RSA and AES Cryptographic Provider" /debug
+      #     # First try listing certificates in the file
+      #     & $signtool.FullName sign /v /fd sha256 /f win-cert.p12 /p $Env:PFX_PWD /csp "Microsoft Enhanced RSA and AES Cryptographic Provider" /debug
 
-          # Try direct signing without auto-select
-          Write-Host "Attempting to sign with specific parameters..."
-          & $signtool.FullName sign /v /fd sha256 /f win-cert.p12 /p $Env:PFX_PWD /tr http://timestamp.digicert.com /td sha256 "service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
+      #     # Try direct signing without auto-select
+      #     Write-Host "Attempting to sign with specific parameters..."
+      #     & $signtool.FullName sign /v /fd sha256 /f win-cert.p12 /p $Env:PFX_PWD /tr http://timestamp.digicert.com /td sha256 "service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
 
-          # If previous command failed, try with auto-select as fallback
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host "First attempt failed, trying with auto-select..."
-            & $signtool.FullName sign /v /a /fd sha256 /f win-cert.p12 /p $Env:PFX_PWD /tr http://timestamp.digicert.com /td sha256 "service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
-          }
-      ###
-      # End Windows signing
-      ###
+      #     # If previous command failed, try with auto-select as fallback
+      #     if ($LASTEXITCODE -ne 0) {
+      #       Write-Host "First attempt failed, trying with auto-select..."
+      #       & $signtool.FullName sign /v /a /fd sha256 /f win-cert.p12 /p $Env:PFX_PWD /tr http://timestamp.digicert.com /td sha256 "service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
+      #     }
+      # ###
+      # # End Windows signing
+      # ###
 
       ###
       # macOS signing
