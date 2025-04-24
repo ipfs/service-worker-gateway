@@ -121,8 +121,22 @@ jobs:
             exit 1
           }
 
-          # Execute signtool with proper parameters
-          & $signtool.FullName sign /a /f win-cert.p12 /p $Env:PFX_PWD /fd sha256 /td sha256 /tr http://timestamp.digicert.com "service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
+          # Check the certificate details (without showing sensitive info)
+          Write-Host "Examining certificate in win-cert.p12..."
+          & $signtool.FullName verify /pa /v win-cert.p12
+
+          # First try listing certificates in the file
+          & $signtool.FullName sign /v /fd sha256 /f win-cert.p12 /p $Env:PFX_PWD /csp "Microsoft Enhanced RSA and AES Cryptographic Provider" /debug
+
+          # Try direct signing without auto-select
+          Write-Host "Attempting to sign with specific parameters..."
+          & $signtool.FullName sign /v /fd sha256 /f win-cert.p12 /p $Env:PFX_PWD /tr http://timestamp.digicert.com /td sha256 "service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
+
+          # If previous command failed, try with auto-select as fallback
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "First attempt failed, trying with auto-select..."
+            & $signtool.FullName sign /v /a /fd sha256 /f win-cert.p12 /p $Env:PFX_PWD /tr http://timestamp.digicert.com /td sha256 "service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
+          }
       ###
       # End Windows signing
       ###
