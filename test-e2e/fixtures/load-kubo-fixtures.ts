@@ -66,8 +66,18 @@ export async function loadCarFixtures (): Promise<void> {
   const execaOptions = getExecaOptions()
 
   for (const carFile of await glob([`${resolve(__dirname, 'data')}/**/*.car`])) {
+    if (carFile.includes('gateway-requests')) {
+      // log('Skipping gateway-requests fixture %s', carFile)
+      continue
+    }
     log('Loading *.car fixture %s', carFile)
-    const { stdout } = await $(execaOptions)`npx -y kubo dag import --pin-roots=false --offline ${carFile}`
-    stdout.split('\n').forEach(log)
+    try {
+      const { stdout, stderr } = await $(execaOptions)`npx -y kubo dag import --pin-roots=false --offline ${carFile}`
+      stdout.split('\n').forEach(log)
+      stderr.split('\n').forEach(log.error)
+    } catch (e) {
+      log.error('Error loading car fixture %s', carFile, e)
+      // maybe delete the file?
+    }
   }
 }

@@ -106,7 +106,7 @@ export async function createKuboNode (IPFS_NS_MAP?: string): Promise<KuboNode> {
           }
         },
         Gateway: {
-          NoFetch: true,
+          // NoFetch: true,
           DeserializedResponses: true,
           ExposeRoutingAPI: false,
           HTTPHeaders: {

@@ -16,7 +16,7 @@ export interface KuboNodeInstance {
   stop(): Promise<void>
 }
 
-async function isKuboRunning (): Promise<boolean> {
+export async function isKuboRunning (): Promise<boolean> {
   if (process.env.KUBO_RUNNING === 'true' || process.env.PLAYWRIGHT === 'true') {
     return true
   }

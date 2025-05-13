@@ -12,7 +12,7 @@ import { execa } from 'execa'
 import { createKuboNode } from './test-e2e/fixtures/create-kubo-node.js'
 import { loadIpnsRecords } from './test-e2e/fixtures/load-ipns-records.js'
 import { downloadFixtures, getIpfsNsMap, loadCarFixtures } from './test-e2e/fixtures/load-kubo-fixtures.js'
-import { setupIpfsGateway } from './test-e2e/ipfs-gateway.js'
+import { isKuboRunning, setupIpfsGateway } from './test-e2e/ipfs-gateway.js'
 import { createReverseProxy } from './test-e2e/reverse-proxy.js'
 import type { KuboNode } from 'ipfsd-ctl'
 
@@ -55,14 +55,14 @@ export interface ServeOptions {
  * start the service worker gateway, with reverse proxy, ipfs gateway, and front-end server
  */
 export async function serve ({ shouldLoadFixtures = false, shouldStartFrontend = true }: ServeOptions = {}): Promise<{
-  controller: KuboNode
+  controller?: KuboNode
 }> {
-  let controller: KuboNode
+  let controller: KuboNode | undefined
   if (shouldLoadFixtures) {
     const fixtures = await loadFixtures()
     controller = fixtures.controller
     // IPFS_NS_MAP = fixtures.IPFS_NS_MAP
-  } else {
+  } else if (!await isKuboRunning()) {
     controller = await createKuboNode()
   }
 
