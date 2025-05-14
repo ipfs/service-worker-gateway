@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.1](https://github.com/ipfs/service-worker-gateway/compare/v1.12.0...v1.12.1) (2025-05-14)
+
+
+### Bug Fixes
+
+* improve binary onboarding experience  ([#718](https://github.com/ipfs/service-worker-gateway/issues/718)) ([d491194](https://github.com/ipfs/service-worker-gateway/commit/d4911943feff543eaf12eee06c22250ed3135aa8))
+
 ## [1.12.0](https://github.com/ipfs/service-worker-gateway/compare/v1.11.0...v1.12.0) (2025-04-23)
 
 
