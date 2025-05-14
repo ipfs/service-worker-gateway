@@ -82,6 +82,7 @@ jobs:
         run: |
           echo "Building for GOOS=${GOOS} GOARCH=${GOARCH}"
           go build -o service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }} main.go
+          chmod +x service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}
 
       # ###
       # # Windows signing -- disabled because we don't have a valid cert
