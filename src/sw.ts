@@ -144,6 +144,9 @@ self.addEventListener('activate', (event) => {
    */
   event.waitUntil(self.clients.claim())
 
+  // eslint-disable-next-line no-console
+  console.info('Service Worker Gateway: To manually deregister, append "?ipfs-sw-deregister=true" to the URL, or use the button on the config page.')
+
   // Delete all caches that aren't named in CURRENT_CACHES.
   const expectedCacheNames = Object.keys(CURRENT_CACHES).map(function (key) {
     return CURRENT_CACHES[key]

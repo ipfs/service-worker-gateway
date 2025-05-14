@@ -250,7 +250,19 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
         </InputSection>
         <div className="w-100 inline-flex flex-row justify-between">
           <button className="e2e-config-page-button button-reset mr5 pv3 tc bg-animate hover-bg-gold pointer w-30 bn" id="reset-config" onClick={() => { void doResetConfig() }}>Reset Config</button>
-          <ServiceWorkerReadyButton className="e2e-config-page-button white w-100 pa3" id="save-config" label={isSaving ? 'Saving...' : 'Save Config'} waitingLabel='Waiting for service worker registration...' onClick={() => { void saveConfig() }} />
+          <ServiceWorkerReadyButton
+            className="e2e-config-page-button white pv3 tc bg-animate hover-bg-dark-red pointer w-30 bn mh2"
+            id="deregister-sw"
+            label="Deregister SW"
+            waitingLabel='Waiting for SW...'
+            onClick={() => {
+              const currentUrl = new URL(window.location.href)
+              currentUrl.searchParams.set('ipfs-sw-deregister', 'true')
+              window.location.href = currentUrl.href
+            }}
+            disabled={isSaving}
+          />
+          <ServiceWorkerReadyButton className="e2e-config-page-button white w-100 pa3" id="save-config" label={isSaving ? 'Saving...' : 'Save Config'} waitingLabel='Waiting for service worker registration...' onClick={() => { void saveConfig() }} disabled={isSaving} />
         </div>
         {error != null && <span style={{ color: 'red' }}>{error.message}</span>}
       </section>
