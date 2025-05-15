@@ -13,8 +13,11 @@ function calculateAndFormatCosts (bandwidthInBytes, requestCount) {
   if (requestCount === undefined || requestCount === null) requestCount = 0 // Default to 0 if undefined
   const bandwidthCost = (bandwidthInBytes / TB_IN_BYTES_FOR_COSTING) * BANDWIDTH_COST_PER_TB
   const requestCost = (requestCount / 1000000) * REQUEST_COST_PER_MILLION
+  // eslint-disable-next-line no-unused-vars
   const totalCost = bandwidthCost + requestCost
-  return `(BW Cost: $${bandwidthCost.toFixed(2)}, Req Cost: $${requestCost.toFixed(2)}, Total: $${totalCost.toFixed(2)})`
+  // return `(BW Cost: $${bandwidthCost.toFixed(2)}, Req Cost: $${requestCost.toFixed(2)}, Total: $${totalCost.toFixed(2)})`
+  // for now, just output the number of requests and exclude the costs
+  return `(Req: ${requestCount})`
 }
 
 // Initialize a map to store bandwidth per user agent
@@ -139,31 +142,67 @@ rl.on('close', () => {
   let potentialCliUserRequests = 0
   let potentialCensorshipAvoidanceRequests = 0
 
+  // For unclassified user agents
+  const unclassifiedUserAgentsData = {}
+  let totalUnclassifiedBandwidth = 0
+  let totalUnclassifiedRequests = 0
+
   for (const [userAgent, bandwidth] of sortedEntries) {
     const requests = userAgentRequests[userAgent] || 0
+    let isClassified = false
+
+    if (userAgent === 'browser' || userAgent === 'unknown') {
+      isClassified = true
+    }
+
     if (shouldSwitchToVerifiedFetch(userAgent)) {
       potentialVerifiedFetchBandwidth += bandwidth
       potentialVerifiedFetchRequests += requests
+      isClassified = true
     }
     if (knownMobileActors(userAgent)) {
       potentialMobileBandwidth += bandwidth
       potentialMobileRequests += requests
+      isClassified = true
     }
     if (knownBadActors(userAgent)) {
       potentialBadBandwidth += bandwidth
       potentialBadRequests += requests
+      isClassified = true
     }
     if (knownCliUserAgents(userAgent)) {
       potentialCliUserBandwidth += bandwidth
       potentialCliUserRequests += requests
+      isClassified = true
     }
     if (isCensorshipAvoidance(userAgent)) {
       potentialCensorshipAvoidanceBandwidth += bandwidth
       potentialCensorshipAvoidanceRequests += requests
+      isClassified = true
     }
-    console.log(`${userAgent}: ${prettyBytes(bandwidth)} ${calculateAndFormatCosts(bandwidth, requests)}`)
+
+    if (!isClassified) {
+      if (!unclassifiedUserAgentsData[userAgent]) {
+        unclassifiedUserAgentsData[userAgent] = { bandwidth: 0, requests: 0 }
+      }
+      unclassifiedUserAgentsData[userAgent].bandwidth += bandwidth
+      unclassifiedUserAgentsData[userAgent].requests += requests
+      totalUnclassifiedBandwidth += bandwidth
+      totalUnclassifiedRequests += requests
+    }
+
+    // console.log(`${userAgent}: ${prettyBytes(bandwidth)} ${calculateAndFormatCosts(bandwidth, requests)}`)
   }
-  const totalXRequestedWithBandwidth = Object.values(xRequestedWithBandwidth).reduce((acc, bandwidth) => acc + bandwidth, 0)
+  console.log('User Agents Requiring Review (Unclassified):')
+  const sortedUnclassifiedAgents = Object.entries(unclassifiedUserAgentsData)
+    .sort(([, a], [, b]) => b.bandwidth - a.bandwidth) // Sort by bandwidth descending
+
+  for (const [ua, data] of sortedUnclassifiedAgents) {
+    console.log(`${ua}: ${prettyBytes(data.bandwidth)} ${calculateAndFormatCosts(data.bandwidth, data.requests)}`)
+  }
+  console.log(`Total Unclassified: ${prettyBytes(totalUnclassifiedBandwidth)} ${calculateAndFormatCosts(totalUnclassifiedBandwidth, totalUnclassifiedRequests)}`)
+
+  const totalXRequestedWithBandwidth = Object.values(xRequestedWithBandwidth).reduce((acc, bw) => acc + bw, 0)
   const totalXRequestedWithRequests = Object.values(xRequestedWithRequests).reduce((acc, req) => acc + req, 0)
 
   const browserBandwidth = userAgentBandwidth.browser || 0
