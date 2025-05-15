@@ -3,6 +3,20 @@ import fs from 'node:fs'
 import readline from 'node:readline'
 import prettyBytes from 'pretty-bytes'
 
+// Cost constants
+const TB_IN_BYTES_FOR_COSTING = 10 ** 12 // 1 Terabyte = 1,000,000,000,000 bytes
+const BANDWIDTH_COST_PER_TB = 16.23
+const REQUEST_COST_PER_MILLION = 0.23
+
+// Function to calculate and format costs
+function calculateAndFormatCosts (bandwidthInBytes, requestCount) {
+  if (requestCount === undefined || requestCount === null) requestCount = 0 // Default to 0 if undefined
+  const bandwidthCost = (bandwidthInBytes / TB_IN_BYTES_FOR_COSTING) * BANDWIDTH_COST_PER_TB
+  const requestCost = (requestCount / 1000000) * REQUEST_COST_PER_MILLION
+  const totalCost = bandwidthCost + requestCost
+  return `(BW Cost: $${bandwidthCost.toFixed(2)}, Req Cost: $${requestCost.toFixed(2)}, Total: $${totalCost.toFixed(2)})`
+}
+
 // Initialize a map to store bandwidth per user agent
 /**
  * [String] -> number
@@ -11,6 +25,12 @@ const userAgentBandwidth = {}
 let totalBandwidth = 0
 const contentTypeBandwidth = {}
 const xRequestedWithBandwidth = {}
+
+// Initialize request counters
+let totalRequests = 0
+const userAgentRequests = {}
+const contentTypeRequests = {}
+const xRequestedWithRequests = {}
 
 // Define a list of substrings that identify browser-like user agents
 const browserLikePatterns = ['mozilla', 'chrome', 'safari', 'firefox', 'edge', 'opera']
@@ -62,6 +82,7 @@ rl.on('line', (line) => {
     // Calculate bandwidth for the current line
     const bandwidth = cnt * bytes
     totalBandwidth += bandwidth
+    totalRequests += cnt
 
     // Track bandwidth by user agent
     let userAgent = request.ClientRequestUserAgent.split('/')[0]
@@ -73,20 +94,27 @@ rl.on('line', (line) => {
     }
     if (!userAgentBandwidth[userAgent]) {
       userAgentBandwidth[userAgent] = 0
+      userAgentRequests[userAgent] = 0
     }
     userAgentBandwidth[userAgent] += bandwidth
+    userAgentRequests[userAgent] += cnt
+
     if (!xRequestedWithBandwidth[xRequestedWith]) {
       xRequestedWithBandwidth[xRequestedWith] = 0
+      xRequestedWithRequests[xRequestedWith] = 0
     }
     // don't double up on mobile actors because they're already counted in the user agent bandwidth
     if (!knownMobileActors(userAgent) && xRequestedWith != null && xRequestedWith !== '') {
       xRequestedWithBandwidth[xRequestedWith] += bandwidth
+      xRequestedWithRequests[xRequestedWith] += cnt
     }
     const contentType = request.EdgeResponseContentType == null || request.EdgeResponseContentType === '' ? 'unknown' : request.EdgeResponseContentType
     if (!contentTypeBandwidth[contentType]) {
       contentTypeBandwidth[contentType] = 0
+      contentTypeRequests[contentType] = 0
     }
     contentTypeBandwidth[contentType] += bandwidth
+    contentTypeRequests[contentType] += cnt
   } catch (err) {
     console.error(`Error parsing line: ${err}`)
   }
@@ -103,39 +131,64 @@ rl.on('close', () => {
   let potentialBadBandwidth = 0
   let potentialCliUserBandwidth = 0
   let potentialCensorshipAvoidanceBandwidth = 0
+
+  // Initialize categorized request counters
+  let potentialVerifiedFetchRequests = 0
+  let potentialMobileRequests = 0
+  let potentialBadRequests = 0
+  let potentialCliUserRequests = 0
+  let potentialCensorshipAvoidanceRequests = 0
+
   for (const [userAgent, bandwidth] of sortedEntries) {
+    const requests = userAgentRequests[userAgent] || 0
     if (shouldSwitchToVerifiedFetch(userAgent)) {
       potentialVerifiedFetchBandwidth += bandwidth
+      potentialVerifiedFetchRequests += requests
     }
     if (knownMobileActors(userAgent)) {
       potentialMobileBandwidth += bandwidth
+      potentialMobileRequests += requests
     }
     if (knownBadActors(userAgent)) {
       potentialBadBandwidth += bandwidth
+      potentialBadRequests += requests
     }
     if (knownCliUserAgents(userAgent)) {
       potentialCliUserBandwidth += bandwidth
+      potentialCliUserRequests += requests
     }
     if (isCensorshipAvoidance(userAgent)) {
       potentialCensorshipAvoidanceBandwidth += bandwidth
+      potentialCensorshipAvoidanceRequests += requests
     }
-    console.log(`${userAgent}: ${prettyBytes(bandwidth)}`)
+    console.log(`${userAgent}: ${prettyBytes(bandwidth)} ${calculateAndFormatCosts(bandwidth, requests)}`)
   }
   const totalXRequestedWithBandwidth = Object.values(xRequestedWithBandwidth).reduce((acc, bandwidth) => acc + bandwidth, 0)
-  console.log(`Total bandwidth used: ${prettyBytes(totalBandwidth)}`)
+  const totalXRequestedWithRequests = Object.values(xRequestedWithRequests).reduce((acc, req) => acc + req, 0)
+
+  const browserBandwidth = userAgentBandwidth.browser || 0
+  const browserRequests = userAgentRequests.browser || 0
+
+  const mobileCombinedBandwidth = potentialMobileBandwidth + totalXRequestedWithBandwidth
+  const mobileCombinedRequests = potentialMobileRequests + totalXRequestedWithRequests
+
+  const directFetchingTotalBandwidth = browserBandwidth + mobileCombinedBandwidth + potentialCliUserBandwidth + potentialVerifiedFetchBandwidth + potentialCensorshipAvoidanceBandwidth
+  const directFetchingTotalRequests = browserRequests + mobileCombinedRequests + potentialCliUserRequests + potentialVerifiedFetchRequests + potentialCensorshipAvoidanceRequests
+
+  console.log(`Total bandwidth used: ${prettyBytes(totalBandwidth)} ${calculateAndFormatCosts(totalBandwidth, totalRequests)}`)
   console.log()
   console.log('Bandwidth that can be migrated to direct fetching:')
-  console.log(`browser-like user agents: ${prettyBytes(userAgentBandwidth.browser)}`)
-  console.log(`mobile usage: ${prettyBytes(potentialMobileBandwidth + totalXRequestedWithBandwidth)}`)
-  console.log(`should be running their own IPFS nodes: ${prettyBytes(potentialCliUserBandwidth)}`)
-  console.log(`can run verified fetch instead: ${prettyBytes(potentialVerifiedFetchBandwidth)}`)
-  console.log(`censorship avoidance (good thing): ${prettyBytes(potentialCensorshipAvoidanceBandwidth)}`)
-  console.log(`Total: ${prettyBytes(userAgentBandwidth.browser + potentialMobileBandwidth + totalXRequestedWithBandwidth + potentialCliUserBandwidth + potentialVerifiedFetchBandwidth + potentialCensorshipAvoidanceBandwidth)}`)
+  console.log(`browser-like user agents: ${prettyBytes(browserBandwidth)} ${calculateAndFormatCosts(browserBandwidth, browserRequests)}`)
+  console.log(`mobile usage: ${prettyBytes(mobileCombinedBandwidth)} ${calculateAndFormatCosts(mobileCombinedBandwidth, mobileCombinedRequests)}`)
+  console.log(`should be running their own IPFS nodes: ${prettyBytes(potentialCliUserBandwidth)} ${calculateAndFormatCosts(potentialCliUserBandwidth, potentialCliUserRequests)}`)
+  console.log(`can run verified fetch instead: ${prettyBytes(potentialVerifiedFetchBandwidth)} ${calculateAndFormatCosts(potentialVerifiedFetchBandwidth, potentialVerifiedFetchRequests)}`)
+  console.log(`censorship avoidance (good thing): ${prettyBytes(potentialCensorshipAvoidanceBandwidth)} ${calculateAndFormatCosts(potentialCensorshipAvoidanceBandwidth, potentialCensorshipAvoidanceRequests)}`)
+  console.log(`Total: ${prettyBytes(directFetchingTotalBandwidth)} ${calculateAndFormatCosts(directFetchingTotalBandwidth, directFetchingTotalRequests)}`)
 
   console.log()
   console.log('Bandwidth that we will be happy to lose:')
-  console.log(`bad actor bandwidth: ${prettyBytes(potentialBadBandwidth)}`)
-  console.log(`total: ${prettyBytes(potentialBadBandwidth)}`)
+  console.log(`bad actor bandwidth: ${prettyBytes(potentialBadBandwidth)} ${calculateAndFormatCosts(potentialBadBandwidth, potentialBadRequests)}`)
+  console.log(`total: ${prettyBytes(potentialBadBandwidth)} ${calculateAndFormatCosts(potentialBadBandwidth, potentialBadRequests)}`)
 
   console.log()
   console.log('--------------------------------')
@@ -145,6 +198,7 @@ rl.on('close', () => {
     .sort(([, a], [, b]) => a - b)
 
   for (const [contentType, bandwidth] of sortedContentTypes) {
-    console.log(`${contentType}: ${prettyBytes(bandwidth)}`)
+    const requests = contentTypeRequests[contentType] || 0
+    console.log(`${contentType}: ${prettyBytes(bandwidth)} ${calculateAndFormatCosts(bandwidth, requests)}`)
   }
 })
