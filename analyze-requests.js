@@ -44,7 +44,7 @@ function isBrowserLike (userAgent) {
 }
 
 function shouldSwitchToVerifiedFetch (userAgent) {
-  if (['node', 'got', 'Next.js Middleware', 'undici'].some(pattern => userAgent.startsWith(pattern))) {
+  if (['node', 'got', 'Next.js Middleware', 'undici', 'gentleman', 'vercel-image-optimization', 'context api', 'probe-image-size', 'Apache-HttpClient', 'Gateway', 'ReactorNetty', 'Typhoeus', 'StarkscanIndexer', 'Uptime-Kuma'].some(pattern => userAgent.startsWith(pattern))) {
     // exact matches
     return true
   }
@@ -53,16 +53,16 @@ function shouldSwitchToVerifiedFetch (userAgent) {
 }
 
 function knownCliUserAgents (userAgent) {
-  return ['Java', 'node', 'Python', 'python', 'go-resty', 'Go-http-client', 'KlHttpClientCurl', 'Wget', 'wget', 'curl'].some(pattern => userAgent.startsWith(pattern))
+  return ['Java', 'node', 'Python', 'python', 'go-resty', 'Go-http-client', 'KlHttpClientCurl', 'Wget', 'wget', 'curl', 'VLC', 'KlHttpClientPpl', 'Dart', 'T3ImageUploader', 'Twitterbot'].some(pattern => userAgent.startsWith(pattern)) || ['Lavf'].some(pattern => userAgent.includes(pattern))
 }
 
 function knownMobileActors (userAgent) {
-  return ['Dalvik', 'BingTVStreams', 'Mobile'].some(pattern => userAgent.includes(pattern))
+  return ['Dalvik', 'BingTVStreams', 'Mobile', 'CFNetwork', 'Patch%20Updater', 'apsd', 'NotificationServiceExtension', 'SmartApp2', 'WININET', 'UnityPlayer', 'SkyGlass', 'MEXC', 'com.nst.iptvsmarterstvbox', 'Coinbase%20Wallet'].some(pattern => userAgent.includes(pattern))
 }
 
 function knownBadActors (userAgent) {
   // mozlila is a scanner
-  return ['mozlila', 'tivimate', 'nextv', 'stream4less', 'streams4less', 'flextv', 'openseametadatafetcher', 'com.ibopro.player', 'Enigma2 HbbTV', 'P3TV', 'SimplyTheBest.tv', 'StreamCreed', '9XtreamP', 'TVGAWD'].some(pattern => userAgent.toLowerCase().includes(pattern.toLowerCase()))
+  return ['mozlila', 'tivimate', 'nextv', 'stream4less', 'streams4less', 'flextv', 'openseametadatafetcher', 'com.ibopro.player', 'Enigma2 HbbTV', 'P3TV', 'SimplyTheBest.tv', 'StreamCreed', '9XtreamP', 'TVGAWD', 'kytv-agent', 'ExoPlayer', 'Exo Player', 'ORPlayer', 'SKREBRANDZ XC', 'LionsDenSports', 'MadCapMedia_XC', 'SmartersPro', 'com.ibopro.ultra', 'OTT Player', 'SkyXc', 'iMPlayer', 'AceFinal', 'Smarters', 'MaxiwebTV'].some(pattern => userAgent.toLowerCase().includes(pattern.toLowerCase()))
 }
 
 function isCensorshipAvoidance (userAgent) {
