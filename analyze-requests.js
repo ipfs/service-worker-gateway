@@ -44,7 +44,7 @@ function isBrowserLike (userAgent) {
 }
 
 function shouldSwitchToVerifiedFetch (userAgent) {
-  if (['node', 'got (https://github.com/sindresorhus/got)', 'Next.js Middleware', 'undici'].includes(userAgent)) {
+  if (['node', 'got', 'Next.js Middleware', 'undici'].some(pattern => userAgent.startsWith(pattern))) {
     // exact matches
     return true
   }
