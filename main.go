@@ -88,7 +88,8 @@ func main() {
 	mux.Handle("/", distHandler)
 
 	addr := ":3000"
-	log.Printf("Service‑worker gateway listening on %s", addr)
+	log.Printf("Service Worker Gateway listening on %s", addr)
+	log.Printf("Open http://gateway.localhost%s in your browser", addr)
 	if err := http.ListenAndServe(addr, mux); err != nil {
 		log.Fatalf("server error: %v", err)
 	}
