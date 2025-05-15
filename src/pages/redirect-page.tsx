@@ -1,28 +1,18 @@
-import React, {
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactElement,
-} from "react"
-import Header from "../components/Header.jsx"
+import React, { useCallback, useContext, useEffect, useMemo, useState, type ReactElement } from 'react'
+import Header from '../components/Header.jsx'
+import { ConfigProvider } from '../context/config-context.jsx'
+import { ServiceWorkerContext, ServiceWorkerProvider } from '../context/service-worker-context.jsx'
+import { setConfig, type ConfigDb } from '../lib/config-db.js'
+import { getSubdomainParts } from '../lib/get-subdomain-parts.js'
+import { isConfigPage } from '../lib/is-config-page.js'
+import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
+import { tellSwToReloadConfig } from '../lib/sw-comms.js'
+import { translateIpfsRedirectUrl } from '../lib/translate-ipfs-redirect-url.js'
+import './default-page-styles.css'
 import LoadingIndicator from "../components/loading-indicator.jsx"
-import { ConfigProvider } from "../context/config-context.jsx"
-import {
-  ServiceWorkerContext,
-  ServiceWorkerProvider,
-} from "../context/service-worker-context.jsx"
-import { setConfig, type ConfigDb } from "../lib/config-db.js"
-import { getSubdomainParts } from "../lib/get-subdomain-parts.js"
-import { isConfigPage } from "../lib/is-config-page.js"
-import { getUiComponentLogger, uiLogger } from "../lib/logger.js"
-import { tellSwToReloadConfig } from "../lib/sw-comms.js"
-import { translateIpfsRedirectUrl } from "../lib/translate-ipfs-redirect-url.js"
-import "./default-page-styles.css"
 
-const uiComponentLogger = getUiComponentLogger("redirect-page")
-const log = uiLogger.forComponent("redirect-page")
+const uiComponentLogger = getUiComponentLogger('redirect-page')
+const log = uiLogger.forComponent('redirect-page')
 
 const ConfigIframe: React.FC = () => {
   const { parentDomain } = getSubdomainParts(window.location.href)
@@ -31,21 +21,15 @@ const ConfigIframe: React.FC = () => {
   let iframeSrc
   if (parentDomain == null || parentDomain === window.location.href) {
     const url = new URL(window.location.href)
-    url.pathname = "/"
-    url.hash = `#/ipfs-sw-config@origin=${encodeURIComponent(
-      window.location.origin
-    )}`
+    url.pathname = '/'
+    url.hash = `#/ipfs-sw-config@origin=${encodeURIComponent(window.location.origin)}`
 
     iframeSrc = url.href
   } else {
-    const portString =
-      window.location.port === "" ? "" : `:${window.location.port}`
-    iframeSrc = `${
-      window.location.protocol
-    }//${parentDomain}${portString}/#/ipfs-sw-config@origin=${encodeURIComponent(
-      window.location.origin
-    )}`
-  }
+    
+      const portString = window.location.port === '' ? '' : `:${window.location.port}`
+      iframeSrc = `${window.location.protocol}//${parentDomain}${portString}/#/ipfs-sw-config@origin=${encodeURIComponent(window.location.origin)}`
+    }
 
   const [isVisible, setIsVisible] = useState(false)
 
