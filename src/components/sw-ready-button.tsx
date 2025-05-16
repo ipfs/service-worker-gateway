@@ -10,13 +10,10 @@ interface ServiceWorkerReadyButtonProps extends ButtonProps {
 export const ServiceWorkerReadyButton: React.FC<ServiceWorkerReadyButtonProps> = ({ className, label, waitingLabel, ...props }) => {
   const { isServiceWorkerRegistered } = useContext(ServiceWorkerContext)
 
-  const buttonClasses = new Set(['button-reset', 'pv3', 'tc', 'bn', 'white', 'cursor-disabled', 'bg-gray'])
+  const buttonClasses = new Set(['button-reset', 'pv3', 'tc', 'bn', 'cursor-disabled', 'bg-gray'])
   if (isServiceWorkerRegistered) {
     buttonClasses.delete('bg-gray')
     buttonClasses.delete('cursor-disabled')
-    buttonClasses.add('bg-animate')
-    buttonClasses.add('bg-teal-muted')
-    buttonClasses.add('hover-bg-navy-muted')
     buttonClasses.add('pointer')
   }
 

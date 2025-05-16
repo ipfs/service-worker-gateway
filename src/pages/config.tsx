@@ -249,9 +249,8 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
           />
         </InputSection>
         <div className="w-100 inline-flex flex-row justify-between">
-          <button className="e2e-config-page-button button-reset mr5 pv3 tc bg-animate hover-bg-gold pointer w-30 bn" id="reset-config" onClick={() => { void doResetConfig() }}>Reset Config</button>
           <ServiceWorkerReadyButton
-            className="e2e-config-page-button white pv3 tc bg-animate hover-bg-dark-red pointer w-30 bn mh2"
+            className="e2e-config-page-button pv3 tc bg-animate hover-bg-red-muted pointer w-30 bn"
             id="deregister-sw"
             label="Deregister SW"
             waitingLabel='Waiting for SW...'
@@ -262,7 +261,8 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
             }}
             disabled={isSaving}
           />
-          <ServiceWorkerReadyButton className="e2e-config-page-button white w-100 pa3" id="save-config" label={isSaving ? 'Saving...' : 'Save Config'} waitingLabel='Waiting for service worker registration...' onClick={() => { void saveConfig() }} disabled={isSaving} />
+          <button className="e2e-config-page-button button-reset pv3 tc bg-animate hover-bg-gold pointer w-30 bn mr5" id="reset-config" onClick={() => { void doResetConfig() }}>Reset Config</button>
+          <ServiceWorkerReadyButton className="e2e-config-page-button white w-100 pa3 bg-animate bg-teal-muted hover-bg-navy-muted" id="save-config" label={isSaving ? 'Saving...' : 'Save Config'} waitingLabel='Waiting for service worker registration...' onClick={() => { void saveConfig() }} disabled={isSaving} />
         </div>
         {error != null && <span style={{ color: 'red' }}>{error.message}</span>}
       </section>
