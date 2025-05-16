@@ -39,6 +39,10 @@ const xRequestedWithRequests = {}
 // Define a list of substrings that identify browser-like user agents
 const browserLikePatterns = ['mozilla', 'chrome', 'safari', 'firefox', 'edge', 'opera']
 
+// Initialize counters for hotlinked image traffic
+let hotlinkedImageBandwidth = 0
+let hotlinkedImageRequests = 0
+
 // Function to check if a user agent is browser-like
 function isBrowserLike (userAgent) {
   return browserLikePatterns.some(pattern => userAgent.toLowerCase().includes(pattern))
@@ -103,6 +107,14 @@ rl.on('line', (line) => {
         }
         referrerDetails[referrer].bandwidth += bandwidth
         referrerDetails[referrer].requests += cnt
+
+        // Check if the content type is an image for hotlink calculation
+        const responseContentType = request.EdgeResponseContentType ? request.EdgeResponseContentType.toLowerCase().split(';')[0].trim() : ''
+        if (['image'].some(pattern => responseContentType.toLowerCase().startsWith(pattern.toLowerCase()))) {
+          // NOTE: without the accept header details, these numbers are likely to be inaccurately high.
+          hotlinkedImageBandwidth += bandwidth
+          hotlinkedImageRequests += cnt
+        }
       } catch {
         // ignore
       }
@@ -263,4 +275,11 @@ rl.on('close', () => {
   for (const [referrer, data] of sortedReferrerDetails.slice(0, 20)) {
     console.log(`${referrer}: ${prettyBytes(data.bandwidth)} ${calculateAndFormatCosts(data.bandwidth, data.requests)}`)
   }
+
+  console.log()
+  console.log('--------------------------------')
+  console.log()
+  console.log('Hotlinked Image Traffic Estimate (Browser-like, Valid Referrer, Image Content-Type):')
+  console.log(`Total Hotlinked Image Bandwidth: ${prettyBytes(hotlinkedImageBandwidth)}`)
+  console.log(`Total Hotlinked Image Requests: ${hotlinkedImageRequests} ${calculateAndFormatCosts(hotlinkedImageBandwidth, hotlinkedImageRequests)}`) // Cost calculation primarily based on requests here for consistency
 })
