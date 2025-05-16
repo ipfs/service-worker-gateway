@@ -28,6 +28,7 @@ const userAgentBandwidth = {}
 let totalBandwidth = 0
 const contentTypeBandwidth = {}
 const xRequestedWithBandwidth = {}
+const referrerDetails = {}
 
 // Initialize request counters
 let totalRequests = 0
@@ -92,6 +93,19 @@ rl.on('line', (line) => {
     const xRequestedWith = request.ClientXRequestedWith
     if (isBrowserLike(userAgent)) {
       userAgent = 'browser'
+      // calculate the number of requests and bandwidth for each referrer
+      try {
+        const referrerUrl = new URL(request.ClientRequestReferer)
+        const referrer = referrerUrl.host.split('.').slice(-2).join('.')
+
+        if (!referrerDetails[referrer]) {
+          referrerDetails[referrer] = { bandwidth: 0, requests: 0 }
+        }
+        referrerDetails[referrer].bandwidth += bandwidth
+        referrerDetails[referrer].requests += cnt
+      } catch {
+        // ignore
+      }
     } else if (userAgent === '' || userAgent === null) {
       userAgent = 'unknown'
     }
@@ -239,5 +253,14 @@ rl.on('close', () => {
   for (const [contentType, bandwidth] of sortedContentTypes) {
     const requests = contentTypeRequests[contentType] || 0
     console.log(`${contentType}: ${prettyBytes(bandwidth)} ${calculateAndFormatCosts(bandwidth, requests)}`)
+  }
+
+  console.log()
+  console.log(`Referrer details (Top 20 of ${Object.keys(referrerDetails).length}):`)
+  const sortedReferrerDetails = Object.entries(referrerDetails)
+    .sort(([, a], [, b]) => b.bandwidth - a.bandwidth)
+
+  for (const [referrer, data] of sortedReferrerDetails.slice(0, 20)) {
+    console.log(`${referrer}: ${prettyBytes(data.bandwidth)} ${calculateAndFormatCosts(data.bandwidth, data.requests)}`)
   }
 })
