@@ -251,6 +251,10 @@ rl.on('close', () => {
   console.log(`Total: ${prettyBytes(directFetchingTotalBandwidth)} ${calculateAndFormatCosts(directFetchingTotalBandwidth, directFetchingTotalRequests)}`)
 
   console.log()
+  console.log('Other interesting stats:')
+  console.log(`Hotlinked Image Traffic Estimate (Browser-like, Valid Referrer, Image Content-Type): ${prettyBytes(hotlinkedImageBandwidth)} ${calculateAndFormatCosts(hotlinkedImageBandwidth, hotlinkedImageRequests)}`)
+
+  console.log()
   console.log('Bandwidth that we will be happy to lose:')
   console.log(`bad actor bandwidth: ${prettyBytes(potentialBadBandwidth)} ${calculateAndFormatCosts(potentialBadBandwidth, potentialBadRequests)}`)
   console.log(`total: ${prettyBytes(potentialBadBandwidth)} ${calculateAndFormatCosts(potentialBadBandwidth, potentialBadRequests)}`)
@@ -275,11 +279,4 @@ rl.on('close', () => {
   for (const [referrer, data] of sortedReferrerDetails.slice(0, 20)) {
     console.log(`${referrer}: ${prettyBytes(data.bandwidth)} ${calculateAndFormatCosts(data.bandwidth, data.requests)}`)
   }
-
-  console.log()
-  console.log('--------------------------------')
-  console.log()
-  console.log('Hotlinked Image Traffic Estimate (Browser-like, Valid Referrer, Image Content-Type):')
-  console.log(`Total Hotlinked Image Bandwidth: ${prettyBytes(hotlinkedImageBandwidth)}`)
-  console.log(`Total Hotlinked Image Requests: ${hotlinkedImageRequests} ${calculateAndFormatCosts(hotlinkedImageBandwidth, hotlinkedImageRequests)}`) // Cost calculation primarily based on requests here for consistency
 })
