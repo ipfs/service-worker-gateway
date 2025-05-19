@@ -252,7 +252,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
           <ServiceWorkerReadyButton
             className="e2e-config-page-button pv3 tc bg-animate hover-bg-red-muted pointer w-30 bn"
             id="deregister-sw"
-            label="Deregister SW"
+            label="Reset Worker"
             waitingLabel='Waiting for SW...'
             onClick={() => {
               const currentUrl = new URL(window.location.href)
