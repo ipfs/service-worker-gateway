@@ -229,3 +229,4 @@ test-e2e/fixtures/data/gateway-conformance-fixtures
 test-results
 service-worker-gateway
 test-e2e/fixtures/data/gateway-requests
+requests*.json

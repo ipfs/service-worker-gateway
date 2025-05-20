@@ -36,18 +36,23 @@ const userAgentRequests = {}
 const contentTypeRequests = {}
 const xRequestedWithRequests = {}
 
-// Define a list of substrings that identify browser-like user agents
-const browserLikePatterns = ['mozilla', 'chrome', 'safari', 'firefox', 'edge', 'opera']
-
 // Initialize counters for hotlinked image traffic
 let hotlinkedImageBandwidth = 0
 let hotlinkedImageRequests = 0
 
 // Function to check if a user agent is browser-like
 function isBrowserLike (userAgent) {
-  return browserLikePatterns.some(pattern => userAgent.toLowerCase().includes(pattern))
+  /* Why "Mozilla/"?: The practice started with Netscape Navigator, which used
+   * "Mozilla" in its user agent string. When other browsers like Internet
+   * Explorer, Chrome, Firefox, and Safari emerged, they included "Mozilla" to
+   * ensure compatibility with websites that checked for Netscape-like
+   * browsers. This became a convention.
+   */
+  return userAgent.startsWith('Mozilla')
 }
 
+// TODO: how is Apache-HttpClient different from curl or Go-http-client ? should they be in the same coholt
+// TODO: ignore uptime-kuma, or move to metadata / probes
 function shouldSwitchToVerifiedFetch (userAgent) {
   if (['node', 'got', 'Next.js Middleware', 'undici', 'gentleman', 'vercel-image-optimization', 'context api', 'probe-image-size', 'Apache-HttpClient', 'Gateway', 'ReactorNetty', 'Typhoeus', 'StarkscanIndexer', 'Uptime-Kuma'].some(pattern => userAgent.startsWith(pattern))) {
     // exact matches
@@ -57,6 +62,8 @@ function shouldSwitchToVerifiedFetch (userAgent) {
   return ['Bun/', 'node-fetch/'].some(pattern => userAgent.includes(pattern))
 }
 
+// TODO: move VLC to streaming
+// TODO: move twitterbot to metadata / crawlers
 function knownCliUserAgents (userAgent) {
   return [
     'Java',
@@ -77,6 +84,7 @@ function knownCliUserAgents (userAgent) {
   ].some(pattern => userAgent.startsWith(pattern)) || ['Lavf'].some(pattern => userAgent.includes(pattern))
 }
 
+// TODO: split/move streaming / tv / wallets
 function knownMobileActors (userAgent) {
   const includes = ['Dalvik', 'BingTVStreams', 'Mobile', 'CFNetwork', 'Patch%20Updater', 'apsd', 'NotificationServiceExtension', 'SmartApp2', 'WININET', 'UnityPlayer', 'SkyGlass', 'MEXC', 'Coinbase%20Wallet'].some(pattern => userAgent.includes(pattern))
   const startsWith = [].some(pattern => userAgent.startsWith(pattern))
@@ -86,11 +94,14 @@ function knownMobileActors (userAgent) {
   return includes || startsWith || caseInsensitiveIncludes
 }
 
+// TODO: separate streaming / tv from things like openseametadatafetcher
 function knownBadActors (userAgent) {
   // mozlila is a scanner
   return ['com.nst.iptvsmarterstvbox', 'mozlila', 'tivimate', 'nextv', 'stream4less', 'streams4less', 'flextv', 'openseametadatafetcher', 'com.ibopro.player', 'Enigma2 HbbTV', 'P3TV', 'SimplyTheBest.tv', 'StreamCreed', '9XtreamP', 'TVGAWD', 'kytv-agent', 'ExoPlayer', 'Exo Player', 'ORPlayer', 'SKREBRANDZ XC', 'LionsDenSports', 'MadCapMedia_XC', 'SmartersPro', 'com.ibopro.ultra', 'OTT Player', 'SkyXc', 'iMPlayer', 'AceFinal', 'Smarters', 'MaxiwebTV'].some(pattern => userAgent.toLowerCase().includes(pattern.toLowerCase()))
 }
 
+// TODO: include paths ending with proxy.js and proxy-ssl.js
+// as not every client is windows service
 function isCensorshipAvoidance (userAgent) {
   return ['WinHttp-Autoproxy-Service'].some(pattern => userAgent.startsWith(pattern))
 }
