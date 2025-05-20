@@ -95,6 +95,13 @@ function isCensorshipAvoidance (userAgent) {
   return ['WinHttp-Autoproxy-Service'].some(pattern => userAgent.startsWith(pattern))
 }
 
+function isWalletClient (userAgent) {
+  const caseSensitiveIncludes = ['Coinbase%20Wallet'].some(pattern => userAgent.includes(pattern))
+  const caseInsensitiveIncludes = ['wallet'].some(pattern => userAgent.toLowerCase().includes(pattern.toLowerCase()))
+
+  return caseSensitiveIncludes || caseInsensitiveIncludes
+}
+
 // Read the file line by line
 const fileStream = fs.createReadStream(process.argv[2])
 const rl = readline.createInterface({
@@ -181,14 +188,14 @@ rl.on('close', () => {
   let potentialBadBandwidth = 0
   let potentialCliUserBandwidth = 0
   let potentialCensorshipAvoidanceBandwidth = 0
-
+  let potentialWalletClientBandwidth = 0
   // Initialize categorized request counters
   let potentialVerifiedFetchRequests = 0
   let potentialMobileRequests = 0
   let potentialBadRequests = 0
   let potentialCliUserRequests = 0
   let potentialCensorshipAvoidanceRequests = 0
-
+  let potentialWalletClientRequests = 0
   // For unclassified user agents
   const unclassifiedUserAgentsData = {}
   let totalUnclassifiedBandwidth = 0
@@ -227,7 +234,11 @@ rl.on('close', () => {
       potentialCensorshipAvoidanceRequests += requests
       isClassified = true
     }
-
+    if (isWalletClient(userAgent)) {
+      potentialWalletClientBandwidth += bandwidth
+      potentialWalletClientRequests += requests
+      isClassified = true
+    }
     if (!isClassified) {
       if (!unclassifiedUserAgentsData[userAgent]) {
         unclassifiedUserAgentsData[userAgent] = { bandwidth: 0, requests: 0 }
@@ -269,6 +280,7 @@ rl.on('close', () => {
   console.log(`should be running their own IPFS nodes: ${prettyBytes(potentialCliUserBandwidth)} ${calculateAndFormatCosts(potentialCliUserBandwidth, potentialCliUserRequests)}`)
   console.log(`can run verified fetch instead: ${prettyBytes(potentialVerifiedFetchBandwidth)} ${calculateAndFormatCosts(potentialVerifiedFetchBandwidth, potentialVerifiedFetchRequests)}`)
   console.log(`censorship avoidance (good thing): ${prettyBytes(potentialCensorshipAvoidanceBandwidth)} ${calculateAndFormatCosts(potentialCensorshipAvoidanceBandwidth, potentialCensorshipAvoidanceRequests)}`)
+  console.log(`wallet clients: ${prettyBytes(potentialWalletClientBandwidth)} ${calculateAndFormatCosts(potentialWalletClientBandwidth, potentialWalletClientRequests)}`)
   console.log(`Total: ${prettyBytes(directFetchingTotalBandwidth)} ${calculateAndFormatCosts(directFetchingTotalBandwidth, directFetchingTotalRequests)}`)
 
   console.log()
