@@ -1,5 +1,4 @@
 import { getConfig, type ConfigDb } from './lib/config-db.js'
-import { getRedirectUrl, isDeregisterRequest } from './lib/deregister-request.js'
 import { getHeliaSwRedirectUrl } from './lib/first-hit-helpers.js'
 import { GenericIDB } from './lib/generic-db.js'
 import { getSubdomainParts } from './lib/get-subdomain-parts.js'
@@ -7,6 +6,7 @@ import { getVerifiedFetch } from './lib/get-verified-fetch.js'
 import { isConfigPage } from './lib/is-config-page.js'
 import { swLogger } from './lib/logger.js'
 import { findOriginIsolationRedirect, isPathGatewayRequest, isSubdomainGatewayRequest } from './lib/path-or-subdomain.js'
+import { isUnregisterRequest } from './lib/unregister-request.js'
 import type { VerifiedFetch } from '@helia/verified-fetch'
 
 /**
@@ -145,7 +145,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim())
 
   // eslint-disable-next-line no-console
-  console.info('Service Worker Gateway: To manually deregister, append "?ipfs-sw-deregister=true" to the URL, or use the button on the config page.')
+  console.info('Service Worker Gateway: To manually unregister, append "?ipfs-sw-unregister=true" to the URL, or use the button on the config page.')
 
   // Delete all caches that aren't named in CURRENT_CACHES.
   const expectedCacheNames = Object.keys(CURRENT_CACHES).map(function (key) {
@@ -190,11 +190,14 @@ self.addEventListener('fetch', (event) => {
  */
 async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
   if (await isTimebombExpired()) {
-    log.trace('timebomb expired, deregistering service worker')
-    event.waitUntil(deregister(event, false))
+    log.trace('timebomb expired, unregistering service worker')
+    event.waitUntil(self.registration.unregister())
     return false
-  } else if (isDeregisterRequest(event.request.url)) {
-    event.waitUntil(deregister(event))
+  } else if (isUnregisterRequest(event.request.url)) {
+    event.waitUntil(self.registration.unregister())
+    event.respondWith(new Response('Service worker unregistered', {
+      status: 200
+    }))
     return false
   } else if (isConfigPageRequest(url)) {
     log.trace('config page request, ignoring ', event.request.url)
@@ -272,25 +275,6 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
     return true
   }
   return false
-}
-
-// potential race condition
-async function deregister (event, redirectToConfig = true): Promise<void> {
-  if (!isSubdomainRequest(event)) {
-    // if we are at the root, we need to ignore this request due to race conditions with the UI
-    return
-  }
-  await self.registration.unregister()
-  const clients = await self.clients.matchAll({ type: 'window' })
-
-  for (const client of clients) {
-    const newUrl = redirectToConfig ? getRedirectUrl(client.url) : client.url
-    try {
-      await client.navigate(newUrl)
-    } catch (e) {
-      log.error('error navigating client to ', newUrl, e)
-    }
-  }
 }
 
 function isRootRequestForContent (event: FetchEvent): boolean {

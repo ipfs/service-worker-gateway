@@ -1,6 +1,7 @@
 // see https://github.com/ipfs/service-worker-gateway/issues/502
 import { testSubdomainRouting as test, expect } from './fixtures/config-test-fixtures.js'
 import { setConfig } from './fixtures/set-sw-config.js'
+import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
 
 test.describe('smoke test', () => {
   test('loads a dag-json jpeg', async ({ page, protocol, swResponses, rootDomain }) => {
@@ -84,5 +85,20 @@ test.describe('smoke test', () => {
     const text = await response?.text()
     expect(text).toContain('504 Gateway timeout')
     expect(text).toContain('Increase the timeout in the')
+  })
+
+  test('unregistering the service worker works', async ({ page, baseURL }) => {
+    await page.goto(baseURL, { waitUntil: 'networkidle' })
+    await waitForServiceWorker(page, baseURL)
+
+    // unregister the service worker and make sure the config is empty
+    await page.click('#unregister-sw')
+    await page.waitForLoadState('networkidle')
+
+    const noRegistration = await page.evaluate(async () => {
+      return await window.navigator.serviceWorker.getRegistration() === undefined
+    })
+
+    expect(noRegistration).toBe(true)
   })
 })

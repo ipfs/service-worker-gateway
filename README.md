@@ -123,11 +123,11 @@ Deploying to [production[(https://github.com/ipfs/service-worker-gateway/actions
 
 ## Manual Service Worker Deregistration
 
-In some cases, you might want to manually deregister or remove the Helia service worker from your browser. This can be useful for debugging purposes or to ensure a clean state.
+In some cases, you might want to manually unregister or remove the Helia service worker from your browser. This can be useful for debugging purposes or to ensure a clean state.
 
-You can instruct the service worker to deregister itself by appending the `?ipfs-sw-deregister=true` query parameter to the URL of any page controlled by the service worker.
+You can instruct the service worker to unregister itself by appending the `?ipfs-sw-unregister=true` query parameter to the URL of any page controlled by the service worker.
 
-For example, if the service worker is active for `https://example.com`, navigating to `https://example.com/?ipfs-sw-deregister=true` will cause the service worker to unregister itself and attempt to reload all controlled clients (browser tabs).
+For example, if the service worker is active for `https://example.com`, navigating to `https://example.com/?ipfs-sw-unregister=true` will cause the service worker to unregister itself and attempt to reload all controlled clients (browser tabs).
 
 This option is also available via a button on the service worker's configuration page (`#/ipfs-sw-config`).
 

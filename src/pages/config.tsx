@@ -251,12 +251,12 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
         <div className="w-100 inline-flex flex-row justify-between">
           <ServiceWorkerReadyButton
             className="e2e-config-page-button pv3 tc bg-animate hover-bg-red-muted pointer w-30 bn"
-            id="deregister-sw"
+            id="unregister-sw"
             label="Reset Worker"
             waitingLabel='Waiting for SW...'
             onClick={() => {
               const currentUrl = new URL(window.location.href)
-              currentUrl.searchParams.set('ipfs-sw-deregister', 'true')
+              currentUrl.searchParams.set('ipfs-sw-unregister', 'true')
               window.location.href = currentUrl.href
             }}
             disabled={isSaving}
