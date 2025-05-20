@@ -58,7 +58,23 @@ function shouldSwitchToVerifiedFetch (userAgent) {
 }
 
 function knownCliUserAgents (userAgent) {
-  return ['Java', 'node', 'Python', 'python', 'go-resty', 'Go-http-client', 'KlHttpClientCurl', 'Wget', 'wget', 'curl', 'VLC', 'KlHttpClientPpl', 'Dart', 'T3ImageUploader', 'Twitterbot'].some(pattern => userAgent.startsWith(pattern)) || ['Lavf'].some(pattern => userAgent.includes(pattern))
+  return [
+    'Java',
+    'node',
+    'Python',
+    'python',
+    'go-resty',
+    'Go-http-client',
+    'KlHttpClientCurl',
+    'Wget',
+    'wget',
+    'curl',
+    'VLC', // classify as known bandwidth
+    'KlHttpClientPpl',
+    'Dart',
+    'T3ImageUploader',
+    'Twitterbot'
+  ].some(pattern => userAgent.startsWith(pattern)) || ['Lavf'].some(pattern => userAgent.includes(pattern))
 }
 
 function knownMobileActors (userAgent) {
@@ -110,7 +126,7 @@ rl.on('line', (line) => {
 
         // Check if the content type is an image for hotlink calculation
         const responseContentType = request.EdgeResponseContentType ? request.EdgeResponseContentType.toLowerCase().split(';')[0].trim() : ''
-        if (['image'].some(pattern => responseContentType.toLowerCase().startsWith(pattern.toLowerCase()))) {
+        if (['image', 'video', 'audio'].some(pattern => responseContentType.toLowerCase().startsWith(pattern.toLowerCase()))) {
           // NOTE: without the accept header details, these numbers are likely to be inaccurately high.
           hotlinkedImageBandwidth += bandwidth
           hotlinkedImageRequests += cnt
@@ -252,7 +268,7 @@ rl.on('close', () => {
 
   console.log()
   console.log('Other interesting stats:')
-  console.log(`Hotlinked Image Traffic Estimate (Browser-like, Valid Referrer, Image Content-Type): ${prettyBytes(hotlinkedImageBandwidth)} ${calculateAndFormatCosts(hotlinkedImageBandwidth, hotlinkedImageRequests)}`)
+  console.log(`Hotlinked Image Traffic Estimate (Browser-like, Valid Referrer + image/video/audio): ${prettyBytes(hotlinkedImageBandwidth)} ${calculateAndFormatCosts(hotlinkedImageBandwidth, hotlinkedImageRequests)}`)
 
   console.log()
   console.log('Bandwidth that we will be happy to lose:')
