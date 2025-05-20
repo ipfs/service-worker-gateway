@@ -78,7 +78,12 @@ function knownCliUserAgents (userAgent) {
 }
 
 function knownMobileActors (userAgent) {
-  return ['Dalvik', 'BingTVStreams', 'Mobile', 'CFNetwork', 'Patch%20Updater', 'apsd', 'NotificationServiceExtension', 'SmartApp2', 'WININET', 'UnityPlayer', 'SkyGlass', 'MEXC', 'com.nst.iptvsmarterstvbox', 'Coinbase%20Wallet'].some(pattern => userAgent.includes(pattern))
+  const includes = ['Dalvik', 'BingTVStreams', 'Mobile', 'CFNetwork', 'Patch%20Updater', 'apsd', 'NotificationServiceExtension', 'SmartApp2', 'WININET', 'UnityPlayer', 'SkyGlass', 'MEXC', 'Coinbase%20Wallet'].some(pattern => userAgent.includes(pattern))
+  const startsWith = [].some(pattern => userAgent.startsWith(pattern))
+
+  const caseInsensitiveIncludes = ['android', 'iphone'].some(pattern => userAgent.toLowerCase().includes(pattern.toLowerCase()))
+
+  return includes || startsWith || caseInsensitiveIncludes
 }
 
 function knownBadActors (userAgent) {
