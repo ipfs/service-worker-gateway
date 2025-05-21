@@ -1,6 +1,6 @@
 import { enable } from '@libp2p/logger'
-import { type Config } from '@playwright/test'
 import { serve } from '../serve.js'
+import type { Config } from '@playwright/test'
 
 export default async function globalSetup (config: Config): Promise<void> {
   enable('kubo-init*,kubo-init*:trace,ipfs-host.local*,ipfs-host.local*:trace,serve*,serve*:trace')

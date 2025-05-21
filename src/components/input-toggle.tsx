@@ -48,11 +48,11 @@ export const InputToggle: React.FC<LocalStorageToggleProps> = ({
       <InputDescription description={description} />
 
       <input
-        type="checkbox"
+        type='checkbox'
         id={id}
         checked={internalValue}
         onChange={handleChange}
-        className="dn"
+        className='dn'
       />
       <label
         htmlFor={id}

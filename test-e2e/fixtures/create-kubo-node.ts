@@ -5,14 +5,15 @@ import { cwd } from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { logger } from '@libp2p/logger'
 import { $ } from 'execa'
-import { createNode, type KuboNode } from 'ipfsd-ctl'
+import { createNode } from 'ipfsd-ctl'
 import { path as kuboPath, path } from 'kubo'
 import { create } from 'kubo-rpc-client'
 import { kuboRepoDir as IPFS_PATH } from './load-kubo-fixtures.js'
+import type { KuboNode } from 'ipfsd-ctl'
 
 const kuboBin = path()
 const log = logger('ipfs-host.local:kubo')
-// eslint-disable-next-line @typescript-eslint/naming-convention
+
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 /**

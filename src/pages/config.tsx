@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useState, type FunctionComponent, type ReactElement } from 'react'
+import React, { useCallback, useContext, useEffect, useState } from 'react'
 import Header from '../components/Header.jsx'
 import { InputSection } from '../components/input-section.jsx'
 import { InputToggle } from '../components/input-toggle.jsx'
@@ -15,6 +15,7 @@ import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
 import './default-page-styles.css'
 import { isSubdomainGatewayRequest } from '../lib/path-or-subdomain.js'
 import { tellSwToReloadConfig } from '../lib/sw-comms.js'
+import type { FunctionComponent, ReactElement } from 'react'
 
 const uiComponentLogger = getUiComponentLogger('config-page')
 const log = uiLogger.forComponent('config-page')
@@ -159,32 +160,32 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
         <h1 className='pa0 f3 ma0 mb4 teal tc'>Configure your IPFS Gateway</h1>
         <InputSection label='Direct Retrieval'>
           <InputToggle
-            className="e2e-config-page-input e2e-config-page-input-enableGatewayProviders"
-            label="Enable Delegated HTTP Gateway Providers"
-            description="Use gateway providers returned from delegated routers for direct retrieval."
+            className='e2e-config-page-input e2e-config-page-input-enableGatewayProviders'
+            label='Enable Delegated HTTP Gateway Providers'
+            description='Use gateway providers returned from delegated routers for direct retrieval.'
             value={enableGatewayProviders}
             onChange={(value) => { setConfig('enableGatewayProviders', value) }}
             resetKey={resetKey}
           />
           <InputToggle
-            className="e2e-config-page-input e2e-config-page-input-enableWss"
-            label="Enable Secure WebSocket Providers"
-            description="Use Secure WebSocket providers returned from delegated routers for direct retrieval."
+            className='e2e-config-page-input e2e-config-page-input-enableWss'
+            label='Enable Secure WebSocket Providers'
+            description='Use Secure WebSocket providers returned from delegated routers for direct retrieval.'
             value={enableWss}
             onChange={(value) => { setConfig('enableWss', value) }}
             resetKey={resetKey}
           />
           <InputToggle
-            className="e2e-config-page-input e2e-config-page-input-enableWebTransport"
-            label="Enable WebTransport Providers"
-            description="Use WebTransport providers returned from delegated routers for direct retrieval."
+            className='e2e-config-page-input e2e-config-page-input-enableWebTransport'
+            label='Enable WebTransport Providers'
+            description='Use WebTransport providers returned from delegated routers for direct retrieval.'
             value={enableWebTransport}
             onChange={(value) => { setConfig('enableWebTransport', value) }}
             resetKey={resetKey}
           />
           <TextInput
-            className="e2e-config-page-input e2e-config-page-input-routers"
-            description="A newline delimited list of delegated IPFS router URLs."
+            className='e2e-config-page-input e2e-config-page-input-routers'
+            description='A newline delimited list of delegated IPFS router URLs.'
             label='Routers'
             validationFn={urlValidationFn}
             onChange={(value) => { setConfig('routers', value) }}
@@ -195,16 +196,16 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
         </InputSection>
         <InputSection label='Fallback Retrieval'>
           <InputToggle
-            className="e2e-config-page-input e2e-config-page-input-enableRecursiveGateways"
-            label="Enable Recursive Gateways"
-            description="Use recursive gateways configured below for retrieval of content."
+            className='e2e-config-page-input e2e-config-page-input-enableRecursiveGateways'
+            label='Enable Recursive Gateways'
+            description='Use recursive gateways configured below for retrieval of content.'
             value={enableRecursiveGateways}
             onChange={(value) => { setConfig('enableRecursiveGateways', value) }}
             resetKey={resetKey}
           />
           <TextInput
-            className="e2e-config-page-input e2e-config-page-input-gateways"
-            description="A newline delimited list of recursive trustless gateway URLs."
+            className='e2e-config-page-input e2e-config-page-input-gateways'
+            description='A newline delimited list of recursive trustless gateway URLs.'
             label='Recursive Gateways'
             validationFn={urlValidationFn}
             value={convertUrlArrayToInput(gateways)}
@@ -215,8 +216,8 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
         </InputSection>
         <InputSection label='Other'>
           <TextInput
-            className="e2e-config-page-input e2e-config-page-input-dnsJsonResolvers"
-            description="A newline delimited list of space delimited key+value pairs for DNS (application/dns-json) resolvers. The key is the domain suffix, and the value is the URL of the DNS resolver."
+            className='e2e-config-page-input e2e-config-page-input-dnsJsonResolvers'
+            description='A newline delimited list of space delimited key+value pairs for DNS (application/dns-json) resolvers. The key is the domain suffix, and the value is the URL of the DNS resolver.'
             label='DNS'
             validationFn={dnsJsonValidationFn}
             value={convertDnsResolverObjectToInput(dnsJsonResolvers)}
@@ -225,8 +226,8 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
             resetKey={resetKey}
           />
           <NumberInput
-            className="e2e-config-page-input e2e-config-page-input-fetchTimeout"
-            description="The timeout for fetching content from the gateway, in seconds"
+            className='e2e-config-page-input e2e-config-page-input-fetchTimeout'
+            description='The timeout for fetching content from the gateway, in seconds'
             label='Fetch Timeout'
             value={fetchTimeout / 1000}
             validationFn={(value) => {
@@ -240,7 +241,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
             resetKey={resetKey}
           />
           <TextInput
-            className="e2e-config-page-input e2e-config-page-input-debug"
+            className='e2e-config-page-input e2e-config-page-input-debug'
             description="A string that enables debug logging. Use '*,*:trace' to enable all debug logging."
             label='Debug'
             value={debug}
@@ -248,11 +249,11 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
             resetKey={resetKey}
           />
         </InputSection>
-        <div className="w-100 inline-flex flex-row justify-between">
+        <div className='w-100 inline-flex flex-row justify-between'>
           <ServiceWorkerReadyButton
-            className="e2e-config-page-button pv3 tc bg-animate hover-bg-red-muted pointer w-30 bn"
-            id="unregister-sw"
-            label="Reset Worker"
+            className='e2e-config-page-button pv3 tc bg-animate hover-bg-red-muted pointer w-30 bn'
+            id='unregister-sw'
+            label='Reset Worker'
             waitingLabel='Waiting for SW...'
             onClick={() => {
               const currentUrl = new URL(window.location.href)
@@ -261,8 +262,8 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
             }}
             disabled={isSaving}
           />
-          <button className="e2e-config-page-button button-reset pv3 tc bg-animate hover-bg-gold pointer w-30 bn mr5" id="reset-config" onClick={() => { void doResetConfig() }}>Reset Config</button>
-          <ServiceWorkerReadyButton className="e2e-config-page-button white w-100 pa3 bg-animate bg-teal-muted hover-bg-navy-muted" id="save-config" label={isSaving ? 'Saving...' : 'Save Config'} waitingLabel='Waiting for service worker registration...' onClick={() => { void saveConfig() }} disabled={isSaving} />
+          <button className='e2e-config-page-button button-reset pv3 tc bg-animate hover-bg-gold pointer w-30 bn mr5' id='reset-config' onClick={() => { void doResetConfig() }}>Reset Config</button>
+          <ServiceWorkerReadyButton className='e2e-config-page-button white w-100 pa3 bg-animate bg-teal-muted hover-bg-navy-muted' id='save-config' label={isSaving ? 'Saving...' : 'Save Config'} waitingLabel='Waiting for service worker registration...' onClick={() => { void saveConfig() }} disabled={isSaving} />
         </div>
         {error != null && <span style={{ color: 'red' }}>{error.message}</span>}
       </section>

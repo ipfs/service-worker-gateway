@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, type ReactNode } from 'react'
+import React, { useCallback, useEffect } from 'react'
+import type { ReactNode } from 'react'
 
 export interface Route {
   default?: boolean

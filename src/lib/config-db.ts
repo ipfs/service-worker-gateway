@@ -1,5 +1,7 @@
-import { type ComponentLogger, enable } from '@libp2p/logger'
-import { GenericIDB, type BaseDbConfig } from './generic-db.js'
+import { enable } from '@libp2p/logger'
+import { GenericIDB } from './generic-db.js'
+import type { BaseDbConfig } from './generic-db.js'
+import type { ComponentLogger } from '@libp2p/logger'
 
 export interface ConfigDbWithoutPrivateFields extends BaseDbConfig {
   gateways: string[]
