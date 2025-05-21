@@ -1,5 +1,6 @@
-import React, { type ReactElement } from 'react'
+import React from 'react'
 import { getHeliaSwRedirectUrl } from '../lib/first-hit-helpers.js'
+import type { ReactElement } from 'react'
 
 /**
  * This is a fallback page that is rendered instead of ipfs-sw-first-hit.html.

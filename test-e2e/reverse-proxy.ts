@@ -1,7 +1,7 @@
-/* eslint-disable no-console */
-import { request, createServer, type Server, type ServerResponse, type IncomingMessage, type RequestOptions } from 'node:http'
+import { request, createServer } from 'node:http'
 import { pathToFileURL } from 'node:url'
 import { logger } from '@libp2p/logger'
+import type { Server, ServerResponse, IncomingMessage, RequestOptions } from 'node:http'
 
 const setCommonHeaders = (res: ServerResponse): void => {
   res.setHeader('Access-Control-Allow-Origin', '*')

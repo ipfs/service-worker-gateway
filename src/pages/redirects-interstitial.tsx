@@ -1,9 +1,10 @@
-import React, { useEffect, type ReactElement } from 'react'
+import React, { useEffect } from 'react'
 import { checkSubdomainSupport } from '../lib/check-subdomain-support.js'
 import { findOriginIsolationRedirect } from '../lib/path-or-subdomain.js'
 import { translateIpfsRedirectUrl } from '../lib/translate-ipfs-redirect-url.js'
 import LoadingPage from './loading.jsx'
 import RedirectPage from './redirect-page.jsx'
+import type { ReactElement } from 'react'
 import './default-page-styles.css'
 
 /**

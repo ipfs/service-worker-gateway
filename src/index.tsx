@@ -1,8 +1,10 @@
-import React, { type ReactElement } from 'react'
+import React from 'react'
 import ReactDOMClient from 'react-dom/client'
 import App from './app.jsx'
-import { RouterProvider, type Route } from './context/router-context.jsx'
+import { RouterProvider } from './context/router-context.jsx'
 import * as renderChecks from './lib/routing-render-checks.js'
+import type { Route } from './context/router-context.jsx'
+import type { ReactElement } from 'react'
 
 // SW did not trigger for this request
 const container = document.getElementById('root')

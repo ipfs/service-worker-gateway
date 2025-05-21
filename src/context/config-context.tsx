@@ -1,7 +1,9 @@
-import React, { createContext, useCallback, useEffect, useState, type ReactElement } from 'react'
-import { defaultDebug, defaultDnsJsonResolvers, defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, defaultFetchTimeout, defaultGateways, defaultRouters, defaultSupportsSubdomains, getConfig, resetConfig, type ConfigDb } from '../lib/config-db.js'
+import React, { createContext, useCallback, useEffect, useState } from 'react'
+import { defaultDebug, defaultDnsJsonResolvers, defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, defaultFetchTimeout, defaultGateways, defaultRouters, defaultSupportsSubdomains, getConfig, resetConfig } from '../lib/config-db.js'
 import { getUiComponentLogger } from '../lib/logger.js'
+import type { ConfigDb } from '../lib/config-db.js'
 import type { ComponentLogger } from '@libp2p/logger'
+import type { ReactElement } from 'react'
 
 type ConfigKey = keyof ConfigDb
 export interface ConfigContextType extends ConfigDb {

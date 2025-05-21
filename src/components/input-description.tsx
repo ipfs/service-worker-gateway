@@ -5,5 +5,5 @@ export const InputDescription: React.FC<{ description?: string }> = ({ descripti
     return null
   }
 
-  return (<span className="charcoal f6 fw1 db pt1 lh-copy mb2">{description}</span>)
+  return (<span className='charcoal f6 fw1 db pt1 lh-copy mb2'>{description}</span>)
 }

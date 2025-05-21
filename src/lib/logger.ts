@@ -1,4 +1,5 @@
-import { prefixLogger, type ComponentLogger } from '@libp2p/logger'
+import { prefixLogger } from '@libp2p/logger'
+import type { ComponentLogger } from '@libp2p/logger'
 
 const host = globalThis.location?.host.replace(':', '_') ?? 'test.localhost'
 

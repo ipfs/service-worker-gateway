@@ -38,7 +38,7 @@ export async function * captureAllSwResponses (page: Page, signal: AbortSignal):
   try {
     while (!signal.aborted) {
       const response = await getNextResponse()
-      if (signal.aborted) break
+      if (signal.aborted) { break }
       yield response
     }
   } finally {

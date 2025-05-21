@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 /**
  * This file is used to simulate hosting the dist folder on an ipfs gateway, so we can handle _redirects
  */
