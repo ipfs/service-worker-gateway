@@ -12,10 +12,10 @@
  * 1. The page being loaded using some /ip[fn]s/<path> url, but subdomain isolation is supported, so we need to redirect to the isolated origin
  */
 import React, { createContext, useEffect, useState } from 'react'
-import { getRedirectUrl, isDeregisterRequest } from '../lib/deregister-request.js'
 import { ensureSwScope } from '../lib/first-hit-helpers.js'
 import { uiLogger } from '../lib/logger.js'
 import { findOriginIsolationRedirect } from '../lib/path-or-subdomain.js'
+import { isUnregisterRequest } from '../lib/unregister-request.js'
 import { registerServiceWorker } from '../service-worker-utils.js'
 import type { ReactElement } from 'react'
 
@@ -42,14 +42,13 @@ export const ServiceWorkerProvider = ({ children }): ReactElement => {
       return
     }
     async function doWork (): Promise<void> {
-      if (isDeregisterRequest(window.location.href)) {
-        log.trace('deregistering service worker')
+      if (isUnregisterRequest(window.location.href)) {
+        log.trace('unregistering service worker')
         const registration = await navigator.serviceWorker.getRegistration()
         if (registration != null) {
           await registration.unregister()
-          window.location.replace(getRedirectUrl(window.location.href).href)
         } else {
-          log.error('service worker not registered, cannot deregister')
+          log.error('service worker not registered, cannot unregister')
         }
       }
 
