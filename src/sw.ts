@@ -118,7 +118,10 @@ const updateVerifiedFetch = async (): Promise<void> => {
 let swIdb: GenericIDB<LocalSwConfig>
 let firstInstallTime: number
 const getSwConfig = (): GenericIDB<LocalSwConfig> => {
-  return swIdb ?? new GenericIDB<LocalSwConfig>('helia-sw-unique', 'config')
+  if (typeof swIdb === 'undefined') {
+    swIdb = new GenericIDB<LocalSwConfig>('helia-sw-unique', 'config')
+  }
+  return swIdb
 }
 
 /**

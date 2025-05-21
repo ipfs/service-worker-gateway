@@ -36,7 +36,7 @@ function DefaultRecommendations ({ currentHost }: { currentHost: string }): Reac
  * This UI is similar to browser security warnings and informs users about missing features
  */
 export default function SubdomainWarningPage (): ReactNode {
-  const [acceptedRisk, setAcceptedRisk] = useState(sessionStorage.getItem('ipfs-sw-gateway-accepted-path-gateway-risk') != null ?? false)
+  const [acceptedRisk, setAcceptedRisk] = useState(sessionStorage.getItem('ipfs-sw-gateway-accepted-path-gateway-risk') ?? false)
   const [isSaving, setIsSaving] = useState(false)
   const originalUrl = new URL(window.location.href).searchParams.get('helia-sw')
 

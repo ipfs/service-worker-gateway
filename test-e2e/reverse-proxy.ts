@@ -1,7 +1,7 @@
 import { request, createServer } from 'node:http'
 import { pathToFileURL } from 'node:url'
 import { logger } from '@libp2p/logger'
-import type { Server, ServerResponse, IncomingMessage, RequestOptions } from 'node:http'
+import type { Server, ServerResponse, IncomingMessage, RequestOptions, OutgoingHttpHeaders } from 'node:http'
 
 const setCommonHeaders = (res: ServerResponse): void => {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -33,7 +33,7 @@ export function createReverseProxy ({
   xForwardedHost = process.env.X_FORWARDED_HOST,
   log = logger('reverse-proxy')
 } = {}): Server {
-  const makeRequest = (options: RequestOptions, req: IncomingMessage, res: ServerResponse, attemptRootFallback = false): void => {
+  const makeRequest = (options: RequestOptions & { headers: OutgoingHttpHeaders }, req: IncomingMessage, res: ServerResponse, attemptRootFallback = false): void => {
     if (options.headers == null) {
       options.headers = {}
     }
