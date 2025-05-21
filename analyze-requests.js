@@ -100,10 +100,20 @@ function knownBadActors (userAgent) {
   return ['com.nst.iptvsmarterstvbox', 'mozlila', 'tivimate', 'nextv', 'stream4less', 'streams4less', 'flextv', 'openseametadatafetcher', 'com.ibopro.player', 'Enigma2 HbbTV', 'P3TV', 'SimplyTheBest.tv', 'StreamCreed', '9XtreamP', 'TVGAWD', 'kytv-agent', 'ExoPlayer', 'Exo Player', 'ORPlayer', 'SKREBRANDZ XC', 'LionsDenSports', 'MadCapMedia_XC', 'SmartersPro', 'com.ibopro.ultra', 'OTT Player', 'SkyXc', 'iMPlayer', 'AceFinal', 'Smarters', 'MaxiwebTV'].some(pattern => userAgent.toLowerCase().includes(pattern.toLowerCase()))
 }
 
-// TODO: include paths ending with proxy.js and proxy-ssl.js
-// as not every client is windows service
-function isCensorshipAvoidance (userAgent) {
-  return ['WinHttp-Autoproxy-Service'].some(pattern => userAgent.startsWith(pattern))
+
+function isCensorshipAvoidance (userAgent, path) {
+  // https://antizapret.prostovpn.org/ uses ipfs.io for distributing proxy (PAC) manifests
+  // (include paths ending with /proxy-nossl.js because not every client is windows service)
+  const windowsClient = (userAgent ?? '').startsWith('WinHttp-Autoproxy-Service')
+
+  // Optional path  - disclaimer:
+  // If we dont pass path, we lose some users who set up proxy in different user agents,
+  // such as browsers. Looking at cloudflare dashboard, in last 24h
+  // requests to /proxy-nossl.js were ~781.85k and WinHttp-Autoproxy-Service was only ~510k of them.
+  // which means user-agent alone is only ~65% of requests.
+  const otherClients = (path ?? '').endsWith('/proxy-nossl.js')
+
+  return windowsClient || otherClients
 }
 
 function isWalletClient (userAgent) {
