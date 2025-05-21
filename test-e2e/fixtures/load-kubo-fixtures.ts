@@ -16,7 +16,6 @@ import { logger } from '@libp2p/logger'
 import { $ } from 'execa'
 import { glob } from 'glob'
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const log = logger('kubo-init')

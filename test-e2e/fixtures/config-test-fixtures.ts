@@ -1,7 +1,8 @@
-import { test as base, type Response } from '@playwright/test'
+import { test as base } from '@playwright/test'
 import { captureAllSwResponses } from './capture-all-sw-responses.js'
 import { setConfig } from './set-sw-config.js'
 import { waitForServiceWorker } from './wait-for-service-worker.js'
+import type { Response } from '@playwright/test'
 
 function isNoServiceWorkerProject <T extends typeof base = typeof base> (test: T): boolean {
   return test.info().project.name === 'no-service-worker'

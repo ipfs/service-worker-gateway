@@ -17,9 +17,9 @@ test.describe('video', () => {
   })
 
   const testConfig: Partial<ConfigDbWithoutPrivateFields> = {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
     gateways: [process.env.KUBO_GATEWAY!],
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
     routers: [process.env.KUBO_GATEWAY!],
     debug: '*,*:trace',
     enableWss: true,

@@ -1,4 +1,4 @@
-import { getConfig, type ConfigDb } from './lib/config-db.js'
+import { getConfig } from './lib/config-db.js'
 import { getRedirectUrl, isDeregisterRequest } from './lib/deregister-request.js'
 import { getHeliaSwRedirectUrl } from './lib/first-hit-helpers.js'
 import { GenericIDB } from './lib/generic-db.js'
@@ -7,6 +7,7 @@ import { getVerifiedFetch } from './lib/get-verified-fetch.js'
 import { isConfigPage } from './lib/is-config-page.js'
 import { swLogger } from './lib/logger.js'
 import { findOriginIsolationRedirect, isPathGatewayRequest, isSubdomainGatewayRequest } from './lib/path-or-subdomain.js'
+import type { ConfigDb } from './lib/config-db.js'
 import type { VerifiedFetch } from '@helia/verified-fetch'
 
 /**
@@ -117,7 +118,10 @@ const updateVerifiedFetch = async (): Promise<void> => {
 let swIdb: GenericIDB<LocalSwConfig>
 let firstInstallTime: number
 const getSwConfig = (): GenericIDB<LocalSwConfig> => {
-  return swIdb ?? new GenericIDB<LocalSwConfig>('helia-sw-unique', 'config')
+  if (typeof swIdb === 'undefined') {
+    swIdb = new GenericIDB<LocalSwConfig>('helia-sw-unique', 'config')
+  }
+  return swIdb
 }
 
 /**
@@ -514,8 +518,8 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
 
   /**
    * Note that there are existing bugs regarding service worker signal handling:
-   * * https://bugs.chromium.org/p/chromium/issues/detail?id=823697
-   * * https://bugzilla.mozilla.org/show_bug.cgi?id=1394102
+   * https://bugs.chromium.org/p/chromium/issues/detail?id=823697
+   * https://bugzilla.mozilla.org/show_bug.cgi?id=1394102
    */
   const abortController = new AbortController()
   const signal = abortController.signal

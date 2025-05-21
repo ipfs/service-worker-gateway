@@ -1,13 +1,15 @@
-import React, { useCallback, useContext, useEffect, useMemo, useState, type ReactElement } from 'react'
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import Header from '../components/Header.jsx'
 import { ConfigProvider } from '../context/config-context.jsx'
 import { ServiceWorkerContext, ServiceWorkerProvider } from '../context/service-worker-context.jsx'
-import { setConfig, type ConfigDb } from '../lib/config-db.js'
+import { setConfig } from '../lib/config-db.js'
 import { getSubdomainParts } from '../lib/get-subdomain-parts.js'
 import { isConfigPage } from '../lib/is-config-page.js'
 import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
 import { tellSwToReloadConfig } from '../lib/sw-comms.js'
 import { translateIpfsRedirectUrl } from '../lib/translate-ipfs-redirect-url.js'
+import type { ConfigDb } from '../lib/config-db.js'
+import type { ReactElement } from 'react'
 import './default-page-styles.css'
 
 const uiComponentLogger = getUiComponentLogger('redirect-page')
@@ -40,7 +42,7 @@ const ConfigIframe: React.FC = () => {
 
   return (
     <div style={{ display: isVisible ? 'block' : 'none' }}>
-      <iframe id="redirect-config-iframe" src={iframeSrc} style={{ width: '100vw', height: '100vh', border: 'none' }} />
+      <iframe id='redirect-config-iframe' src={iframeSrc} style={{ width: '100vw', height: '100vh', border: 'none' }} />
     </div>
   )
 }
@@ -108,9 +110,9 @@ function RedirectPage ({ showConfigIframe = true }: { showConfigIframe?: boolean
   return (
     <>
       <Header />
-      <div className="redirect-page">
-        <div className="pa4-l mw7 mv5 center pa4">
-          <h3 className="mt5">{displayString}</h3>
+      <div className='redirect-page'>
+        <div className='pa4-l mw7 mv5 center pa4'>
+          <h3 className='mt5'>{displayString}</h3>
         </div>
         {showConfigIframe && <ConfigIframe />}
       </div>
