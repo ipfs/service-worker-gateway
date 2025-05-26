@@ -547,6 +547,8 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
      * @see https://github.com/ipfs/service-worker-gateway/issues/674
      */
 
+    // TODO: add config.enableProviderQueryParameter for allow
+    // config.enableProviderQueryParameter
     const response = await verifiedFetch(event.request.url, {
       signal,
       headers,

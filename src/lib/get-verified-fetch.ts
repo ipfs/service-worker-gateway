@@ -88,7 +88,6 @@ export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogge
       dns: dnsConfig
     })
   }
-
   return createVerifiedFetch(helia, { withServerTiming: true, plugins: [dirIndexHtmlPluginFactory] })
 }
 

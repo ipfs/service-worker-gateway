@@ -85,7 +85,7 @@ export interface ConfigPageProps extends React.HTMLProps<HTMLElement> {
 // Config Page can be loaded either as a page or as a component in the landing helper-ui page
 const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
   const { gotoPage } = useContext(RouteContext)
-  const { setConfig, resetConfig, gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, fetchTimeout, _supportsSubdomains, isLoading: isConfigDataLoading } = useContext(ConfigContext)
+  const { setConfig, resetConfig, gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, enableProviderQueryParameter, fetchTimeout, _supportsSubdomains, isLoading: isConfigDataLoading } = useContext(ConfigContext)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [resetKey, setResetKey] = useState(0)
@@ -98,7 +98,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
     }
     // we get the iframe origin from a query parameter called 'origin', if this is loaded in an iframe
     const targetOrigin = decodeURIComponent(window.location.hash.split('@origin=')[1])
-    const config = { gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, fetchTimeout, _supportsSubdomains }
+    const config = { gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, enableProviderQueryParameter, fetchTimeout, _supportsSubdomains }
     log.trace('config-page: postMessage config to origin ', JSON.stringify(config), targetOrigin)
     /**
      * The reload page in the parent window is listening for this message, and then it passes a RELOAD_CONFIG message to the service worker
@@ -107,7 +107,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
       targetOrigin
     })
     log.trace('config-page: RELOAD_CONFIG sent to parent window')
-  }, [gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, fetchTimeout])
+  }, [gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, fetchTimeout, enableProviderQueryParameter])
 
   useEffect(() => {
     if (!isConfigDataLoading) {
@@ -120,7 +120,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
 
   const saveConfig = useCallback(async () => {
     try {
-      const config = { gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, fetchTimeout }
+      const config = { gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, fetchTimeout, enableProviderQueryParameter }
       setIsSaving(true)
       await storeConfig(config, uiComponentLogger)
       log.trace('config-page: sending RELOAD_CONFIG to service worker')
@@ -139,7 +139,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
     } finally {
       setIsSaving(false)
     }
-  }, [gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, fetchTimeout])
+  }, [gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, fetchTimeout, enableProviderQueryParameter])
 
   const doResetConfig = useCallback(async () => {
     // we need to clear out the localStorage items and make sure default values are set, and that all of our inputs are updated
@@ -181,6 +181,14 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
             description='Use WebTransport providers returned from delegated routers for direct retrieval.'
             value={enableWebTransport}
             onChange={(value) => { setConfig('enableWebTransport', value) }}
+            resetKey={resetKey}
+          />
+          <InputToggle
+            className='e2e-config-page-input e2e-config-page-input-enableProviderQueryParameter'
+            label='Enable Provider Query Parameter'
+            description='Parse provider multiaddres available as query parameters in URI.'
+            value={enableProviderQueryParameter}
+            onChange={(value) => { setConfig('enableProviderQueryParameter', value) }}
             resetKey={resetKey}
           />
           <TextInput

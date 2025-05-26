@@ -11,6 +11,7 @@ export interface ConfigDbWithoutPrivateFields extends BaseDbConfig {
   enableWebTransport: boolean
   enableGatewayProviders: boolean
   enableRecursiveGateways: boolean
+  enableProviderQueryParameter: boolean
   debug: string
 
   /**
@@ -37,6 +38,7 @@ export const defaultEnableWss = true
 export const defaultEnableWebTransport = false
 export const defaultEnableGatewayProviders = true
 export const defaultSupportsSubdomains: null | boolean = null
+export const defaultEnableProviderQueryParameter = false
 
 /**
  * The default fetch timeout for the gateway, in seconds.
@@ -61,6 +63,7 @@ export async function resetConfig (logger: ComponentLogger): Promise<void> {
     await configDb.put('enableWebTransport', defaultEnableWebTransport)
     await configDb.put('enableRecursiveGateways', defaultEnableRecursiveGateways)
     await configDb.put('enableGatewayProviders', defaultEnableGatewayProviders)
+    await configDb.put('enableProviderQueryParameter', defaultEnableProviderQueryParameter)
     await configDb.put('debug', defaultDebug())
     await configDb.put('fetchTimeout', defaultFetchTimeout * 1000)
     // leave private/app-only fields as is
@@ -85,6 +88,7 @@ export async function setConfig (config: ConfigDbWithoutPrivateFields, logger: C
     await configDb.put('enableWss', config.enableWss)
     await configDb.put('enableWebTransport', config.enableWebTransport)
     await configDb.put('enableGatewayProviders', config.enableGatewayProviders)
+    await configDb.put('enableProviderQueryParameter', config.enableProviderQueryParameter)
     await configDb.put('debug', config.debug ?? defaultDebug())
     await configDb.put('fetchTimeout', config.fetchTimeout ?? (defaultFetchTimeout * 1000))
     // ignore private/app-only fields
@@ -116,6 +120,7 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
     let enableWss
     let enableWebTransport
     let enableGatewayProviders
+    let enableProviderQueryParameter
     let fetchTimeout
     let debug = ''
     let _supportsSubdomains = defaultSupportsSubdomains
@@ -139,6 +144,7 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
       enableWss = config.enableWss ?? defaultEnableWss
       enableWebTransport = config.enableWebTransport ?? defaultEnableWebTransport
       enableGatewayProviders = config.enableGatewayProviders ?? defaultEnableGatewayProviders
+      enableProviderQueryParameter = config.enableProviderQueryParameter ?? defaultEnableProviderQueryParameter
       fetchTimeout = config.fetchTimeout ?? (defaultFetchTimeout * 1000)
       _supportsSubdomains ??= config._supportsSubdomains
     } catch (err) {
@@ -167,6 +173,7 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
       enableWss,
       enableWebTransport,
       enableGatewayProviders,
+      enableProviderQueryParameter,
       debug,
       fetchTimeout,
       _supportsSubdomains
