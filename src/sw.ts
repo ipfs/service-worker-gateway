@@ -673,15 +673,15 @@ async function errorPageResponse (fetchResponse: Response): Promise<Response> {
 }
 
 async function get504Response (event: FetchEvent): Promise<Response> {
-    const response504 = await fetch(new URL('/ipfs-sw-504.html', event.request.url))
+  const response504 = await fetch(new URL('/ipfs-sw-504.html', event.request.url))
 
-    return new Response(response504.body, {
-      status: 504,
-      headers: {
-        'Content-Type': 'text/html',
-        'ipfs-sw': 'true'
-      }
-    })
+  return new Response(response504.body, {
+    status: 504,
+    headers: {
+      'Content-Type': 'text/html',
+      'ipfs-sw': 'true'
+    }
+  })
 }
 
 /**

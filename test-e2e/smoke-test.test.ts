@@ -71,7 +71,7 @@ test.describe('smoke test', () => {
   test('configurable timeout value is respected', async ({ page, protocol, rootDomain, swResponses }) => {
     await page.goto(`${protocol}//${rootDomain}`)
     await waitForServiceWorker(page, `${protocol}//${rootDomain}`)
-    await setConfig({ page, config: { fetchTimeout: 5 }})
+    await setConfig({ page, config: { fetchTimeout: 5 } })
 
     await page.goto(`${protocol}//${rootDomain}/ipfs/bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze/wiki/Antarctica`)
     await page.waitForURL(`${protocol}//bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze.ipfs.${rootDomain}/wiki/Antarctica`)
