@@ -83,4 +83,19 @@ test.describe('smoke test', () => {
     expect(text).toContain('504 Gateway timeout')
     expect(text).toContain('Increase the timeout in the')
   })
+
+  test('unregistering the service worker works', async ({ page, baseURL }) => {
+    await page.goto(baseURL, { waitUntil: 'networkidle' })
+    await waitForServiceWorker(page, baseURL)
+
+    // unregister the service worker and make sure the config is empty
+    await page.click('#unregister-sw')
+    await page.waitForLoadState('networkidle')
+
+    const noRegistration = await page.evaluate(async () => {
+      return await window.navigator.serviceWorker.getRegistration() === undefined
+    })
+
+    expect(noRegistration).toBe(true)
+  })
 })
