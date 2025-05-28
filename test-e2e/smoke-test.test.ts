@@ -1,6 +1,7 @@
 // see https://github.com/ipfs/service-worker-gateway/issues/502
 import { testSubdomainRouting as test, expect } from './fixtures/config-test-fixtures.js'
 import { setConfig } from './fixtures/set-sw-config.js'
+import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
 
 test.describe('smoke test', () => {
   test('loads a dag-json jpeg', async ({ page, protocol, swResponses, rootDomain }) => {
@@ -69,11 +70,8 @@ test.describe('smoke test', () => {
 
   test('configurable timeout value is respected', async ({ page, protocol, rootDomain, swResponses }) => {
     await page.goto(`${protocol}//${rootDomain}`)
-    await page.waitForLoadState('networkidle')
-    await setConfig({ page, config: { fetchTimeout: 200 } })
-    await page.evaluate(async () => {
-      await fetch('?ipfs-sw-accept-origin-isolation-warning=true')
-    })
+    await waitForServiceWorker(page, `${protocol}//${rootDomain}`)
+    await setConfig({ page, config: { fetchTimeout: 5 } })
 
     await page.goto(`${protocol}//${rootDomain}/ipfs/bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze/wiki/Antarctica`)
     await page.waitForURL(`${protocol}//bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze.ipfs.${rootDomain}/wiki/Antarctica`)
