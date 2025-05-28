@@ -28,7 +28,7 @@ test.describe('smoketests', () => {
       const inputLocator = getConfigPageInput(page)
       // see https://playwright.dev/docs/locators#strictness
       await inputLocator.first().waitFor()
-      expect(await inputLocator.count()).toEqual(9)
+      expect(await inputLocator.count()).toEqual(10)
       const submitButton = getConfigPageSaveButton(page)
       await expect(submitButton).toBeVisible()
     })
