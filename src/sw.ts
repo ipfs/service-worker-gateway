@@ -565,7 +565,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
      * Note: we haven't awaited the arrayBuffer, blob, json, etc. `await verifiedFetch` only awaits the construction of
      * the response object, regardless of it's inner content
      */
-    if (response.status >= 400) {
+    if (response.status >= 400 && response.status !== 504) {
       log.error('fetchHandler: response not ok: ', response)
       return await errorPageResponse(response)
     }
@@ -587,15 +587,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
     const errorMessage = errorMessages.join('\n')
 
     if (errorMessage.includes('aborted') || signal.aborted) {
-      const response504 = await fetch(new URL('/ipfs-sw-504.html', event.request.url))
-
-      return new Response(response504.body, {
-        status: 504,
-        headers: {
-          'Content-Type': 'text/html',
-          'ipfs-sw': 'true'
-        }
-      })
+      return await get504Response(event)
     }
     const response = new Response('Service Worker IPFS Gateway error: ' + errorMessage, { status: 500 })
     response.headers.set('ipfs-sw', 'true')
@@ -678,6 +670,18 @@ async function errorPageResponse (fetchResponse: Response): Promise<Response> {
     statusText: fetchResponse.statusText,
     headers: mergedHeaders
   })
+}
+
+async function get504Response (event: FetchEvent): Promise<Response> {
+    const response504 = await fetch(new URL('/ipfs-sw-504.html', event.request.url))
+
+    return new Response(response504.body, {
+      status: 504,
+      headers: {
+        'Content-Type': 'text/html',
+        'ipfs-sw': 'true'
+      }
+    })
 }
 
 /**
