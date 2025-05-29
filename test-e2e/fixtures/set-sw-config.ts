@@ -4,7 +4,7 @@
  *
  * Note that this was only tested and confirmed working for subdomain pages.
  */
-import { getConfigDebug, getConfigDnsJsonResolvers, getConfigEnableGatewayProviders, getConfigEnableRecursiveGateways, getConfigEnableWebTransport, getConfigEnableWss, getConfigFetchTimeout, getConfigGatewaysInput, getConfigGatewaysInputIframe, getConfigPage, getConfigPageSaveButton, getConfigPageSaveButtonIframe, getConfigRoutersInput, getConfigRoutersInputIframe } from './locators.js'
+import { getConfigDebug, getConfigDnsJsonResolvers, getConfigEnableGatewayProviders, getConfigEnableRecursiveGateways, getConfigEnableWebTransport, getConfigEnableWss, getConfigEnableProviderQueryParameter, getConfigFetchTimeout, getConfigGatewaysInput, getConfigGatewaysInputIframe, getConfigPage, getConfigPageSaveButton, getConfigPageSaveButtonIframe, getConfigRoutersInput, getConfigRoutersInputIframe } from './locators.js'
 import { waitForServiceWorker } from './wait-for-service-worker.js'
 import type { ConfigDb, ConfigDbWithoutPrivateFields } from '../../src/lib/config-db.js'
 import type { Page } from '@playwright/test'
@@ -21,6 +21,10 @@ export async function setConfigViaUiSubdomain ({ page, config, expectedSwScope }
 
   if (config.enableWss != null) {
     await getConfigEnableWss(page).locator('input').setChecked(config.enableWss)
+  }
+
+  if (config.enableProviderQueryParameter != null) {
+    await getConfigEnableProviderQueryParameter(page).locator('input').setChecked(config.enableProviderQueryParameter)
   }
 
   if (config.enableWebTransport != null) {
@@ -73,6 +77,11 @@ export async function setConfigViaUi ({ page, config, expectedSwScope }: { page:
     await getConfigEnableWss(page).locator('input').setChecked(config.enableWss)
   }
 
+  if (config.enableProviderQueryParameter != null) {
+    await getConfigEnableProviderQueryParameter(page).scrollIntoViewIfNeeded()
+    await getConfigEnableProviderQueryParameter(page).locator('input').setChecked(config.enableProviderQueryParameter)
+  }
+
   if (config.enableWebTransport != null) {
     await getConfigEnableWebTransport(page).scrollIntoViewIfNeeded()
     await getConfigEnableWebTransport(page).locator('input').setChecked(config.enableWebTransport)
@@ -115,6 +124,7 @@ export async function getConfigUi ({ page, expectedSwScope }: { page: Page, expe
 
   const enableGatewayProviders = await getConfigEnableGatewayProviders(page).locator('input').isChecked()
   const enableWss = await getConfigEnableWss(page).locator('input').isChecked()
+  const enableProviderQueryParameter = await getConfigEnableProviderQueryParameter(page).locator('input').isChecked()
   const enableWebTransport = await getConfigEnableWebTransport(page).locator('input').isChecked()
   const routers = (await getConfigRoutersInput(page).locator('textarea').inputValue()).split('\n')
   const enableRecursiveGateways = await getConfigEnableRecursiveGateways(page).locator('input').isChecked()
@@ -133,6 +143,7 @@ export async function getConfigUi ({ page, expectedSwScope }: { page: Page, expe
     enableGatewayProviders,
     enableWss,
     enableWebTransport,
+    enableProviderQueryParameter,
     routers,
     enableRecursiveGateways,
     gateways,
@@ -215,6 +226,7 @@ export async function getConfig ({ page }: { page: Page }): Promise<ConfigDb> {
       routers: await get('routers'),
       dnsJsonResolvers: await get('dnsJsonResolvers'),
       enableWss: await get('enableWss'),
+      enableProviderQueryParameter: await get('enableProviderQueryParameter'),
       enableWebTransport: await get('enableWebTransport'),
       enableRecursiveGateways: await get('enableRecursiveGateways'),
       enableGatewayProviders: await get('enableGatewayProviders'),
