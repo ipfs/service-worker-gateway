@@ -46,6 +46,8 @@ function prettyPercentUse (bandwidthInBytes, requestCount) {
 // Initialize counters for specific group
 
 // A: browser hosting
+let hostingBrowserBandwidth = 0
+let hostingBrowserRequests = 0
 
 // B: hotlinked browser (Mozilla/*)
 let hotlinkedBrowserImagesBandwidth = 0
@@ -75,7 +77,15 @@ let otherVideoRequests = 0
 
 let otherProxyPACWindowsBandwidth = 0
 let otherProxyPACWindowsRequests = 0
-// remainder: unclassified - video - pac
+
+let remainingImagesBandwidth = 0
+let remainingImagesRequests = 0
+let remainingAudioVideoBandwidth = 0
+let remainingAudioVideoRequests = 0
+let remainingJSONBandwidth = 0
+let remainingJSONRequests = 0
+let remainingOtherBandwidth = 0
+let remainingOtherRequests = 0
 
 let maxUserAgentLen = 0
 let maxRefererLen = 0
@@ -163,14 +173,15 @@ function isWalletClient (userAgent) {
 }
 */
 
-
-// frontend and backend apps
+// Browser hotlinking and web-like hotlinking (mobile apps and software written in node/js), that could use drop-in JS solution (verified-fetch).
+// This is part of Group B because it is worth reaching out to related entities before we start throttling / returning errors.
 function knownHotlinkingApp(fullUserAgentLowercase) {
-  return ['wallet', 'electron','nft','metadata', 'got', 'vercel', 'node', 'android', 'iphone'].some(k => fullUserAgentLowercase.includes(k))
+  return ['wallet', 'electron','nft','metadata', 'got', 'undici', 'axios', 'vercel', 'node', 'android', 'iphone', 'dalvik', 'blockscout'].some(k => fullUserAgentLowercase.includes(k))
 }
 
+// Those are non-browser non-web clients that are effectively just using free CDN without benefiting from IPFS.
 function knownVideoClients (userAgent) {
-  return ['Stream', 'Player', 'com.nst.iptvsmarterstvbox', 'tivimate', 'nextv', 'stream4less', 'streams4less', 'flextv', 'com.ibopro.player', 'Enigma2 HbbTV', 'P3TV', 'SimplyTheBest.tv', '9XtreamP', 'TVGAWD', 'kytv-agent', 'ExoPlayer', 'Exo Player', 'ORPlayer', 'SKREBRANDZ XC', 'LionsDenSports', 'MadCapMedia_XC', 'SmartersPro', 'com.ibopro.ultra', 'OTT Player', 'SkyXc', 'iMPlayer', 'AceFinal', 'Smarters', 'MaxiwebTV'].some(pattern => userAgent.toLowerCase().includes(pattern.toLowerCase()))
+  return ['Stream', 'Player', 'VLC', 'com.nst.iptvsmarterstvbox', 'tivimate', 'nextv', 'stream4less', 'streams4less', 'flextv', 'com.ibopro.player', 'Enigma2 HbbTV', 'P3TV', 'SimplyTheBest.tv', '9XtreamP', 'TVGAWD', 'kytv-agent', 'TiviMate', 'ExoPlayer', 'Exo Player', 'ORPlayer', 'SKREBRANDZ XC', 'LionsDenSports', 'MadCapMedia_XC', 'SmartersPro', 'com.ibopro.ultra', 'OTT Player', 'SkyXc', 'iMPlayer', 'AceFinal', 'Smarters', 'MaxiwebTV', 'Lavf'].some(pattern => userAgent.toLowerCase().includes(pattern.toLowerCase()))
 }
 
 // Read the file line by line
@@ -193,7 +204,7 @@ rl.on('line', (line) => {
 
     // Track bandwidth by user agent
     const fullUserAgentLowercase = request.ClientRequestUserAgent.toLowerCase()
-    let userAgent = request.ClientRequestUserAgent.split('/')[0].trim()
+    let userAgent = request.ClientRequestUserAgent.split('/')[0].trim().slice(0, 29)
     const xRequestedWith = request.ClientXRequestedWith
 
     // Normalize all browsers into 'browser'
@@ -233,16 +244,36 @@ rl.on('line', (line) => {
     }
 
     // extract high level content type
-    const contentType = request.EdgeResponseContentType ? request.EdgeResponseContentType.toLowerCase().split(';')[0].trim() : 'unknown'
+    const contentType = request.EdgeResponseContentType ? request.EdgeResponseContentType.toLowerCase().split(';')[0].trim().slice(0, 29) : 'unknown'
 
     // ensure we assign request to only one "special interest" group
     let match = false
 
-    // Exclusive groups for (B) – make sure to not double-count these side-metrics in the final summary
+    // C: measure use by https://antizapret.prostovpn.org/ which is a special case because it
+    // is requested by different user agents, and not all of them can be migrated
+    // This is matched before everything else as some of these are browsers that look like direct hosting,
+    // and we do not want to false-positive match or double-count them
+    if (!match && (request.ClientRequestURI.endsWith('/proxy-ssl.js') || request.ClientRequestURI.endsWith('/proxy-nossl.js'))) {
+      if (userAgent === 'browser') {
+        // these could, in theory,  be migrated to verified-fetch inside of a browser extension
+        // like https://chrome.google.com/webstore/detail/%D0%BE%D0%B1%D1%85%D0%BE%D0%B4-%D0%B1%D0%BB%D0%BE%D0%BA%D0%B8%D1%80%D0%BE%D0%B2%D0%BE%D0%BA-%D1%80%D1%83%D0%BD%D0%B5%D1%82%D0%B0/npgcnondjocldhldegnakemclmfkngch
+        otherProxyPACBrowserBandwidth += bandwidth
+        otherProxyPACBrowserRequests += cnt
+      } else if ((userAgent ?? '').startsWith('WinHttp-Autoproxy-Service')) {
+        // This is Windows polling PAC update - we can't migrate this,
+        // and if we start throttling, it will DoS us - ask lidel for details
+        otherProxyPACWindowsBandwidth += bandwidth
+        otherProxyPACWindowsRequests += cnt
+      }
+      match = true
+    }
+
+
+    // B: Hotlinking from Browsers
+    // browser-based hotlinking from foreign referers per popular media types
+    // (exclude ipfs.io as those will show up if subresource was loaded by a parent page loaded from gateway itself)
+    // These are good candidates for switching to verified-fetch as well.
     if (!match && userAgent === 'browser' && referrer !== '' && ['ipfs.io', 'dweb.link'].every(r => !referrer.includes(r)) && xRequestedWith === '') {
-      // browser-based hotlinking from foreign referers per popular media types
-      // (exclude ipfs.io as those will show up if subresource was loaded by a parent page loaded from gateway itself)
-      // These are good candidates for switching to verified-fetch as well.
       if (['image'].some(pattern => contentType.toLowerCase().includes(pattern.toLowerCase()))) {
         // image NFTs
         hotlinkedBrowserImagesBandwidth += bandwidth
@@ -260,9 +291,10 @@ rl.on('line', (line) => {
       match = true
     }
 
+    // B: Hotlinking from apps
+    // Best-effort detection of hotlinking from apps (user agents that include 'wallet', 'electron', fetch ntft metadata or have appid in X-Requested-With
+    // These are good candidates for switching to verified-fetch as well.
     if (!match && userAgent !== 'browser' && knownHotlinkingApp(fullUserAgentLowercase) || xRequestedWith !== '') {
-      // Best-effort detection of hotlinking from apps (user agents that include 'wallet', 'electron', fetch ntft metadata or have appid in X-Requested-With
-      // These are good candidates for switching to verified-fetch as well.
       if (['image'].some(pattern => contentType.toLowerCase().includes(pattern.toLowerCase()))) {
         // image NFTs
         hotlinkedAppImagesBandwidth += bandwidth
@@ -280,20 +312,10 @@ rl.on('line', (line) => {
       match = true
     }
 
-    // C: measure use by https://antizapret.prostovpn.org/ which is a special case because it
-    // is requested by different user agents, and not all of them can be migrated
-    if (!match && (request.ClientRequestURI.endsWith('/proxy-ssl.js') || request.ClientRequestURI.endsWith('/proxy-nossl.js'))) {
-      if (userAgent === 'browser') {
-        // these could, in theory,  be migrated to verified-fetch inside of a browser extension
-        // like https://chrome.google.com/webstore/detail/%D0%BE%D0%B1%D1%85%D0%BE%D0%B4-%D0%B1%D0%BB%D0%BE%D0%BA%D0%B8%D1%80%D0%BE%D0%B2%D0%BE%D0%BA-%D1%80%D1%83%D0%BD%D0%B5%D1%82%D0%B0/npgcnondjocldhldegnakemclmfkngch
-        otherProxyPACBrowserBandwidth += bandwidth
-        otherProxyPACBrowserRequests += cnt
-      } else if ((userAgent ?? '').startsWith('WinHttp-Autoproxy-Service')) {
-        // This is Windows polling PAC update - we can't migrate this,
-        // and if we start throttling, it will DoS us - ask lidel for details
-        otherProxyPACWindowsBandwidth += bandwidth
-        otherProxyPACWindowsRequests += cnt
-      }
+    // Exclusive group for (A)
+    if (!match && userAgent === 'browser' && ['', 'ipfs.io', 'dweb.link'].some(r => referrer.includes(r))  && xRequestedWith === '') {
+      hostingBrowserBandwidth += bandwidth
+      hostingBrowserRequests += cnt
       match = true
     }
 
@@ -326,131 +348,36 @@ rl.on('line', (line) => {
       match = true
     }
 
+    // C: everything else, at least classify by content type
+    if (!match) {
+      // Best-effort detection of hotlinking from apps (user agents that include 'wallet', 'electron', fetch ntft metadata or have appid in X-Requested-With
+      // These are good candidates for switching to verified-fetch as well.
+      if (['image'].some(pattern => contentType.toLowerCase().includes(pattern.toLowerCase()))) {
+        // image NFTs
+        remainingImagesBandwidth += bandwidth
+        remainingImagesRequests += cnt
+      } else if (['video', 'audio'].some(pattern => contentType.toLowerCase().includes(pattern.toLowerCase()))) {
+        remainingAudioVideoBandwidth += bandwidth
+        remainingAudioVideoRequests += cnt
+      } else if (['json'].some(pattern => contentType.toLowerCase().includes(pattern.toLowerCase()))) {
+        remainingJSONBandwidth += bandwidth
+        remainingJSONRequests += cnt
+      } else {
+        remainingOtherBandwidth += bandwidth
+        remainingOtherRequests += cnt
+      }
+      match = true
+    }
+
   } catch (err) {
     console.error(`Error parsing line: ${err}`)
   }
 })
 
 rl.on('close', () => {
-  /*
-  //console.log('Bandwidth per user agent:')
-  // Convert to array and sort by bandwidth
-  const sortedEntries = Object.entries(userAgentBandwidth)
-    .sort(([, a], [, b]) => a - b)
-
-  let potentialVerifiedFetchBandwidth = 0
-  let potentialMobileBandwidth = 0
-  let potentialBadBandwidth = 0
-  let potentialCliUserBandwidth = 0
-  let potentialCensorshipAvoidanceBandwidth = 0
-  let potentialWalletClientBandwidth = 0
-  // Initialize categorized request counters
-  let potentialVerifiedFetchRequests = 0
-  let potentialMobileRequests = 0
-  let potentialBadRequests = 0
-  let potentialCliUserRequests = 0
-  let potentialCensorshipAvoidanceRequests = 0
-  let potentialWalletClientRequests = 0
-  // For unclassified user agents
-  const unclassifiedUserAgentsData = {}
-  let totalUnclassifiedBandwidth = 0
-  let totalUnclassifiedRequests = 0
-
-  for (const [userAgent, bandwidth] of sortedEntries) {
-    const requests = userAgentRequests[userAgent] || 0
-    let isClassified = false
-
-    if (userAgent === 'browser' || userAgent === 'unknown') {
-      isClassified = true
-    }
-
-    if (shouldSwitchToVerifiedFetch(userAgent)) {
-      potentialVerifiedFetchBandwidth += bandwidth
-      potentialVerifiedFetchRequests += requests
-      isClassified = true
-    }
-    if (knownMobileActors(userAgent)) {
-      potentialMobileBandwidth += bandwidth
-      potentialMobileRequests += requests
-      isClassified = true
-    }
-    if (knownBadActors(userAgent)) {
-      potentialBadBandwidth += bandwidth
-      potentialBadRequests += requests
-      isClassified = true
-    }
-    if (knownCliUserAgents(userAgent)) {
-      potentialCliUserBandwidth += bandwidth
-      potentialCliUserRequests += requests
-      isClassified = true
-    }
-    if (isCensorshipAvoidance(userAgent)) {
-      potentialCensorshipAvoidanceBandwidth += bandwidth
-      potentialCensorshipAvoidanceRequests += requests
-      isClassified = true
-    }
-    if (isWalletClient(userAgent)) {
-      potentialWalletClientBandwidth += bandwidth
-      potentialWalletClientRequests += requests
-      isClassified = true
-    }
-    if (!isClassified) {
-      if (!unclassifiedUserAgentsData[userAgent]) {
-        unclassifiedUserAgentsData[userAgent] = { bandwidth: 0, requests: 0 }
-      }
-      unclassifiedUserAgentsData[userAgent].bandwidth += bandwidth
-      unclassifiedUserAgentsData[userAgent].requests += requests
-      totalUnclassifiedBandwidth += bandwidth
-      totalUnclassifiedRequests += requests
-    }
-
-    //console.log(`${userAgent}: ${prettyBytes(bandwidth)} ${calculateAndFormatCosts(bandwidth, requests)}`)
-  }
-  */
-
-  /*
-  console.log('User Agents Requiring Review (Unclassified):')
-  const sortedUnclassifiedAgents = Object.entries(unclassifiedUserAgentsData)
-    .sort(([, a], [, b]) => b.bandwidth - a.bandwidth) // Sort by bandwidth descending
-
-  for (const [ua, data] of sortedUnclassifiedAgents) {
-    console.log(`${ua}: ${prettyBytes(data.bandwidth)} ${calculateAndFormatCosts(data.bandwidth, data.requests)}`)
-  }
-  console.log(`Total Unclassified: ${prettyBytes(totalUnclassifiedBandwidth)} ${calculateAndFormatCosts(totalUnclassifiedBandwidth, totalUnclassifiedRequests)}`)
-  */
 
   const browserBandwidth = userAgentBandwidth.browser || 0
   const browserRequests = userAgentRequests.browser || 0
-
-
-  /*
-  const totalXRequestedWithBandwidth = Object.values(xRequestedWithBandwidth).reduce((acc, bw) => acc + bw, 0)
-  const totalXRequestedWithRequests = Object.values(xRequestedWithRequests).reduce((acc, req) => acc + req, 0)
-
-  const mobileCombinedBandwidth = potentialMobileBandwidth + totalXRequestedWithBandwidth
-  const mobileCombinedRequests = potentialMobileRequests + totalXRequestedWithRequests
-
-  const directFetchingTotalBandwidth = browserBandwidth + mobileCombinedBandwidth + potentialCliUserBandwidth + potentialVerifiedFetchBandwidth + potentialCensorshipAvoidanceBandwidth
-  const directFetchingTotalRequests = browserRequests + mobileCombinedRequests + potentialCliUserRequests + potentialVerifiedFetchRequests + potentialCensorshipAvoidanceRequests
-
-  console.log('Bandwidth that can be migrated to direct fetching:')
-  console.log(`browser-like user agents: ${prettyBytes(browserBandwidth)} ${calculateAndFormatCosts(browserBandwidth, browserRequests)}`)
-  console.log(`mobile usage: ${prettyBytes(mobileCombinedBandwidth)} ${calculateAndFormatCosts(mobileCombinedBandwidth, mobileCombinedRequests)}`)
-  console.log(`should be running their own IPFS nodes: ${prettyBytes(potentialCliUserBandwidth)} ${calculateAndFormatCosts(potentialCliUserBandwidth, potentialCliUserRequests)}`)
-  console.log(`can run verified fetch instead: ${prettyBytes(potentialVerifiedFetchBandwidth)} ${calculateAndFormatCosts(potentialVerifiedFetchBandwidth, potentialVerifiedFetchRequests)}`)
-  console.log(`censorship avoidance (good thing): ${prettyBytes(potentialCensorshipAvoidanceBandwidth)} ${calculateAndFormatCosts(potentialCensorshipAvoidanceBandwidth, potentialCensorshipAvoidanceRequests)}`)
-  console.log(`wallet clients: ${prettyBytes(potentialWalletClientBandwidth)} ${calculateAndFormatCosts(potentialWalletClientBandwidth, potentialWalletClientRequests)}`)
-  console.log(`Total: ${prettyBytes(directFetchingTotalBandwidth)} ${calculateAndFormatCosts(directFetchingTotalBandwidth, directFetchingTotalRequests)}`)
-
-  console.log()
-  console.log('Other interesting stats:')
-  console.log(`Hotlinked Image Traffic Estimate (Browser-like, Valid Referrer + image/video/audio): ${prettyBytes(hotlinkedBrowserBandwidth)} ${calculateAndFormatCosts(hotlinkedImageBandwidth, hotlinkedImageRequests)}`)
-
-  console.log()
-  console.log('Bandwidth that we will be happy to lose:')
-  console.log(`bad actor bandwidth: ${prettyBytes(potentialBadBandwidth)} ${calculateAndFormatCosts(potentialBadBandwidth, potentialBadRequests)}`)
-  console.log(`total: ${prettyBytes(potentialBadBandwidth)} ${calculateAndFormatCosts(potentialBadBandwidth, potentialBadRequests)}`)
-  */
 
   const summaryLimit = 30
 
@@ -490,6 +417,7 @@ rl.on('close', () => {
     console.log(`${referrer.padStart(maxRefererLen)}  ${prettyPercentUse(data.bandwidth, data.requests)}`)
   }
 
+  console.log()
   console.log(`Referrer - TOP ${summaryLimit} per Requests:`)
   console.log()
   const sortedReferrerReqDetails = Object.entries(referrerDetails)
@@ -525,8 +453,8 @@ rl.on('close', () => {
 
   console.log()
   console.log('═══════════════════════════════════════╡╞═══════════════════════════════════════')
-  console.log(`Total traffic:  ${prettyPercentUse(totalBandwidth, totalRequests)}`)
-  console.log(`Browsers:       ${prettyPercentUse(browserBandwidth, browserRequests)}`)
+  console.log(`Total traffic:        ${prettyPercentUse(totalBandwidth, totalRequests)}`)
+  console.log(`Looks-like-a-Browser: ${prettyPercentUse(browserBandwidth, browserRequests)}`)
   console.log('═══════════════════════════════════════╡╞═══════════════════════════════════════')
   console.log()
 
@@ -536,9 +464,9 @@ rl.on('close', () => {
 
   // A: "real web hosting" is browser-like traffic where resource was requested by the browser directly,
   // or fromreferer that was also a website loaded from gateway (minus things we identified as cross-origin hotlinking behavior)
-  let aTotalBandwidth = browserBandwidth -  hotlinkedBrowserImagesBandwidth - hotlinkedBrowserAudioVideoBandwidth - hotlinkedBrowserJSONBandwidth - hotlinkedBrowserOtherBandwidth - otherProxyPACBrowserBandwidth
-  let aTotalRequests = browserRequests - hotlinkedBrowserImagesRequests - hotlinkedBrowserAudioVideoRequests - hotlinkedBrowserJSONRequests - hotlinkedBrowserOtherRequests - otherProxyPACBrowserRequests
-  console.log(`  A: Browsers  (only web hosting): ${prettyPercentUse(aTotalBandwidth, aTotalRequests)}`)
+  let aTotalBandwidth = hostingBrowserBandwidth
+  let aTotalRequests = hostingBrowserRequests
+  console.log(` A: Browsers  (only web hosting): ${prettyPercentUse(hostingBrowserBandwidth, hostingBrowserRequests)}`)
   console.log()
 
   // B: are "hotlinking" types that are either browsers (websites hotlinking cross-origin) or mobile/desktop/node apps built with electron or other web-like runtimes
@@ -550,25 +478,42 @@ rl.on('close', () => {
   let bTotalRequests = hotlinkedBrowserImagesRequests + hotlinkedBrowserAudioVideoRequests + hotlinkedBrowserJSONRequests + hotlinkedBrowserOtherRequests
                        otherProxyPACBrowserRequests +
                        hotlinkedAppImagesRequests + hotlinkedAppAudioVideoRequests + hotlinkedAppJSONRequests + hotlinkedAppOtherRequests
-  console.log(`  B: Hotlinking Total:             ${prettyPercentUse(bTotalBandwidth, bTotalRequests)}`)
-  console.log(`                Browsers (images): ${prettyPercentUse(hotlinkedBrowserImagesBandwidth, hotlinkedBrowserImagesRequests)}`)
-  console.log(`                Browsers  (media): ${prettyPercentUse(hotlinkedBrowserAudioVideoBandwidth, hotlinkedBrowserAudioVideoRequests)}`)
-  console.log(`                Browsers   (json): ${prettyPercentUse(hotlinkedBrowserJSONBandwidth, hotlinkedBrowserJSONRequests)}`)
-  console.log(`                Browsers  (other): ${prettyPercentUse(hotlinkedBrowserOtherBandwidth, hotlinkedBrowserOtherRequests)}`)
-  console.log(`                Browsers  (proxy): ${prettyPercentUse(otherProxyPACBrowserBandwidth, otherProxyPACBrowserRequests)}`)
-  console.log(`                Apps     (images): ${prettyPercentUse(hotlinkedAppImagesBandwidth, hotlinkedAppImagesRequests)}`)
-  console.log(`                Apps      (media): ${prettyPercentUse(hotlinkedAppAudioVideoBandwidth, hotlinkedAppAudioVideoRequests)}`)
-  console.log(`                Apps       (json): ${prettyPercentUse(hotlinkedAppJSONBandwidth, hotlinkedAppJSONRequests)}`)
-  console.log(`                Apps      (other): ${prettyPercentUse(hotlinkedAppOtherBandwidth, hotlinkedAppOtherRequests)}`)
+  console.log(` B: Hotlinking Total:             ${prettyPercentUse(bTotalBandwidth, bTotalRequests)}`)
+  console.log(`               Browsers (images): ${prettyPercentUse(hotlinkedBrowserImagesBandwidth, hotlinkedBrowserImagesRequests)}`)
+  console.log(`               Browsers  (media): ${prettyPercentUse(hotlinkedBrowserAudioVideoBandwidth, hotlinkedBrowserAudioVideoRequests)}`)
+  console.log(`               Browsers   (json): ${prettyPercentUse(hotlinkedBrowserJSONBandwidth, hotlinkedBrowserJSONRequests)}`)
+  console.log(`               Browsers  (other): ${prettyPercentUse(hotlinkedBrowserOtherBandwidth, hotlinkedBrowserOtherRequests)}`)
+  console.log(`               Browsers  (proxy): ${prettyPercentUse(otherProxyPACBrowserBandwidth, otherProxyPACBrowserRequests)}`)
+  console.log(`               Apps     (images): ${prettyPercentUse(hotlinkedAppImagesBandwidth, hotlinkedAppImagesRequests)}`)
+  console.log(`               Apps      (media): ${prettyPercentUse(hotlinkedAppAudioVideoBandwidth, hotlinkedAppAudioVideoRequests)}`)
+  console.log(`               Apps       (json): ${prettyPercentUse(hotlinkedAppJSONBandwidth, hotlinkedAppJSONRequests)}`)
+  console.log(`               Apps      (other): ${prettyPercentUse(hotlinkedAppOtherBandwidth, hotlinkedAppOtherRequests)}`)
   console.log()
 
 
-  // C: everything else
+  // C: catch everything else
   let cTotalBandwidth = totalBandwidth - aTotalBandwidth - bTotalBandwidth
   let cTotalRequests = totalRequests - aTotalRequests - bTotalRequests
-  console.log(`  C: Other Total:                  ${prettyPercentUse(cTotalBandwidth, cTotalRequests)}`)
-  // we also list subset of C that can be identified
-  console.log(`                  Windows (proxy): ${prettyPercentUse(otherProxyPACWindowsBandwidth, otherProxyPACWindowsRequests)}`)
-  console.log(`                   IPTV/Streaming: ${prettyPercentUse(otherVideoBandwidth, otherVideoRequests)}`)
+  console.log(`C: Other Total:                   ${prettyPercentUse(cTotalBandwidth, cTotalRequests)}`)
+  console.log(`                 Windows (proxy): ${prettyPercentUse(otherProxyPACWindowsBandwidth, otherProxyPACWindowsRequests)}`)
+  console.log(`                  IPTV/Streaming: ${prettyPercentUse(otherVideoBandwidth, otherVideoRequests)}`)
+  console.log(`              Remaining (images): ${prettyPercentUse(remainingImagesBandwidth, remainingImagesRequests)}`)
+  console.log(`              Remaining  (media): ${prettyPercentUse(remainingAudioVideoBandwidth, remainingAudioVideoRequests)}`)
+  console.log(`              Remaining   (json): ${prettyPercentUse(remainingJSONBandwidth, remainingJSONRequests)}`)
+  console.log(`              Remaining  (other): ${prettyPercentUse(remainingOtherBandwidth, remainingOtherRequests)}`)
+
+  console.log()
+  
+  let unaccountedBandwidth = totalBandwidth - aTotalBandwidth - bTotalBandwidth - cTotalBandwidth
+  let unaccountedRequests = totalRequests - aTotalRequests - bTotalRequests - cTotalRequests
+  console.log(`Extra check for unaccounted requests to see if imperfect request matching produces meaningful error:`)
+  console.log(`Unaccounted  Totals (~zero): ${prettyPercentUse(unaccountedBandwidth, unaccountedRequests)}`)
+  let unaccountedDetailBandwidth = totalBandwidth - hostingBrowserBandwidth - hotlinkedBrowserImagesBandwidth - hotlinkedBrowserAudioVideoBandwidth - hotlinkedBrowserJSONBandwidth - hotlinkedBrowserOtherBandwidth -
+                                   otherProxyPACBrowserBandwidth - hotlinkedAppImagesBandwidth - hotlinkedAppAudioVideoBandwidth - hotlinkedAppJSONBandwidth - remainingOtherBandwidth -
+                                   otherProxyPACWindowsBandwidth - otherVideoBandwidth - remainingImagesBandwidth - remainingAudioVideoBandwidth - remainingJSONBandwidth - remainingOtherBandwidth
+  let unaccountedDetailRequests = totalRequests - hostingBrowserRequests - hotlinkedBrowserImagesRequests - hotlinkedBrowserAudioVideoRequests - hotlinkedBrowserJSONRequests - hotlinkedBrowserOtherRequests -
+                                  otherProxyPACBrowserRequests - hotlinkedAppImagesRequests - hotlinkedAppAudioVideoRequests - hotlinkedAppJSONRequests - hotlinkedAppOtherRequests -
+                                  otherProxyPACWindowsRequests - otherVideoRequests - remainingImagesRequests - remainingAudioVideoRequests - remainingJSONRequests - remainingOtherRequests
+  console.log(`Unaccounted Details (~zero): ${prettyPercentUse(unaccountedDetailBandwidth, unaccountedDetailRequests)}`)
   console.log()
 })
