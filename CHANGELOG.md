@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.12.2](https://github.com/ipfs/service-worker-gateway/compare/v1.12.1...v1.12.2) (2025-06-04)
+
+
+### Bug Fixes
+
+* inform users how to deregister the service worker ([#721](https://github.com/ipfs/service-worker-gateway/issues/721)) ([573519e](https://github.com/ipfs/service-worker-gateway/commit/573519e5bc987607d1b2883f7bd687493f440ed6))
+* update deps and ensure 504 test passes ([#738](https://github.com/ipfs/service-worker-gateway/issues/738)) ([6ce9735](https://github.com/ipfs/service-worker-gateway/commit/6ce973567d2abc942168a5921851fbde6f59b82c))
+
 ## [1.12.1](https://github.com/ipfs/service-worker-gateway/compare/v1.12.0...v1.12.1) (2025-05-14)
 
 
