@@ -19,6 +19,7 @@ export const getIframeLocator: GetFrameLocator = (page) => page.frameLocator('if
 export const getConfigEnableGatewayProviders: GetLocator = (page) => page.locator('.e2e-config-page-input-enableGatewayProviders')
 export const getConfigEnableWss: GetLocator = (page) => page.locator('.e2e-config-page-input-enableWss')
 export const getConfigEnableWebTransport: GetLocator = (page) => page.locator('.e2e-config-page-input-enableWebTransport')
+export const getConfigEnableProviderQueryParameter: GetLocator = (page) => page.locator('.e2e-config-page-input-enableProviderQueryParameter')
 export const getConfigRoutersInput: GetLocator = (page) => page.locator('.e2e-config-page-input-routers')
 export const getConfigEnableRecursiveGateways: GetLocator = (page) => page.locator('.e2e-config-page-input-enableRecursiveGateways')
 export const getConfigGatewaysInput: GetLocator = (page) => page.locator('.e2e-config-page-input-gateways')

@@ -15,6 +15,7 @@ test.describe('ipfs-sw configuration', () => {
     enableWebTransport: true,
     enableRecursiveGateways: false,
     enableGatewayProviders: false,
+    enableProviderQueryParameter: false,
     fetchTimeout: 29 * 1000
   }
   test.beforeAll(async () => {
