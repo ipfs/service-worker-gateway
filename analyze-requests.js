@@ -475,7 +475,7 @@ rl.on('close', () => {
   let bTotalBandwidth = hotlinkedBrowserImagesBandwidth + hotlinkedBrowserAudioVideoBandwidth + hotlinkedBrowserJSONBandwidth + hotlinkedBrowserOtherBandwidth +
                         otherProxyPACBrowserBandwidth +
                         hotlinkedAppImagesBandwidth + hotlinkedAppAudioVideoBandwidth + hotlinkedAppJSONBandwidth + hotlinkedAppOtherBandwidth
-  let bTotalRequests = hotlinkedBrowserImagesRequests + hotlinkedBrowserAudioVideoRequests + hotlinkedBrowserJSONRequests + hotlinkedBrowserOtherRequests
+  let bTotalRequests = hotlinkedBrowserImagesRequests + hotlinkedBrowserAudioVideoRequests + hotlinkedBrowserJSONRequests + hotlinkedBrowserOtherRequests +
                        otherProxyPACBrowserRequests +
                        hotlinkedAppImagesRequests + hotlinkedAppAudioVideoRequests + hotlinkedAppJSONRequests + hotlinkedAppOtherRequests
   console.log(` B: Hotlinking Total:             ${prettyPercentUse(bTotalBandwidth, bTotalRequests)}`)
