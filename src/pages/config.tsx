@@ -158,39 +158,51 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
       {HeaderComponent}
       <section className='e2e-config-page pa4-l bg-snow mw7 center pa4'>
         <h1 className='pa0 f3 ma0 mb4 teal tc'>Configure your IPFS Gateway</h1>
+        <InputSection label='Routing'>
+          <TextInput
+            className='e2e-config-page-input e2e-config-page-input-routers'
+            description='A newline delimited list of delegated IPFS router URLs that expose the /routing/v1 API.'
+            label='Delegated Provider, Peer and IPNS Routing'
+            validationFn={urlValidationFn}
+            onChange={(value) => { setConfig('routers', value) }}
+            value={convertUrlArrayToInput(routers)}
+            preSaveFormat={(value: string) => value.split('\n')}
+            resetKey={resetKey}
+          />
+          <TextInput
+            className='e2e-config-page-input e2e-config-page-input-dnsJsonResolvers'
+            description='A newline delimited list of space delimited key+value pairs for DNS (application/dns-json) resolvers. The key is the domain suffix, and the value is the URL of the DNS resolver. Note: Use only trusted centralized gateways, as they may infer your browsing history.'
+            label='DNS Resolvers'
+            validationFn={dnsJsonValidationFn}
+            value={convertDnsResolverObjectToInput(dnsJsonResolvers)}
+            onChange={(value) => { setConfig('dnsJsonResolvers', value) }}
+            preSaveFormat={(value) => convertDnsResolverInputToObject(value)}
+            resetKey={resetKey}
+          />
+        </InputSection>
         <InputSection label='Direct Retrieval'>
           <InputToggle
             className='e2e-config-page-input e2e-config-page-input-enableGatewayProviders'
-            label='Enable Delegated HTTP Gateway Providers'
-            description='Use gateway providers returned from delegated routers for direct retrieval.'
+            label='Enable Trustless HTTPS Gateway Retrieval'
+            description='Fetch verifiable block data (application/vnd.ipld.raw) directly via plain HTTP GET /ipfs/cid?format=raw over HTTPS using Trustless Gateway providers sourced from delegated routers.'
             value={enableGatewayProviders}
             onChange={(value) => { setConfig('enableGatewayProviders', value) }}
             resetKey={resetKey}
           />
           <InputToggle
             className='e2e-config-page-input e2e-config-page-input-enableWss'
-            label='Enable Secure WebSocket Providers'
-            description='Use Secure WebSocket providers returned from delegated routers for direct retrieval.'
+            label='Enable Secure WebSocket Retrieval'
+            description='Fetch verifiable block data directly via Bitswap over libp2p using Secure WebSocket providers sourced from delegated routers.'
             value={enableWss}
             onChange={(value) => { setConfig('enableWss', value) }}
             resetKey={resetKey}
           />
           <InputToggle
             className='e2e-config-page-input e2e-config-page-input-enableWebTransport'
-            label='Enable WebTransport Providers'
-            description='Use WebTransport providers returned from delegated routers for direct retrieval.'
+            label='Enable WebTransport Data Retrieval'
+            description='Fetch verifiable block data directly via Bitswap over libp2p using WebTransport providers sourced from delegated routers.'
             value={enableWebTransport}
             onChange={(value) => { setConfig('enableWebTransport', value) }}
-            resetKey={resetKey}
-          />
-          <TextInput
-            className='e2e-config-page-input e2e-config-page-input-routers'
-            description='A newline delimited list of delegated IPFS router URLs.'
-            label='Routers'
-            validationFn={urlValidationFn}
-            onChange={(value) => { setConfig('routers', value) }}
-            value={convertUrlArrayToInput(routers)}
-            preSaveFormat={(value: string) => value.split('\n')}
             resetKey={resetKey}
           />
         </InputSection>
@@ -198,7 +210,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
           <InputToggle
             className='e2e-config-page-input e2e-config-page-input-enableRecursiveGateways'
             label='Enable Recursive Gateways'
-            description='Use recursive gateways configured below for retrieval of content.'
+            description='Attempt to fetch content via centralized recursive gateways, configured below, as a fallback when direct retrieval from storage providers is unavailable due to missing browser-compatible transports.'
             value={enableRecursiveGateways}
             onChange={(value) => { setConfig('enableRecursiveGateways', value) }}
             resetKey={resetKey}
@@ -215,16 +227,6 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
           />
         </InputSection>
         <InputSection label='Other'>
-          <TextInput
-            className='e2e-config-page-input e2e-config-page-input-dnsJsonResolvers'
-            description='A newline delimited list of space delimited key+value pairs for DNS (application/dns-json) resolvers. The key is the domain suffix, and the value is the URL of the DNS resolver.'
-            label='DNS'
-            validationFn={dnsJsonValidationFn}
-            value={convertDnsResolverObjectToInput(dnsJsonResolvers)}
-            onChange={(value) => { setConfig('dnsJsonResolvers', value) }}
-            preSaveFormat={(value) => convertDnsResolverInputToObject(value)}
-            resetKey={resetKey}
-          />
           <NumberInput
             className='e2e-config-page-input e2e-config-page-input-fetchTimeout'
             description='The timeout for fetching content from the gateway, in seconds'
