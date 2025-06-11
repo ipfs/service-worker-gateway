@@ -3,23 +3,77 @@
   <head>
     <title>Content Viewer</title>
     <style>
-      body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background: #111; }
+      body { margin: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #111; color: #fff; }
       img { max-width: 100%; max-height: 100%; }
+      .hidden { display: none; }
+      .error-message { color: red; }
+      .warning-message { color: orange; }
     </style>
   </head>
   <body>
-    <img id="img" alt="Image Content" style="display: none;" />
-    <video id="video" alt="Video Content" controls autoplay style="display: none;" />
-    <audio id="audio" alt="Audio Content" controls autoplay style="display: none;" />
+    <!-- <div style="position: fixed; top: 0; left: 0; right: 0; background: #222; color: #ddd; font-size: 0.9rem; padding: 0.5rem; text-align: center; z-index: 1000;">
+      Redirected for compatibility - the content below is original and unmodified.
+    </div> -->
+    <h2 class="js-hidden-during-load hidden warning-message" id="full-content-note">
+      You're viewing a custom page provided by your browser for compatibility reasons.<br />
+      The original content you requested is shown below using the correct media viewer.
+    </h2>
+    <h2 class="js-hidden-during-load hidden warning-message" id="safari-note">
+      Safari redirected you here because it cannot display this type of file directly from a Service Worker.<br />
+      To ensure it renders properly, we've embedded it below using a standard viewer.
+    </h2>
+    <img class="hidden" id="img" alt="Image Content"></img>
+    <video class="hidden" id="video" alt="Video Content" controls autoplay></video>
+    <audio class="hidden" id="audio" alt="Audio Content" controls autoplay></audio>
+
+    <h1 class="js-show-during-load" id="loading-message">Loading...</h2>
+    <h1 class="error-message hidden " id="invalid-params-message">No content type or IPFS path provided. Please make sure `type` and `ipfsPath` are set in the URL.</h1>
+    <p class="js-hidden-during-load hidden" id="download-message">If you would like to download the file, you can do so by clicking the Download button below.</p>
+    <button class="js-hidden-during-load hidden" id="download-button" >Download</button>
+
     <script>
       // @ts-check
       const params = new URLSearchParams(location.search)
       const type = params.get('type')
       const ipfsPath = params.get('ipfsPath')
 
-      function updateRenderElement(type, ipfsPath) {
+      function updateAfterLoad() {
+        Array.from(document.getElementsByClassName('js-show-during-load')).forEach(element => element.classList.add('hidden'))
+        Array.from(document.getElementsByClassName('js-hidden-during-load')).forEach(element => element.classList.remove('hidden'))
+      }
+
+      function getExtensionFromMime(mime) {
+        const map = {
+          'image/jpeg': 'jpg',
+          'image/png': 'png',
+          'image/gif': 'gif',
+          'image/webp': 'webp',
+          'video/mp4': 'mp4',
+          'audio/mpeg': 'mp3',
+          'audio/wav': 'wav',
+        }
+        return map[mime]
+      }
+
+      function getFilenameFromIpfsPath(ipfsPath, type) {
+        const cid = ipfsPath.split('/').pop()
+        const ext = getExtensionFromMime(type)
+        return `${cid}${ext ? '.' + ext : ''}`
+      }
+
+      function getDownloadAndRenderPath(ipfsPath) {
+        const cid = ipfsPath.split('/').pop()
+        // if window.location.origin does not include the cid in the hostname (we're origin isolated), then we need to use the ipfsPath as is
+        if (!window.location.hostname.includes(cid)) {
+          return ipfsPath
+        }
+        // otherwise, we need to request '/'
+        return '/'
+      }
+
+      function updateUI(type, ipfsPath) {
         if (type == null || ipfsPath == null) {
-          document.body.innerHTML = 'No content type or IPFS path provided. Please make sure `type` and `ipfsPath` are set in the URL.'
+          document.getElementById('invalid-params-message')?.classList.remove('hidden')
           return
         }
 
@@ -34,13 +88,28 @@
         }
 
         if (renderElement != null) {
-          renderElement.style.display = 'block'
-          renderElement.src = ipfsPath
+          renderElement.classList.remove('hidden')
+          renderElement.src = getDownloadAndRenderPath(ipfsPath)
         }
+
+        const safariNote = /** @type {HTMLHeadingElement} */ (document.getElementById('safari-note'))
+        if (safariNote != null) {
+          safariNote.innerHTML = safariNote.innerHTML.replace('{type}', type)
+        }
+
+        const downloadButton = /** @type {HTMLButtonElement} */ (document.getElementById('download-button'))
+        if (downloadButton != null) {
+          const filename = getFilenameFromIpfsPath(ipfsPath, type)
+          downloadButton.addEventListener('click', () => {
+            window.location.href = `${getDownloadAndRenderPath(ipfsPath)}?download=true&filename=${filename}`
+          })
+          downloadButton.classList.remove('hidden')
+        }
+
+        updateAfterLoad()
       }
 
-      updateRenderElement(type, ipfsPath)
-
+      updateUI(type, ipfsPath)
     </script>
   </body>
 </html>
