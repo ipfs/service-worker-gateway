@@ -9,7 +9,8 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        background-color: #34373f; /* .bg-charcoal */
+        /* background-color: #34373f; .bg-charcoal */
+        background: linear-gradient(to bottom, #0b3a53 0%, #1a1a1a 100%);
         color: #edf0f4; /* .snow */
         padding: 2rem;
         text-align: center;
@@ -43,6 +44,19 @@
         margin-top: 1rem;
       }
 
+      .content-ipfs-path-overlay {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        background: rgba(11, 58, 83, 0.85); /* .navy w/ transparency */
+        color: #edf0f4; /* .snow */
+        font-size: 0.75rem;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-family: monospace;
+        cursor: pointer;
+      }
+
       .card {
         background: #1a1a1a;
         padding: 1rem 1.5rem;
@@ -57,7 +71,6 @@
       .card h3 {
         color: #378085; /* .teal */
         margin-top: 0;
-        display: inline-block;
       }
 
       .ipfs-text--muted {
@@ -97,8 +110,8 @@
     </style>
   </head>
   <body>
-    <h2 class="js-hidden-during-load hidden ipfs-text--warning js-replace-ipfsPath" id="full-content-note">
-      You're viewing a compatibility fallback provided by the <a href="https://ipshipyard.com" target="_blank">Interplanetary Shipyard's</a> <a href="https://github.com/ipfs/service-worker-gateway" target="_blank">IPFS Service Worker Gateway</a>.
+    <h2 class="js-hidden-during-load hidden ipfs-text--warning" id="full-content-note">
+      You're viewing a compatibility fallback provided by the <a href="https://github.com/ipfs/service-worker-gateway" target="_blank">Service Worker Gateway</a>.
     </h2>
     <p class="js-hidden-during-load hidden ipfs-text--warning js-replace-type" id="safari-note">
       Safari cannot display this file type ({type}) directly from a Service Worker.
@@ -106,12 +119,20 @@
     </p>
 
     <div class="card js-hidden-during-load hidden">
-      <h3>Original Content</h3><span class="js-replace-ipfsPath ipfs-text--muted">: {ipfsPath}</span>
+      <h3>Original Content</h3>
       <p class="ipfs-text--muted">The content below is rendered as-is, directly from the IPFS network.</p>
 
-      <img id="img" class="original-media-content hidden" alt="Original content"/>
-      <video id="video" class="original-media-content hidden" alt="Original content" controls autoplay></video>
-      <audio id="audio" class="original-media-content hidden" alt="Original content" controls autoplay></audio>
+      <div style="position: relative; display: inline-block;">
+        <span class="ipfs-text--muted js-replace-ipfsPath content-ipfs-path-overlay"
+          title="Click to copy"
+          onclick="navigator.clipboard.writeText(this.textContent)">
+          {ipfsPath}
+        </span>
+
+        <img id="img" class="original-media-content hidden" alt="Original content"/>
+        <video id="video" class="original-media-content hidden" alt="Original content" controls autoplay></video>
+        <audio id="audio" class="original-media-content hidden" alt="Original content" controls autoplay></audio>
+      </div>
     </div>
 
 
@@ -121,7 +142,7 @@
       Prefer to download instead?
     </p>
     <button id="download-button" class="js-hidden-during-load hidden">
-      📥 Download original file
+      📥 Download original content
     </button>
 
     <!-- <p style="margin-top: 1.5rem;">
@@ -138,7 +159,9 @@
         Array.from(document.getElementsByClassName('js-show-during-load')).forEach(element => element.classList.add('hidden'))
         Array.from(document.getElementsByClassName('js-hidden-during-load')).forEach(element => element.classList.remove('hidden'))
         if (ipfsPath != null) {
-          Array.from(document.getElementsByClassName('js-replace-ipfsPath')).forEach(element => element.innerHTML = element.innerHTML.replace('{ipfsPath}', ipfsPath))
+          Array.from(document.getElementsByClassName('js-replace-ipfsPath')).forEach(element => {
+            element.innerText = element.innerText.replace('{ipfsPath}', ipfsPath)
+          })
         }
         if (type != null) {
           Array.from(document.getElementsByClassName('js-replace-type')).forEach(element => element.innerHTML = element.innerHTML.replace('{type}', type))
