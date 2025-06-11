@@ -7,6 +7,9 @@ import { isConfigPage } from './lib/is-config-page.js'
 import { swLogger } from './lib/logger.js'
 import { findOriginIsolationRedirect, isPathGatewayRequest, isSubdomainGatewayRequest } from './lib/path-or-subdomain.js'
 import { isUnregisterRequest } from './lib/unregister-request.js'
+import { getContentViewerResponse } from './sw/responses/content-viewer-response.js'
+import { acceptMatchesContentType } from './sw/safari/accept-matches-content-type.js'
+import { needsContentViewer } from './sw/safari/needs-content-viewer.js'
 import type { ConfigDb } from './lib/config-db.js'
 import type { VerifiedFetch } from '@helia/verified-fetch'
 
@@ -463,7 +466,8 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
   const originalUrl = new URL(request.url)
   // test and enforce origin isolation before anything else is executed
   const originLocation = await findOriginIsolationRedirect(originalUrl, swLogger)
-  if (originLocation !== null) {
+  // if referrer is ipfs-sw-content-viewer.html, then we should not redirect
+  if (originLocation !== null && !request.headers.get('referer')?.includes('ipfs-sw-content-viewer.html')) {
     const body = 'Gateway supports subdomain mode, redirecting to ensure Origin isolation..'
     return new Response(body, {
       status: 301,
@@ -555,6 +559,11 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
     if (response.status >= 400 && response.status !== 504) {
       log.error('fetchHandler: response not ok: ', response)
       return await errorPageResponse(response)
+    }
+
+    // if request is from safari, we may need to return the content-viewer if they're not trying to download the content
+    if (needsContentViewer({ response, event })) {
+      return await getContentViewerResponse(response)
     }
 
     return response

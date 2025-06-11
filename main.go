@@ -56,6 +56,10 @@ func fileExists(p string) bool {
 // redirectToHelia sends `302 /?helia-sw=<escaped original URI>`
 func redirectToHelia(w http.ResponseWriter, r *http.Request) {
 	target := "/?helia-sw=" + url.QueryEscape(r.URL.RequestURI())
+	// if referer is ipfs-sw-content-viewer.html, then we should not redirect
+	if r.Referer() == "ipfs-sw-content-viewer.html" {
+		return
+	}
 	http.Redirect(w, r, target, http.StatusFound)
 }
 

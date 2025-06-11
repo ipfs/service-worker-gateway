@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Content Viewer</title>
+    <style>
+      body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background: #111; }
+      img { max-width: 100%; max-height: 100%; }
+    </style>
+  </head>
+  <body>
+    <img id="img" alt="Image Content" style="display: none;" />
+    <video id="video" alt="Video Content" controls autoplay style="display: none;" />
+    <audio id="audio" alt="Audio Content" controls autoplay style="display: none;" />
+    <script>
+      // @ts-check
+      const params = new URLSearchParams(location.search)
+      const type = params.get('type')
+      const ipfsPath = params.get('ipfsPath')
+
+      function updateRenderElement(type, ipfsPath) {
+        if (type == null || ipfsPath == null) {
+          document.body.innerHTML = 'No content type or IPFS path provided. Please make sure `type` and `ipfsPath` are set in the URL.'
+          return
+        }
+
+        /** @type {HTMLImageElement | HTMLVideoElement | HTMLAudioElement | null} */
+        let renderElement = null
+        if (type.startsWith('image/')) {
+          renderElement = /** @type {HTMLImageElement} */ (document.getElementById('img'))
+        } else if (type.startsWith('video/')) {
+          renderElement = /** @type {HTMLVideoElement} */ (document.getElementById('video'))
+        } else if (type.startsWith('audio/')) {
+          renderElement = /** @type {HTMLAudioElement} */ (document.getElementById('audio'))
+        }
+
+        if (renderElement != null) {
+          renderElement.style.display = 'block'
+          renderElement.src = ipfsPath
+        }
+      }
+
+      updateRenderElement(type, ipfsPath)
+
+    </script>
+  </body>
+</html>
