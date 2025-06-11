@@ -3,33 +3,130 @@
   <head>
     <title>Content Viewer</title>
     <style>
-      body { margin: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #111; color: #fff; }
-      img { max-width: 100%; max-height: 100%; }
-      .hidden { display: none; }
-      .error-message { color: red; }
-      .warning-message { color: orange; }
+      body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background-color: #34373f; /* .bg-charcoal */
+        color: #edf0f4; /* .snow */
+        padding: 2rem;
+        text-align: center;
+        min-height: 100vh;
+      }
+
+      h1, h2, h3 {
+        margin: 0 0 1rem;
+        font-weight: 600;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      .warning-message {
+        color: #f39021; /* .yellow */
+      }
+
+      .error-message {
+        color: #ea5037; /* .red */
+      }
+
+      .success-message {
+        color: #378085; /* .teal */
+      }
+
+      .original-media-content {
+        max-width: 100%;
+        max-height: 75vh;
+        margin-top: 1rem;
+      }
+
+      .card {
+        background: #1a1a1a;
+        padding: 1rem 1.5rem;
+        border-left: 6px solid #378085; /* .teal */
+        border-radius: 0.75rem;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+        max-width: 800px;
+        width: 100%;
+        margin: 2rem auto;
+      }
+
+      .card h3 {
+        color: #378085; /* .teal */
+        margin-top: 0;
+        display: inline-block;
+      }
+
+      .ipfs-text--muted {
+        color: #b7bbc8; /* .gray */
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+        display: inline-block;
+      }
+
+      #download-button {
+        padding: 0.5rem 1.2rem;
+        font-size: 1rem;
+        font-weight: bold;
+        background-color: #378085; /* .teal */
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        margin-top: 1rem;
+        transition: background-color 0.2s ease;
+      }
+
+      #download-button:hover {
+        background-color: #439a9d; /* .teal-muted */
+      }
+
+      a {
+        color: #69c4cd; /* .aqua */
+        text-decoration: none;
+        font-size: 0.9rem;
+      }
+
+      a:hover {
+        text-decoration: underline;
+        color: #9ad4db; /* .aqua-muted */
+      }
     </style>
   </head>
   <body>
-    <!-- <div style="position: fixed; top: 0; left: 0; right: 0; background: #222; color: #ddd; font-size: 0.9rem; padding: 0.5rem; text-align: center; z-index: 1000;">
-      Redirected for compatibility - the content below is original and unmodified.
-    </div> -->
-    <h2 class="js-hidden-during-load hidden warning-message" id="full-content-note">
-      You're viewing a custom page provided by your browser for compatibility reasons.<br />
-      The original content you requested is shown below using the correct media viewer.
+    <h2 class="js-hidden-during-load hidden ipfs-text--warning js-replace-ipfsPath" id="full-content-note">
+      You're viewing a compatibility fallback provided by the <a href="https://ipshipyard.com" target="_blank">Interplanetary Shipyard's</a> <a href="https://github.com/ipfs/service-worker-gateway" target="_blank">IPFS Service Worker Gateway</a>.
     </h2>
-    <h2 class="js-hidden-during-load hidden warning-message" id="safari-note">
-      Safari redirected you here because it cannot display this type of file directly from a Service Worker.<br />
-      To ensure it renders properly, we've embedded it below using a standard viewer.
-    </h2>
-    <img class="hidden" id="img" alt="Image Content"></img>
-    <video class="hidden" id="video" alt="Video Content" controls autoplay></video>
-    <audio class="hidden" id="audio" alt="Audio Content" controls autoplay></audio>
+    <p class="js-hidden-during-load hidden ipfs-text--warning js-replace-type" id="safari-note">
+      Safari cannot display this file type ({type}) directly from a Service Worker.
+      The original content you requested is embedded below using the correct media element so it renders properly.
+    </p>
+
+    <div class="card js-hidden-during-load hidden">
+      <h3>Original Content</h3><span class="js-replace-ipfsPath ipfs-text--muted">: {ipfsPath}</span>
+      <p class="ipfs-text--muted">The content below is rendered as-is, directly from the IPFS network.</p>
+
+      <img id="img" class="original-media-content hidden" alt="Original content"/>
+      <video id="video" class="original-media-content hidden" alt="Original content" controls autoplay></video>
+      <audio id="audio" class="original-media-content hidden" alt="Original content" controls autoplay></audio>
+    </div>
+
 
     <h1 class="js-show-during-load" id="loading-message">Loading...</h2>
     <h1 class="error-message hidden " id="invalid-params-message">No content type or IPFS path provided. Please make sure `type` and `ipfsPath` are set in the URL.</h1>
-    <p class="js-hidden-during-load hidden" id="download-message">If you would like to download the file, you can do so by clicking the Download button below.</p>
-    <button class="js-hidden-during-load hidden" id="download-button" >Download</button>
+    <p id="download-message" class="js-hidden-during-load hidden">
+      Prefer to download instead?
+    </p>
+    <button id="download-button" class="js-hidden-during-load hidden">
+      📥 Download original file
+    </button>
+
+    <!-- <p style="margin-top: 1.5rem;">
+      <a href="/" title="Return to homepage">← Return to homepage. You can disable this fallback in the service-worker configuration.</a>
+    </p> -->
 
     <script>
       // @ts-check
@@ -40,6 +137,12 @@
       function updateAfterLoad() {
         Array.from(document.getElementsByClassName('js-show-during-load')).forEach(element => element.classList.add('hidden'))
         Array.from(document.getElementsByClassName('js-hidden-during-load')).forEach(element => element.classList.remove('hidden'))
+        if (ipfsPath != null) {
+          Array.from(document.getElementsByClassName('js-replace-ipfsPath')).forEach(element => element.innerHTML = element.innerHTML.replace('{ipfsPath}', ipfsPath))
+        }
+        if (type != null) {
+          Array.from(document.getElementsByClassName('js-replace-type')).forEach(element => element.innerHTML = element.innerHTML.replace('{type}', type))
+        }
       }
 
       function getExtensionFromMime(mime) {
