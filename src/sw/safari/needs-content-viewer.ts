@@ -1,11 +1,9 @@
-import { acceptMatchesContentType } from './accept-matches-content-type.js'
-
 /**
  * Safari has trouble rendering binary content (e.g. images/videos)
  * during top-level navigations if the Accept header doesn't explicitly match.
  * This detects those cases and should result in a redirect to ipfs-sw-content-viewer.html as a workaround.
  */
-export function needsContentViewer ({ response, event }: { response: Response, event: FetchEvent }): boolean {
+export function needsContentViewer ({ response, event, acceptMatchesContentType }: { response: Response, event: FetchEvent, acceptMatchesContentType: (acceptHeader: string | null, contentType: string | null) => boolean }): boolean {
   const request = event.request
 
   if (request.mode !== 'navigate' || request.destination !== 'document') {
@@ -28,7 +26,7 @@ export function needsContentViewer ({ response, event }: { response: Response, e
     return false // not a renderable type
   }
   const acceptHeader = request.headers.get('accept')
-  if (acceptMatchesContentType(acceptHeader, contentType) === true) {
+  if (acceptMatchesContentType(acceptHeader, contentType)) {
     return false // accept header matches content type, any browser should render it properly
   }
 

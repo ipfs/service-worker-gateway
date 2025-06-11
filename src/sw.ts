@@ -562,7 +562,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
     }
 
     // if request is from safari, we may need to return the content-viewer if they're not trying to download the content
-    if (needsContentViewer({ response, event })) {
+    if (needsContentViewer({ response, event, acceptMatchesContentType })) {
       return await getContentViewerResponse(response)
     }
 
