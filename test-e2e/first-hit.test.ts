@@ -42,7 +42,6 @@ test.describe('first-hit ipfs-hosted', () => {
       if (test.info().project.name === 'safari') {
         // @see https://github.com/ipfs/in-web-browsers/issues/206
         test.skip()
-        return
       }
     })
     test('redirects to ?helia-sw=<path> are handled', async ({ page, rootDomain, protocol }) => {
@@ -112,7 +111,6 @@ test.describe('first-hit direct-hosted', () => {
       if (test.info().project.name === 'safari') {
         // @see https://github.com/ipfs/in-web-browsers/issues/206
         test.skip()
-        return
       }
     })
     test('requests to new pages are redirected', async ({ page, rootDomain, protocol }) => {
