@@ -92,7 +92,7 @@
     "esbuild": "^0.25.5",
     "glob": "^11.0.1",
     "http-server": "^14.1.1",
-    "it-all": "^3.0.7",
+    "it-all": "^3.0.9",
     "kubo": "^0.35.0",
     "kubo-rpc-client": "^5.1.0",
     "npm-run-all": "^4.1.5",
