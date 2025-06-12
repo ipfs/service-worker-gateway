@@ -153,6 +153,8 @@ jobs:
         with:
           node-version: lts/*
       - uses: ipfs/aegir/actions/cache-node-modules@main
+      - run: npx playwright install --with-deps
+        timeout-minutes: 10 # should take no longer than 2min
       - run: npm run --if-present test:webkit
       - uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4.6.0
         with:
