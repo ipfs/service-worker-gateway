@@ -16,7 +16,7 @@ export function acceptMatchesContentType (acceptHeader: string | null, contentTy
 
   const mediaTypeVariants = [
     `${type}/${subtype}`, // exact
-    `${type}/*`          // wildcard subtype only
+    `${type}/*` // wildcard subtype only
   ]
 
   return mediaTypeVariants.some(mediaType => accepted.includes(mediaType))

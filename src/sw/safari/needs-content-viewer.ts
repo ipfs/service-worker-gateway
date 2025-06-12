@@ -3,7 +3,7 @@
  * during top-level navigations if the Accept header doesn't explicitly match.
  * This detects those cases and should result in a redirect to ipfs-sw-content-viewer.html as a workaround.
  */
-export function needsContentViewer ({ response, event, acceptMatchesContentType }: { response: Response, event: FetchEvent, acceptMatchesContentType: (acceptHeader: string | null, contentType: string | null) => boolean }): boolean {
+export function needsContentViewer ({ response, event, acceptMatchesContentType }: { response: Response, event: FetchEvent, acceptMatchesContentType(acceptHeader: string | null, contentType: string | null): boolean }): boolean {
   const request = event.request
 
   if (request.mode !== 'navigate' || request.destination !== 'document') {
@@ -16,7 +16,7 @@ export function needsContentViewer ({ response, event, acceptMatchesContentType 
   }
 
   const contentDisposition = response.headers.get('content-disposition')
-  const isDownloadRequest = contentDisposition != null && contentDisposition.includes('inline;') === false
+  const isDownloadRequest = contentDisposition != null && !contentDisposition.includes('inline;')
   if (isDownloadRequest) {
     return false // it's a forced download
   }

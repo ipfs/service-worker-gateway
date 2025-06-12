@@ -2,7 +2,7 @@ import { expect } from 'aegir/chai'
 import sinon from 'sinon'
 import { needsContentViewer } from '../../../src/sw/safari/needs-content-viewer.js'
 
-function mockResponse(headers: Record<string, string | null> = {}) {
+function mockResponse (headers: Record<string, string | null> = {}): Response {
   return {
     headers: {
       get: (key: string) => headers[key.toLowerCase()] ?? null
@@ -10,13 +10,13 @@ function mockResponse(headers: Record<string, string | null> = {}) {
   } as Response
 }
 
-function mockEvent({
+function mockEvent ({
   mode = 'navigate',
   destination = 'document',
   headers = {}
 }: {
-  mode?: string,
-  destination?: string,
+  mode?: string
+  destination?: string
   headers?: Record<string, string | null>
 }): FetchEvent {
   return {
@@ -65,7 +65,7 @@ describe('needsContentViewer', () => {
     const event = mockEvent({
       headers: {
         'user-agent': 'Safari/605.1.15',
-        'accept': 'image/jpeg'
+        accept: 'image/jpeg'
       }
     })
     const response = mockResponse({ 'content-type': 'image/jpeg' })
@@ -76,7 +76,7 @@ describe('needsContentViewer', () => {
     const event = mockEvent({
       headers: {
         'user-agent': 'Mozilla/5.0 (Macintosh) AppleWebKit/605.1.15 Version/15.0 Safari/605.1.15',
-        'accept': 'text/html'
+        accept: 'text/html'
       }
     })
     const response = mockResponse({ 'content-type': 'image/jpeg' })
@@ -85,7 +85,7 @@ describe('needsContentViewer', () => {
 
   it('returns true if user-agent is null but all other conditions match', () => {
     const event = mockEvent({
-      headers: { 'accept': 'text/html' }
+      headers: { accept: 'text/html' }
     })
     const response = mockResponse({ 'content-type': 'video/mp4' })
     expect(needsContentViewer({ response, event, acceptMatchesContentType: sinon.fake.returns(false) })).to.be.true()
