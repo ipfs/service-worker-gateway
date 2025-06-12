@@ -36,7 +36,6 @@ export async function ensureSwScope (): Promise<void> {
       const redirect = await findOriginIsolationRedirect(window.location, uiLogger)
       if (redirect !== null) {
         window.location.replace(redirect)
-        // window.location.href = redirect
       }
     } else {
       log.trace('subdomain support is disabled, but we still need to redirect to the root path to register the service worker')

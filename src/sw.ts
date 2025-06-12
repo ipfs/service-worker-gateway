@@ -562,11 +562,10 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
     const newResponse = new Response(response.body, {
       status: response.status,
       headers: response.headers,
-      statusText: response.statusText,
+      statusText: response.statusText
     })
 
     return newResponse
-
   } catch (err: unknown) {
     log.trace('fetchHandler: error: ', err)
     const errorMessages: string[] = []
