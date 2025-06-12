@@ -38,6 +38,12 @@ test.describe('first-hit ipfs-hosted', () => {
   })
 
   test.describe('subdomain-routing', () => {
+    test.beforeAll(async () => {
+      if (test.info().project.name === 'webkit') {
+        // @see https://github.com/ipfs/in-web-browsers/issues/206
+        test.skip()
+      }
+    })
     test('redirects to ?helia-sw=<path> are handled', async ({ page, rootDomain, protocol }) => {
       const response = await page.goto('http://localhost:3334/ipfs/bafkqablimvwgy3y')
 
@@ -101,6 +107,12 @@ test.describe('first-hit direct-hosted', () => {
   })
 
   test.describe('subdomain-routing', () => {
+    test.beforeAll(async () => {
+      if (test.info().project.name === 'webkit') {
+        // @see https://github.com/ipfs/in-web-browsers/issues/206
+        test.skip()
+      }
+    })
     test('requests to new pages are redirected', async ({ page, rootDomain, protocol }) => {
       const response = await page.goto(`${protocol}//${rootDomain}/ipfs/bafkqablimvwgy3y`, { waitUntil: 'commit' })
 

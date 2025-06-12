@@ -130,6 +130,16 @@ export const testSubdomainRouting = test.extend<{ rootDomain: string, baseURL: s
   rootDomain: [rootDomain, { scope: 'test' }],
   protocol: [baseURLProtocol, { scope: 'test' }],
   page: async ({ page, baseURL }, use) => {
+    /**
+     * if safari, skip subdomain routing tests
+     *
+     * @see https://github.com/ipfs/in-web-browsers/issues/206
+     */
+    if (test.info().project.name === 'webkit') {
+      testSubdomainRouting.skip()
+      return
+    }
+
     await page.goto(baseURL, { waitUntil: 'networkidle' })
     await waitForServiceWorker(page, baseURL)
 
