@@ -34,6 +34,11 @@ test.describe('ipfs-sw configuration', () => {
   })
 
   test('root config is propagated to subdomain', async ({ page, baseURL, rootDomain, protocol }) => {
+    if (test.info().project.name === 'safari') {
+      // @see https://github.com/ipfs/in-web-browsers/issues/206
+      test.skip()
+      return
+    }
     await page.goto(baseURL, { waitUntil: 'networkidle' })
     await waitForServiceWorker(page, baseURL)
     // set the config on the root..

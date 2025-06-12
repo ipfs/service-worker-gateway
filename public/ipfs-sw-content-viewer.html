@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Content Viewer</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background: linear-gradient(to bottom, #0b3a53 0%, #1a1a1a 100%);
+        color: #edf0f4; /* .snow */
+        padding: 2rem;
+        text-align: center;
+        min-height: 100vh;
+      }
+
+      h1, h2, h3 {
+        margin: 0 0 1rem;
+        font-weight: 600;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      .warning-message {
+        color: #f39021; /* .yellow */
+      }
+
+      .error-message {
+        color: #ea5037; /* .red */
+      }
+
+      .success-message {
+        color: #378085; /* .teal */
+      }
+
+      .original-media-content {
+        max-width: 100%;
+        max-height: 75vh;
+        margin-top: 1rem;
+      }
+
+      .content-ipfs-path-overlay {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        background: rgba(11, 58, 83, 0.85); /* .navy w/ transparency */
+        color: #edf0f4; /* .snow */
+        font-size: 0.75rem;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-family: monospace;
+        cursor: pointer;
+      }
+
+      .card {
+        background: #1a1a1a;
+        padding: 1rem 1.5rem;
+        border-left: 6px solid #378085; /* .teal */
+        border-radius: 0.75rem;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+        max-width: 800px;
+        width: 100%;
+        margin: 2rem auto;
+      }
+
+      .card h3 {
+        color: #378085; /* .teal */
+        margin-top: 0;
+      }
+
+      .ipfs-text--muted {
+        color: #b7bbc8; /* .gray */
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+        display: inline-block;
+      }
+
+      #download-button {
+        padding: 0.5rem 1.2rem;
+        font-size: 1rem;
+        font-weight: bold;
+        background-color: #378085; /* .teal */
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        margin-top: 1rem;
+        transition: background-color 0.2s ease;
+      }
+
+      #download-button:hover {
+        background-color: #439a9d; /* .teal-muted */
+      }
+
+      a {
+        color: #69c4cd; /* .aqua */
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+        color: #9ad4db; /* .aqua-muted */
+      }
+    </style>
+  </head>
+  <body>
+    <h2 class="js-hidden-during-load hidden ipfs-text--warning" id="full-content-note">
+      You're viewing a compatibility fallback provided by the <a href="https://github.com/ipfs/service-worker-gateway" target="_blank">Service Worker Gateway</a>.
+    </h2>
+    <p class="js-hidden-during-load hidden ipfs-text--warning js-replace-type" id="safari-note">
+      Safari cannot display this file type ({type}) directly from a Service Worker.
+      The original content you requested is embedded below using the correct media element so it renders properly.
+    </p>
+
+    <div class="card js-hidden-during-load hidden">
+      <h3>Original Content</h3>
+      <p class="ipfs-text--muted">The content below is rendered as-is, directly from the IPFS network.</p>
+
+      <div style="position: relative; display: inline-block;">
+        <span class="ipfs-text--muted js-replace-ipfsPath content-ipfs-path-overlay"
+          title="Click to copy"
+          onclick="navigator.clipboard.writeText(this.textContent)">
+          {ipfsPath}
+        </span>
+
+        <img id="img" class="original-media-content hidden" alt="Original content"/>
+        <video id="video" class="original-media-content hidden" alt="Original content" controls autoplay></video>
+        <audio id="audio" class="original-media-content hidden" alt="Original content" controls autoplay></audio>
+      </div>
+    </div>
+
+
+    <h1 class="js-show-during-load" id="loading-message">Loading...</h2>
+    <h1 class="error-message hidden " id="invalid-params-message">No content type or IPFS path provided. Please make sure `type` and `ipfsPath` are set in the URL.</h1>
+    <p id="download-message" class="js-hidden-during-load hidden">
+      Prefer to download instead?
+    </p>
+    <button id="download-button" class="js-hidden-during-load hidden">
+      &#11015; Download original content
+    </button>
+
+    <!-- <p style="margin-top: 1.5rem;">
+      <a href="/" title="Return to homepage">← Return to homepage. You can disable this fallback in the service-worker configuration.</a>
+    </p> -->
+
+    <script>
+      // @ts-check
+      const params = new URLSearchParams(location.search)
+      const type = params.get('type')
+      const ipfsPath = params.get('ipfsPath')
+
+      function updateAfterLoad() {
+        Array.from(document.getElementsByClassName('js-show-during-load')).forEach(element => element.classList.add('hidden'))
+        Array.from(document.getElementsByClassName('js-hidden-during-load')).forEach(element => element.classList.remove('hidden'))
+        if (ipfsPath != null) {
+          Array.from(document.getElementsByClassName('js-replace-ipfsPath')).forEach(element => {
+            element.innerText = element.innerText.replace('{ipfsPath}', ipfsPath)
+          })
+        }
+        if (type != null) {
+          Array.from(document.getElementsByClassName('js-replace-type')).forEach(element => element.innerHTML = element.innerHTML.replace('{type}', type))
+        }
+      }
+
+      function getExtensionFromMime(mime) {
+        const map = {
+          'image/jpeg': 'jpg',
+          'image/png': 'png',
+          'image/gif': 'gif',
+          'image/webp': 'webp',
+          'video/mp4': 'mp4',
+          'audio/mpeg': 'mp3',
+          'audio/wav': 'wav',
+        }
+        return map[mime]
+      }
+
+      function getFilenameFromIpfsPath(ipfsPath, type) {
+        const cid = ipfsPath.split('/').pop()
+        const ext = getExtensionFromMime(type)
+        return `${cid}${ext ? '.' + ext : ''}`
+      }
+
+      function getDownloadAndRenderPath(ipfsPath) {
+        const cid = ipfsPath.split('/').pop()
+        // if window.location.origin does not include the cid in the hostname (we're origin isolated), then we need to use the ipfsPath as is
+        if (!window.location.hostname.includes(cid)) {
+          return ipfsPath
+        }
+        // otherwise, we need to request '/'
+        return '/'
+      }
+
+      function updateUI(type, ipfsPath) {
+        if (type == null || ipfsPath == null) {
+          document.getElementById('invalid-params-message')?.classList.remove('hidden')
+          return
+        }
+
+        /** @type {HTMLImageElement | HTMLVideoElement | HTMLAudioElement | null} */
+        let renderElement = null
+        if (type.startsWith('image/')) {
+          renderElement = /** @type {HTMLImageElement} */ (document.getElementById('img'))
+        } else if (type.startsWith('video/')) {
+          renderElement = /** @type {HTMLVideoElement} */ (document.getElementById('video'))
+        } else if (type.startsWith('audio/')) {
+          renderElement = /** @type {HTMLAudioElement} */ (document.getElementById('audio'))
+        }
+
+        if (renderElement != null) {
+          renderElement.classList.remove('hidden')
+          renderElement.src = getDownloadAndRenderPath(ipfsPath)
+        }
+
+        const safariNote = /** @type {HTMLHeadingElement} */ (document.getElementById('safari-note'))
+        if (safariNote != null) {
+          safariNote.innerHTML = safariNote.innerHTML.replace('{type}', type)
+        }
+
+        const downloadButton = /** @type {HTMLButtonElement} */ (document.getElementById('download-button'))
+        if (downloadButton != null) {
+          const filename = getFilenameFromIpfsPath(ipfsPath, type)
+          downloadButton.addEventListener('click', () => {
+            window.location.href = `${getDownloadAndRenderPath(ipfsPath)}?download=true&filename=${filename}`
+          })
+          downloadButton.classList.remove('hidden')
+        }
+
+        updateAfterLoad()
+      }
+
+      updateUI(type, ipfsPath)
+    </script>
+  </body>
+</html>
