@@ -59,6 +59,12 @@ export default defineConfig({
         ...devices['Desktop Firefox']
       }
     },
+    {
+      name: 'safari',
+      use: {
+        ...devices['Desktop Safari']
+      }
+    },
     /**
      * Test a deployed site such as inbrowser.dev with `BASE_URL="https://inbrowser.dev" npm run test:deployed`
      * or inbrowser.link with `BASE_URL="https://inbrowser.link" npm run test:deployed`

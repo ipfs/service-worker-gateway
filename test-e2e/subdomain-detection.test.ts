@@ -13,6 +13,12 @@ test.describe('subdomain-detection', () => {
     routers.push(process.env.KUBO_GATEWAY)
   })
   test('path requests are redirected to subdomains', async ({ page, baseURL, rootDomain, protocol }) => {
+    if (test.info().project.name === 'safari') {
+      // @see https://github.com/ipfs/in-web-browsers/issues/206
+      test.skip()
+      return
+    }
+
     await page.goto(baseURL, { waitUntil: 'networkidle' })
     await waitForServiceWorker(page, baseURL)
     await setConfig({
