@@ -171,7 +171,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
           />
           <TextInput
             className='e2e-config-page-input e2e-config-page-input-dnsJsonResolvers'
-            description='A newline delimited list of space delimited key+value pairs for DNS (application/dns-json) resolvers. The key is the domain suffix, and the value is the URL of the DNS resolver. Note: Use only trusted centralized gateways, as they may infer your browsing history.'
+            description='A newline delimited list of space delimited key+value pairs for DNS (application/dns-json) resolvers. The key is the domain suffix, and the value is the URL of the DNS resolver. Note: Use only trusted DoH resolvers, as they are responsible for DNSLink resolution and may infer related browsing history.'
             label='DNS Resolvers'
             validationFn={dnsJsonValidationFn}
             value={convertDnsResolverObjectToInput(dnsJsonResolvers)}
@@ -217,7 +217,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
           />
           <TextInput
             className='e2e-config-page-input e2e-config-page-input-gateways'
-            description='A newline delimited list of recursive trustless gateway URLs.'
+            description='A newline delimited list of recursive trustless gateway URLs. Note: Use only trusted centralized gateways, as they may log and correlate your entire browsing history.'
             label='Recursive Gateways'
             validationFn={urlValidationFn}
             value={convertUrlArrayToInput(gateways)}
