@@ -60,7 +60,8 @@ export default defineConfig({
       }
     },
     {
-      name: 'webkit',
+      // NOTE: github CI isn't running these tests successfully, but they work locally.
+      name: 'safari',
       use: {
         ...devices['Desktop Safari']
       }
