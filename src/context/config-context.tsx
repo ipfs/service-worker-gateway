@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useEffect, useState } from 'react'
-import { defaultDebug, defaultDnsJsonResolvers, defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, defaultFetchTimeout, defaultGateways, defaultRouters, defaultSupportsSubdomains, getConfig, resetConfig } from '../lib/config-db.js'
+import { defaultDebug, defaultDnsJsonResolvers, defaultEnableGatewayProviders, defaultEnableProviderQueryParameter, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, defaultFetchTimeout, defaultGateways, defaultRouters, defaultSupportsSubdomains, getConfig, resetConfig } from '../lib/config-db.js'
 import { getUiComponentLogger } from '../lib/logger.js'
 import type { ConfigDb } from '../lib/config-db.js'
 import type { ComponentLogger } from '@libp2p/logger'
@@ -23,6 +23,7 @@ export const ConfigContext = createContext<ConfigContextType>({
   enableWebTransport: defaultEnableWebTransport,
   enableGatewayProviders: defaultEnableGatewayProviders,
   enableRecursiveGateways: defaultEnableRecursiveGateways,
+  enableProviderQueryParameter: defaultEnableProviderQueryParameter,
   debug: defaultDebug(),
   fetchTimeout: defaultFetchTimeout,
   _supportsSubdomains: defaultSupportsSubdomains,
@@ -38,6 +39,7 @@ export const ConfigProvider: React.FC<{ children: ReactElement[] | ReactElement,
   const [enableWebTransport, setEnableWebTransport] = useState(defaultEnableWebTransport)
   const [enableGatewayProviders, setEnableGatewayProviders] = useState(defaultEnableGatewayProviders)
   const [enableRecursiveGateways, setEnableRecursiveGateways] = useState(defaultEnableRecursiveGateways)
+  const [enableProviderQueryParameter, setEnableProviderQueryParameter] = useState(defaultEnableProviderQueryParameter)
   const [debug, setDebug] = useState(defaultDebug())
   const [fetchTimeout, setFetchTimeout] = useState(defaultFetchTimeout)
   const [_supportsSubdomains, setSupportsSubdomains] = useState(defaultSupportsSubdomains)
@@ -53,6 +55,7 @@ export const ConfigProvider: React.FC<{ children: ReactElement[] | ReactElement,
     setEnableWebTransport(config.enableWebTransport)
     setEnableGatewayProviders(config.enableGatewayProviders)
     setEnableRecursiveGateways(config.enableRecursiveGateways)
+    setEnableProviderQueryParameter(config.enableProviderQueryParameter)
     setDebug(config.debug)
     setFetchTimeout(config.fetchTimeout)
   }
@@ -93,6 +96,9 @@ export const ConfigProvider: React.FC<{ children: ReactElement[] | ReactElement,
       case 'enableRecursiveGateways':
         setEnableRecursiveGateways(value)
         break
+      case 'enableProviderQueryParameter':
+        setEnableProviderQueryParameter(value)
+        break
       case 'debug':
         setDebug(value)
         break
@@ -123,6 +129,7 @@ export const ConfigProvider: React.FC<{ children: ReactElement[] | ReactElement,
     enableWebTransport,
     enableGatewayProviders,
     enableRecursiveGateways,
+    enableProviderQueryParameter,
     fetchTimeout,
     debug,
     _supportsSubdomains,
