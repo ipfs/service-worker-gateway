@@ -557,7 +557,15 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
       return await errorPageResponse(response)
     }
 
-    return response
+    // Create a completely new response object with the same body, status, statusText, and headers.
+    // This is necessary to work around a bug with Safari not rendering content correctly.
+    const newResponse = new Response(response.body, {
+      status: response.status,
+      headers: response.headers,
+      statusText: response.statusText
+    })
+
+    return newResponse
   } catch (err: unknown) {
     log.trace('fetchHandler: error: ', err)
     const errorMessages: string[] = []
