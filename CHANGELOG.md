@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.3](https://github.com/ipfs/service-worker-gateway/compare/v1.12.2...v1.12.3) (2025-06-13)
+
+
+### Bug Fixes
+
+* safari renders images correctly ([#753](https://github.com/ipfs/service-worker-gateway/issues/753)) ([1f1de46](https://github.com/ipfs/service-worker-gateway/commit/1f1de4675a0eab7b9ce8c724a98da2e4049dd803))
+
 ## [1.12.2](https://github.com/ipfs/service-worker-gateway/compare/v1.12.1...v1.12.2) (2025-06-04)
 
 
