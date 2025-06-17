@@ -1,10 +1,12 @@
 /**
- * This page is used to load the config from the root domain to the subdomain service worker.
+ * This page is used to load the config from the root domain, and then send it to the subdomain service worker.
  *
  * 1. it sents a GET request to the root domain service worker to get the config
  * 2. it posts a message to the root domain service worker with that config
  * 3. the root domain service worker will then send a RELOAD_CONFIG message to the subdomain service worker
  * 4. the subdomain service worker will then reload the config
+ *
+ * TODO: Migrate to native .html page that doesn't require react or other dependencies at all.
  */
 import React, { useContext, useEffect } from 'react'
 import { ServiceWorkerContext, ServiceWorkerProvider } from '../context/service-worker-context.jsx'
@@ -34,7 +36,6 @@ const ConfigIframe: React.FC = () => {
 
   return <></>
 }
-
 
 export default (): ReactElement => {
   return (
