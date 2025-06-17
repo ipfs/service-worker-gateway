@@ -18,6 +18,7 @@ const LazyInterstitial = React.lazy(async () => import('./pages/redirects-inters
 const LazyServiceWorkerErrorPage = React.lazy(async () => import('./pages/errors/no-service-worker.jsx'))
 const LazySubdomainWarningPage = React.lazy(async () => import('./pages/subdomain-warning.jsx'))
 const LazyFirstHitPage = React.lazy(async () => import('./pages/first-hit.jsx'))
+const LazyConfigIframe = React.lazy(async () => import('./pages/ipfs-sw-config-iframe.jsx'))
 
 let ErrorPage: null | React.LazyExoticComponent<() => ReactElement> = LazyServiceWorkerErrorPage
 if ('serviceWorker' in navigator) {
@@ -28,6 +29,7 @@ const routes: Route[] = [
   { shouldRender: renderChecks.shouldRenderFirstHitPage, component: LazyFirstHitPage },
   { default: true, component: ErrorPage ?? LazyHelperUi },
   { shouldRender: async () => renderChecks.shouldRenderConfigPage(), component: LazyConfig },
+  { shouldRender: async () => renderChecks.shouldRenderConfigIframePage(), component: LazyConfigIframe },
   { shouldRender: async () => renderChecks.shouldRenderNoServiceWorkerError(), component: LazyServiceWorkerErrorPage },
   { shouldRender: renderChecks.shouldRenderSubdomainWarningPage, component: LazySubdomainWarningPage },
   { shouldRender: async () => renderChecks.shouldRenderRedirectsInterstitial(), component: LazyInterstitial },

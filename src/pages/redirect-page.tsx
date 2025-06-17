@@ -23,12 +23,12 @@ const ConfigIframe: React.FC = () => {
   if (parentDomain == null || parentDomain === window.location.href) {
     const url = new URL(window.location.href)
     url.pathname = '/'
-    url.hash = `#/ipfs-sw-config@origin=${encodeURIComponent(window.location.origin)}`
+    url.hash = `#/ipfs-sw-config-iframe@origin=${encodeURIComponent(window.location.origin)}`
 
     iframeSrc = url.href
   } else {
     const portString = window.location.port === '' ? '' : `:${window.location.port}`
-    iframeSrc = `${window.location.protocol}//${parentDomain}${portString}/#/ipfs-sw-config@origin=${encodeURIComponent(window.location.origin)}`
+    iframeSrc = `${window.location.protocol}//${parentDomain}${portString}/#/ipfs-sw-config-iframe@origin=${encodeURIComponent(window.location.origin)}`
   }
 
   const [isVisible, setIsVisible] = useState(false)
