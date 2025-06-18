@@ -83,8 +83,6 @@ export interface ConfigPageProps extends React.HTMLProps<HTMLElement> {
 
 // Config Page can be loaded either as a page or as a component in the landing helper-ui page
 const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
-  console.log('helia:sw-gateway:config-page: rendering')
-
   const { setConfig, resetConfig, gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, fetchTimeout, isLoading: isConfigDataLoading } = useContext(ConfigContext)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<Error | null>(null)

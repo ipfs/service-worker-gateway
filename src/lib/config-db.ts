@@ -1,8 +1,8 @@
 import { enable } from '@libp2p/logger'
+import LZString from 'lz-string'
 import { GenericIDB } from './generic-db.js'
 import type { BaseDbConfig } from './generic-db.js'
 import type { ComponentLogger } from '@libp2p/logger'
-import LZString from 'lz-string'
 
 export interface ConfigDbWithoutPrivateFields extends BaseDbConfig {
   gateways: string[]
@@ -233,18 +233,15 @@ export async function isConfigSet (logger?: ComponentLogger): Promise<boolean> {
 
 export async function compressConfig (config: ConfigDb): Promise<string> {
   const timestamp = Date.now()
-
   const configJson = JSON.stringify({ config, timestamp })
-  const compressedConfig = LZString.compressToEncodedURIComponent(configJson)
-  console.log('helia:sw-gateway:config-db: configJson.length', configJson.length)
-  console.log('helia:sw-gateway:config-db: compressedConfig.length', compressedConfig.length)
-  return compressedConfig
+
+  return LZString.compressToEncodedURIComponent(configJson)
 }
 
 export async function decompressConfig (compressedConfig: string): Promise<ConfigDb> {
   const { config, timestamp } = JSON.parse(LZString.decompressFromEncodedURIComponent(compressedConfig))
   // if the config is more than 10 seconds old, throw an error
-  if (timestamp < Date.now() - 10000) {
+  if (timestamp < Date.now() - 1000) {
     throw new Error('Config is too old. Be sure to only use trusted URLs.')
   }
   return config

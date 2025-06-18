@@ -8,7 +8,6 @@ import LoadingIndicator from '../components/loading-indicator.jsx'
 import type { ReactElement } from 'react'
 
 export default function LoadingPage (): ReactElement {
-  console.log('helia:sw-gateway:loading-page: rendering')
   return (
     <>
       <Header />

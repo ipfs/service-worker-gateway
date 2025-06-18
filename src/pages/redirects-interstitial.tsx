@@ -13,7 +13,6 @@ import './default-page-styles.css'
  * This will only redirect if the URL is for a subdomain
  */
 export default function RedirectsInterstitial (): ReactElement {
-  console.log('helia:sw-gateway:redirects-interstitial: rendering')
   const [subdomainRedirectUrl, setSubdomainRedirectUrl] = React.useState<string | null>(null)
   const [isSubdomainCheckDone, setIsSubdomainCheckDone] = React.useState<boolean>(false)
   useEffect(() => {

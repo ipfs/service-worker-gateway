@@ -1,8 +1,8 @@
 import { checkSubdomainSupport } from './check-subdomain-support.js'
 import { areSubdomainsSupported } from './config-db.js'
+import { QUERY_PARAMS } from './constants.js'
 import { uiLogger } from './logger.js'
 import { findOriginIsolationRedirect, isPathGatewayRequest, isSubdomainGatewayRequest } from './path-or-subdomain.js'
-import { QUERY_PARAMS } from './constants.js'
 
 const log = uiLogger.forComponent('first-hit-helpers')
 
@@ -108,6 +108,7 @@ export function getIsolatedOriginRedirectUrl (url: URL): URL {
   const heliaSw = url.searchParams.get(QUERY_PARAMS.HELIA_SW)
   if (heliaSw != null) {
     url.searchParams.delete(QUERY_PARAMS.HELIA_SW)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [_, protocol, id, ...path] = heliaSw.split('/')
 
     if (!['ipfs', 'ipns'].includes(protocol) || id == null) {

@@ -1,10 +1,11 @@
 import { getConfig, isConfigSet, setConfig } from './lib/config-db.js'
 import { QUERY_PARAMS } from './lib/constants.js'
-import { getSubdomainParts, type UrlParts } from './lib/get-subdomain-parts.js'
+import { getSubdomainParts } from './lib/get-subdomain-parts.js'
 import { uiLogger } from './lib/logger.js'
 import { toSubdomainRequest } from './lib/path-or-subdomain.js'
 import { translateIpfsRedirectUrl } from './lib/translate-ipfs-redirect-url.js'
 import { registerServiceWorker } from './service-worker-utils.js'
+import type { UrlParts } from './lib/get-subdomain-parts.js'
 
 interface NavigationState {
   subdomainHasConfig: boolean
@@ -43,16 +44,15 @@ async function getStateFromUrl (url: URL): Promise<NavigationState> {
  *
  * This page and function will not run if the service worker is already registered on that subdomain.
  */
-async function getConfigRedirectUrl ({ url, isIsolatedOrigin, urlHasSubdomainConfigRequest, compressedConfig, subdomainParts }: NavigationState) {
+async function getConfigRedirectUrl ({ url, isIsolatedOrigin, urlHasSubdomainConfigRequest, compressedConfig, subdomainParts }: NavigationState): Promise<string | null> {
   const { parentDomain, id, protocol } = subdomainParts
-  console.log('helia:sw-gateway:index: parentDomain', parentDomain)
+
   if (isIsolatedOrigin && !urlHasSubdomainConfigRequest && compressedConfig == null) {
     // We are on a subdomain: redirect to the root domain with the subdomain request query param
     const targetUrl = new URL(`${url.protocol}//${parentDomain}`)
     targetUrl.pathname = '/'
     targetUrl.searchParams.set(QUERY_PARAMS.IPFS_SW_SUBDOMAIN_REQUEST, 'true')
     targetUrl.searchParams.set(QUERY_PARAMS.HELIA_SW, `/${protocol}/${id}/${url.pathname}`)
-    console.log('helia:sw-gateway:index: helia-sw redirect url', targetUrl.toString())
 
     return targetUrl.toString()
   }
@@ -79,7 +79,7 @@ async function getUrlWithConfig ({ url, isIsolatedOrigin, urlHasSubdomainConfigR
   return null
 }
 
-async function loadConfigFromUrl ({url, compressedConfig}: NavigationState): Promise<string | null> {
+async function loadConfigFromUrl ({ url, compressedConfig }: NavigationState): Promise<string | null> {
   const { decompressConfig } = await import('./lib/config-db.js')
   if (compressedConfig == null) {
     return null
@@ -91,22 +91,22 @@ async function loadConfigFromUrl ({url, compressedConfig}: NavigationState): Pro
     await registerServiceWorker()
     return url.toString()
   } catch (err) {
+    // eslint-disable-next-line no-console
     console.error('helia:sw-gateway:index: error decompressing config from url', err)
-    // return null
   }
 
   return null
 }
 
-async function renderUi () {
+async function renderUi (): Promise<void> {
   const { default: renderUi } = await import('./app.jsx')
   renderUi()
 }
 
-async function main () {
+async function main (): Promise<void> {
   const url = new URL(window.location.href)
   const state = await getStateFromUrl(url)
-  console.log('helia:sw-gateway:index: state', state)
+
   if (state.subdomainHasConfig) {
     // we are on a subdomain, and have a config
     await renderUi()
@@ -115,18 +115,15 @@ async function main () {
   // if (state.isIsolatedOrigin) {
   const configRedirectUrl = await getConfigRedirectUrl(state)
   if (configRedirectUrl != null) {
-    console.log('helia:sw-gateway:index: configRedirectUrl', configRedirectUrl)
     window.location.replace(configRedirectUrl)
     return
   }
 
   const configForUri = await getUrlWithConfig(state)
   if (configForUri != null) {
-    console.log('helia:sw-gateway:index: configForUri', configForUri)
     window.location.replace(configForUri)
     return
   }
-  // return
 
   const urlAfterLoadingConfig = await loadConfigFromUrl(state)
   if (urlAfterLoadingConfig != null) {
@@ -140,5 +137,6 @@ async function main () {
 
 // if all else fails, dynamically render the App component
 void main().catch((err) => {
+  // eslint-disable-next-line no-console
   console.error('helia:sw-gateway:index: error rendering ui', err)
 })

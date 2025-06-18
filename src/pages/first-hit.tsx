@@ -12,7 +12,6 @@ import type { ReactElement } from 'react'
  * and we want to call `getHeliaSwRedirectUrl` with the current URL (except the ipfs-sw-first-hit.html part) to get the actual URL.
  */
 export default (): ReactElement | null => {
-  console.log('helia:sw-gateway:first-hit: rendering')
   // const currentUrl = new URL(window.location.href)
 
   // currentUrl.pathname = currentUrl.pathname.replace('/ipfs-sw-first-hit.html', '')

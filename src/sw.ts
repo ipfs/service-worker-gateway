@@ -1,4 +1,5 @@
 import { getConfig } from './lib/config-db.js'
+import { QUERY_PARAMS } from './lib/constants.js'
 import { getHeliaSwRedirectUrl } from './lib/first-hit-helpers.js'
 import { GenericIDB } from './lib/generic-db.js'
 import { getSubdomainParts } from './lib/get-subdomain-parts.js'
@@ -9,7 +10,6 @@ import { findOriginIsolationRedirect, isPathGatewayRequest, isSubdomainGatewayRe
 import { isUnregisterRequest } from './lib/unregister-request.js'
 import type { ConfigDb } from './lib/config-db.js'
 import type { VerifiedFetch } from '@helia/verified-fetch'
-import { QUERY_PARAMS } from './lib/constants'
 
 /**
  ******************************************************
@@ -237,20 +237,17 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
     }))
     return false
   } else if (isSwConfigGETRequest(event)) {
+    // TODO: remove? I don't think we need this anymore.
     log.trace('sw-config GET request')
     // event.waitUntil(new Promise<void>((resolve) => {
-      event.respondWith(new Promise<Response>(async (resolve) => {
-        // await updateConfig()
-
-        resolve(new Response(JSON.stringify(config), {
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-          }
-        }))
+    event.respondWith(new Promise<Response>((resolve) => {
+      resolve(new Response(JSON.stringify(config), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
       }))
-    //   resolve()
-    // }))
+    }))
     return false
   } else if (isSwAssetRequest(event)) {
     log.trace('sw-asset request, returning cached response ', event.request.url)
@@ -271,18 +268,20 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
         response = await fetch(event.request)
       } catch (err) {
         log.error('error fetching response', err)
-        return new Response('No response', { status: 500, headers: {
-          'x-debug-request-uri': event.request.url
-        } })
+        return new Response('No response', {
+          status: 500,
+          headers: {
+            'x-debug-request-uri': event.request.url
+          }
+        })
       }
       try {
         await cache.put(event.request, response.clone())
         return response
       } catch (err) {
         log.error('error caching response', err)
-      } finally {
-        return response
       }
+      return response
     }))
     return false
   } else if (!isValidRequestForSW(event)) {

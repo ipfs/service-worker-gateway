@@ -1,13 +1,12 @@
 import React, { Suspense, useEffect } from 'react'
-import LoadingIndicator from './components/loading-indicator.jsx'
-import { RouteContext } from './context/router-context.jsx'
-import { checkSubdomainSupport } from './lib/check-subdomain-support.js'
-import './app.css'
 import ReactDOMClient from 'react-dom/client'
-import { RouterProvider } from './context/router-context.jsx'
+import LoadingIndicator from './components/loading-indicator.jsx'
+import { RouteContext, RouterProvider } from './context/router-context.jsx'
+import { checkSubdomainSupport } from './lib/check-subdomain-support.js'
 import * as renderChecks from './lib/routing-render-checks.js'
 import type { Route } from './context/router-context.jsx'
 import type { ReactElement } from 'react'
+import './app.css'
 
 // SW did not trigger for this request
 
@@ -25,8 +24,7 @@ function App (): React.ReactElement {
   )
 }
 
-
-export default function renderUi () {
+export default function renderUi (): void {
   const container = document.getElementById('root')
 
   const root = ReactDOMClient.createRoot(container)
