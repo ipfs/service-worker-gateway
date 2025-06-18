@@ -7,7 +7,7 @@ export interface UrlParts {
 }
 
 export function getSubdomainParts (urlString: string): UrlParts {
-  const labels = new URL(urlString).hostname.split('.')
+  const labels = new URL(urlString).host.split('.')
   let id: string | null = null
   let protocol: string | null = null
   let parentDomain: string = urlString
