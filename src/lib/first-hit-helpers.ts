@@ -1,8 +1,19 @@
 import { checkSubdomainSupport } from './check-subdomain-support.js'
-import { areSubdomainsSupported } from './config-db.js'
+import { areSubdomainsSupported, isConfigSet } from './config-db.js'
 import { QUERY_PARAMS } from './constants.js'
+import { getSubdomainParts } from './get-subdomain-parts.js'
 import { uiLogger } from './logger.js'
 import { findOriginIsolationRedirect, isPathGatewayRequest, isSubdomainGatewayRequest } from './path-or-subdomain.js'
+import type { UrlParts } from './get-subdomain-parts.js'
+
+interface NavigationState {
+  subdomainHasConfig: boolean
+  isIsolatedOrigin: boolean
+  urlHasSubdomainConfigRequest: boolean
+  url: URL
+  subdomainParts: UrlParts,
+  compressedConfig: string | null
+}
 
 const log = uiLogger.forComponent('first-hit-helpers')
 
@@ -97,4 +108,108 @@ export function getHeliaSwRedirectUrl (
   }
 
   return redirectUrl
+}
+
+/**
+ * Based on the URL, determine the state of the navigation that we want.
+ *
+ * This is used to determine the next step in the navigation process on first-hit in index.tsx.
+ */
+export async function getStateFromUrl (url: URL): Promise<NavigationState> {
+  const { parentDomain, id, protocol } = getSubdomainParts(url.href)
+  const isIsolatedOrigin = parentDomain != null && parentDomain !== url.host && id != null
+  const urlHasSubdomainConfigRequest = url.searchParams.get(QUERY_PARAMS.IPFS_SW_SUBDOMAIN_REQUEST) != null && url.searchParams.get(QUERY_PARAMS.HELIA_SW) != null
+  let subdomainHasConfig = false
+
+  if (isIsolatedOrigin) {
+    // check if indexedDb has config
+    subdomainHasConfig = await isConfigSet(uiLogger)
+  }
+
+  return {
+    subdomainHasConfig,
+    isIsolatedOrigin,
+    urlHasSubdomainConfigRequest,
+    url,
+    subdomainParts: { parentDomain, id, protocol },
+    compressedConfig: url.searchParams.get(QUERY_PARAMS.IPFS_SW_CFG)
+  } satisfies NavigationState
+}
+
+/**
+ * When landing on a subdomain page for the first time, we need to redirect to the root domain with a request for the config.
+ *
+ * This function should not run if the service worker is already registered on that subdomain.
+ */
+export async function getConfigRedirectUrl ({ url, isIsolatedOrigin, urlHasSubdomainConfigRequest, compressedConfig, subdomainParts }: NavigationState): Promise<string | null> {
+  const { parentDomain, id, protocol } = subdomainParts
+
+  if (isIsolatedOrigin && !urlHasSubdomainConfigRequest && compressedConfig == null) {
+    // We are on a subdomain: redirect to the root domain with the subdomain request query param
+    const targetUrl = new URL(`${url.protocol}//${parentDomain}`)
+    targetUrl.pathname = '/'
+    targetUrl.hash = url.hash
+    targetUrl.search = url.search
+    targetUrl.searchParams.set(QUERY_PARAMS.IPFS_SW_SUBDOMAIN_REQUEST, 'true')
+
+    // helia-sw may already be in the query parameters from the go binary or cloudflare or other service, so we need to add it to the target URL
+    const heliaSw = url.searchParams.get(QUERY_PARAMS.HELIA_SW)
+    if (heliaSw != null) {
+      targetUrl.searchParams.set(QUERY_PARAMS.HELIA_SW, `/${protocol}/${id}${url.pathname}${heliaSw}`)
+    } else {
+      targetUrl.searchParams.set(QUERY_PARAMS.HELIA_SW, `/${protocol}/${id}${url.pathname}`)
+    }
+
+    return targetUrl.toString()
+  }
+
+  return null
+}
+
+/**
+ * If we are on the root domain, and have been requested by a subdomain to fetch the config and pass it back to them,
+ * we need to compress the config and set it as a query parameter on the URL.
+ */
+export async function getUrlWithConfig ({ url, isIsolatedOrigin, urlHasSubdomainConfigRequest }: NavigationState): Promise<string | null> {
+  if (!isIsolatedOrigin && urlHasSubdomainConfigRequest) {
+    const { compressConfig, getConfig } = await import('./config-db.js')
+    const { toSubdomainRequest } = await import('./path-or-subdomain.js')
+    const { translateIpfsRedirectUrl } = await import('./translate-ipfs-redirect-url.js')
+    // we are on the root domain, and have been requested by a subdomain to fetch the config and pass it back to them.
+    const redirectUrl = url
+    redirectUrl.searchParams.delete(QUERY_PARAMS.IPFS_SW_SUBDOMAIN_REQUEST)
+    const config = await getConfig(uiLogger)
+    const compressedConfig = await compressConfig(config)
+    redirectUrl.searchParams.set(QUERY_PARAMS.IPFS_SW_CFG, compressedConfig)
+
+    // translate the url with helia-sw to a path based URL, and then to the proper subdomain URL
+    return toSubdomainRequest(translateIpfsRedirectUrl(redirectUrl))
+  }
+
+  return null
+}
+
+/**
+ * After receiving the config from the root domain, we need to decompress it and load in into IndexedDB on the subdomain.
+ */
+export async function loadConfigFromUrl ({ url, compressedConfig }: NavigationState): Promise<string | null> {
+  if (compressedConfig == null) {
+    return null
+  }
+  const { decompressConfig, setConfig } = await import('./config-db.js')
+  const { translateIpfsRedirectUrl } = await import('./translate-ipfs-redirect-url.js')
+  const { registerServiceWorker } = await import('../service-worker-utils.js')
+
+  try {
+    const config = await decompressConfig(compressedConfig)
+    url.searchParams.delete(QUERY_PARAMS.IPFS_SW_CFG)
+    await setConfig(config, uiLogger)
+    await registerServiceWorker()
+    return translateIpfsRedirectUrl(url).toString()
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('helia:sw-gateway:index: error decompressing config from url', err)
+  }
+
+  return null
 }
