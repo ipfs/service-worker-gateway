@@ -135,7 +135,7 @@ export const testSubdomainRouting = test.extend<{ rootDomain: string, baseURL: s
      *
      * @see https://github.com/ipfs/in-web-browsers/issues/206
      */
-    if (test.info().project.name === 'webkit') {
+    if (['webkit', 'safari'].includes(test.info().project.name)) {
       testSubdomainRouting.skip()
       return
     }

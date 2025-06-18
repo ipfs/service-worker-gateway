@@ -35,7 +35,6 @@ export default function renderUi (): void {
   const LazyInterstitial = React.lazy(async () => import('./pages/redirects-interstitial.jsx'))
   const LazyServiceWorkerErrorPage = React.lazy(async () => import('./pages/errors/no-service-worker.jsx'))
   const LazySubdomainWarningPage = React.lazy(async () => import('./pages/subdomain-warning.jsx'))
-  const LazyFirstHitPage = React.lazy(async () => import('./pages/first-hit.jsx'))
 
   let ErrorPage: null | React.LazyExoticComponent<() => ReactElement> = LazyServiceWorkerErrorPage
   if ('serviceWorker' in navigator) {
@@ -43,7 +42,6 @@ export default function renderUi (): void {
   }
 
   const routes: Route[] = [
-    { shouldRender: renderChecks.shouldRenderFirstHitPage, component: LazyFirstHitPage },
     { default: true, component: ErrorPage ?? LazyHelperUi },
     { shouldRender: async () => renderChecks.shouldRenderConfigPage(), component: LazyConfig },
     { shouldRender: async () => renderChecks.shouldRenderNoServiceWorkerError(), component: LazyServiceWorkerErrorPage },
