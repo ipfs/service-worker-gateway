@@ -1,17 +1,12 @@
-import { getConfig, isConfigSet, setConfig } from './lib/config-db.js'
+import { isConfigSet } from './lib/config-db.js'
 import { QUERY_PARAMS } from './lib/constants.js'
 import { getSubdomainParts } from './lib/get-subdomain-parts.js'
 import { uiLogger } from './lib/logger.js'
-import { toSubdomainRequest } from './lib/path-or-subdomain.js'
-import { translateIpfsRedirectUrl } from './lib/translate-ipfs-redirect-url.js'
-import { registerServiceWorker } from './service-worker-utils.js'
 import type { UrlParts } from './lib/get-subdomain-parts.js'
-import { ensureSwScope, getHeliaSwRedirectUrl } from './lib/first-hit-helpers.js'
 
 interface NavigationState {
   subdomainHasConfig: boolean
   isIsolatedOrigin: boolean
-  // urlHasConfig: boolean
   urlHasSubdomainConfigRequest: boolean
   url: URL
   subdomainParts: UrlParts,
@@ -21,7 +16,6 @@ interface NavigationState {
 async function getStateFromUrl (url: URL): Promise<NavigationState> {
   const { parentDomain, id, protocol } = getSubdomainParts(url.href)
   const isIsolatedOrigin = parentDomain != null && parentDomain !== url.host && id != null
-  // const urlHasConfig = url.searchParams.get(QUERY_PARAMS.IPFS_SW_CFG) != null
   const urlHasSubdomainConfigRequest = url.searchParams.get(QUERY_PARAMS.IPFS_SW_SUBDOMAIN_REQUEST) != null && url.searchParams.get(QUERY_PARAMS.HELIA_SW) != null
   let subdomainHasConfig = false
 
@@ -33,7 +27,6 @@ async function getStateFromUrl (url: URL): Promise<NavigationState> {
   return {
     subdomainHasConfig,
     isIsolatedOrigin,
-    // urlHasConfig,
     urlHasSubdomainConfigRequest,
     url,
     subdomainParts: { parentDomain, id, protocol },
@@ -73,7 +66,9 @@ async function getConfigRedirectUrl ({ url, isIsolatedOrigin, urlHasSubdomainCon
 async function getUrlWithConfig ({ url, isIsolatedOrigin, urlHasSubdomainConfigRequest }: NavigationState): Promise<string | null> {
   if (!isIsolatedOrigin && urlHasSubdomainConfigRequest) {
     const { compressConfig } = await import('./lib/config-db.js')
-    const { uiLogger } = await import('./lib/logger.js')
+    const { getConfig } = await import('./lib/config-db.js')
+    const { toSubdomainRequest } = await import('./lib/path-or-subdomain.js')
+    const { translateIpfsRedirectUrl } = await import('./lib/translate-ipfs-redirect-url.js')
     // we are on the root domain, and have been requested by a subdomain to fetch the config and pass it back to them.
     const redirectUrl = url
     redirectUrl.searchParams.delete(QUERY_PARAMS.IPFS_SW_SUBDOMAIN_REQUEST)
@@ -92,7 +87,10 @@ async function loadConfigFromUrl ({ url, compressedConfig }: NavigationState): P
   if (compressedConfig == null) {
     return null
   }
-  const { decompressConfig } = await import('./lib/config-db.js')
+  const { decompressConfig, setConfig } = await import('./lib/config-db.js')
+  const { translateIpfsRedirectUrl } = await import('./lib/translate-ipfs-redirect-url.js')
+  const { registerServiceWorker } = await import('./service-worker-utils.js')
+
   try {
     const config = await decompressConfig(compressedConfig)
     url.searchParams.delete(QUERY_PARAMS.IPFS_SW_CFG)
@@ -109,6 +107,7 @@ async function loadConfigFromUrl ({ url, compressedConfig }: NavigationState): P
 
 async function renderUi (): Promise<void> {
   const { default: renderUi } = await import('./app.jsx')
+  const { ensureSwScope } = await import('./lib/first-hit-helpers.js')
 
   await ensureSwScope()
   renderUi()
