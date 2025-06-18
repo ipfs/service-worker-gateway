@@ -6,6 +6,7 @@ import { toSubdomainRequest } from './lib/path-or-subdomain.js'
 import { translateIpfsRedirectUrl } from './lib/translate-ipfs-redirect-url.js'
 import { registerServiceWorker } from './service-worker-utils.js'
 import type { UrlParts } from './lib/get-subdomain-parts.js'
+import { ensureSwScope } from './lib/first-hit-helpers.js'
 
 interface NavigationState {
   subdomainHasConfig: boolean
@@ -51,6 +52,8 @@ async function getConfigRedirectUrl ({ url, isIsolatedOrigin, urlHasSubdomainCon
     // We are on a subdomain: redirect to the root domain with the subdomain request query param
     const targetUrl = new URL(`${url.protocol}//${parentDomain}`)
     targetUrl.pathname = '/'
+    targetUrl.hash = url.hash
+    targetUrl.search = url.search
     targetUrl.searchParams.set(QUERY_PARAMS.IPFS_SW_SUBDOMAIN_REQUEST, 'true')
     targetUrl.searchParams.set(QUERY_PARAMS.HELIA_SW, `/${protocol}/${id}/${url.pathname}`)
 
@@ -100,6 +103,8 @@ async function loadConfigFromUrl ({ url, compressedConfig }: NavigationState): P
 
 async function renderUi (): Promise<void> {
   const { default: renderUi } = await import('./app.jsx')
+
+  await ensureSwScope()
   renderUi()
 }
 
@@ -107,12 +112,12 @@ async function main (): Promise<void> {
   const url = new URL(window.location.href)
   const state = await getStateFromUrl(url)
 
-  if (state.subdomainHasConfig) {
+  if (state.subdomainHasConfig && state.isIsolatedOrigin) {
     // we are on a subdomain, and have a config
     await renderUi()
     return
   }
-  // if (state.isIsolatedOrigin) {
+
   const configRedirectUrl = await getConfigRedirectUrl(state)
   if (configRedirectUrl != null) {
     window.location.replace(configRedirectUrl)
