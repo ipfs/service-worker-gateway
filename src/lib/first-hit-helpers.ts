@@ -98,25 +98,3 @@ export function getHeliaSwRedirectUrl (
 
   return redirectUrl
 }
-
-/**
- * Converts a URL request for <rootDomain>?helia-sw=<protocol/id/path> to a URL request for <id>.<protocol>.<rootDomain>/<path>
- *
- * TODO: handle conversions to cidv1
- */
-export function getIsolatedOriginRedirectUrl (url: URL): URL {
-  const heliaSw = url.searchParams.get(QUERY_PARAMS.HELIA_SW)
-  if (heliaSw != null) {
-    url.searchParams.delete(QUERY_PARAMS.HELIA_SW)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [_, protocol, id, ...path] = heliaSw.split('/')
-
-    if (!['ipfs', 'ipns'].includes(protocol) || id == null) {
-      throw new Error('Invalid helia-sw value: ' + heliaSw)
-    }
-
-    url.pathname = path.join('/') ?? '/'
-    url.host = `${id}.${protocol}.${url.host}`
-  }
-  return url
-}

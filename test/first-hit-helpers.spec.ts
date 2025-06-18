@@ -1,6 +1,6 @@
 /* eslint-env mocha */
 import { expect } from 'aegir/chai'
-import { getHeliaSwRedirectUrl, getIsolatedOriginRedirectUrl } from '../src/lib/first-hit-helpers.js'
+import { getHeliaSwRedirectUrl } from '../src/lib/first-hit-helpers.js'
 
 function expectRedirect ({ from, to }: { from: string, to: string }): void {
   const fromURL = new URL(from)
@@ -58,60 +58,6 @@ describe('first-hit-helpers', () => {
         from: 'http://bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq.ipfs.localhost:3333/1 - Barrel - Part 1 - alt.txt',
         to: `http://bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq.ipfs.localhost:3333/?helia-sw=${encodeURIComponent('/1 - Barrel - Part 1 - alt.txt')}`
       })
-    })
-  })
-
-  describe('getIsolatedOriginRedirectUrl', () => {
-    it('returns the original URL if helia-sw is missing', () => {
-      const url = new URL('https://example.com/path?foo=bar#baz')
-      const out = getIsolatedOriginRedirectUrl(new URL(url.toString()))
-      expect(out.toString()).to.equal(url.toString())
-    })
-
-    it('handles a basic ipfs redirect with no extra path', () => {
-      const url = new URL('http://localhost:3334/?helia-sw=/ipfs/bafkqablimvwgy3y')
-      const out = getIsolatedOriginRedirectUrl(new URL(url.toString()))
-      expect(out.toString()).to.equal('http://bafkqablimvwgy3y.ipfs.localhost:3334/')
-    })
-
-    it('preserves additional search params besides helia-sw', () => {
-      const url = new URL('http://localhost:3334/?helia-sw=/ipfs/bafkqablimvwgy3y/abc&foo=bar')
-      const out = getIsolatedOriginRedirectUrl(new URL(url.toString()))
-      expect(out.searchParams.get('foo')).to.equal('bar')
-      // helia-sw should be removed
-      expect(out.searchParams.has('helia-sw')).to.be.false()
-      expect(out.pathname).to.equal('/abc')
-    })
-
-    it('preserves hash fragments', () => {
-      const url = new URL('https://dweb.link/?helia-sw=/ipfs/QmCid/some/path#frag')
-      const out = getIsolatedOriginRedirectUrl(new URL(url.toString()))
-      expect(out.hash).to.equal('#frag')
-    })
-
-    it('handles deeper paths correctly', () => {
-      const url = new URL('https://site.test/?helia-sw=/ipfs/bafkqablimvwgy3y/deep/nested/file.txt')
-      const out = getIsolatedOriginRedirectUrl(new URL(url.toString()))
-      expect(out.host).to.equal('bafkqablimvwgy3y.ipfs.site.test')
-      expect(out.pathname).to.equal('/deep/nested/file.txt')
-    })
-
-    it('works for ipns protocol as well', () => {
-      const url = new URL('https://gateway/?helia-sw=/ipns/example.com/blog')
-      const out = getIsolatedOriginRedirectUrl(new URL(url.toString()))
-      expect(out.host).to.equal('example.com.ipns.gateway')
-      expect(out.pathname).to.equal('/blog')
-    })
-
-    it('defaults to "/" when no path segment is provided', () => {
-      const url = new URL('http://localhost:3334/?helia-sw=/ipfs/bafkqablimvwgy3y')
-      const out = getIsolatedOriginRedirectUrl(new URL(url.toString()))
-      expect(out.pathname).to.equal('/')
-    })
-
-    it('leaves malformed helia-sw values unchanged', () => {
-      const url = new URL('http://localhost:3334/?helia-sw=not/a/valid/format')
-      expect(() => getIsolatedOriginRedirectUrl(new URL(url.toString()))).to.throw('Invalid helia-sw value: not/a/valid/format')
     })
   })
 })
