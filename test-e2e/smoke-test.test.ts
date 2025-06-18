@@ -82,6 +82,10 @@ test.describe('smoke test', () => {
     const text = await response?.text()
     expect(text).toContain('504 Gateway timeout')
     expect(text).toContain('Increase the timeout in the')
+
+    // re-set the timeout to 30 seconds
+    await page.goto(`${protocol}//${rootDomain}`)
+    await setConfig({ page, config: { fetchTimeout: 30 } })
   })
 
   test('unregistering the service worker works', async ({ page, baseURL }) => {
