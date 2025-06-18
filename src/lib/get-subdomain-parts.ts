@@ -7,10 +7,11 @@ export interface UrlParts {
 }
 
 export function getSubdomainParts (urlString: string): UrlParts {
-  const labels = new URL(urlString).host.split('.')
+  const url = new URL(urlString)
+  const labels = url.host.split('.')
   let id: string | null = null
   let protocol: string | null = null
-  let parentDomain: string = urlString
+  let parentDomain: string = url.host
 
   // DNS label inspection happens from from right to left
   // to work fine with edge cases like docs.ipfs.tech.ipns.foo.localhost
