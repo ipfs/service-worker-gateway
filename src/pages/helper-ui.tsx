@@ -11,6 +11,7 @@ import Config from './config.js'
 import type { ReactElement } from 'react'
 
 function HelperUi (): ReactElement {
+  console.log('helia:sw-gateway:helper-ui: rendering')
   const [requestPath, setRequestPath] = useState(localStorage.getItem(LOCAL_STORAGE_KEYS.forms.requestPath) ?? '')
 
   useEffect(() => {

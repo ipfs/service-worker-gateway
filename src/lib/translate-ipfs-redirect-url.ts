@@ -7,8 +7,8 @@
  * results in the sw being registered at the root scope, and the application will render index.html, which will register
  * the service worker at the correct scope and then handle the redirect to the desired path.
  */
-export function translateIpfsRedirectUrl (urlString: string): URL {
-  const url = new URL(urlString)
+export function translateIpfsRedirectUrl (urlString: URL | string): URL {
+  const url = typeof urlString === 'string' ? new URL(urlString) : urlString
   const heliaSw = url.searchParams.get('helia-sw')
   if (heliaSw != null) {
     url.searchParams.delete('helia-sw')

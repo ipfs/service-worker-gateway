@@ -26,13 +26,6 @@ export async function shouldRenderConfigPage (): Promise<boolean> {
   return isRequestToViewConfigPage
 }
 
-export async function shouldRenderConfigIframePage (): Promise<boolean> {
-  const { isConfigIframePage } = await import('../lib/is-config-page.js')
-
-  const isRequestToViewConfigIframePage = isConfigIframePage(window.location.hash)
-  return isRequestToViewConfigIframePage
-}
-
 export function shouldRenderRedirectsInterstitial (): boolean {
   const url = new URL(window.location.href)
   const heliaSw = url.searchParams.get('helia-sw')

@@ -2,6 +2,7 @@ import { checkSubdomainSupport } from './check-subdomain-support.js'
 import { areSubdomainsSupported } from './config-db.js'
 import { uiLogger } from './logger.js'
 import { findOriginIsolationRedirect, isPathGatewayRequest, isSubdomainGatewayRequest } from './path-or-subdomain.js'
+import { QUERY_PARAMS } from './constants.js'
 
 const log = uiLogger.forComponent('first-hit-helpers')
 
@@ -19,7 +20,7 @@ export async function ensureSwScope (): Promise<void> {
     const url = new URL(window.location.href)
     const originalPath = url.pathname
     url.pathname = '/'
-    url.searchParams.set('helia-sw', originalPath)
+    url.searchParams.set(QUERY_PARAMS.HELIA_SW, originalPath)
     window.location.replace(url.toString())
     return
   }
@@ -41,7 +42,7 @@ export async function ensureSwScope (): Promise<void> {
       log.trace('subdomain support is disabled, but we still need to redirect to the root path to register the service worker')
       const url = new URL(window.location.href)
       url.pathname = '/'
-      url.searchParams.set('helia-sw', window.location.pathname)
+      url.searchParams.set(QUERY_PARAMS.HELIA_SW, window.location.pathname)
       window.location.replace(url.toString())
     }
   }
@@ -80,12 +81,12 @@ export function getHeliaSwRedirectUrl (
 
   // Set helia-sw parameter to the path, if it's meaningful
   if (path != null && path !== '/') {
-    redirectUrl.searchParams.set('helia-sw', path)
+    redirectUrl.searchParams.set(QUERY_PARAMS.HELIA_SW, path)
   }
 
   // Preserve existing query parameters from pathURL
   query.forEach((value, key) => {
-    if (key !== 'helia-sw' && !(targetURL !== null && targetURL !== undefined && redirectUrl.searchParams.has(key))) {
+    if (key !== QUERY_PARAMS.HELIA_SW && !(targetURL !== null && targetURL !== undefined && redirectUrl.searchParams.has(key))) {
       redirectUrl.searchParams.set(key, value)
     }
   })
@@ -96,4 +97,25 @@ export function getHeliaSwRedirectUrl (
   }
 
   return redirectUrl
+}
+
+/**
+ * Converts a URL request for <rootDomain>?helia-sw=<protocol/id/path> to a URL request for <id>.<protocol>.<rootDomain>/<path>
+ *
+ * TODO: handle conversions to cidv1
+ */
+export function getIsolatedOriginRedirectUrl (url: URL): URL {
+  const heliaSw = url.searchParams.get(QUERY_PARAMS.HELIA_SW)
+  if (heliaSw != null) {
+    url.searchParams.delete(QUERY_PARAMS.HELIA_SW)
+    const [_, protocol, id, ...path] = heliaSw.split('/')
+
+    if (!['ipfs', 'ipns'].includes(protocol) || id == null) {
+      throw new Error('Invalid helia-sw value: ' + heliaSw)
+    }
+
+    url.pathname = path.join('/') ?? '/'
+    url.host = `${id}.${protocol}.${url.host}`
+  }
+  return url
 }

@@ -1,5 +1,5 @@
-import React from 'react'
-import { getHeliaSwRedirectUrl } from '../lib/first-hit-helpers.js'
+// import React from 'react'
+// import { getHeliaSwRedirectUrl } from '../lib/first-hit-helpers.js'
 import type { ReactElement } from 'react'
 
 /**
@@ -11,18 +11,20 @@ import type { ReactElement } from 'react'
  * The actual URL will be something like `https://example.com/ipfs-sw-first-hit.html/ipfs/QmHash?potentialQueryParam=potentialQueryValue`
  * and we want to call `getHeliaSwRedirectUrl` with the current URL (except the ipfs-sw-first-hit.html part) to get the actual URL.
  */
-export default (): ReactElement => {
-  const currentUrl = new URL(window.location.href)
+export default (): ReactElement | null => {
+  console.log('helia:sw-gateway:first-hit: rendering')
+  // const currentUrl = new URL(window.location.href)
 
-  currentUrl.pathname = currentUrl.pathname.replace('/ipfs-sw-first-hit.html', '')
-  // call getHeliaSwRedirectUrl with the remaining URL
-  const redirectUrl = getHeliaSwRedirectUrl(currentUrl)
+  // currentUrl.pathname = currentUrl.pathname.replace('/ipfs-sw-first-hit.html', '')
+  // // call getHeliaSwRedirectUrl with the remaining URL
+  // const redirectUrl = getHeliaSwRedirectUrl(currentUrl)
 
-  history.replaceState({}, '', redirectUrl.toString())
-  // redirect to the actual URL
-  window.location.href = redirectUrl.toString()
+  // history.replaceState({}, '', redirectUrl.toString())
+  // // redirect to the actual URL
+  // window.location.href = redirectUrl.toString()
 
-  return (
-    <div>First Hit. This page should not be visible</div>
-  )
+  // return (
+  //   <div>First Hit. This page should not be visible</div>
+  // )
+  return null
 }
