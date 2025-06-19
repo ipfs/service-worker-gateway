@@ -33,7 +33,7 @@ export async function ensureSwScope (): Promise<void> {
     url.pathname = '/'
     url.searchParams.set(QUERY_PARAMS.HELIA_SW, originalPath)
     window.location.replace(url.toString())
-    return
+    throw new Error('navigating away')
   }
 
   // Check if we're on a path gateway request and if subdomains are supported before registration
@@ -48,6 +48,7 @@ export async function ensureSwScope (): Promise<void> {
       const redirect = await findOriginIsolationRedirect(window.location, uiLogger)
       if (redirect !== null) {
         window.location.replace(redirect)
+        throw new Error('navigating away')
       }
     } else {
       log.trace('subdomain support is disabled, but we still need to redirect to the root path to register the service worker')
@@ -55,6 +56,7 @@ export async function ensureSwScope (): Promise<void> {
       url.pathname = '/'
       url.searchParams.set(QUERY_PARAMS.HELIA_SW, window.location.pathname)
       window.location.replace(url.toString())
+      throw new Error('navigating away')
     }
   }
 }

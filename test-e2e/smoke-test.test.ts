@@ -1,5 +1,6 @@
 // see https://github.com/ipfs/service-worker-gateway/issues/502
 import { testSubdomainRouting as test, expect } from './fixtures/config-test-fixtures.js'
+import { test as testOriginal, type Page } from '@playwright/test'
 import { setConfig } from './fixtures/set-sw-config.js'
 import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
 
@@ -102,4 +103,88 @@ test.describe('smoke test', () => {
 
     expect(noRegistration).toBe(true)
   })
+
+})
+
+function waitForAllNavigations (page: Page, additionalUrlPartsToWaitFor: Record<string, boolean> = {}) {
+  // we need to make sure we go through the redirect bounce, and we need to not be tied strictly to playwrights delays and oddities.
+  // we should have a list of things to look for in urls, and resolve this promise only when all of them have been seen.
+
+  const urlPartsToWaitFor = {
+    'helia-sw=': false,
+    // 'ipfs-sw-subdomain-request=': false,
+    // 'ipfs-sw-cfg': false,
+  }
+
+  return new Promise((resolve) => {
+    page.on('response', (response) => {
+      const url = new URL(response.url())
+      for (const [key, _value] of Object.entries(urlPartsToWaitFor)) {
+        if (url.href.includes(key)) {
+          urlPartsToWaitFor[key] = true
+        }
+      }
+      if (Object.values(urlPartsToWaitFor).every(value => value === true)) {
+        if (Object.keys(additionalUrlPartsToWaitFor).length === 0) {
+          resolve(true)
+        }
+        for (const [key, value] of Object.entries(additionalUrlPartsToWaitFor)) {
+          if (url.href.includes(key)) {
+            additionalUrlPartsToWaitFor[key] = true
+          }
+        }
+        if (Object.values(additionalUrlPartsToWaitFor).every(value => value === true)) {
+          resolve(true)
+        }
+      }
+    })
+  })
+}
+
+testOriginal('timing of initial page content', async ({ page }) => {
+  const protocol = 'http:'
+  const rootDomain = 'localhost:3000'
+  const startTime = Date.now()
+  const vitalikCid = 'bafybeihjkbvr6xzqiacmazxq4fgmhhni7gaho7hnpkavnksjxiyxqdrbsu'
+  const waitForRedirectBounce = waitForAllNavigations(page, { '/general/2025/05/11/abc4.html': false })
+  await page.goto(`${protocol}//${vitalikCid}.ipfs.${rootDomain}/general/2025/05/11/abc4.html`)
+  // await page.waitForLoadState('networkidle')
+  // expect(response?.headers()['location']).toContain('helia-sw=')
+  // await page.waitForURL((url) => url.href.includes('helia-sw='))
+
+  await waitForRedirectBounce
+  await page.waitForURL(`${protocol}//${vitalikCid}.ipfs.${rootDomain}/general/2025/05/11/abc4.html`)
+  // expect(page.url()).toContain(`${protocol}//${vitalikCid}.ipfs.${rootDomain}/general/2025/05/11/abc4.html`)
+  const endTime = Date.now()
+  const duration = endTime - startTime
+  console.log(`time: ${duration}ms to wait for the service worker to render the content`)
+
+  // wait for the text "You may have at some point seen this math puzzle:"
+  // await page.waitForFunction(() => document.body.textContent?.includes('You may have at some point seen this math puzzle:'), { timeout: 10000 })
+  // await page.waitForSelector('title=A simple explanation of a/(b+c) + b/(c+a) + c/(a+b) = 4')
+  await page.waitForSelector('text=You may have at some point seen this math puzzle:')
+  await expect(page).toHaveTitle('A simple explanation of a/(b+c) + b/(c+a) + c/(a+b) = 4')
+
+  const endTime2 = Date.now()
+  const duration2 = endTime2 - startTime
+  console.log(`time: ${duration2}ms to wait for the content to be rendered`)
+
+  const largestContentfulPaint = await page.evaluate(() => {
+    return new Promise<number | null>((resolve) => {
+      const po = new PerformanceObserver((list) => {
+        const entries = list.getEntries();
+        const last = entries[entries.length - 1] as any;
+        resolve(last.renderTime ?? last.loadTime);
+        po.disconnect();
+      });
+      po.observe({ type: 'largest-contentful-paint', buffered: true });
+      // if nothing fires in the next tick, resolve null
+      setTimeout(() => {
+        po.disconnect();
+        resolve(null);
+      }, 0);
+    });
+  });
+
+  console.log(`time: ${largestContentfulPaint}ms LCP`)
 })
