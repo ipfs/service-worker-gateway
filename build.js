@@ -250,7 +250,7 @@ const excludeFilesPlugin = (extensions) => ({
  * @type {esbuild.BuildOptions}
  */
 export const buildOptions = {
-  entryPoints: ['src/index.tsx', 'src/app.tsx', 'src/sw.ts', 'src/ipfs-sw-first-hit.ts'],
+  entryPoints: ['src/index.tsx', 'src/sw.ts', 'src/ipfs-sw-first-hit.ts'],
   bundle: true,
   outdir: 'dist',
   loader: {
