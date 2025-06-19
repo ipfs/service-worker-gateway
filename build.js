@@ -65,22 +65,23 @@ const injectAssets = async (metafile, revision) => {
   const scriptFile = Object.keys(outputs).find(file => file.endsWith('.js') && file.includes('ipfs-sw-index'))
   const cssFile = Object.keys(outputs).find(file => file.endsWith('.css') && file.includes('ipfs-sw-index'))
 
-  if (!scriptFile || !cssFile) {
-    console.error('Could not find the required assets in the metafile.')
-    return
+  let htmlContent = await fs.readFile(htmlFilePath, 'utf8')
+  if (scriptFile != null) {
+    const scriptTag = `<script type="module" src="${path.basename(scriptFile)}"></script>`
+    htmlContent = htmlContent.replace('</body>', `${scriptTag}</body>`)
+    console.log(`Injected ${path.basename(scriptFile)} into index.html.`)
   }
 
-  const scriptTag = `<script type="module" src="${path.basename(scriptFile)}"></script>`
-  const linkTag = `<link rel="stylesheet" href="${path.basename(cssFile)}">`
+  if (cssFile != null) {
+    const linkTag = `<link rel="stylesheet" href="${path.basename(cssFile)}">`
+    htmlContent = htmlContent.replace('</head>', `${linkTag}</head>`)
+    console.log(`Injected ${path.basename(cssFile)} into index.html.`)
+  }
 
-  let htmlContent = await fs.readFile(htmlFilePath, 'utf8')
   htmlContent = htmlContent
-    .replace('</head>', `${linkTag}</head>`)
-    .replace('</body>', `${scriptTag}</body>`)
     .replace(/<%= GIT_VERSION %>/g, revision)
 
   await fs.writeFile(htmlFilePath, htmlContent)
-  console.log(`Injected ${path.basename(scriptFile)} and ${path.basename(cssFile)} into index.html.`)
 }
 
 /**
@@ -131,25 +132,22 @@ const injectHtmlPages = async (metafile, revision) => {
     // find the -index-*.css file in the metafile results
     const cssFile = Object.keys(metafile.outputs).find(file => file.endsWith('.css') && file.includes('ipfs-sw-index'))
 
-    if (!cssFile) {
-      console.error('Could not find the ipfs-sw-index CSS file in the metafile.')
-      return
-    }
-
     const logoFile = Object.keys(metafile.outputs).find(file => file.endsWith('.svg') && file.includes('ipfs-sw-ipfs-logo'))
+    let htmlContent = await fs.readFile(htmlFilePath, 'utf8')
 
-    if (!logoFile) {
-      console.error('Could not find the ipfs-sw-ipfs-logo SVG file in the metafile.')
-      return
+    if (cssFile != null) {
+      const cssTag = `<link rel="stylesheet" href="/${path.basename(cssFile)}">`
+      htmlContent = htmlContent.replace(/<%= CSS_STYLES %>/g, cssTag)
+      console.log(`Injected ${path.basename(cssFile)} into ${htmlFilePath}.`)
     }
 
-    const cssTag = `<link rel="stylesheet" href="/${path.basename(cssFile)}">`
+    if (logoFile != null) {
+      const logoTag = `<img src="/${path.basename(logoFile)}" alt="IPFS Logo">`
+      htmlContent = htmlContent.replace(/<%= IPFS_LOGO_PATH %>/g, logoTag)
+      console.log(`Injected ${path.basename(logoFile)} into ${htmlFilePath}.`)
+    }
 
-    let htmlContent = await fs.readFile(htmlFilePath, 'utf8')
-    htmlContent = htmlContent
-      .replace(/<%= CSS_STYLES %>/g, cssTag)
-      .replace(/<%= IPFS_LOGO_PATH %>/g, logoFile.replace('dist/', '/'))
-      .replace(/<%= GIT_VERSION %>/g, revision)
+    htmlContent = htmlContent.replace(/<%= GIT_VERSION %>/g, revision)
 
     await fs.writeFile(htmlFilePath, htmlContent)
   }
