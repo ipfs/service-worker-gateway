@@ -11,13 +11,6 @@
  * @see https://github.com/ipfs/service-worker-gateway/issues/628
  */
 import { getHeliaSwRedirectUrl } from './lib/first-hit-helpers.js'
-import { getHashFragment } from './lib/hash-fragments.js'
-import { HASH_FRAGMENTS } from './lib/constants.js'
-
-
-const originalPath = getHashFragment(new URL(window.location.href), HASH_FRAGMENTS.HELIA_SW)
-
-
 
 // Create a URL object for the current location
 const locationUrl = new URL(window.location.href)
@@ -25,16 +18,11 @@ const locationUrl = new URL(window.location.href)
 // For first-hit, we want to use the same URL for both the origin and the path
 const redirectUrl = getHeliaSwRedirectUrl(locationUrl)
 
-
-
 const newUrl = redirectUrl.toString()
-
-
 
 window.location.hash = redirectUrl.hash
 
 window.location.replace(newUrl)
-
 
 // // remove the current url from the history
 // history.replaceState({}, '', newUrl)

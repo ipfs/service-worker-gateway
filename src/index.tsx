@@ -1,6 +1,6 @@
+import { HASH_FRAGMENTS } from './lib/constants.js'
 import { getStateFromUrl, getConfigRedirectUrl, getUrlWithConfig, loadConfigFromUrl } from './lib/first-hit-helpers.js'
 import { hasHashFragment } from './lib/hash-fragments.js'
-import { HASH_FRAGMENTS } from './lib/constants.js'
 
 async function renderUi (): Promise<void> {
   const { default: renderUi } = await import('./app.jsx')
@@ -38,7 +38,6 @@ async function main (): Promise<void> {
 
   const urlAfterLoadingConfig = await loadConfigFromUrl(state)
   if (urlAfterLoadingConfig != null) {
-
     const url = new URL(urlAfterLoadingConfig)
     window.location.hash = url.hash
     window.location.replace(url.toString())
@@ -59,7 +58,6 @@ async function main (): Promise<void> {
     window.location.replace(translatedUrl.toString())
     return
   }
-
 
   // similar to getConfigRedirectUrl, except we are on the root domain and need to redirect to the subdomain
   // TODO: this is the same as the above, so we can merge them.

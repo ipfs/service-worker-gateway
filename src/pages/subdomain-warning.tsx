@@ -2,10 +2,10 @@ import React, { useCallback, useEffect, useState } from 'react'
 import Header from '../components/Header.jsx'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
-import type { ReactNode } from 'react'
 import './default-page-styles.css'
 import { HASH_FRAGMENTS } from '../lib/constants.js'
 import { getHashFragment } from '../lib/hash-fragments.js'
+import type { ReactNode } from 'react'
 
 function IpAddressRecommendations ({ currentHost }: { currentHost: string }): ReactNode {
   return (

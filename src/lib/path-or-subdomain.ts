@@ -2,12 +2,12 @@ import { base32 } from 'multiformats/bases/base32'
 import { base36 } from 'multiformats/bases/base36'
 import { CID } from 'multiformats/cid'
 import { areSubdomainsSupported } from './config-db.js'
+import { HASH_FRAGMENTS } from './constants.js'
 import { dnsLinkLabelEncoder } from './dns-link-labels.js'
 import { getHeliaSwRedirectUrl } from './first-hit-helpers.js'
+import { setHashFragment } from './hash-fragments.js'
 import { pathRegex, subdomainRegex } from './regex.js'
 import type { ComponentLogger } from '@libp2p/logger'
-import { HASH_FRAGMENTS } from './constants.js'
-import { setHashFragment } from './hash-fragments.js'
 
 export const isPathOrSubdomainRequest = (location: Pick<Location, 'host' | 'pathname'>): boolean => {
   return isPathGatewayRequest(location) || isSubdomainGatewayRequest(location)

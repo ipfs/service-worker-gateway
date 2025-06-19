@@ -2,8 +2,8 @@
 import { expect } from 'aegir/chai'
 import { isBrowser } from 'wherearewe'
 import { HASH_FRAGMENTS } from '../src/lib/constants.js'
-import { hasHashFragment, getHashFragment, setHashFragment } from '../src/lib/hash-fragments.js'
 import { getHeliaSwRedirectUrl, getConfigRedirectUrl, getUrlWithConfig } from '../src/lib/first-hit-helpers.js'
+import { hasHashFragment, getHashFragment, setHashFragment } from '../src/lib/hash-fragments.js'
 
 function expectRedirect ({ from, to }: { from: string, to: string }): void {
   const fromURL = new URL(from)

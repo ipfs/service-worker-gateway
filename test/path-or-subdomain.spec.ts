@@ -3,9 +3,9 @@ import { expect } from 'aegir/chai'
 import { base32 } from 'multiformats/bases/base32'
 import { base36 } from 'multiformats/bases/base36'
 import { CID } from 'multiformats/cid'
-import { isPathOrSubdomainRequest, toSubdomainRequest } from '../src/lib/path-or-subdomain.js'
-import { getHashFragment, setHashFragment } from '../src/lib/hash-fragments.js'
 import { HASH_FRAGMENTS } from '../src/lib/constants.js'
+import { getHashFragment, setHashFragment } from '../src/lib/hash-fragments.js'
+import { isPathOrSubdomainRequest, toSubdomainRequest } from '../src/lib/path-or-subdomain.js'
 
 interface Loc {
   protocol: string

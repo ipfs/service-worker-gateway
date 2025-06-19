@@ -1,10 +1,9 @@
 /* eslint-env mocha */
 import { expect } from 'aegir/chai'
-import { parseHashFragments, getHashFragment, setHashFragment, deleteHashFragment, hasHashFragment, hashFragmentsToString } from '../src/lib/hash-fragments.js'
 import { HASH_FRAGMENTS } from '../src/lib/constants.js'
+import { parseHashFragments, getHashFragment, setHashFragment, deleteHashFragment, hasHashFragment, hashFragmentsToString } from '../src/lib/hash-fragments.js'
 
 describe('hash-fragments', () => {
-
   describe('hashFragmentsToString', () => {
     it('should round-trip empty hash', () => {
       const hash = ''

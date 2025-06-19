@@ -2,9 +2,9 @@ import { checkSubdomainSupport } from './check-subdomain-support.js'
 import { areSubdomainsSupported, isConfigSet } from './config-db.js'
 import { HASH_FRAGMENTS } from './constants.js'
 import { getSubdomainParts } from './get-subdomain-parts.js'
+import { getHashFragment, setHashFragment, deleteHashFragment, hasHashFragment } from './hash-fragments.js'
 import { uiLogger } from './logger.js'
 import { findOriginIsolationRedirect, isPathGatewayRequest, isSubdomainGatewayRequest } from './path-or-subdomain.js'
-import { getHashFragment, setHashFragment, deleteHashFragment, hasHashFragment } from './hash-fragments.js'
 import type { UrlParts } from './get-subdomain-parts.js'
 
 interface NavigationState {
@@ -126,9 +126,9 @@ export async function getStateFromUrl (url: URL): Promise<NavigationState> {
   const isIsolatedOrigin = parentDomain != null && parentDomain !== url.host && id != null
   const urlHasSubdomainConfigRequest = hasHashFragment(url, HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST) && getHashFragment(url, HASH_FRAGMENTS.HELIA_SW) != null
   let subdomainHasConfig = false
-  let heliaSw = getHashFragment(url, HASH_FRAGMENTS.HELIA_SW)
+  const heliaSw = getHashFragment(url, HASH_FRAGMENTS.HELIA_SW)
   await checkSubdomainSupport()
-  let supportsSubdomains = await areSubdomainsSupported(uiLogger)
+  const supportsSubdomains = await areSubdomainsSupported(uiLogger)
 
   if (isIsolatedOrigin) {
     // check if indexedDb has config

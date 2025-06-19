@@ -7,7 +7,7 @@ interface HashFragments {
  *
  * @returns An object with key-value pairs from the hash fragments
  */
-export function parseHashFragments(hash: string): HashFragments {
+export function parseHashFragments (hash: string): HashFragments {
   const fragments: HashFragments = {}
 
   if (!hash || hash === '') {
@@ -34,7 +34,7 @@ export function parseHashFragments(hash: string): HashFragments {
  *
  * @returns The value of the hash fragment, or null if not found
  */
-export function getHashFragment(url: URL, key: string): string | null {
+export function getHashFragment (url: URL, key: string): string | null {
   const fragments = parseHashFragments(url.hash)
   if (fragments[key] != null) {
     return decodeURIComponent(fragments[key])
@@ -46,7 +46,7 @@ export function getHashFragment(url: URL, key: string): string | null {
 /**
  * Convert a hash fragment object to a string
  */
-export function hashFragmentsToString(fragments: HashFragments): string {
+export function hashFragmentsToString (fragments: HashFragments): string {
   const pairs = Object.entries(fragments).map(([k, v]) => {
     if (v != null) {
       return `${k}=${encodeURIComponent(v)}`
@@ -60,7 +60,7 @@ export function hashFragmentsToString(fragments: HashFragments): string {
 /**
  * Set a hash fragment on a URL. Modifies the URL in place.
  */
-export function setHashFragment(url: URL, key: string, value: string | null): void {
+export function setHashFragment (url: URL, key: string, value: string | null): void {
   const fragments = parseHashFragments(url.hash)
   fragments[key] = value
 
@@ -70,7 +70,7 @@ export function setHashFragment(url: URL, key: string, value: string | null): vo
 /**
  * Delete a hash fragment from a URL. Modifies the URL in place.
  */
-export function deleteHashFragment(url: URL, key: string): void {
+export function deleteHashFragment (url: URL, key: string): void {
   const fragments = parseHashFragments(url.hash)
   delete fragments[key]
 
@@ -82,7 +82,7 @@ export function deleteHashFragment(url: URL, key: string): void {
  *
  * @returns true if the hash fragment exists
  */
-export function hasHashFragment(url: URL, key: string): boolean {
+export function hasHashFragment (url: URL, key: string): boolean {
   const fragments = parseHashFragments(url.hash)
   return key in fragments
 }
