@@ -110,7 +110,7 @@ export default defineConfig({
     {
       // need to use built assets due to service worker loading issue.
       command: getWebServerCommand(),
-      port: 3000,
+      port: process.env.BASE_URL != null ? undefined : 3000,
       timeout: 60 * 1000,
       reuseExistingServer: false,
       stdout: process.env.CI ? undefined : 'pipe',
