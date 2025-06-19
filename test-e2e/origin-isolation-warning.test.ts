@@ -1,3 +1,4 @@
+import { HASH_FRAGMENTS } from '../src/lib/constants'
 import { testPathRouting as test, expect } from './fixtures/config-test-fixtures.js'
 import { handleOriginIsolationWarning } from './fixtures/handle-origin-isolation-warning.js'
 
@@ -8,7 +9,8 @@ test.describe('origin isolation warning', () => {
     const testURL = new URL(testUrl)
     await page.goto(testUrl)
 
-    await expect(page).toHaveURL(new RegExp(`${encodeURIComponent(testURL.pathname)}#/ipfs-sw-origin-isolation-warning`))
+    await expect(page).toHaveURL(new RegExp(`#${HASH_FRAGMENTS.ORIGIN_ISOLATION_WARNING}`))
+    await expect(page).toHaveURL(new RegExp(`${encodeURIComponent(testURL.pathname)}`))
 
     await handleOriginIsolationWarning(page)
 

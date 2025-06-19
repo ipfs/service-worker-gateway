@@ -6,6 +6,8 @@ import { dnsLinkLabelEncoder } from './dns-link-labels.js'
 import { getHeliaSwRedirectUrl } from './first-hit-helpers.js'
 import { pathRegex, subdomainRegex } from './regex.js'
 import type { ComponentLogger } from '@libp2p/logger'
+import { HASH_FRAGMENTS } from './constants.js'
+import { setHashFragment } from './hash-fragments.js'
 
 export const isPathOrSubdomainRequest = (location: Pick<Location, 'host' | 'pathname'>): boolean => {
   return isPathGatewayRequest(location) || isSubdomainGatewayRequest(location)
@@ -68,7 +70,7 @@ export const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' 
   } catch (_) {
     // not a CID, so we assume a DNSLink name and inline it according to
     // https://specs.ipfs.tech/http-gateways/subdomain-gateway/#host-request-header
-    if (id.includes('.')) {
+    if (id != null && id.includes('.')) {
       id = dnsLinkLabelEncoder(id)
     }
   }
@@ -80,6 +82,10 @@ export const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' 
   const modifiedOriginalUrl = new URL(location.href)
   modifiedOriginalUrl.pathname = remainingPath
   modifiedOriginalUrl.hash = location.hash
+  if (remainingPath !== '/') {
+    // preserve the remaining path in the helia-sw hash fragment. helia-sw should NOT be set yet because we are in the beginning of the redirect process.
+    setHashFragment(modifiedOriginalUrl, HASH_FRAGMENTS.HELIA_SW, remainingPath)
+  }
   const originalSearchParams = new URLSearchParams(location.search)
   originalSearchParams.forEach((value, key) => {
     modifiedOriginalUrl.searchParams.set(key, value)

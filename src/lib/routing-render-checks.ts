@@ -1,9 +1,12 @@
+import { HASH_FRAGMENTS } from './constants.js'
+import { hasHashFragment } from './hash-fragments.js'
+
 /**
  * We should load the redirect page if:
  *
  * 1. The request is the first hit on the subdomain
  * - but NOT if subdomains are supported and we're not currently on the subdomain.
- * i.e. example.com?helia-sw=/ipfs/blah will hit shouldRenderRedirectsInterstitial, which will redirect to blah.ipfs.example.com, which will THEN return true from shouldRenderRedirectPage
+ * i.e. example.com#helia-sw=/ipfs/blah will hit shouldRenderRedirectsInterstitial, which will redirect to blah.ipfs.example.com, which will THEN return true from shouldRenderRedirectPage
  * 2. The request is not an explicit request to view the config page
  * 3. The request would otherwise be handled by the service worker but it's not yet registered.
  */
@@ -27,9 +30,8 @@ export async function shouldRenderConfigPage (): Promise<boolean> {
 }
 
 export function shouldRenderRedirectsInterstitial (): boolean {
-  const url = new URL(window.location.href)
-  const heliaSw = url.searchParams.get('helia-sw')
-  return heliaSw != null
+  // TODO: remove this because I don't think we need it anymore
+  return false
 }
 
 export function shouldRenderNoServiceWorkerError (): boolean {
@@ -37,7 +39,8 @@ export function shouldRenderNoServiceWorkerError (): boolean {
 }
 
 export async function shouldRenderSubdomainWarningPage (): Promise<boolean> {
-  if (window.location.hash.startsWith('#/ipfs-sw-origin-isolation-warning')) {
+  const url = new URL(window.location.href)
+  if (hasHashFragment(url, HASH_FRAGMENTS.ORIGIN_ISOLATION_WARNING)) {
     return true
   }
 
