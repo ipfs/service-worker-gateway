@@ -1,5 +1,8 @@
+import { HASH_FRAGMENTS } from './constants.js'
+import { deleteHashFragment, getHashFragment } from './hash-fragments.js'
+
 /**
- * This function will check for "?helia-sw=" in the URL and modify the URL so that it works with the rest of our logic
+ * This function will check for "#helia-sw=" in the URL and modify the URL so that it works with the rest of our logic
  *
  * Before the service worker is registered, if you host helia-service-worker-gateway with an IPFS gateway, the
  * _redirects file will return requests for `<domain>/(ipns|ipfs)/<wildcard-splat>` to
@@ -9,9 +12,9 @@
  */
 export function translateIpfsRedirectUrl (urlString: URL | string): URL {
   const url = typeof urlString === 'string' ? new URL(urlString) : urlString
-  const heliaSw = url.searchParams.get('helia-sw')
+  const heliaSw = getHashFragment(url, HASH_FRAGMENTS.HELIA_SW)
   if (heliaSw != null) {
-    url.searchParams.delete('helia-sw')
+    deleteHashFragment(url, HASH_FRAGMENTS.HELIA_SW)
     url.pathname = heliaSw
   }
   return url

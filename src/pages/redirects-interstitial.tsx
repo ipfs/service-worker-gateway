@@ -8,7 +8,7 @@ import type { ReactElement } from 'react'
 import './default-page-styles.css'
 
 /**
- * This page is only used to capture the ?helia-sw=/ip[fn]s/blah query parameter that
+ * This page is only used to capture the #helia-sw=/ip[fn]s/blah query parameter that
  * is used by IPFS hosted versions of the service-worker-gateway when non-existent paths are requested.
  * This will only redirect if the URL is for a subdomain
  */
@@ -27,7 +27,7 @@ export default function RedirectsInterstitial (): ReactElement {
   useEffect(() => {
     if (subdomainRedirectUrl != null && window.location.href !== subdomainRedirectUrl) {
       /**
-       * We're at a domain with ?helia-sw=, we can reload the page so the service worker will
+       * We're at a domain with #helia-sw=, we can reload the page so the service worker will
        * capture the request
        */
       window.location.replace(subdomainRedirectUrl)
@@ -46,10 +46,10 @@ export default function RedirectsInterstitial (): ReactElement {
 
   if (subdomainRedirectUrl == null) {
     /**
-     * We now render the redirect page if ?helia-sw is observed and subdomain redirect is not required., but not by
+     * We now render the redirect page if #helia-sw is observed and subdomain redirect is not required., but not by
      * conflating logic into the actual RedirectPage component.
      *
-     * However, the url in the browser for this scenario will be "<domain>/?helia-sw=/ipfs/blah", and the RedirectPage
+     * However, the url in the browser for this scenario will be "<domain>/#helia-sw=/ipfs/blah", and the RedirectPage
      * will update that URL when the user clicks "load Content" to "<domain>/ipfs/blah".
      */
     return <RedirectPage />

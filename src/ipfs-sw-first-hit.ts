@@ -20,8 +20,12 @@ const redirectUrl = getHeliaSwRedirectUrl(locationUrl)
 
 const newUrl = redirectUrl.toString()
 
-// remove the current url from the history
-history.replaceState({}, '', newUrl)
+window.location.hash = redirectUrl.hash
 
-// we need to redirect to the new url
-window.location.href = newUrl
+window.location.replace(newUrl)
+
+// // remove the current url from the history
+// history.replaceState({}, '', newUrl)
+
+// // we need to redirect to the new url
+// window.location.href = newUrl
