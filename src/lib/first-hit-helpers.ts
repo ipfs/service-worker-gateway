@@ -1,5 +1,5 @@
 import { checkSubdomainSupport } from './check-subdomain-support.js'
-import { areSubdomainsSupported, isConfigSet } from './config-db.js'
+import { isConfigSet } from './config-db.js'
 import { QUERY_PARAMS } from './constants.js'
 import { getSubdomainParts } from './get-subdomain-parts.js'
 import { uiLogger } from './logger.js'
@@ -13,6 +13,7 @@ interface NavigationState {
   url: URL
   subdomainParts: UrlParts,
   compressedConfig: string | null
+  supportsSubdomains: boolean | null
 }
 
 const log = uiLogger.forComponent('first-hit-helpers')
@@ -39,9 +40,8 @@ export async function ensureSwScope (): Promise<void> {
   // Check if we're on a path gateway request and if subdomains are supported before registration
   // This avoids waiting for the service worker to register and then redirecting anyway.
   if (isPathGatewayRequest(window.location)) {
-  // Check if subdomains are supported
-    await checkSubdomainSupport()
-    const supportsSubdomains = await areSubdomainsSupported(uiLogger)
+    // Check if subdomains are supported
+    const supportsSubdomains = await checkSubdomainSupport()
 
     if (supportsSubdomains === true) {
       log.trace('subdomain support is enabled, redirecting before service worker registration')
@@ -120,6 +120,7 @@ export async function getStateFromUrl (url: URL): Promise<NavigationState> {
   const isIsolatedOrigin = parentDomain != null && parentDomain !== url.host && id != null
   const urlHasSubdomainConfigRequest = url.searchParams.get(QUERY_PARAMS.IPFS_SW_SUBDOMAIN_REQUEST) != null && url.searchParams.get(QUERY_PARAMS.HELIA_SW) != null
   let subdomainHasConfig = false
+  const supportsSubdomains = await checkSubdomainSupport(url)
 
   if (isIsolatedOrigin) {
     // check if indexedDb has config
@@ -132,7 +133,8 @@ export async function getStateFromUrl (url: URL): Promise<NavigationState> {
     urlHasSubdomainConfigRequest,
     url,
     subdomainParts: { parentDomain, id, protocol },
-    compressedConfig: url.searchParams.get(QUERY_PARAMS.IPFS_SW_CFG)
+    compressedConfig: url.searchParams.get(QUERY_PARAMS.IPFS_SW_CFG),
+    supportsSubdomains
   } satisfies NavigationState
 }
 

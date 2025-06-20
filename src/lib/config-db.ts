@@ -204,6 +204,10 @@ export async function setSubdomainsSupported (supportsSubdomains: boolean, logge
   }
 }
 
+/**
+ * This should only be used by the service worker, or the `checkSubdomainSupport` function in the UI.
+ * If you need to check for subdomain support in the UI, use the `checkSubdomainSupport` function from `check-subdomain-support.ts` instead.
+ */
 export async function areSubdomainsSupported (logger?: ComponentLogger): Promise<null | boolean> {
   const log = logger?.forComponent('are-subdomains-supported')
   try {

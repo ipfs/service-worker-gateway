@@ -2,7 +2,6 @@ import React, { Suspense, useEffect } from 'react'
 import ReactDOMClient from 'react-dom/client'
 import LoadingIndicator from './components/loading-indicator.jsx'
 import { RouteContext, RouterProvider } from './context/router-context.jsx'
-import { checkSubdomainSupport } from './lib/check-subdomain-support.js'
 import * as renderChecks from './lib/routing-render-checks.js'
 import type { Route } from './context/router-context.jsx'
 import type { ReactElement } from 'react'
@@ -12,10 +11,6 @@ import './app.css'
 
 function App (): React.ReactElement {
   const { currentRoute } = React.useContext(RouteContext)
-
-  useEffect(() => {
-    void checkSubdomainSupport()
-  }, [])
 
   return (
     <Suspense fallback={<LoadingIndicator />}>
