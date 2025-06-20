@@ -26,12 +26,6 @@ export async function shouldRenderConfigPage (): Promise<boolean> {
   return isRequestToViewConfigPage
 }
 
-export function shouldRenderRedirectsInterstitial (): boolean {
-  const url = new URL(window.location.href)
-  const heliaSw = url.searchParams.get('helia-sw')
-  return heliaSw != null
-}
-
 export function shouldRenderNoServiceWorkerError (): boolean {
   return !('serviceWorker' in navigator)
 }

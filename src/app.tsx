@@ -27,7 +27,6 @@ export default function renderUi (): void {
   const LazyConfig = React.lazy(async () => import('./pages/config.jsx'))
   const LazyHelperUi = React.lazy(async () => import('./pages/helper-ui.jsx'))
   const LazyRedirectPage = React.lazy(async () => import('./pages/redirect-page.jsx'))
-  const LazyInterstitial = React.lazy(async () => import('./pages/redirects-interstitial.jsx'))
   const LazyServiceWorkerErrorPage = React.lazy(async () => import('./pages/errors/no-service-worker.jsx'))
   const LazySubdomainWarningPage = React.lazy(async () => import('./pages/subdomain-warning.jsx'))
 
@@ -41,7 +40,6 @@ export default function renderUi (): void {
     { shouldRender: async () => renderChecks.shouldRenderConfigPage(), component: LazyConfig },
     { shouldRender: async () => renderChecks.shouldRenderNoServiceWorkerError(), component: LazyServiceWorkerErrorPage },
     { shouldRender: renderChecks.shouldRenderSubdomainWarningPage, component: LazySubdomainWarningPage },
-    { shouldRender: async () => renderChecks.shouldRenderRedirectsInterstitial(), component: LazyInterstitial },
     {
       shouldRender: async () => renderChecks.shouldRenderRedirectPage(),
       component: LazyRedirectPage
