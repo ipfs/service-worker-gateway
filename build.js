@@ -57,7 +57,7 @@ function gitRevision () {
  * @param {esbuild.Metafile} metafile - esbuild's metafile to extract output file names
  * @param {string} revision - Pre-computed Git revision string
  */
-const injectHtmlPages = async (metafile, revision ) => {
+const injectHtmlPages = async (metafile, revision) => {
   const htmlFilePaths = await fs.readdir(path.resolve('dist'), { withFileTypes: true })
     .then(files => files.filter(file => file.isFile() && file.name.endsWith('.html')))
     .then(files => files.map(file => path.resolve('dist', file.name)))
@@ -107,9 +107,9 @@ const injectHtmlPages = async (metafile, revision ) => {
     }
 
     if (htmlContent.includes('<%= IPFS_LOGO_PATH %>')) {
-    if (logoFile != null) {
-      htmlContent = htmlContent.replace(/<%= IPFS_LOGO_PATH %>/g, path.basename(logoFile))
-      console.log(`Injected ${path.basename(logoFile)} into ${path.relative(process.cwd(), htmlFilePath)}.`)
+      if (logoFile != null) {
+        htmlContent = htmlContent.replace(/<%= IPFS_LOGO_PATH %>/g, path.basename(logoFile))
+        console.log(`Injected ${path.basename(logoFile)} into ${path.relative(process.cwd(), htmlFilePath)}.`)
       } else {
         throw new Error(`Could not find the logo file to include in ${path.relative(process.cwd(), htmlFilePath)}.`)
       }
