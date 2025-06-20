@@ -73,19 +73,18 @@ test.describe('smoke test', () => {
     await waitForServiceWorker(page, `${protocol}//${rootDomain}`)
     await setConfig({ page, config: { fetchTimeout: 5 } })
 
+    const response504 = page.waitForResponse(async (response) => {
+      const url = new URL(response.url())
+      return url.host === `bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze.ipfs.${rootDomain}` && url.pathname.includes('/wiki/Antarctica') && response.status() === 504
+    })
     await page.goto(`${protocol}//${rootDomain}/ipfs/bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze/wiki/Antarctica`)
-    await page.waitForURL(`${protocol}//bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze.ipfs.${rootDomain}/wiki/Antarctica`)
-    await page.waitForLoadState('networkidle')
+    await response504
 
     const response = swResponses[swResponses.length - 1]
     expect(response?.status()).toBe(504)
     const text = await response?.text()
     expect(text).toContain('504 Gateway timeout')
     expect(text).toContain('Increase the timeout in the')
-
-    // re-set the timeout to 30 seconds
-    await page.goto(`${protocol}//${rootDomain}`)
-    await setConfig({ page, config: { fetchTimeout: 30 } })
   })
 
   test('unregistering the service worker works', async ({ page, baseURL }) => {

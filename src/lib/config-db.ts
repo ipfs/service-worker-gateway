@@ -226,7 +226,8 @@ export async function isConfigSet (logger?: ComponentLogger): Promise<boolean> {
   try {
     await configDb.open()
     const config = await configDb.getAll()
-    return Object.keys(config).length > 0
+    // ignore private/app-only fields
+    return Object.keys(config).filter(key => !['_supportsSubdomains'].includes(key)).length > 0
   } catch (err) {
     log?.('error loading config from db', err)
   } finally {

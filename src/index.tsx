@@ -1,20 +1,40 @@
-import { getStateFromUrl, getConfigRedirectUrl, getUrlWithConfig, loadConfigFromUrl } from './lib/first-hit-helpers.js'
+import { getStateFromUrl, getConfigRedirectUrl, getUrlWithConfig, loadConfigFromUrl, isRequestForContentAddressedData, ensureSwScope } from './lib/first-hit-helpers.js'
+import { toSubdomainRequest } from './lib/path-or-subdomain.js'
+import { translateIpfsRedirectUrl } from './lib/translate-ipfs-redirect-url.js'
+import { registerServiceWorker } from './service-worker-utils.js'
+import renderApp from './app.jsx'
 
 async function renderUi (): Promise<void> {
-  const { default: renderUi } = await import('./app.jsx')
-  const { ensureSwScope } = await import('./lib/first-hit-helpers.js')
-
   await ensureSwScope()
-  renderUi()
+  renderApp()
 }
 
 async function main (): Promise<void> {
+  if (!('serviceWorker' in navigator)) {
+    // no service worker, render the UI
+    await renderUi()
+    return
+  }
+
   const url = new URL(window.location.href)
   const state = await getStateFromUrl(url)
 
-  if (state.subdomainHasConfig && state.isIsolatedOrigin) {
-    // we are on a subdomain, and have a config
+
+  if (!state.requestForContentAddressedData) {
+    // not a request for content addressed data, render the UI
     await renderUi()
+    return
+  } else if (state.hasConfig) {
+    // user is requesting content addressed data and has the config already, render the UI
+    await renderUi()
+    return
+  } else {
+    // the user is requesting content addressed data and does not have the config, continue with the config loading flow
+  }
+
+  if (state.hasConfig && state.isIsolatedOrigin) {
+    // we are on a subdomain, and have a config, the service worker should be rendering the content shortly.
+    // TODO: this implicitly assumes the service worker is registered because config is set.. which should be true, but we should be more explicit.
     return
   }
 
@@ -36,11 +56,21 @@ async function main (): Promise<void> {
     return
   }
 
-  // if all else fails, render the UI
-  await renderUi()
+  // if we are not on a subdomain, but we should be, we need to redirect to the subdomain
+  await ensureSwScope()
+  await registerServiceWorker()
+
+  const translatedUrl = await translateIpfsRedirectUrl(url)
+  let actualContentUrl: string
+  if (state.supportsSubdomains) {
+    actualContentUrl = await toSubdomainRequest(translatedUrl)
+  } else {
+    actualContentUrl = translatedUrl.href
+  }
+
+  window.location.replace(actualContentUrl)
 }
 
-// if all else fails, dynamically render the App component
 void main().catch((err) => {
   // eslint-disable-next-line no-console
   console.error('helia:sw-gateway:index: error rendering ui', err)

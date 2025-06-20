@@ -3,17 +3,24 @@ import { isConfigSet } from './config-db.js'
 import { QUERY_PARAMS } from './constants.js'
 import { getSubdomainParts } from './get-subdomain-parts.js'
 import { uiLogger } from './logger.js'
-import { findOriginIsolationRedirect, isPathGatewayRequest, isSubdomainGatewayRequest } from './path-or-subdomain.js'
+import { findOriginIsolationRedirect, isPathGatewayRequest, isPathOrSubdomainRequest, isSubdomainGatewayRequest } from './path-or-subdomain.js'
 import type { UrlParts } from './get-subdomain-parts.js'
 
 interface NavigationState {
-  subdomainHasConfig: boolean
+  hasConfig: boolean
   isIsolatedOrigin: boolean
   urlHasSubdomainConfigRequest: boolean
   url: URL
   subdomainParts: UrlParts,
   compressedConfig: string | null
   supportsSubdomains: boolean | null
+
+  /**
+   * If the user is requesting content addressed data (instead of service worker gateway UI), this will be true.
+   *
+   * e.g. sw-gateway landing page, ipfs-sw-config view, ipfs-sw-origin-isolation-warning view, etc.
+   */
+  requestForContentAddressedData: boolean
 }
 
 const log = uiLogger.forComponent('first-hit-helpers')
@@ -117,24 +124,25 @@ export function getHeliaSwRedirectUrl (
  */
 export async function getStateFromUrl (url: URL): Promise<NavigationState> {
   const { parentDomain, id, protocol } = getSubdomainParts(url.href)
-  const isIsolatedOrigin = parentDomain != null && parentDomain !== url.host && id != null
+  const isIsolatedOrigin = isSubdomainGatewayRequest(url)
   const urlHasSubdomainConfigRequest = url.searchParams.get(QUERY_PARAMS.IPFS_SW_SUBDOMAIN_REQUEST) != null && url.searchParams.get(QUERY_PARAMS.HELIA_SW) != null
-  let subdomainHasConfig = false
+  let hasConfig = false
   const supportsSubdomains = await checkSubdomainSupport(url)
 
   if (isIsolatedOrigin) {
     // check if indexedDb has config
-    subdomainHasConfig = await isConfigSet(uiLogger)
+    hasConfig = await isConfigSet(uiLogger)
   }
 
   return {
-    subdomainHasConfig,
+    hasConfig,
     isIsolatedOrigin,
     urlHasSubdomainConfigRequest,
     url,
     subdomainParts: { parentDomain, id, protocol },
     compressedConfig: url.searchParams.get(QUERY_PARAMS.IPFS_SW_CFG),
-    supportsSubdomains
+    supportsSubdomains,
+    requestForContentAddressedData: isRequestForContentAddressedData(url)
   } satisfies NavigationState
 }
 
@@ -143,7 +151,7 @@ export async function getStateFromUrl (url: URL): Promise<NavigationState> {
  *
  * This function should not run if the service worker is already registered on that subdomain.
  */
-export async function getConfigRedirectUrl ({ url, isIsolatedOrigin, urlHasSubdomainConfigRequest, compressedConfig, subdomainParts }: NavigationState): Promise<string | null> {
+export async function getConfigRedirectUrl ({ url, isIsolatedOrigin, urlHasSubdomainConfigRequest, compressedConfig, subdomainParts }: Pick<NavigationState, 'url' | 'isIsolatedOrigin' | 'urlHasSubdomainConfigRequest' | 'compressedConfig' | 'subdomainParts'>): Promise<string | null> {
   const { parentDomain, id, protocol } = subdomainParts
 
   if (isIsolatedOrigin && !urlHasSubdomainConfigRequest && compressedConfig == null) {
@@ -172,7 +180,7 @@ export async function getConfigRedirectUrl ({ url, isIsolatedOrigin, urlHasSubdo
  * If we are on the root domain, and have been requested by a subdomain to fetch the config and pass it back to them,
  * we need to compress the config and set it as a query parameter on the URL.
  */
-export async function getUrlWithConfig ({ url, isIsolatedOrigin, urlHasSubdomainConfigRequest }: NavigationState): Promise<string | null> {
+export async function getUrlWithConfig ({ url, isIsolatedOrigin, urlHasSubdomainConfigRequest }: Pick<NavigationState, 'url' | 'isIsolatedOrigin' | 'urlHasSubdomainConfigRequest'>): Promise<string | null> {
   if (!isIsolatedOrigin && urlHasSubdomainConfigRequest) {
     const { compressConfig, getConfig } = await import('./config-db.js')
     const { toSubdomainRequest } = await import('./path-or-subdomain.js')
@@ -194,7 +202,7 @@ export async function getUrlWithConfig ({ url, isIsolatedOrigin, urlHasSubdomain
 /**
  * After receiving the config from the root domain, we need to decompress it and load in into IndexedDB on the subdomain.
  */
-export async function loadConfigFromUrl ({ url, compressedConfig }: NavigationState): Promise<string | null> {
+export async function loadConfigFromUrl ({ url, compressedConfig }: Pick<NavigationState, 'url' | 'compressedConfig'>): Promise<string | null> {
   if (compressedConfig == null) {
     return null
   }
@@ -214,4 +222,24 @@ export async function loadConfigFromUrl ({ url, compressedConfig }: NavigationSt
   }
 
   return null
+}
+
+export function isRequestForContentAddressedData (url: URL): boolean {
+  if (url.hash.includes('/ipfs-sw-origin-isolation-warning')) {
+    // hash request for origin isolation warning page, not content addressed data (yet)
+    return false
+  }
+  if (isPathOrSubdomainRequest(url)) {
+    // subdomain request
+    return true
+  }
+  if (url.searchParams.has('helia-sw')) {
+    // query param request
+    return true
+  }
+  if (url.hash.includes('/ipfs-sw-config')) {
+    // hash request for config page.
+    return true
+  }
+  return false
 }

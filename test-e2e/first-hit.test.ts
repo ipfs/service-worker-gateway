@@ -47,15 +47,12 @@ test.describe('first-hit ipfs-hosted', () => {
     test('redirects to ?helia-sw=<path> are handled', async ({ page, rootDomain, protocol }) => {
       const response = await page.goto('http://localhost:3334/ipfs/bafkqablimvwgy3y')
 
-      // we no longer redirect to ?helia-sw=<path> for subdomain routing, because we immediately redirect to the subdomain
-      // expect(response?.url()).toBe('http://localhost:3334/?helia-sw=/ipfs/bafkqablimvwgy3y')
-
       // first loads the root page
       expect(response?.status()).toBe(200)
       const headers = await response?.allHeaders()
 
       expect(headers?.['content-type']).toContain('text/html')
-      await expect(page).toHaveURL('http://bafkqablimvwgy3y.ipfs.localhost:3334', { timeout: 10000 })
+      await page.waitForURL('http://bafkqablimvwgy3y.ipfs.localhost:3334', { timeout: 10000 })
 
       // wait for loading page to finish '.loading-page' to be removed
       await page.waitForSelector('.loading-page', { state: 'detached' })
