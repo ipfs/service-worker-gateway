@@ -13,7 +13,7 @@ test.describe('subdomain-detection', () => {
     routers.push(process.env.KUBO_GATEWAY)
   })
   test('path requests are redirected to subdomains', async ({ page, baseURL, rootDomain, protocol }) => {
-    if (test.info().project.name === 'webkit') {
+    if (['webkit', 'safari'].includes(test.info().project.name)) {
       // @see https://github.com/ipfs/in-web-browsers/issues/206
       test.skip()
       return

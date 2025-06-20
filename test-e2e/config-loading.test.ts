@@ -34,7 +34,7 @@ test.describe('ipfs-sw configuration', () => {
   })
 
   test('root config is propagated to subdomain', async ({ page, baseURL, rootDomain, protocol }) => {
-    if (test.info().project.name === 'webkit') {
+    if (['webkit', 'safari'].includes(test.info().project.name)) {
       // @see https://github.com/ipfs/in-web-browsers/issues/206
       test.skip()
       return

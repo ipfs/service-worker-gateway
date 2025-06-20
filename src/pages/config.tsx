@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useState } from 'react'
+import React, { useCallback, useContext, useState } from 'react'
 import Header from '../components/Header.jsx'
 import { InputSection } from '../components/input-section.jsx'
 import { InputToggle } from '../components/input-toggle.jsx'
@@ -6,7 +6,6 @@ import NumberInput from '../components/number-input.jsx'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
 import TextInput from '../components/textarea-input.jsx'
 import { ConfigContext, ConfigProvider } from '../context/config-context.jsx'
-import { RouteContext } from '../context/router-context.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
 import { setConfig as storeConfig } from '../lib/config-db.js'
 import { convertDnsResolverInputToObject, convertDnsResolverObjectToInput, convertUrlArrayToInput, convertUrlInputToArray } from '../lib/input-helpers.js'
@@ -84,39 +83,10 @@ export interface ConfigPageProps extends React.HTMLProps<HTMLElement> {
 
 // Config Page can be loaded either as a page or as a component in the landing helper-ui page
 const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
-  const { gotoPage } = useContext(RouteContext)
-  const { setConfig, resetConfig, gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, fetchTimeout, _supportsSubdomains, isLoading: isConfigDataLoading } = useContext(ConfigContext)
+  const { setConfig, resetConfig, gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, fetchTimeout, isLoading: isConfigDataLoading } = useContext(ConfigContext)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [resetKey, setResetKey] = useState(0)
-
-  const isLoadedInIframe = window.self !== window.top
-
-  const postFromIframeToParentSw = useCallback(async () => {
-    if (!isLoadedInIframe) {
-      return
-    }
-    // we get the iframe origin from a query parameter called 'origin', if this is loaded in an iframe
-    const targetOrigin = decodeURIComponent(window.location.hash.split('@origin=')[1])
-    const config = { gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, fetchTimeout, _supportsSubdomains }
-    log.trace('config-page: postMessage config to origin ', JSON.stringify(config), targetOrigin)
-    /**
-     * The reload page in the parent window is listening for this message, and then it passes a RELOAD_CONFIG message to the service worker
-     */
-    window.parent?.postMessage({ source: 'helia-sw-config-iframe', target: 'PARENT', action: 'RELOAD_CONFIG', config }, {
-      targetOrigin
-    })
-    log.trace('config-page: RELOAD_CONFIG sent to parent window')
-  }, [gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, fetchTimeout])
-
-  useEffect(() => {
-    if (!isConfigDataLoading) {
-      /**
-       * On initial load, once the config is done loading from IDB, we want to send the config to the parent window, so that the subdomain registered service worker gets the latest config without user interaction.
-       */
-      void postFromIframeToParentSw()
-    }
-  }, [isConfigDataLoading, postFromIframeToParentSw])
 
   const saveConfig = useCallback(async () => {
     try {
@@ -128,11 +98,6 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
       await tellSwToReloadConfig()
       // base_domain service worker is updated
       log.trace('config-page: RELOAD_CONFIG_SUCCESS for %s', window.location.origin)
-      // update the <subdomain>.<namespace>.BASE_URL service worker
-      await postFromIframeToParentSw()
-      if (!isLoadedInIframe) {
-        gotoPage()
-      }
     } catch (err) {
       log.error('Error saving config', err)
       setError(err as Error)
@@ -149,7 +114,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
   }, [])
 
   let HeaderComponent: ReactElement | null = null
-  if (!isLoadedInIframe && !isConfigDataLoading && isConfigPage(window.location.hash) && isSubdomainGatewayRequest(window.location)) {
+  if (!isConfigDataLoading && isConfigPage(window.location.hash) && isSubdomainGatewayRequest(window.location)) {
     HeaderComponent = <Header />
   }
 

@@ -39,7 +39,7 @@ test.describe('first-hit ipfs-hosted', () => {
 
   test.describe('subdomain-routing', () => {
     test.beforeAll(async () => {
-      if (test.info().project.name === 'webkit') {
+      if (['webkit', 'safari'].includes(test.info().project.name)) {
         // @see https://github.com/ipfs/in-web-browsers/issues/206
         test.skip()
       }
@@ -108,7 +108,7 @@ test.describe('first-hit direct-hosted', () => {
 
   test.describe('subdomain-routing', () => {
     test.beforeAll(async () => {
-      if (test.info().project.name === 'webkit') {
+      if (['webkit', 'safari'].includes(test.info().project.name)) {
         // @see https://github.com/ipfs/in-web-browsers/issues/206
         test.skip()
       }
