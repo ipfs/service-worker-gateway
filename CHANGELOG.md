@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.4](https://github.com/ipfs/service-worker-gateway/compare/v1.12.3...v1.12.4) (2025-06-20)
+
+
+### Bug Fixes
+
+* go server handles requests with paths ([#761](https://github.com/ipfs/service-worker-gateway/issues/761)) ([7b4ffce](https://github.com/ipfs/service-worker-gateway/commit/7b4ffce8aa160bceef6a784e51309f060befdc65))
+
 ## [1.12.3](https://github.com/ipfs/service-worker-gateway/compare/v1.12.2...v1.12.3) (2025-06-13)
 
 
