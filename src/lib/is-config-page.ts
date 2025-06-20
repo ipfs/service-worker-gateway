@@ -5,7 +5,13 @@
  * We still use /#/ipfs-sw-config to allow subdomain users to change config and we need to detect that.
  */
 export function isConfigPage (hash: string): boolean {
-  const isConfigHashPath = hash.startsWith('#/ipfs-sw-config') // needed for _redirects and IPFS hosted sw gateways
+  const isConfigHashPath = hash.startsWith('#/ipfs-sw-config') && !hash.startsWith('#/ipfs-sw-config-iframe') // needed for _redirects and IPFS hosted sw gateways
 
   return isConfigHashPath
+}
+
+export function isConfigIframePage (hash: string): boolean {
+  const isConfigIframeHashPath = hash.startsWith('#/ipfs-sw-config-iframe')
+
+  return isConfigIframeHashPath
 }

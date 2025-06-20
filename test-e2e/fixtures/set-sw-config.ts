@@ -104,8 +104,16 @@ export async function setConfigViaUi ({ page, config, expectedSwScope }: { page:
     await getConfigDebug(page).scrollIntoViewIfNeeded()
     await getConfigDebug(page).locator('textarea').fill(config.debug)
   }
-
+  // create a promise for waiting for the response from the service worker when the save is completed.
+  const savePromise = new Promise((resolve) => {
+    page.on('response', (response) => {
+      if (response.url().includes('?ipfs-sw-config-reload=true')) {
+        resolve(response)
+      }
+    })
+  })
   await getConfigPageSaveButton(page).click()
+  await savePromise
 }
 
 export async function getConfigUi ({ page, expectedSwScope }: { page: Page, expectedSwScope: string }): Promise<ConfigDbWithoutPrivateFields> {

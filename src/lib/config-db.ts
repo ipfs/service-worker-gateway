@@ -1,4 +1,5 @@
 import { enable } from '@libp2p/logger'
+import LZString from 'lz-string'
 import { GenericIDB } from './generic-db.js'
 import type { BaseDbConfig } from './generic-db.js'
 import type { ComponentLogger } from '@libp2p/logger'
@@ -203,6 +204,10 @@ export async function setSubdomainsSupported (supportsSubdomains: boolean, logge
   }
 }
 
+/**
+ * This should only be used by the service worker, or the `checkSubdomainSupport` function in the UI.
+ * If you need to check for subdomain support in the UI, use the `checkSubdomainSupport` function from `check-subdomain-support.ts` instead.
+ */
 export async function areSubdomainsSupported (logger?: ComponentLogger): Promise<null | boolean> {
   const log = logger?.forComponent('are-subdomains-supported')
   try {
@@ -214,4 +219,35 @@ export async function areSubdomainsSupported (logger?: ComponentLogger): Promise
     configDb.close()
   }
   return false
+}
+
+export async function isConfigSet (logger?: ComponentLogger): Promise<boolean> {
+  const log = logger?.forComponent('is-config-set')
+  try {
+    await configDb.open()
+    const config = await configDb.getAll()
+    // ignore private/app-only fields
+    return Object.keys(config).filter(key => !['_supportsSubdomains'].includes(key)).length > 0
+  } catch (err) {
+    log?.('error loading config from db', err)
+  } finally {
+    configDb.close()
+  }
+  return false
+}
+
+export async function compressConfig (config: ConfigDb): Promise<string> {
+  const timestamp = Date.now()
+  const configJson = JSON.stringify({ config, timestamp })
+
+  return LZString.compressToEncodedURIComponent(configJson)
+}
+
+export async function decompressConfig (compressedConfig: string): Promise<ConfigDb> {
+  const { config, timestamp } = JSON.parse(LZString.decompressFromEncodedURIComponent(compressedConfig))
+  // if the config is more than 10 seconds old, throw an error
+  if (timestamp < Date.now() - 1000) {
+    throw new Error('Config is too old. Be sure to only use trusted URLs.')
+  }
+  return config
 }
