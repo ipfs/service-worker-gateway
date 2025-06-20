@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect } from 'react'
+import React, { Suspense } from 'react'
 import ReactDOMClient from 'react-dom/client'
 import LoadingIndicator from './components/loading-indicator.jsx'
 import { RouteContext, RouterProvider } from './context/router-context.jsx'

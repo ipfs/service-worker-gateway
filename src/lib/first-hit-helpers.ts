@@ -117,6 +117,26 @@ export function getHeliaSwRedirectUrl (
   return redirectUrl
 }
 
+function isRequestForContentAddressedData (url: URL): boolean {
+  if (url.hash.includes('/ipfs-sw-origin-isolation-warning')) {
+    // hash request for origin isolation warning page, not content addressed data (yet)
+    return false
+  }
+  if (isPathOrSubdomainRequest(url)) {
+    // subdomain request
+    return true
+  }
+  if (url.searchParams.has('helia-sw')) {
+    // query param request
+    return true
+  }
+  if (url.hash.includes('/ipfs-sw-config')) {
+    // hash request for config page.
+    return true
+  }
+  return false
+}
+
 /**
  * Based on the URL, determine the state of the navigation that we want.
  *
@@ -222,24 +242,4 @@ export async function loadConfigFromUrl ({ url, compressedConfig }: Pick<Navigat
   }
 
   return null
-}
-
-export function isRequestForContentAddressedData (url: URL): boolean {
-  if (url.hash.includes('/ipfs-sw-origin-isolation-warning')) {
-    // hash request for origin isolation warning page, not content addressed data (yet)
-    return false
-  }
-  if (isPathOrSubdomainRequest(url)) {
-    // subdomain request
-    return true
-  }
-  if (url.searchParams.has('helia-sw')) {
-    // query param request
-    return true
-  }
-  if (url.hash.includes('/ipfs-sw-config')) {
-    // hash request for config page.
-    return true
-  }
-  return false
 }

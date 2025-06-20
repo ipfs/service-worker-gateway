@@ -1,8 +1,8 @@
-import { getStateFromUrl, getConfigRedirectUrl, getUrlWithConfig, loadConfigFromUrl, isRequestForContentAddressedData, ensureSwScope } from './lib/first-hit-helpers.js'
+import renderApp from './app.jsx'
+import { getStateFromUrl, getConfigRedirectUrl, getUrlWithConfig, loadConfigFromUrl, ensureSwScope } from './lib/first-hit-helpers.js'
 import { toSubdomainRequest } from './lib/path-or-subdomain.js'
 import { translateIpfsRedirectUrl } from './lib/translate-ipfs-redirect-url.js'
 import { registerServiceWorker } from './service-worker-utils.js'
-import renderApp from './app.jsx'
 
 async function renderUi (): Promise<void> {
   await ensureSwScope()
@@ -19,7 +19,6 @@ async function main (): Promise<void> {
   const url = new URL(window.location.href)
   const state = await getStateFromUrl(url)
 
-
   if (!state.requestForContentAddressedData) {
     // not a request for content addressed data, render the UI
     await renderUi()
@@ -28,9 +27,8 @@ async function main (): Promise<void> {
     // user is requesting content addressed data and has the config already, render the UI
     await renderUi()
     return
-  } else {
-    // the user is requesting content addressed data and does not have the config, continue with the config loading flow
   }
+  // the user is requesting content addressed data and does not have the config, continue with the config loading flow
 
   if (state.hasConfig && state.isIsolatedOrigin) {
     // we are on a subdomain, and have a config, the service worker should be rendering the content shortly.
@@ -60,10 +58,10 @@ async function main (): Promise<void> {
   await ensureSwScope()
   await registerServiceWorker()
 
-  const translatedUrl = await translateIpfsRedirectUrl(url)
+  const translatedUrl = translateIpfsRedirectUrl(url)
   let actualContentUrl: string
   if (state.supportsSubdomains) {
-    actualContentUrl = await toSubdomainRequest(translatedUrl)
+    actualContentUrl = toSubdomainRequest(translatedUrl)
   } else {
     actualContentUrl = translatedUrl.href
   }
