@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react'
 import Header from '../components/Header.jsx'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
+import { QUERY_PARAMS } from '../lib/constants.js'
 import type { ReactNode } from 'react'
 import './default-page-styles.css'
 
@@ -38,7 +39,7 @@ function DefaultRecommendations ({ currentHost }: { currentHost: string }): Reac
 export default function SubdomainWarningPage (): ReactNode {
   const [acceptedRisk, setAcceptedRisk] = useState(sessionStorage.getItem('ipfs-sw-gateway-accepted-path-gateway-risk') ?? false)
   const [isSaving, setIsSaving] = useState(false)
-  const originalUrl = new URL(window.location.href).searchParams.get('helia-sw')
+  const originalUrl = new URL(window.location.href).searchParams.get(QUERY_PARAMS.HELIA_SW)
 
   const handleAcceptRisk = useCallback(async () => {
     setIsSaving(true)

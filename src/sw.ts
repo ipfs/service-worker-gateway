@@ -1,4 +1,5 @@
 import { getConfig } from './lib/config-db.js'
+import { QUERY_PARAMS } from './lib/constants.js'
 import { getHeliaSwRedirectUrl } from './lib/first-hit-helpers.js'
 import { GenericIDB } from './lib/generic-db.js'
 import { getSubdomainParts } from './lib/get-subdomain-parts.js'
@@ -138,7 +139,7 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   // ensure verifiedFetch is ready for use
-  event.waitUntil(updateVerifiedFetch())
+  // event.waitUntil(updateVerifiedFetch())
   /**
    * 👇 Claim all clients immediately. This handles the case when subdomain is
    * loaded for the first time, and config is updated and then a pre-fetch is
@@ -203,6 +204,9 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
       status: 200
     }))
     return false
+  } else if (isSubdomainConfigRequest(event)) {
+    log.trace('subdomain config request, ignoring and letting index.html handle it', event.request.url)
+    return false
   } else if (isConfigPageRequest(url)) {
     log.trace('config page request, ignoring ', event.request.url)
     return false
@@ -233,14 +237,16 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
     }))
     return false
   } else if (isSwConfigGETRequest(event)) {
+    // TODO: remove? I don't think we need this anymore.
     log.trace('sw-config GET request')
-    event.waitUntil(new Promise<void>((resolve) => {
-      event.respondWith(new Response(JSON.stringify(config), {
+    // event.waitUntil(new Promise<void>((resolve) => {
+    event.respondWith(new Promise<Response>((resolve) => {
+      resolve(new Response(JSON.stringify(config), {
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
         }
       }))
-      resolve()
     }))
     return false
   } else if (isSwAssetRequest(event)) {
@@ -249,13 +255,29 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
      * Return the asset from the cache if it exists, otherwise fetch it.
      */
     event.respondWith(caches.open(CURRENT_CACHES.swAssets).then(async (cache) => {
-      const cachedResponse = await cache.match(event.request)
-      if (cachedResponse != null) {
-        return cachedResponse
+      try {
+        const cachedResponse = await cache.match(event.request)
+        if (cachedResponse != null) {
+          return cachedResponse
+        }
+      } catch (err) {
+        log.error('error matching cached response', err)
       }
-      const response = await fetch(event.request)
+      let response: Response
+      try {
+        response = await fetch(event.request)
+      } catch (err) {
+        log.error('error fetching response', err)
+        return new Response('No response', {
+          status: 500,
+          headers: {
+            'x-debug-request-uri': event.request.url
+          }
+        })
+      }
       try {
         await cache.put(event.request, response.clone())
+        return response
       } catch (err) {
         log.error('error caching response', err)
       }
@@ -297,6 +319,11 @@ function isSubdomainRequest (event: FetchEvent): boolean {
 
 function isConfigPageRequest (url: URL): boolean {
   return isConfigPage(url.hash)
+}
+
+function isSubdomainConfigRequest (event: FetchEvent): boolean {
+  const url = new URL(event.request.url)
+  return url.searchParams.has(QUERY_PARAMS.IPFS_SW_SUBDOMAIN_REQUEST)
 }
 
 function isValidRequestForSW (event: FetchEvent): boolean {
@@ -472,7 +499,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
         Location: originLocation
       }
     })
-  } else if (!isSubdomainGatewayRequest(originalUrl) && isPathGatewayRequest(originalUrl) && !(await getOriginIsolationWarningAccepted()) && !originalUrl.searchParams.has('helia-sw')) {
+  } else if (!isSubdomainGatewayRequest(originalUrl) && isPathGatewayRequest(originalUrl) && !(await getOriginIsolationWarningAccepted()) && !originalUrl.searchParams.has(QUERY_PARAMS.HELIA_SW)) {
     const newUrl = new URL(originalUrl.href)
     newUrl.pathname = '/'
     newUrl.hash = '/ipfs-sw-origin-isolation-warning'

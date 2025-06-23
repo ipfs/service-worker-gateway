@@ -1,46 +1,75 @@
-import React from 'react'
-import ReactDOMClient from 'react-dom/client'
-import App from './app.jsx'
-import { RouterProvider } from './context/router-context.jsx'
-import * as renderChecks from './lib/routing-render-checks.js'
-import type { Route } from './context/router-context.jsx'
-import type { ReactElement } from 'react'
+import renderApp from './app.jsx'
+import { getStateFromUrl, getConfigRedirectUrl, getUrlWithConfig, loadConfigFromUrl, ensureSwScope } from './lib/first-hit-helpers.js'
+import { toSubdomainRequest } from './lib/path-or-subdomain.js'
+import { translateIpfsRedirectUrl } from './lib/translate-ipfs-redirect-url.js'
+import { registerServiceWorker } from './service-worker-utils.js'
 
-// SW did not trigger for this request
-const container = document.getElementById('root')
-
-const root = ReactDOMClient.createRoot(container)
-
-const LazyConfig = React.lazy(async () => import('./pages/config.jsx'))
-const LazyHelperUi = React.lazy(async () => import('./pages/helper-ui.jsx'))
-const LazyRedirectPage = React.lazy(async () => import('./pages/redirect-page.jsx'))
-const LazyInterstitial = React.lazy(async () => import('./pages/redirects-interstitial.jsx'))
-const LazyServiceWorkerErrorPage = React.lazy(async () => import('./pages/errors/no-service-worker.jsx'))
-const LazySubdomainWarningPage = React.lazy(async () => import('./pages/subdomain-warning.jsx'))
-const LazyFirstHitPage = React.lazy(async () => import('./pages/first-hit.jsx'))
-
-let ErrorPage: null | React.LazyExoticComponent<() => ReactElement> = LazyServiceWorkerErrorPage
-if ('serviceWorker' in navigator) {
-  ErrorPage = null
+async function renderUi (): Promise<void> {
+  await ensureSwScope()
+  renderApp()
 }
 
-const routes: Route[] = [
-  { shouldRender: renderChecks.shouldRenderFirstHitPage, component: LazyFirstHitPage },
-  { default: true, component: ErrorPage ?? LazyHelperUi },
-  { shouldRender: async () => renderChecks.shouldRenderConfigPage(), component: LazyConfig },
-  { shouldRender: async () => renderChecks.shouldRenderNoServiceWorkerError(), component: LazyServiceWorkerErrorPage },
-  { shouldRender: renderChecks.shouldRenderSubdomainWarningPage, component: LazySubdomainWarningPage },
-  { shouldRender: async () => renderChecks.shouldRenderRedirectsInterstitial(), component: LazyInterstitial },
-  {
-    shouldRender: async () => renderChecks.shouldRenderRedirectPage(),
-    component: LazyRedirectPage
+async function main (): Promise<void> {
+  if (!('serviceWorker' in navigator)) {
+    // no service worker, render the UI
+    await renderUi()
+    return
   }
-]
 
-root.render(
-  <React.StrictMode>
-    <RouterProvider routes={routes}>
-      <App />
-    </RouterProvider>
-  </React.StrictMode>
-)
+  const url = new URL(window.location.href)
+  const state = await getStateFromUrl(url)
+
+  if (!state.requestForContentAddressedData) {
+    // not a request for content addressed data, render the UI
+    await renderUi()
+    return
+  } else if (state.hasConfig) {
+    // user is requesting content addressed data and has the config already, render the UI
+    await renderUi()
+    return
+  }
+  // the user is requesting content addressed data and does not have the config, continue with the config loading flow
+
+  if (state.hasConfig && state.isIsolatedOrigin) {
+    // we are on a subdomain, and have a config, the service worker should be rendering the content shortly.
+    // TODO: this implicitly assumes the service worker is registered because config is set.. which should be true, but we should be more explicit.
+    return
+  }
+
+  const configRedirectUrl = await getConfigRedirectUrl(state)
+  if (configRedirectUrl != null) {
+    window.location.replace(configRedirectUrl)
+    return
+  }
+
+  const configForUri = await getUrlWithConfig(state)
+  if (configForUri != null) {
+    window.location.replace(configForUri)
+    return
+  }
+
+  const urlAfterLoadingConfig = await loadConfigFromUrl(state)
+  if (urlAfterLoadingConfig != null) {
+    window.location.replace(urlAfterLoadingConfig)
+    return
+  }
+
+  // if we are not on a subdomain, but we should be, we need to redirect to the subdomain
+  await ensureSwScope()
+  await registerServiceWorker()
+
+  const translatedUrl = translateIpfsRedirectUrl(url)
+  let actualContentUrl: string
+  if (state.supportsSubdomains) {
+    actualContentUrl = toSubdomainRequest(translatedUrl)
+  } else {
+    actualContentUrl = translatedUrl.href
+  }
+
+  window.location.replace(actualContentUrl)
+}
+
+void main().catch((err) => {
+  // eslint-disable-next-line no-console
+  console.error('helia:sw-gateway:index: error rendering ui', err)
+})
