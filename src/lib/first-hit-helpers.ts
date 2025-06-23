@@ -118,7 +118,7 @@ export function getHeliaSwRedirectUrl (
 }
 
 function isRequestForContentAddressedData (url: URL): boolean {
-  if (['/ipfs-sw-config', '/ipfs-sw-origin-isolation-warning'].some(hash => url.hash.includes(hash))) {
+  if (url.hash.includes('/ipfs-sw-origin-isolation-warning')) {
     // hash request for UI pages, not content addressed data
     return false
   }
@@ -129,6 +129,11 @@ function isRequestForContentAddressedData (url: URL): boolean {
   if (url.searchParams.has(QUERY_PARAMS.HELIA_SW)) {
     // query param request
     return true
+  }
+  if (url.hash.includes('/ipfs-sw-config')) {
+    // hash request for UI page, with no path/subdomain/query indicating request for content addressed data
+    // we need to do this after the path/subdomain/query check because we need to ensure the config is properly loaded from the root domain
+    return false
   }
   return false
 }
