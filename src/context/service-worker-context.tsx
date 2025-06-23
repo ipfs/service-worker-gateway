@@ -12,7 +12,6 @@
  * 1. The page being loaded using some /ip[fn]s/<path> url, but subdomain isolation is supported, so we need to redirect to the isolated origin
  */
 import React, { createContext, useEffect, useState } from 'react'
-import { ensureSwScope } from '../lib/first-hit-helpers.js'
 import { uiLogger } from '../lib/logger.js'
 import { findOriginIsolationRedirect } from '../lib/path-or-subdomain.js'
 import { isUnregisterRequest } from '../lib/unregister-request.js'
@@ -51,9 +50,6 @@ export const ServiceWorkerProvider = ({ children }): ReactElement => {
           log.error('service worker not registered, cannot unregister')
         }
       }
-
-      // TODO: Handle this in index.tsx, before UI is loaded (but we need to ensure config loading is still handled properly)
-      await ensureSwScope()
 
       const registration = await navigator.serviceWorker.getRegistration()
 

@@ -1,3 +1,5 @@
+import { QUERY_PARAMS } from './constants.js'
+
 /**
  * This function will check for "?helia-sw=" in the URL and modify the URL so that it works with the rest of our logic
  *
@@ -7,11 +9,11 @@
  * results in the sw being registered at the root scope, and the application will render index.html, which will register
  * the service worker at the correct scope and then handle the redirect to the desired path.
  */
-export function translateIpfsRedirectUrl (urlString: string): URL {
-  const url = new URL(urlString)
-  const heliaSw = url.searchParams.get('helia-sw')
+export function translateIpfsRedirectUrl (urlString: URL | string): URL {
+  const url = typeof urlString === 'string' ? new URL(urlString) : urlString
+  const heliaSw = url.searchParams.get(QUERY_PARAMS.HELIA_SW)
   if (heliaSw != null) {
-    url.searchParams.delete('helia-sw')
+    url.searchParams.delete(QUERY_PARAMS.HELIA_SW)
     url.pathname = heliaSw
   }
   return url

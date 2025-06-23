@@ -4,55 +4,10 @@
  *
  * Note that this was only tested and confirmed working for subdomain pages.
  */
-import { getConfigDebug, getConfigDnsJsonResolvers, getConfigEnableGatewayProviders, getConfigEnableRecursiveGateways, getConfigEnableWebTransport, getConfigEnableWss, getConfigFetchTimeout, getConfigGatewaysInput, getConfigGatewaysInputIframe, getConfigPage, getConfigPageSaveButton, getConfigPageSaveButtonIframe, getConfigRoutersInput, getConfigRoutersInputIframe } from './locators.js'
+import { getConfigDebug, getConfigDnsJsonResolvers, getConfigEnableGatewayProviders, getConfigEnableRecursiveGateways, getConfigEnableWebTransport, getConfigEnableWss, getConfigFetchTimeout, getConfigGatewaysInput, getConfigPage, getConfigPageSaveButton, getConfigRoutersInput } from './locators.js'
 import { waitForServiceWorker } from './wait-for-service-worker.js'
 import type { ConfigDb, ConfigDbWithoutPrivateFields } from '../../src/lib/config-db.js'
 import type { Page } from '@playwright/test'
-
-export async function setConfigViaUiSubdomain ({ page, config, expectedSwScope }: { page: Page, config: Partial<ConfigDb>, expectedSwScope: string }): Promise<void> {
-  await waitForServiceWorker(page, expectedSwScope)
-
-  await getConfigGatewaysInputIframe(page).locator('input').fill([process.env.KUBO_GATEWAY].join('\n'))
-  await getConfigRoutersInputIframe(page).locator('input').fill([process.env.KUBO_GATEWAY].join('\n'))
-
-  if (config.enableGatewayProviders != null) {
-    await getConfigEnableGatewayProviders(page).locator('input').setChecked(config.enableGatewayProviders)
-  }
-
-  if (config.enableWss != null) {
-    await getConfigEnableWss(page).locator('input').setChecked(config.enableWss)
-  }
-
-  if (config.enableWebTransport != null) {
-    await getConfigEnableWebTransport(page).locator('input').setChecked(config.enableWebTransport)
-  }
-
-  if (config.routers != null) {
-    await getConfigRoutersInputIframe(page).locator('input').fill(config.routers.join('\n'))
-  }
-
-  if (config.enableRecursiveGateways != null) {
-    await getConfigEnableRecursiveGateways(page).locator('input').setChecked(config.enableRecursiveGateways)
-  }
-
-  if (config.gateways != null) {
-    await getConfigGatewaysInputIframe(page).locator('input').fill(config.gateways.join('\n'))
-  }
-
-  // if (config.dnsJsonResolvers != null) {
-  //   await getConfigDnsJsonResolvers(page).locator('input').fill(config.dnsJsonResolvers.reduce((acc, [key, value]) => {
-  //     acc.push(`${key} ${value}`)
-  //     return acc
-  //   }, []).join('\n'))
-  // }
-  if (config.debug != null) {
-    await getConfigDebug(page).locator('input').fill(config.debug)
-  }
-
-  await getConfigPageSaveButtonIframe(page).click()
-
-  await getConfigPage(page).isHidden()
-}
 
 export async function setConfigViaUi ({ page, config, expectedSwScope }: { page: Page, config: Partial<ConfigDb>, expectedSwScope: string }): Promise<void> {
   await waitForServiceWorker(page, expectedSwScope)
@@ -104,8 +59,16 @@ export async function setConfigViaUi ({ page, config, expectedSwScope }: { page:
     await getConfigDebug(page).scrollIntoViewIfNeeded()
     await getConfigDebug(page).locator('textarea').fill(config.debug)
   }
-
+  // create a promise for waiting for the response from the service worker when the save is completed.
+  const savePromise = new Promise((resolve) => {
+    page.on('response', (response) => {
+      if (response.url().includes('?ipfs-sw-config-reload=true')) {
+        resolve(response)
+      }
+    })
+  })
   await getConfigPageSaveButton(page).click()
+  await savePromise
 }
 
 export async function getConfigUi ({ page, expectedSwScope }: { page: Page, expectedSwScope: string }): Promise<ConfigDbWithoutPrivateFields> {
