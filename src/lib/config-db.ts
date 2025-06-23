@@ -257,8 +257,8 @@ export async function decompressConfig (compressedConfig: string): Promise<Confi
     throw new Error('Attempted to decompress config from an untrusted URL.')
   }
   const { config, timestamp } = JSON.parse(LZString.decompressFromEncodedURIComponent(compressedConfig))
-  // if the config is more than 10 seconds old, throw an error
-  if (timestamp < Date.now() - 1000) {
+  // if the config is more than 1 second old, throw an error
+  if (Date.now() - timestamp > 1000) {
     throw new Error('Config is too old. Be sure to only use trusted URLs.')
   }
   return config
