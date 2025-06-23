@@ -1,6 +1,6 @@
 {
   "name": "helia-service-worker-gateway",
-  "version": "1.13.0",
+  "version": "1.13.1",
   "private": true,
   "type": "module",
   "description": "An IPFS Gateway that uses @helia/verified-fetch in a Service Worker to fetch content",
