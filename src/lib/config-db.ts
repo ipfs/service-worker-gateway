@@ -244,6 +244,18 @@ export async function compressConfig (config: ConfigDb): Promise<string> {
 }
 
 export async function decompressConfig (compressedConfig: string): Promise<ConfigDb> {
+  if (document.referrer === '' || document.referrer == null) {
+    /**
+     * document.referrer is empty or null which means the user got to this page from a direct link, not a redirect.
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Document/referrer#value
+     */
+    throw new Error('Attempted to decompress config from an untrusted URL.')
+  }
+  const url = new URL(document.referrer)
+  if (!window.location.host.includes(url.host)) {
+    // the referrer is not from the parent domain, so we can't trust it.
+    throw new Error('Attempted to decompress config from an untrusted URL.')
+  }
   const { config, timestamp } = JSON.parse(LZString.decompressFromEncodedURIComponent(compressedConfig))
   // if the config is more than 10 seconds old, throw an error
   if (timestamp < Date.now() - 1000) {
