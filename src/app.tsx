@@ -2,8 +2,6 @@ import React, { Suspense } from 'react'
 import ReactDOMClient from 'react-dom/client'
 import LoadingIndicator from './components/loading-indicator.jsx'
 import { RouteContext, RouterProvider } from './context/router-context.jsx'
-import { injectCSS } from './lib/css-injector.js'
-import { ensureSwScope } from './lib/first-hit-helpers.js'
 import * as renderChecks from './lib/routing-render-checks.js'
 import type { Route } from './context/router-context.jsx'
 import type { ReactElement } from 'react'
@@ -21,17 +19,7 @@ function App (): React.ReactElement {
   )
 }
 
-async function renderUi (): Promise<void> {
-  await ensureSwScope()
-  try {
-    // @ts-expect-error - css config is generated at build time
-    // eslint-disable-next-line import-x/no-absolute-path
-    const { CSS_FILENAME } = await import('/ipfs-sw-css-config.js')
-    injectCSS(CSS_FILENAME)
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn('Failed to load CSS config, UI will render without styles:', err)
-  }
+export default function renderUi (): void {
   const container = document.getElementById('root')
 
   const root = ReactDOMClient.createRoot(container)
@@ -66,8 +54,3 @@ async function renderUi (): Promise<void> {
     </React.StrictMode>
   )
 }
-
-renderUi().catch(err => {
-  // eslint-disable-next-line no-console
-  console.error('Failed to render UI:', err)
-})

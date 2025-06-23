@@ -1,23 +1,12 @@
+import renderApp from './app.jsx'
 import { getStateFromUrl, getConfigRedirectUrl, getUrlWithConfig, loadConfigFromUrl, ensureSwScope } from './lib/first-hit-helpers.js'
 import { toSubdomainRequest } from './lib/path-or-subdomain.js'
 import { translateIpfsRedirectUrl } from './lib/translate-ipfs-redirect-url.js'
 import { registerServiceWorker } from './service-worker-utils.js'
 
 async function renderUi (): Promise<void> {
-  // dynamically load the app chunk using the correct filename
-  try {
-    // @ts-expect-error - App config is generated at build time
-    // eslint-disable-next-line import-x/no-absolute-path
-    const { APP_FILENAME } = await import('/ipfs-sw-app-config.js')
-    const script = document.createElement('script')
-    script.type = 'module'
-    script.src = `/${APP_FILENAME}`
-    document.body.appendChild(script)
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('Failed to load app chunk config:', err)
-    throw err
-  }
+  await ensureSwScope()
+  renderApp()
 }
 
 async function main (): Promise<void> {
