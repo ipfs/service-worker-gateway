@@ -24,8 +24,8 @@ function App (): React.ReactElement {
 async function renderUi (): Promise<void> {
   await ensureSwScope()
   try {
-    // Dynamically inject CSS when UI is being rendered
-    // @ts-expect-error - CSS config is generated at build time
+    // @ts-expect-error - css config is generated at build time
+    // eslint-disable-next-line import-x/no-absolute-path
     const { CSS_FILENAME } = await import('/ipfs-sw-css-config.js')
     injectCSS(CSS_FILENAME)
   } catch (err) {

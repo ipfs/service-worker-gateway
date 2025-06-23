@@ -130,22 +130,6 @@ const injectHtmlPages = async (metafile, revision) => {
 
     await fs.writeFile(htmlFilePath, htmlContent)
   }
-
-  // create a CSS config file we will use to get the proper CSS filename
-  const indexCssFile = Object.keys(metafile.outputs).find(file => file.endsWith('.css') && file.includes('app'))
-  if (indexCssFile) {
-    const cssConfigContent = `export const CSS_FILENAME = '${path.basename(indexCssFile)}'`
-    await fs.writeFile(path.resolve('dist/ipfs-sw-css-config.js'), cssConfigContent)
-    console.log(`Created dist/ipfs-sw-css-config.js with CSS filename: ${path.basename(indexCssFile)}`)
-  }
-
-  // create an app chunk config file we will use to get the proper app chunk filename for importing all the UI dynamically
-  const appChunkFile = Object.keys(metafile.outputs).find(file => file.endsWith('.js') && file.includes('app'))
-  if (appChunkFile) {
-    const appConfigContent = `export const APP_FILENAME = '${path.basename(appChunkFile)}'`
-    await fs.writeFile(path.resolve('dist/ipfs-sw-app-config.js'), appConfigContent)
-    console.log(`Created dist/ipfs-sw-app-config.js with app chunk filename: ${path.basename(appChunkFile)}`)
-  }
 }
 
 /**
@@ -205,16 +189,34 @@ const modifyBuiltFiles = {
   name: 'modify-built-files',
   setup (build) {
     build.onEnd(async (result) => {
+      const metafile = result.metafile
+
       // Cache the Git revision once
       const revision = gitRevision()
 
       // Run copyPublicFiles first to make sure public assets are in place
       await copyPublicFiles()
 
-      await injectHtmlPages(result.metafile, revision)
+      await injectHtmlPages(metafile, revision)
 
       // Modify the redirects file last
       await modifyRedirects()
+
+      // create a CSS config file we will use to get the proper CSS filename
+      const indexCssFile = Object.keys(metafile.outputs).find(file => file.endsWith('.css') && file.includes('app'))
+      if (indexCssFile) {
+        const cssConfigContent = `export const CSS_FILENAME = '${path.basename(indexCssFile)}'`
+        await fs.writeFile(path.resolve('dist/ipfs-sw-css-config.js'), cssConfigContent)
+        console.log(`Created dist/ipfs-sw-css-config.js with CSS filename: ${path.basename(indexCssFile)}`)
+      }
+
+      // create an app chunk config file we will use to get the proper app chunk filename for importing all the UI dynamically
+      const appChunkFile = Object.keys(metafile.outputs).find(file => file.endsWith('.js') && file.includes('app'))
+      if (appChunkFile) {
+        const appConfigContent = `export const APP_FILENAME = '${path.basename(appChunkFile)}'`
+        await fs.writeFile(path.resolve('dist/ipfs-sw-app-config.js'), appConfigContent)
+        console.log(`Created dist/ipfs-sw-app-config.js with app chunk filename: ${path.basename(appChunkFile)}`)
+      }
     })
   }
 }

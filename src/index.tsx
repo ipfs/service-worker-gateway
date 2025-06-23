@@ -7,17 +7,11 @@ async function renderUi (): Promise<void> {
   // dynamically load the app chunk using the correct filename
   try {
     // @ts-expect-error - App config is generated at build time
+    // eslint-disable-next-line import-x/no-absolute-path
     const { APP_FILENAME } = await import('/ipfs-sw-app-config.js')
-
     const script = document.createElement('script')
     script.type = 'module'
     script.src = `/${APP_FILENAME}`
-    //     script.textContent = `
-    // import renderApp from '/${APP_CHUNK_FILENAME}';
-    // renderApp();
-    // console.log('import.meta.url', import.meta.url);
-    // export {}
-    // `
     document.body.appendChild(script)
   } catch (err) {
     // eslint-disable-next-line no-console
