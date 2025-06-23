@@ -16,7 +16,7 @@
   },
   "include": [
     "src",
-    "types",
+    "types/svg.d.ts",
     "test",
     "test-e2e",
     "playwright.config.js",
