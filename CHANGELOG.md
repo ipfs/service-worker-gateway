@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.13.0](https://github.com/ipfs/service-worker-gateway/compare/v1.12.3...v1.13.0) (2025-06-23)
+
+
+### Features
+
+* add dag-cbor HTML preview ([#774](https://github.com/ipfs/service-worker-gateway/issues/774)) ([343a26e](https://github.com/ipfs/service-worker-gateway/commit/343a26e4f82615c4882c4800f690002f8b8cd0db))
+
+
+### Bug Fixes
+
+* build allows for not including js or css file ([#768](https://github.com/ipfs/service-worker-gateway/issues/768)) ([0a10b47](https://github.com/ipfs/service-worker-gateway/commit/0a10b471f071b34aeaeec59cf3eeb1226238b2d3))
+* do not import css or react JS unless needed ([#773](https://github.com/ipfs/service-worker-gateway/issues/773)) ([78d4d45](https://github.com/ipfs/service-worker-gateway/commit/78d4d4507d8893639e119941d14c7c9305969dae))
+* global config is passed to subdomains ([#759](https://github.com/ipfs/service-worker-gateway/issues/759)) ([58fc25b](https://github.com/ipfs/service-worker-gateway/commit/58fc25b4f6f3f25a2e72bf7b67fbac1d8f77640b))
+* go server handles requests with paths ([#761](https://github.com/ipfs/service-worker-gateway/issues/761)) ([7b4ffce](https://github.com/ipfs/service-worker-gateway/commit/7b4ffce8aa160bceef6a784e51309f060befdc65))
+
 ## [1.12.3](https://github.com/ipfs/service-worker-gateway/compare/v1.12.2...v1.12.3) (2025-06-13)
 
 
