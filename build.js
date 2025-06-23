@@ -74,7 +74,7 @@ const injectHtmlPages = async (metafile, revision) => {
       jsFile = jsFile[0]
     }
 
-    let cssFile = Object.keys(metafile.outputs).filter(file => file.endsWith('.css') && (file.includes(baseName) || file.includes('app')))
+    let cssFile = Object.keys(metafile.outputs).filter(file => file.endsWith('.css') && (file.includes(baseName) || file.includes('index')))
     if (cssFile.length > 1) {
       // override injection of index.css to the basename file
       cssFile = cssFile.find(file => file.includes(baseName))
@@ -96,13 +96,8 @@ const injectHtmlPages = async (metafile, revision) => {
       }
     }
 
-    // only inject CSS for non-index.html files, or if explicitly requested
     if (htmlContent.includes('<%= CSS_STYLES %>')) {
-      if (baseName === 'index') {
-        // for index.html, don't inject CSS - it will be injected dynamically by JavaScript
-        htmlContent = htmlContent.replace(/<%= CSS_STYLES %>/g, '')
-        console.log(`Removed CSS injection from ${path.relative(process.cwd(), htmlFilePath)} - will be injected dynamically.`)
-      } else if (cssFile != null) {
+      if (cssFile != null) {
         const cssTag = `<link rel="stylesheet" href="/${path.basename(cssFile)}">`
         htmlContent = htmlContent.replace(/<%= CSS_STYLES %>/g, cssTag)
         console.log(`Injected ${path.basename(cssFile)} into ${path.relative(process.cwd(), htmlFilePath)}.`)
@@ -189,34 +184,16 @@ const modifyBuiltFiles = {
   name: 'modify-built-files',
   setup (build) {
     build.onEnd(async (result) => {
-      const metafile = result.metafile
-
       // Cache the Git revision once
       const revision = gitRevision()
 
       // Run copyPublicFiles first to make sure public assets are in place
       await copyPublicFiles()
 
-      await injectHtmlPages(metafile, revision)
+      await injectHtmlPages(result.metafile, revision)
 
       // Modify the redirects file last
       await modifyRedirects()
-
-      // create a CSS config file we will use to get the proper CSS filename
-      const indexCssFile = Object.keys(metafile.outputs).find(file => file.endsWith('.css') && file.includes('app'))
-      if (indexCssFile) {
-        const cssConfigContent = `export const CSS_FILENAME = '${path.basename(indexCssFile)}'`
-        await fs.writeFile(path.resolve('dist/ipfs-sw-css-config.js'), cssConfigContent)
-        console.log(`Created dist/ipfs-sw-css-config.js with CSS filename: ${path.basename(indexCssFile)}`)
-      }
-
-      // create an app chunk config file we will use to get the proper app chunk filename for importing all the UI dynamically
-      const appChunkFile = Object.keys(metafile.outputs).find(file => file.endsWith('.js') && file.includes('app'))
-      if (appChunkFile) {
-        const appConfigContent = `export const APP_FILENAME = '${path.basename(appChunkFile)}'`
-        await fs.writeFile(path.resolve('dist/ipfs-sw-app-config.js'), appConfigContent)
-        console.log(`Created dist/ipfs-sw-app-config.js with app chunk filename: ${path.basename(appChunkFile)}`)
-      }
     })
   }
 }
@@ -242,7 +219,7 @@ const excludeFilesPlugin = (extensions) => ({
  * @type {esbuild.BuildOptions}
  */
 export const buildOptions = {
-  entryPoints: ['src/index.tsx', 'src/sw.ts', 'src/app.tsx', 'src/ipfs-sw-*.ts', 'src/ipfs-sw-*.css'],
+  entryPoints: ['src/index.tsx', 'src/sw.ts', 'src/ipfs-sw-*.ts', 'src/ipfs-sw-*.css'],
   bundle: true,
   outdir: 'dist',
   loader: {
