@@ -1,23 +1,29 @@
-import renderApp from './app.jsx'
-import { injectCSS } from './lib/css-injector.js'
 import { getStateFromUrl, getConfigRedirectUrl, getUrlWithConfig, loadConfigFromUrl, ensureSwScope } from './lib/first-hit-helpers.js'
 import { toSubdomainRequest } from './lib/path-or-subdomain.js'
 import { translateIpfsRedirectUrl } from './lib/translate-ipfs-redirect-url.js'
 import { registerServiceWorker } from './service-worker-utils.js'
 
 async function renderUi (): Promise<void> {
-  await ensureSwScope()
+  // dynamically load the app chunk using the correct filename
   try {
-    // Dynamically inject CSS when UI is being rendered
-    // @ts-expect-error - CSS config is generated at build time
-    const { CSS_FILENAME } = await import('/ipfs-sw-css-config.js')
-    injectCSS(CSS_FILENAME)
+    // @ts-expect-error - App config is generated at build time
+    const { APP_FILENAME } = await import('/ipfs-sw-app-config.js')
+
+    const script = document.createElement('script')
+    script.type = 'module'
+    script.src = `/${APP_FILENAME}`
+    //     script.textContent = `
+    // import renderApp from '/${APP_CHUNK_FILENAME}';
+    // renderApp();
+    // console.log('import.meta.url', import.meta.url);
+    // export {}
+    // `
+    document.body.appendChild(script)
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.warn('Failed to load CSS config, UI will render without styles:', err)
+    console.error('Failed to load app chunk config:', err)
+    throw err
   }
-
-  renderApp()
 }
 
 async function main (): Promise<void> {

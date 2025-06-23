@@ -74,7 +74,7 @@ const injectHtmlPages = async (metafile, revision) => {
       jsFile = jsFile[0]
     }
 
-    let cssFile = Object.keys(metafile.outputs).filter(file => file.endsWith('.css') && (file.includes(baseName) || file.includes('index')))
+    let cssFile = Object.keys(metafile.outputs).filter(file => file.endsWith('.css') && (file.includes(baseName) || file.includes('app')))
     if (cssFile.length > 1) {
       // override injection of index.css to the basename file
       cssFile = cssFile.find(file => file.includes(baseName))
@@ -132,11 +132,19 @@ const injectHtmlPages = async (metafile, revision) => {
   }
 
   // create a CSS config file we will use to get the proper CSS filename
-  const indexCssFile = Object.keys(metafile.outputs).find(file => file.endsWith('.css') && file.includes('index'))
+  const indexCssFile = Object.keys(metafile.outputs).find(file => file.endsWith('.css') && file.includes('app'))
   if (indexCssFile) {
     const cssConfigContent = `export const CSS_FILENAME = '${path.basename(indexCssFile)}'`
     await fs.writeFile(path.resolve('dist/ipfs-sw-css-config.js'), cssConfigContent)
     console.log(`Created dist/ipfs-sw-css-config.js with CSS filename: ${path.basename(indexCssFile)}`)
+  }
+
+  // create an app chunk config file we will use to get the proper app chunk filename for importing all the UI dynamically
+  const appChunkFile = Object.keys(metafile.outputs).find(file => file.endsWith('.js') && file.includes('app'))
+  if (appChunkFile) {
+    const appConfigContent = `export const APP_FILENAME = '${path.basename(appChunkFile)}'`
+    await fs.writeFile(path.resolve('dist/ipfs-sw-app-config.js'), appConfigContent)
+    console.log(`Created dist/ipfs-sw-app-config.js with app chunk filename: ${path.basename(appChunkFile)}`)
   }
 }
 
@@ -232,7 +240,7 @@ const excludeFilesPlugin = (extensions) => ({
  * @type {esbuild.BuildOptions}
  */
 export const buildOptions = {
-  entryPoints: ['src/index.tsx', 'src/sw.ts', 'src/ipfs-sw-*.ts', 'src/ipfs-sw-*.css'],
+  entryPoints: ['src/index.tsx', 'src/sw.ts', 'src/app.tsx', 'src/ipfs-sw-*.ts', 'src/ipfs-sw-*.css'],
   bundle: true,
   outdir: 'dist',
   loader: {
