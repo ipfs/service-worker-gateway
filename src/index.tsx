@@ -3,9 +3,19 @@ import { getStateFromUrl, getConfigRedirectUrl, getUrlWithConfig, loadConfigFrom
 import { toSubdomainRequest } from './lib/path-or-subdomain.js'
 import { translateIpfsRedirectUrl } from './lib/translate-ipfs-redirect-url.js'
 import { registerServiceWorker } from './service-worker-utils.js'
+import { injectCSS } from './lib/css-injector.js'
 
 async function renderUi (): Promise<void> {
   await ensureSwScope()
+  try {
+    // Dynamically inject CSS when UI is being rendered
+    // @ts-expect-error - CSS config is generated at build time
+    const { CSS_FILENAME } = await import('/ipfs-sw-css-config.js')
+    injectCSS(CSS_FILENAME)
+  } catch (err) {
+    console.warn('Failed to load CSS config, UI will render without styles:', err)
+  }
+
   renderApp()
 }
 

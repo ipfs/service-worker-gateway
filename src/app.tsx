@@ -5,7 +5,6 @@ import { RouteContext, RouterProvider } from './context/router-context.jsx'
 import * as renderChecks from './lib/routing-render-checks.js'
 import type { Route } from './context/router-context.jsx'
 import type { ReactElement } from 'react'
-import './app.css'
 
 // SW did not trigger for this request
 

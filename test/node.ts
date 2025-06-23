@@ -46,7 +46,7 @@ describe(`verify-dist at ${distRoot}`, () => {
     {
       filePath: 'index.html',
       content: [
-        /ipfs-sw-index-.*\.css/,
+        // /ipfs-sw-index-.*\.css/, // no longer needed, css is injected dynamically
         'id="root"'
       ]
     },
