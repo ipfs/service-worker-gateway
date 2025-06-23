@@ -52,72 +52,6 @@ function gitRevision () {
 }
 
 /**
- * Inject the dist/index.js and dist/index.css into the dist/index.html file
- *
- * @param {esbuild.Metafile} metafile - esbuild's metafile to extract output file names
- * @param {string} revision - Pre-computed Git revision string
- */
-const injectAssets = async (metafile, revision) => {
-  const htmlFilePath = path.resolve('dist/index.html')
-  const outputs = metafile.outputs
-
-  // Get the built JS and CSS filenames
-  const scriptFile = Object.keys(outputs).find(file => file.endsWith('.js') && file.includes('ipfs-sw-index'))
-  const cssFile = Object.keys(outputs).find(file => file.endsWith('.css') && file.includes('ipfs-sw-index'))
-
-  let htmlContent = await fs.readFile(htmlFilePath, 'utf8')
-  if (scriptFile != null) {
-    const scriptTag = `<script type="module" src="${path.basename(scriptFile)}"></script>`
-    htmlContent = htmlContent.replace('</body>', `${scriptTag}</body>`)
-    console.log(`Injected ${path.basename(scriptFile)} into index.html.`)
-  }
-
-  if (cssFile != null) {
-    const linkTag = `<link rel="stylesheet" href="${path.basename(cssFile)}">`
-    htmlContent = htmlContent.replace('</head>', `${linkTag}</head>`)
-    console.log(`Injected ${path.basename(cssFile)} into index.html.`)
-  }
-
-  htmlContent = htmlContent
-    .replace(/<%= GIT_VERSION %>/g, revision)
-
-  await fs.writeFile(htmlFilePath, htmlContent)
-}
-
-/**
- * Inject the ipfs-sw-first-hit.js into the ipfs-sw-first-hit.html file
- *
- * This was added when addressing an issue with redirects not preserving query parameters.
- *
- * The solution we're moving forward with is, instead of using 302 redirects with ipfs _redirects file, we are
- * using 200 responses with the ipfs-sw-first-hit.html file. That file will include the ipfs-sw-first-hit.js script
- * which will be injected into the index.html file, and handle the redirect logic for us.
- *
- * @see https://github.com/ipfs/service-worker-gateway/issues/628
- *
- * @param {esbuild.Metafile} metafile - esbuild's metafile to extract output file names
- * @param {string} revision - Pre-computed Git revision string
- */
-const injectFirstHitJs = async (metafile, revision) => {
-  const htmlFilePath = path.resolve('dist/ipfs-sw-first-hit.html')
-
-  const scriptFile = Object.keys(metafile.outputs).find(file => file.endsWith('.js') && file.includes('ipfs-sw-first-hit'))
-
-  if (!scriptFile) {
-    console.error('Could not find the ipfs-sw-first-hit JS file in the metafile.')
-    return
-  }
-
-  const scriptTag = `<script src="/${path.basename(scriptFile)}"></script>`
-  let htmlContent = await fs.readFile(htmlFilePath, 'utf8')
-  htmlContent = htmlContent
-    .replace(/<%= GIT_VERSION %>/g, revision)
-    .replace('</body>', `${scriptTag}</body>`)
-
-  await fs.writeFile(htmlFilePath, htmlContent)
-}
-
-/**
  * Inject all ipfs-sw-*.html pages (not index.html and not ipfs-sw-first-hit.html) in the dist folder with CSS, git revision, and logo.
  *
  * @param {esbuild.Metafile} metafile - esbuild's metafile to extract output file names
@@ -125,29 +59,69 @@ const injectFirstHitJs = async (metafile, revision) => {
  */
 const injectHtmlPages = async (metafile, revision) => {
   const htmlFilePaths = await fs.readdir(path.resolve('dist'), { withFileTypes: true })
-    .then(files => files.filter(file => file.isFile() && file.name.startsWith('ipfs-sw-') && file.name.endsWith('.html') && !file.name.includes('first-hit')))
+    .then(files => files.filter(file => file.isFile() && file.name.endsWith('.html')))
     .then(files => files.map(file => path.resolve('dist', file.name)))
 
+  // htmlFilePaths.push(path.resolve('dist/index.html'))
+
   for (const htmlFilePath of htmlFilePaths) {
-    // find the -index-*.css file in the metafile results
-    const cssFile = Object.keys(metafile.outputs).find(file => file.endsWith('.css') && file.includes('ipfs-sw-index'))
-
-    const logoFile = Object.keys(metafile.outputs).find(file => file.endsWith('.svg') && file.includes('ipfs-sw-ipfs-logo'))
-    let htmlContent = await fs.readFile(htmlFilePath, 'utf8')
-
-    if (cssFile != null) {
-      const cssTag = `<link rel="stylesheet" href="/${path.basename(cssFile)}">`
-      htmlContent = htmlContent.replace(/<%= CSS_STYLES %>/g, cssTag)
-      console.log(`Injected ${path.basename(cssFile)} into ${htmlFilePath}.`)
+    const baseName = path.basename(htmlFilePath, '.html')
+    let jsFile = Object.keys(metafile.outputs).filter(file => file.endsWith('.js') && (file.includes(baseName) || file.includes('index')))
+    if (jsFile.length > 1) {
+      // override injection of index.js to the basename file
+      jsFile = jsFile.find(file => file.includes(baseName))
+    } else {
+      jsFile = jsFile[0]
     }
 
-    if (logoFile != null) {
-      const logoTag = `<img src="/${path.basename(logoFile)}" alt="IPFS Logo">`
-      htmlContent = htmlContent.replace(/<%= IPFS_LOGO_PATH %>/g, logoTag)
-      console.log(`Injected ${path.basename(logoFile)} into ${htmlFilePath}.`)
+    let cssFile = Object.keys(metafile.outputs).filter(file => file.endsWith('.css') && (file.includes(baseName) || file.includes('index')))
+    if (cssFile.length > 1) {
+      // override injection of index.css to the basename file
+      cssFile = cssFile.find(file => file.includes(baseName))
+    } else {
+      cssFile = cssFile[0]
+    }
+
+    const logoFile = Object.keys(metafile.outputs).find(file => file.endsWith('.svg') && file.includes('ipfs-sw-ipfs-logo'))
+
+    let htmlContent = await fs.readFile(htmlFilePath, 'utf8')
+
+    if (htmlContent.includes('<%= JS_SCRIPT_TAG %>')) {
+      if (jsFile != null) {
+        const jsTag = `<script type="module" src="/${path.basename(jsFile)}"></script>`
+        htmlContent = htmlContent.replace(/<%= JS_SCRIPT_TAG %>/g, jsTag)
+        console.log(`Injected ${path.basename(jsFile)} into ${path.relative(process.cwd(), htmlFilePath)}.`)
+      } else {
+        throw new Error(`Could not find a js file to include in ${path.relative(process.cwd(), htmlFilePath)}.`)
+      }
+    }
+
+    if (htmlContent.includes('<%= CSS_STYLES %>')) {
+      if (cssFile != null) {
+        const cssTag = `<link rel="stylesheet" href="/${path.basename(cssFile)}">`
+        htmlContent = htmlContent.replace(/<%= CSS_STYLES %>/g, cssTag)
+        console.log(`Injected ${path.basename(cssFile)} into ${path.relative(process.cwd(), htmlFilePath)}.`)
+      } else {
+        throw new Error(`Could not find an index.css file to include in ${path.relative(process.cwd(), htmlFilePath)}.`)
+      }
+    }
+
+    if (htmlContent.includes('<%= IPFS_LOGO_PATH %>')) {
+      if (logoFile != null) {
+        htmlContent = htmlContent.replace(/<%= IPFS_LOGO_PATH %>/g, path.basename(logoFile))
+        console.log(`Injected ${path.basename(logoFile)} into ${path.relative(process.cwd(), htmlFilePath)}.`)
+      } else {
+        throw new Error(`Could not find the logo file to include in ${path.relative(process.cwd(), htmlFilePath)}.`)
+      }
+    }
+
+    if (!htmlContent.includes('<%= GIT_VERSION %>')) {
+      // if you see this error, make sure you update the HTML file to include an html comment similar to the one in public/index.html
+      throw new Error(`${path.relative(process.cwd(), htmlFilePath)} does not contain <%= GIT_VERSION %>.`)
     }
 
     htmlContent = htmlContent.replace(/<%= GIT_VERSION %>/g, revision)
+    console.log(`Added git revision (${revision}) to ${path.relative(process.cwd(), htmlFilePath)}.`)
 
     await fs.writeFile(htmlFilePath, htmlContent)
   }
@@ -216,12 +190,7 @@ const modifyBuiltFiles = {
       // Run copyPublicFiles first to make sure public assets are in place
       await copyPublicFiles()
 
-      // Run injection tasks concurrently since they modify separate files
-      await Promise.all([
-        injectAssets(result.metafile, revision),
-        injectFirstHitJs(result.metafile, revision),
-        injectHtmlPages(result.metafile, revision)
-      ])
+      await injectHtmlPages(result.metafile, revision)
 
       // Modify the redirects file last
       await modifyRedirects()
@@ -250,7 +219,7 @@ const excludeFilesPlugin = (extensions) => ({
  * @type {esbuild.BuildOptions}
  */
 export const buildOptions = {
-  entryPoints: ['src/index.tsx', 'src/sw.ts', 'src/ipfs-sw-first-hit.ts'],
+  entryPoints: ['src/index.tsx', 'src/sw.ts', 'src/ipfs-sw-*.ts', 'src/ipfs-sw-*.css'],
   bundle: true,
   outdir: 'dist',
   loader: {
