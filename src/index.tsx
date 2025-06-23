@@ -1,9 +1,9 @@
 import renderApp from './app.jsx'
+import { injectCSS } from './lib/css-injector.js'
 import { getStateFromUrl, getConfigRedirectUrl, getUrlWithConfig, loadConfigFromUrl, ensureSwScope } from './lib/first-hit-helpers.js'
 import { toSubdomainRequest } from './lib/path-or-subdomain.js'
 import { translateIpfsRedirectUrl } from './lib/translate-ipfs-redirect-url.js'
 import { registerServiceWorker } from './service-worker-utils.js'
-import { injectCSS } from './lib/css-injector.js'
 
 async function renderUi (): Promise<void> {
   await ensureSwScope()
@@ -13,6 +13,7 @@ async function renderUi (): Promise<void> {
     const { CSS_FILENAME } = await import('/ipfs-sw-css-config.js')
     injectCSS(CSS_FILENAME)
   } catch (err) {
+    // eslint-disable-next-line no-console
     console.warn('Failed to load CSS config, UI will render without styles:', err)
   }
 
