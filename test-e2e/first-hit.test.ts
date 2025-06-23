@@ -141,5 +141,17 @@ test.describe('first-hit direct-hosted', () => {
       // and we verify the content was returned
       await page.waitForSelector('text=Don\'t we all.')
     })
+
+    test('cloudflare-redirect works', async ({ page, rootDomain, protocol }) => {
+      // when accessing https://inbrowser.dev/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq, cloudflare will redirect to https://inbrowser.dev/ipfs-sw-first-hit.html/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq
+      const response = await page.goto(`${protocol}//${rootDomain}/ipfs-sw-first-hit.html/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq/1 - Barrel - Part 1 - alt.txt`, { waitUntil: 'commit' })
+
+      // first loads the root page
+      expect(response?.status()).toBe(200)
+
+      await page.waitForURL(`${protocol}//bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq.ipfs.${rootDomain}/1%20-%20Barrel%20-%20Part%201%20-%20alt.txt`, { timeout: 10000 })
+
+      await page.waitForSelector('text=Don\'t we all.')
+    })
   })
 })
