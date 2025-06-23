@@ -247,6 +247,7 @@ export async function decompressConfig (compressedConfig: string): Promise<Confi
   if (document.referrer === '' || document.referrer == null) {
     /**
      * document.referrer is empty or null which means the user got to this page from a direct link, not a redirect.
+     *
      * @see https://developer.mozilla.org/en-US/docs/Web/API/Document/referrer#value
      */
     throw new Error('Attempted to decompress config from an untrusted URL.')
