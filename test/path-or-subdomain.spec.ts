@@ -3,6 +3,7 @@ import { expect } from 'aegir/chai'
 import { base32 } from 'multiformats/bases/base32'
 import { base36 } from 'multiformats/bases/base36'
 import { CID } from 'multiformats/cid'
+import { QUERY_PARAMS } from '../src/lib/constants.js'
 import { isPathOrSubdomainRequest, toSubdomainRequest } from '../src/lib/path-or-subdomain.js'
 
 interface Loc {
@@ -87,7 +88,7 @@ describe('path-or-subdomain', () => {
 
       const out = toSubdomainRequest(loc)
       const exp = new URL(`http://${cidV1}.ipfs.example.com/`)
-      exp.searchParams.set('helia-sw', '/foo/bar.txt')
+      exp.searchParams.set(QUERY_PARAMS.HELIA_SW, '/foo/bar.txt')
 
       expect(out).to.equal(exp.href)
     })
@@ -105,7 +106,7 @@ describe('path-or-subdomain', () => {
 
       const out = toSubdomainRequest(loc)
       const exp = new URL(`https://${cidV1}.ipfs.example.com/`)
-      exp.searchParams.set('helia-sw', '/path/to/file')
+      exp.searchParams.set(QUERY_PARAMS.HELIA_SW, '/path/to/file')
       exp.searchParams.set('foo', 'bar')
       exp.searchParams.set('baz', 'qux')
       exp.hash = '#section2'
@@ -138,7 +139,7 @@ describe('path-or-subdomain', () => {
 
       const out = toSubdomainRequest(loc)
       const exp = new URL(`https://${keyV1}.ipns.gateway.local/`)
-      exp.searchParams.set('helia-sw', '/blog/post')
+      exp.searchParams.set(QUERY_PARAMS.HELIA_SW, '/blog/post')
       expect(out).to.equal(exp.href)
     })
 
@@ -154,7 +155,7 @@ describe('path-or-subdomain', () => {
       const url = new URL(out)
       expect(url.origin).to.equal(`http://foo-bar.ipns.${hostname}`)
       expect(url.pathname).to.equal('/')
-      expect(url.searchParams.get('helia-sw')).to.equal('/baz')
+      expect(url.searchParams.get(QUERY_PARAMS.HELIA_SW)).to.equal('/baz')
     })
 
     it('ignores invalid namespaces', () => {
@@ -163,7 +164,7 @@ describe('path-or-subdomain', () => {
       const out = toSubdomainRequest(loc)
       const url = new URL(out)
       expect(url.origin).to.equal('http://qmwhatever.potato.example.com')
-      expect(url.searchParams.get('helia-sw')).to.equal('/foo')
+      expect(url.searchParams.get(QUERY_PARAMS.HELIA_SW)).to.equal('/foo')
     })
   })
 })

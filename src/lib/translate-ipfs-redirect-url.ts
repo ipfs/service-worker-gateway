@@ -1,3 +1,5 @@
+import { QUERY_PARAMS } from './constants.js'
+
 /**
  * This function will check for "?helia-sw=" in the URL and modify the URL so that it works with the rest of our logic
  *
@@ -9,9 +11,9 @@
  */
 export function translateIpfsRedirectUrl (urlString: URL | string): URL {
   const url = typeof urlString === 'string' ? new URL(urlString) : urlString
-  const heliaSw = url.searchParams.get('helia-sw')
+  const heliaSw = url.searchParams.get(QUERY_PARAMS.HELIA_SW)
   if (heliaSw != null) {
-    url.searchParams.delete('helia-sw')
+    url.searchParams.delete(QUERY_PARAMS.HELIA_SW)
     url.pathname = heliaSw
   }
   return url

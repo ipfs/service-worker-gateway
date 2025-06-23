@@ -118,20 +118,16 @@ export function getHeliaSwRedirectUrl (
 }
 
 function isRequestForContentAddressedData (url: URL): boolean {
-  if (url.hash.includes('/ipfs-sw-origin-isolation-warning')) {
-    // hash request for origin isolation warning page, not content addressed data (yet)
+  if (['/ipfs-sw-config', '/ipfs-sw-origin-isolation-warning'].some(hash => url.hash.includes(hash))) {
+    // hash request for UI pages, not content addressed data
     return false
   }
   if (isPathOrSubdomainRequest(url)) {
     // subdomain request
     return true
   }
-  if (url.searchParams.has('helia-sw')) {
+  if (url.searchParams.has(QUERY_PARAMS.HELIA_SW)) {
     // query param request
-    return true
-  }
-  if (url.hash.includes('/ipfs-sw-config')) {
-    // hash request for config page.
     return true
   }
   return false
