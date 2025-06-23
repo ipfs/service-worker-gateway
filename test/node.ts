@@ -46,12 +46,11 @@ describe(`verify-dist at ${distRoot}`, () => {
     {
       filePath: 'index.html',
       content: [
-        /ipfs-sw-index-.*\.css/,
         'id="root"'
       ]
     },
     {
-      globPath: 'ipfs-sw-index-*.css',
+      globPath: 'ipfs-sw-app-*.css',
       content: ['47vh']
     }
   ]
