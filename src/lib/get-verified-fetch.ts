@@ -5,7 +5,7 @@ import { createDelegatedRoutingV1HttpApiClient } from '@helia/delegated-routing-
 import { createHeliaHTTP } from '@helia/http'
 import { httpGatewayRouting, delegatedHTTPRouting, libp2pRouting } from '@helia/routers'
 import { createVerifiedFetch } from '@helia/verified-fetch'
-import { dirIndexHtmlPluginFactory } from '@helia/verified-fetch/plugins'
+import { dagCborHtmlPreviewPluginFactory, dirIndexHtmlPluginFactory } from '@helia/verified-fetch/plugins'
 import { generateKeyPair } from '@libp2p/crypto/keys'
 import { dcutr } from '@libp2p/dcutr'
 import { identify, identifyPush } from '@libp2p/identify'
@@ -89,7 +89,7 @@ export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogge
     })
   }
 
-  return createVerifiedFetch(helia, { withServerTiming: true, plugins: [dirIndexHtmlPluginFactory] })
+  return createVerifiedFetch(helia, { withServerTiming: true, plugins: [dirIndexHtmlPluginFactory, dagCborHtmlPreviewPluginFactory] })
 }
 
 type Libp2pDefaultsOptions = Pick<ConfigDb, 'routers' | 'enableWss' | 'enableWebTransport' | 'enableGatewayProviders'>
