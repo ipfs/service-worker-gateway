@@ -122,6 +122,10 @@ function isRequestForContentAddressedData (url: URL): boolean {
     // hash request for UI pages, not content addressed data
     return false
   }
+  if (url.pathname.includes('ipfs-sw-first-hit.html')) {
+    // first hit request, not content addressed data
+    return false
+  }
   if (isPathOrSubdomainRequest(url)) {
     // subdomain request
     return true
