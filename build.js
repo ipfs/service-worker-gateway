@@ -88,7 +88,7 @@ const injectHtmlPages = async (metafile, revision) => {
 
     if (htmlContent.includes('<%= JS_SCRIPT_TAG %>')) {
       if (jsFile != null) {
-        const jsTag = `<script type="module" src="${path.basename(jsFile)}"></script>`
+        const jsTag = `<script type="module" src="/${path.basename(jsFile)}"></script>`
         htmlContent = htmlContent.replace(/<%= JS_SCRIPT_TAG %>/g, jsTag)
         console.log(`Injected ${path.basename(jsFile)} into ${path.relative(process.cwd(), htmlFilePath)}.`)
       } else {
