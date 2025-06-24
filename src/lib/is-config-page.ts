@@ -9,9 +9,3 @@ export function isConfigPage (hash: string): boolean {
 
   return isConfigHashPath
 }
-
-export function isConfigIframePage (hash: string): boolean {
-  const isConfigIframeHashPath = hash.startsWith('#/ipfs-sw-config-iframe')
-
-  return isConfigIframeHashPath
-}

@@ -204,6 +204,10 @@ export async function setSubdomainsSupported (supportsSubdomains: boolean, logge
   }
 }
 
+/**
+ * This should only be used by the service worker, or the `checkSubdomainSupport` function in the UI.
+ * If you need to check for subdomain support in the UI, use the `checkSubdomainSupport` function from `check-subdomain-support.ts` instead.
+ */
 export async function areSubdomainsSupported (logger?: ComponentLogger): Promise<null | boolean> {
   const log = logger?.forComponent('are-subdomains-supported')
   try {
@@ -222,7 +226,8 @@ export async function isConfigSet (logger?: ComponentLogger): Promise<boolean> {
   try {
     await configDb.open()
     const config = await configDb.getAll()
-    return Object.keys(config).length > 0
+    // ignore private/app-only fields
+    return Object.keys(config).filter(key => !['_supportsSubdomains'].includes(key)).length > 0
   } catch (err) {
     log?.('error loading config from db', err)
   } finally {
@@ -239,9 +244,22 @@ export async function compressConfig (config: ConfigDb): Promise<string> {
 }
 
 export async function decompressConfig (compressedConfig: string): Promise<ConfigDb> {
+  if (document.referrer === '' || document.referrer == null) {
+    /**
+     * document.referrer is empty or null which means the user got to this page from a direct link, not a redirect.
+     *
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Document/referrer#value
+     */
+    throw new Error('Attempted to decompress config from an untrusted URL.')
+  }
+  const url = new URL(document.referrer)
+  if (!window.location.host.includes(url.host)) {
+    // the referrer is not from the parent domain, so we can't trust it.
+    throw new Error('Attempted to decompress config from an untrusted URL.')
+  }
   const { config, timestamp } = JSON.parse(LZString.decompressFromEncodedURIComponent(compressedConfig))
-  // if the config is more than 10 seconds old, throw an error
-  if (timestamp < Date.now() - 1000) {
+  // if the config is more than 15 seconds old (allow for 3g latency), throw an error
+  if (Date.now() - timestamp > 15000) {
     throw new Error('Config is too old. Be sure to only use trusted URLs.')
   }
   return config

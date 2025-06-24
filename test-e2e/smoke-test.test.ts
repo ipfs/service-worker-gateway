@@ -1,8 +1,9 @@
 // see https://github.com/ipfs/service-worker-gateway/issues/502
+import { test as testOriginal } from '@playwright/test'
 import { testSubdomainRouting as test, expect } from './fixtures/config-test-fixtures.js'
-import { test as testOriginal, type Page } from '@playwright/test'
 import { setConfig } from './fixtures/set-sw-config.js'
 import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
+import type { Page } from '@playwright/test'
 
 test.describe('smoke test', () => {
   test('loads a dag-json jpeg', async ({ page, protocol, swResponses, rootDomain }) => {
@@ -74,9 +75,12 @@ test.describe('smoke test', () => {
     await waitForServiceWorker(page, `${protocol}//${rootDomain}`)
     await setConfig({ page, config: { fetchTimeout: 5 } })
 
+    const response504 = page.waitForResponse(async (response) => {
+      const url = new URL(response.url())
+      return url.host === `bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze.ipfs.${rootDomain}` && url.pathname.includes('/wiki/Antarctica') && response.status() === 504
+    })
     await page.goto(`${protocol}//${rootDomain}/ipfs/bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze/wiki/Antarctica`)
-    await page.waitForURL(`${protocol}//bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze.ipfs.${rootDomain}/wiki/Antarctica`)
-    await page.waitForLoadState('networkidle')
+    await response504
 
     const response = swResponses[swResponses.length - 1]
     expect(response?.status()).toBe(504)
@@ -103,22 +107,22 @@ test.describe('smoke test', () => {
 
     expect(noRegistration).toBe(true)
   })
-
 })
 
-function waitForAllNavigations (page: Page, additionalUrlPartsToWaitFor: Record<string, boolean> = {}) {
+function waitForAllNavigations (page: Page, additionalUrlPartsToWaitFor: Record<string, boolean> = {}): Promise<void> {
   // we need to make sure we go through the redirect bounce, and we need to not be tied strictly to playwrights delays and oddities.
   // we should have a list of things to look for in urls, and resolve this promise only when all of them have been seen.
 
   const urlPartsToWaitFor = {
     'helia-sw=': false,
-    // 'ipfs-sw-subdomain-request=': false,
-    // 'ipfs-sw-cfg': false,
+    'ipfs-sw-subdomain-request=': false,
+    'ipfs-sw-cfg': false,
   }
 
   return new Promise((resolve) => {
     page.on('response', (response) => {
       const url = new URL(response.url())
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       for (const [key, _value] of Object.entries(urlPartsToWaitFor)) {
         if (url.href.includes(key)) {
           urlPartsToWaitFor[key] = true
@@ -126,15 +130,16 @@ function waitForAllNavigations (page: Page, additionalUrlPartsToWaitFor: Record<
       }
       if (Object.values(urlPartsToWaitFor).every(value => value === true)) {
         if (Object.keys(additionalUrlPartsToWaitFor).length === 0) {
-          resolve(true)
+          resolve()
         }
-        for (const [key, value] of Object.entries(additionalUrlPartsToWaitFor)) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        for (const [key, _value] of Object.entries(additionalUrlPartsToWaitFor)) {
           if (url.href.includes(key)) {
             additionalUrlPartsToWaitFor[key] = true
           }
         }
         if (Object.values(additionalUrlPartsToWaitFor).every(value => value === true)) {
-          resolve(true)
+          resolve()
         }
       }
     })
@@ -157,6 +162,7 @@ testOriginal('timing of initial page content', async ({ page }) => {
   // expect(page.url()).toContain(`${protocol}//${vitalikCid}.ipfs.${rootDomain}/general/2025/05/11/abc4.html`)
   const endTime = Date.now()
   const duration = endTime - startTime
+  // eslint-disable-next-line no-console
   console.log(`time: ${duration}ms to wait for the service worker to render the content`)
 
   // wait for the text "You may have at some point seen this math puzzle:"
@@ -167,24 +173,26 @@ testOriginal('timing of initial page content', async ({ page }) => {
 
   const endTime2 = Date.now()
   const duration2 = endTime2 - startTime
+  // eslint-disable-next-line no-console
   console.log(`time: ${duration2}ms to wait for the content to be rendered`)
 
   const largestContentfulPaint = await page.evaluate(() => {
     return new Promise<number | null>((resolve) => {
       const po = new PerformanceObserver((list) => {
-        const entries = list.getEntries();
-        const last = entries[entries.length - 1] as any;
-        resolve(last.renderTime ?? last.loadTime);
-        po.disconnect();
-      });
-      po.observe({ type: 'largest-contentful-paint', buffered: true });
+        const entries = list.getEntries()
+        const last = entries[entries.length - 1] as any
+        resolve(last.renderTime ?? last.loadTime)
+        po.disconnect()
+      })
+      po.observe({ type: 'largest-contentful-paint', buffered: true })
       // if nothing fires in the next tick, resolve null
       setTimeout(() => {
-        po.disconnect();
-        resolve(null);
-      }, 0);
-    });
-  });
+        po.disconnect()
+        resolve(null)
+      }, 0)
+    })
+  })
 
+  // eslint-disable-next-line no-console
   console.log(`time: ${largestContentfulPaint}ms LCP`)
 })

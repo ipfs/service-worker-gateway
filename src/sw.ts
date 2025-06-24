@@ -4,7 +4,7 @@ import { getHeliaSwRedirectUrl } from './lib/first-hit-helpers.js'
 import { GenericIDB } from './lib/generic-db.js'
 import { getSubdomainParts } from './lib/get-subdomain-parts.js'
 import { getVerifiedFetch } from './lib/get-verified-fetch.js'
-import { isConfigIframePage, isConfigPage } from './lib/is-config-page.js'
+import { isConfigPage } from './lib/is-config-page.js'
 import { swLogger } from './lib/logger.js'
 import { findOriginIsolationRedirect, isPathGatewayRequest, isSubdomainGatewayRequest } from './lib/path-or-subdomain.js'
 import { isUnregisterRequest } from './lib/unregister-request.js'
@@ -207,7 +207,7 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
   } else if (isSubdomainConfigRequest(event)) {
     log.trace('subdomain config request, ignoring and letting index.html handle it', event.request.url)
     return false
-  } else if (isConfigPageRequest(url) || isConfigIframePage(url.hash)) {
+  } else if (isConfigPageRequest(url)) {
     log.trace('config page request, ignoring ', event.request.url)
     return false
   } else if (isSwConfigReloadRequest(event)) {
@@ -499,7 +499,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
         Location: originLocation
       }
     })
-  } else if (!isSubdomainGatewayRequest(originalUrl) && isPathGatewayRequest(originalUrl) && !(await getOriginIsolationWarningAccepted()) && !originalUrl.searchParams.has('helia-sw')) {
+  } else if (!isSubdomainGatewayRequest(originalUrl) && isPathGatewayRequest(originalUrl) && !(await getOriginIsolationWarningAccepted()) && !originalUrl.searchParams.has(QUERY_PARAMS.HELIA_SW)) {
     const newUrl = new URL(originalUrl.href)
     newUrl.pathname = '/'
     newUrl.hash = '/ipfs-sw-origin-isolation-warning'
