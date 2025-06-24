@@ -38,7 +38,6 @@ async function renderUi (): Promise<void> {
 
   const LazyConfig = React.lazy(async () => import('./pages/config.jsx'))
   const LazyHelperUi = React.lazy(async () => import('./pages/helper-ui.jsx'))
-  const LazyRedirectPage = React.lazy(async () => import('./pages/redirect-page.jsx'))
   const LazyServiceWorkerErrorPage = React.lazy(async () => import('./pages/errors/no-service-worker.jsx'))
   const LazySubdomainWarningPage = React.lazy(async () => import('./pages/subdomain-warning.jsx'))
 
@@ -51,11 +50,7 @@ async function renderUi (): Promise<void> {
     { default: true, component: ErrorPage ?? LazyHelperUi },
     { shouldRender: async () => renderChecks.shouldRenderConfigPage(), component: LazyConfig },
     { shouldRender: async () => renderChecks.shouldRenderNoServiceWorkerError(), component: LazyServiceWorkerErrorPage },
-    { shouldRender: renderChecks.shouldRenderSubdomainWarningPage, component: LazySubdomainWarningPage },
-    {
-      shouldRender: async () => renderChecks.shouldRenderRedirectPage(),
-      component: LazyRedirectPage
-    }
+    { shouldRender: renderChecks.shouldRenderSubdomainWarningPage, component: LazySubdomainWarningPage }
   ]
 
   root.render(
