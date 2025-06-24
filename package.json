@@ -89,7 +89,7 @@
     "@playwright/test": "^1.48.2",
     "@types/react": "^19.1.6",
     "aegir": "^47.0.16",
-    "concurrently": "^9.1.2",
+    "concurrently": "^9.2.0",
     "cross-env": "^7.0.3",
     "esbuild": "^0.25.5",
     "glob": "^11.0.1",
