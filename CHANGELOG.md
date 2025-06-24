@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.3](https://github.com/ipfs/service-worker-gateway/compare/v1.13.2...v1.13.3) (2025-06-24)
+
+
+### Bug Fixes
+
+* css and UI js load dynamically ([#782](https://github.com/ipfs/service-worker-gateway/issues/782)) ([da05cdc](https://github.com/ipfs/service-worker-gateway/commit/da05cdc08537c69e1a8b4473d6a0c5546555dedf))
+
 ## [1.13.2](https://github.com/ipfs/service-worker-gateway/compare/v1.13.1...v1.13.2) (2025-06-23)
 
 
