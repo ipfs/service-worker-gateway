@@ -27,9 +27,92 @@
     <link rel="icon" href="/ipfs-sw-favicon.ico" type="image/ico"/>
     <link rel="shortcut icon" href="/ipfs-sw-favicon.ico" type="image/x-icon"/>
     <%= CSS_STYLES %>
+    <style>
+      .loading-container {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        pointer-events: none;
+      }
+
+      .loading-animation {
+        position: fixed;
+        background-image: url('/ipfs-sw-cube.svg');
+        width: 10rem;
+        height: 10rem;
+        -webkit-animation: heartbeat 1.5s ease-in-out 0s infinite normal both;
+        animation: heartbeat 1.5s ease-in-out 0s infinite normal both;
+        -webkit-transform-origin: center center;
+        transform-origin: center center;
+        margin: auto;
+        background-size: cover;
+        filter: drop-shadow(0 0 0 #378085);
+      }
+
+      @keyframes heartbeat {
+        0% {
+          animation-timing-function: ease-out;
+          transform: scale(1);
+          transform-origin: center center;
+          filter: drop-shadow(0 0 0 #378085);
+        }
+
+        45% {
+          animation-timing-function: ease-in;
+          transform: scale(1);
+          filter: drop-shadow(0 0 0rem #378085);
+        }
+
+        50% {
+          animation-timing-function: ease-in;
+          transform: scale(1);
+          filter: drop-shadow(0 0 0.5rem #378085);
+        }
+
+        55% {
+          animation-timing-function: ease-out;
+          transform: scale(1);
+          /* Size should be increased on drop-shadow so when scaling down, drop-shadow compensates for size reduction, and we don't get any visual artifacts */
+          filter: drop-shadow(0 0 1rem #378085);
+        }
+
+        67% {
+          animation-timing-function: ease-in;
+          transform: scale(1.13);
+          filter: drop-shadow(0 0 0.75rem #378085);
+        }
+
+        83% {
+          animation-timing-function: ease-out;
+          transform: scale(1.02);
+          filter: drop-shadow(0 0 0.50rem #378085);
+        }
+
+        90% {
+          animation-timing-function: ease-in;
+          transform: scale(1.09);
+          filter: drop-shadow(0 0 0.75rem #378085);
+        }
+      }
+      .hidden {
+        display: none;
+      }
+    </style>
   </head>
   <body>
+    <div class="loading-container loading-indicator-js hidden">
+      <div class="loading-animation"></div>
+    </div>
     <div id="root" class="sans-serif f5"></div>
+    <script>
+      window.addEventListener('DOMContentLoaded', () => {
+        document.querySelector('.loading-indicator-js').classList.add('hidden')
+        document.getElementById('root').style.display = 'block'
+      })
+    </script>
     <%= JS_SCRIPT_TAG %>
   </body>
 </html>
