@@ -3,6 +3,7 @@ import { toSubdomainRequest } from './lib/path-or-subdomain.js'
 import { translateIpfsRedirectUrl } from './lib/translate-ipfs-redirect-url.js'
 import { registerServiceWorker } from './service-worker-utils.js'
 
+const loadingIndicatorElement = document.querySelector('.loading-indicator-js')
 async function renderUi (): Promise<void> {
   // dynamically load the app chunk using the correct filename
   try {
@@ -40,6 +41,7 @@ async function main (): Promise<void> {
     return
   }
   // the user is requesting content addressed data and does not have the config, continue with the config loading flow
+  loadingIndicatorElement?.classList.remove('hidden')
 
   if (state.hasConfig && state.isIsolatedOrigin) {
     // we are on a subdomain, and have a config, the service worker should be rendering the content shortly.
