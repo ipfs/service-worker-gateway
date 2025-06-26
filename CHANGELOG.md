@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.13.4](https://github.com/ipfs/service-worker-gateway/compare/v1.13.3...v1.13.4) (2025-06-26)
+
+
+### Bug Fixes
+
+* loading indicator displays while loading content ([#784](https://github.com/ipfs/service-worker-gateway/issues/784)) ([761e8be](https://github.com/ipfs/service-worker-gateway/commit/761e8be157cfb3c447c1309fa80d8d0e9c6012ed))
+* remove unused redirect-page ([#785](https://github.com/ipfs/service-worker-gateway/issues/785)) ([c73132b](https://github.com/ipfs/service-worker-gateway/commit/c73132bed54d2c31e89599ef2ef651d0a16a48db))
+
 ## [1.13.3](https://github.com/ipfs/service-worker-gateway/compare/v1.13.2...v1.13.3) (2025-06-24)
 
 
