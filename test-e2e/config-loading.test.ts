@@ -1,7 +1,7 @@
+import { compressConfig } from '../src/lib/config-db.js'
 import { test, expect } from './fixtures/config-test-fixtures.js'
 import { getConfig, setConfig } from './fixtures/set-sw-config.js'
 import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
-import { compressConfig } from '../src/lib/config-db.js'
 import type { ConfigDbWithoutPrivateFields } from '../src/lib/config-db.js'
 import type { Response as PlaywrightResponse } from 'playwright'
 
@@ -123,5 +123,4 @@ test.describe('ipfs-sw configuration', () => {
     expect(config.enableRecursiveGateways).toBe(newConfig.enableRecursiveGateways)
     expect(config.enableGatewayProviders).toBe(newConfig.enableGatewayProviders)
   })
-
 })
