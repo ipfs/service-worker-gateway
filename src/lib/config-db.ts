@@ -1,6 +1,6 @@
 import { enable } from '@libp2p/logger'
-import LZString from 'lz-string'
 import { GenericIDB } from './generic-db.js'
+import { uiLogger } from './logger.js'
 import type { BaseDbConfig } from './generic-db.js'
 import type { ComponentLogger } from '@libp2p/logger'
 
@@ -238,29 +238,65 @@ export async function isConfigSet (logger?: ComponentLogger): Promise<boolean> {
 
 export async function compressConfig (config: ConfigDb): Promise<string> {
   const timestamp = Date.now()
-  const configJson = JSON.stringify({ config, timestamp })
+  const configJson = JSON.stringify({ ...config, t: timestamp })
+  const base64Encoded = btoa(configJson)
 
-  return LZString.compressToEncodedURIComponent(configJson)
+  return base64Encoded
 }
 
 export async function decompressConfig (compressedConfig: string): Promise<ConfigDb> {
+  const log = uiLogger.forComponent('decompress-config')
+  let trusted = true
+  let uncompressedConfig = compressedConfig
+  try {
+    uncompressedConfig = atob(compressedConfig)
+  } catch (err) {
+    // it might just be json string encoded, so try that
+    uncompressedConfig = decodeURIComponent(compressedConfig)
+  }
+
   if (document.referrer === '' || document.referrer == null) {
     /**
      * document.referrer is empty or null which means the user got to this page from a direct link, not a redirect.
      *
      * @see https://developer.mozilla.org/en-US/docs/Web/API/Document/referrer#value
      */
-    throw new Error('Attempted to decompress config from an untrusted URL.')
+    log('document.referrer is empty or null, so we can\'t trust it')
+    trusted = false
+  } else {
+    const url = new URL(document.referrer)
+    if (!window.location.host.includes(url.host)) {
+      log('document.referrer is not from the parent domain, so we can\'t trust it')
+      trusted = false
+    }
   }
-  const url = new URL(document.referrer)
-  if (!window.location.host.includes(url.host)) {
-    // the referrer is not from the parent domain, so we can't trust it.
-    throw new Error('Attempted to decompress config from an untrusted URL.')
+  const c = JSON.parse(uncompressedConfig)
+  const timestamp = c.t
+  if (timestamp == null) {
+    log('config has no timestamp, so we can\'t trust it')
+    trusted = false
+  } else if (Date.now() - timestamp > 15000) {
+    // if the config is more than 15 seconds old (allow for 3g latency), mark it as untrusted
+    log('config is more than 15 seconds old, so we can\'t trust it')
+    trusted = false
   }
-  const { config, timestamp } = JSON.parse(LZString.decompressFromEncodedURIComponent(compressedConfig))
-  // if the config is more than 15 seconds old (allow for 3g latency), throw an error
-  if (Date.now() - timestamp > 15000) {
-    throw new Error('Config is too old. Be sure to only use trusted URLs.')
+
+  let config: ConfigDb
+  if (!trusted) {
+    const defaultConfig = await getConfig(uiLogger)
+    // only override allowed settings
+    config = {
+      ...defaultConfig,
+      enableRecursiveGateways: c.enableRecursiveGateways ?? defaultConfig.enableRecursiveGateways,
+      enableWss: c.enableWss ?? defaultConfig.enableWss,
+      enableWebTransport: c.enableWebTransport ?? defaultConfig.enableWebTransport,
+      enableGatewayProviders: c.enableGatewayProviders ?? defaultConfig.enableGatewayProviders,
+      debug: c.debug ?? defaultConfig.debug,
+      fetchTimeout: c.fetchTimeout ?? defaultConfig.fetchTimeout
+    }
+  } else {
+    config = c
   }
+
   return config
 }
