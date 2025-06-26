@@ -236,7 +236,7 @@ export async function isConfigSet (logger?: ComponentLogger): Promise<boolean> {
   return false
 }
 
-export async function compressConfig (config: ConfigDb): Promise<string> {
+export async function compressConfig (config: ConfigDb | ConfigDbWithoutPrivateFields): Promise<string> {
   const timestamp = Date.now()
   const configJson = JSON.stringify({ ...config, t: timestamp })
   const base64Encoded = btoa(configJson)
