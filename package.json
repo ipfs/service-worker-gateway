@@ -75,7 +75,6 @@
     "ipfs-css": "^1.4.0",
     "ipfsd-ctl": "^15.0.2",
     "libp2p": "^2.8.12",
-    "lz-string": "^1.5.0",
     "multiformats": "^13.3.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
