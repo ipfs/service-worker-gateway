@@ -244,7 +244,7 @@ export async function compressConfig (config: ConfigDb | ConfigDbWithoutPrivateF
   return base64Encoded
 }
 
-export async function decompressConfig (compressedConfig: string): Promise<ConfigDb> {
+export async function decompressConfig (compressedConfig: string): Promise<ConfigDbWithoutPrivateFields> {
   const log = uiLogger.forComponent('decompress-config')
   let trusted = true
   let uncompressedConfig = compressedConfig
@@ -270,18 +270,25 @@ export async function decompressConfig (compressedConfig: string): Promise<Confi
       trusted = false
     }
   }
-  const c = JSON.parse(uncompressedConfig)
-  const timestamp = c.t
-  if (timestamp == null) {
-    log('config has no timestamp, so we can\'t trust it')
-    trusted = false
-  } else if (Date.now() - timestamp > 15000) {
-    // if the config is more than 15 seconds old (allow for 3g latency), mark it as untrusted
-    log('config is more than 15 seconds old, so we can\'t trust it')
-    trusted = false
+
+  let c: ConfigDbWithoutPrivateFields
+  try {
+    c = JSON.parse(uncompressedConfig)
+    const timestamp = c.t
+    if (timestamp == null) {
+      log('config has no timestamp, so we can\'t trust it')
+      trusted = false
+    } else if (Date.now() - timestamp > 15000) {
+      // if the config is more than 15 seconds old (allow for 3g latency), mark it as untrusted
+      log('config is more than 15 seconds old, so we can\'t trust it')
+      trusted = false
+    }
+  } catch (err) {
+    log.error('error parsing config "%s", will use default config - %e', uncompressedConfig, err)
+    return getConfig(uiLogger)
   }
 
-  let config: ConfigDb
+  let config: ConfigDbWithoutPrivateFields
   if (!trusted) {
     const defaultConfig = await getConfig(uiLogger)
     // only override allowed settings
