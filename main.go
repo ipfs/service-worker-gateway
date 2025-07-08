@@ -53,9 +53,9 @@ func fileExists(p string) bool {
 	return false
 }
 
-// redirectToHelia sends `302 /#helia-sw=<escaped original path, query, and hash>`
+// redirectToHelia sends `302 /?helia-sw=<escaped original URI>`
 func redirectToHelia(w http.ResponseWriter, r *http.Request) {
-	target := "/#helia-sw=" + url.QueryEscape(r.URL.RequestURI())
+	target := "/?helia-sw=" + url.QueryEscape(r.URL.RequestURI())
 	http.Redirect(w, r, target, http.StatusFound)
 }
 

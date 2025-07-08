@@ -77,6 +77,11 @@ test.describe('ipfs-sw configuration', () => {
   })
 
   test('config can be injected from an untrusted source', async ({ page, baseURL, rootDomain, protocol }) => {
+    if (['webkit', 'safari'].includes(test.info().project.name)) {
+      // @see https://github.com/ipfs/in-web-browsers/issues/206
+      test.skip()
+      return
+    }
     const newConfig: ConfigDbWithoutPrivateFields = {
       ...testConfig,
       gateways: [
