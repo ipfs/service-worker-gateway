@@ -3,8 +3,7 @@ import { expect } from 'aegir/chai'
 import { base32 } from 'multiformats/bases/base32'
 import { base36 } from 'multiformats/bases/base36'
 import { CID } from 'multiformats/cid'
-import { HASH_FRAGMENTS } from '../src/lib/constants.js'
-import { getHashFragment, setHashFragment } from '../src/lib/hash-fragments.js'
+import { QUERY_PARAMS } from '../src/lib/constants.js'
 import { isPathOrSubdomainRequest, toSubdomainRequest } from '../src/lib/path-or-subdomain.js'
 
 interface Loc {
@@ -89,7 +88,7 @@ describe('path-or-subdomain', () => {
 
       const out = toSubdomainRequest(loc)
       const exp = new URL(`http://${cidV1}.ipfs.example.com/`)
-      setHashFragment(exp, HASH_FRAGMENTS.HELIA_SW, '/foo/bar.txt')
+      exp.searchParams.set(QUERY_PARAMS.HELIA_SW, '/foo/bar.txt')
 
       expect(out).to.equal(exp.href)
     })
@@ -106,8 +105,11 @@ describe('path-or-subdomain', () => {
       })
 
       const out = toSubdomainRequest(loc)
-      const exp = new URL(`https://${cidV1}.ipfs.example.com/?foo=bar&baz=qux#section2`)
-      setHashFragment(exp, HASH_FRAGMENTS.HELIA_SW, '/path/to/file')
+      const exp = new URL(`https://${cidV1}.ipfs.example.com/`)
+      exp.searchParams.set(QUERY_PARAMS.HELIA_SW, '/path/to/file')
+      exp.searchParams.set('foo', 'bar')
+      exp.searchParams.set('baz', 'qux')
+      exp.hash = '#section2'
 
       expect(out).to.equal(exp.href)
     })
@@ -137,7 +139,7 @@ describe('path-or-subdomain', () => {
 
       const out = toSubdomainRequest(loc)
       const exp = new URL(`https://${keyV1}.ipns.gateway.local/`)
-      setHashFragment(exp, HASH_FRAGMENTS.HELIA_SW, '/blog/post')
+      exp.searchParams.set(QUERY_PARAMS.HELIA_SW, '/blog/post')
       expect(out).to.equal(exp.href)
     })
 
@@ -153,7 +155,7 @@ describe('path-or-subdomain', () => {
       const url = new URL(out)
       expect(url.origin).to.equal(`http://foo-bar.ipns.${hostname}`)
       expect(url.pathname).to.equal('/')
-      expect(getHashFragment(url, HASH_FRAGMENTS.HELIA_SW)).to.equal('/baz')
+      expect(url.searchParams.get(QUERY_PARAMS.HELIA_SW)).to.equal('/baz')
     })
 
     it('ignores invalid namespaces', () => {
@@ -162,7 +164,7 @@ describe('path-or-subdomain', () => {
       const out = toSubdomainRequest(loc)
       const url = new URL(out)
       expect(url.origin).to.equal('http://qmwhatever.potato.example.com')
-      expect(getHashFragment(url, HASH_FRAGMENTS.HELIA_SW)).to.equal('/foo')
+      expect(url.searchParams.get(QUERY_PARAMS.HELIA_SW)).to.equal('/foo')
     })
 
     it('doesnt use ipfs-sw-first-hit.html in the path', () => {
@@ -170,7 +172,7 @@ describe('path-or-subdomain', () => {
       const out = toSubdomainRequest(loc)
       const url = new URL(out)
       expect(url.origin).to.equal('http://bafkqablimvwgy3y.ipfs.example.com')
-      expect(getHashFragment(url, HASH_FRAGMENTS.HELIA_SW)).to.equal(null)
+      expect(url.searchParams.get(QUERY_PARAMS.HELIA_SW)).to.equal(null)
     })
   })
 })

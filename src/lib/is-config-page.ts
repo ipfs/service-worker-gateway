@@ -1,5 +1,3 @@
-import { HASH_FRAGMENTS } from './constants.js'
-
 /**
  * As of https://github.com/ipfs/service-worker-gateway/issues/486, we no longer have a singular page at
  * /#/ipfs-sw-config unless loaded directly from a subdomain. The configuration section is now on the main page (helper-ui.tsx)
@@ -7,7 +5,7 @@ import { HASH_FRAGMENTS } from './constants.js'
  * We still use /#/ipfs-sw-config to allow subdomain users to change config and we need to detect that.
  */
 export function isConfigPage (hash: string): boolean {
-  const isConfigHashPath = hash.includes(HASH_FRAGMENTS.VIEW_CONFIG_PAGE)
+  const isConfigHashPath = hash.startsWith('#/ipfs-sw-config') // needed for _redirects and IPFS hosted sw gateways
 
   return isConfigHashPath
 }

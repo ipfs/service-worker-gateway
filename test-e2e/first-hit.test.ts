@@ -7,7 +7,7 @@ test.afterEach(async ({ page }) => {
 })
 test.describe('first-hit ipfs-hosted', () => {
   /**
-   * "ipfs-hosted" tests verify that when the _redirects is hit and redirects to the <root>#helia-sw=<path> that navigation is handled correctly.
+   * "ipfs-hosted" tests verify that when the _redirects is hit and redirects to the <root>?helia-sw=<path> that navigation is handled correctly.
    */
   test.describe('path-routing', () => {
     test.beforeAll(async ({ rootDomain }) => {
@@ -15,7 +15,7 @@ test.describe('first-hit ipfs-hosted', () => {
         test.skip()
       }
     })
-    test('redirects to #helia-sw=<path> are handled', async ({ page }) => {
+    test('redirects to ?helia-sw=<path> are handled', async ({ page }) => {
       const response = await page.goto('http://127.0.0.1:3334/ipfs/bafkqablimvwgy3y')
 
       // first loads the root page
@@ -23,7 +23,7 @@ test.describe('first-hit ipfs-hosted', () => {
       const headers = await response?.allHeaders()
 
       // we redirect to the root path with query param so sw can be registered at the root path
-      await expect(page).toHaveURL(`http://127.0.0.1:3334/#helia-sw=${encodeURIComponent('/ipfs/bafkqablimvwgy3y')}`)
+      await expect(page).toHaveURL(`http://127.0.0.1:3334/?helia-sw=${encodeURIComponent('/ipfs/bafkqablimvwgy3y')}`)
 
       await handleOriginIsolationWarning(page)
 
@@ -44,18 +44,15 @@ test.describe('first-hit ipfs-hosted', () => {
         test.skip()
       }
     })
-    test('redirects to #helia-sw=<path> are handled', async ({ page, rootDomain, protocol }) => {
+    test('redirects to ?helia-sw=<path> are handled', async ({ page, rootDomain, protocol }) => {
       const response = await page.goto('http://localhost:3334/ipfs/bafkqablimvwgy3y')
-
-      // we no longer redirect to #helia-sw=<path> for subdomain routing, because we immediately redirect to the subdomain
-      // expect(response?.url()).toBe('http://localhost:3334/#helia-sw=/ipfs/bafkqablimvwgy3y')
 
       // first loads the root page
       expect(response?.status()).toBe(200)
       const headers = await response?.allHeaders()
 
       expect(headers?.['content-type']).toContain('text/html')
-      await expect(page).toHaveURL(`http://localhost:3334/#helia-sw=${encodeURIComponent('/ipfs/bafkqablimvwgy3y')}`)
+      await page.waitForURL('http://bafkqablimvwgy3y.ipfs.localhost:3334', { timeout: 10000 })
 
       // wait for loading page to finish '.loading-page' to be removed
       await page.waitForSelector('.loading-page', { state: 'detached' })
@@ -64,7 +61,7 @@ test.describe('first-hit ipfs-hosted', () => {
       await page.waitForSelector('text=hello', { timeout: 25000 })
     })
 
-    test('redirects to #helia-sw=<path> with extra query params are handled', async ({ page }) => {
+    test('redirects to ?helia-sw=<path> with extra query params are handled', async ({ page }) => {
       const response = await page.goto('http://localhost:3334/ipfs/bafkqablimvwgy3y?foo=bar')
 
       expect(response?.url()).toBe('http://localhost:3334/ipfs/bafkqablimvwgy3y?foo=bar')
@@ -72,6 +69,7 @@ test.describe('first-hit ipfs-hosted', () => {
       // first loads the root page
       expect(response?.status()).toBe(200)
 
+      // wait for page to be ?helia-sw=<path>&foo=bar
       await expect(page).toHaveURL('http://bafkqablimvwgy3y.ipfs.localhost:3334/?foo=bar')
       await page.waitForSelector('text=hello', { timeout: 25000 })
     })

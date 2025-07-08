@@ -1,4 +1,5 @@
 import { compressConfig } from '../src/lib/config-db.js'
+import { HASH_FRAGMENTS } from '../src/lib/constants.js'
 import { test, expect } from './fixtures/config-test-fixtures.js'
 import { getConfig, setConfig } from './fixtures/set-sw-config.js'
 import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
@@ -102,7 +103,7 @@ test.describe('ipfs-sw configuration', () => {
     page.on('response', (response) => {
       responses.push(response)
     })
-    await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/?ipfs-sw-cfg=${compressedConfig}`)
+    await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/#${HASH_FRAGMENTS.IPFS_SW_CFG}=${compressedConfig}`)
     await waitForServiceWorker(page, `${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}`)
     await page.waitForLoadState('networkidle')
 

@@ -2,7 +2,7 @@ import { checkSubdomainSupport } from './check-subdomain-support.js'
 import { isConfigSet } from './config-db.js'
 import { HASH_FRAGMENTS, QUERY_PARAMS } from './constants.js'
 import { getSubdomainParts } from './get-subdomain-parts.js'
-import { deleteHashFragment, getHashFragment, setHashFragment } from './hash-fragments.js'
+import { deleteHashFragment, getHashFragment, hasHashFragment, setHashFragment } from './hash-fragments.js'
 import { uiLogger } from './logger.js'
 import { findOriginIsolationRedirect, isPathGatewayRequest, isPathOrSubdomainRequest, isSubdomainGatewayRequest } from './path-or-subdomain.js'
 import type { UrlParts } from './get-subdomain-parts.js'
@@ -151,7 +151,7 @@ function isRequestForContentAddressedData (url: URL): boolean {
 export async function getStateFromUrl (url: URL): Promise<NavigationState> {
   const { parentDomain, id, protocol } = getSubdomainParts(url.href)
   const isIsolatedOrigin = isSubdomainGatewayRequest(url)
-  const urlHasSubdomainConfigRequest = url.searchParams.get(QUERY_PARAMS.IPFS_SW_SUBDOMAIN_REQUEST) != null && url.searchParams.get(QUERY_PARAMS.HELIA_SW) != null
+  const urlHasSubdomainConfigRequest = hasHashFragment(url, HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST) && url.searchParams.get(QUERY_PARAMS.HELIA_SW) != null
   let hasConfig = false
   const supportsSubdomains = await checkSubdomainSupport(url)
 
@@ -186,7 +186,7 @@ export async function getConfigRedirectUrl ({ url, isIsolatedOrigin, urlHasSubdo
     targetUrl.pathname = '/'
     targetUrl.hash = url.hash
     targetUrl.search = url.search
-    targetUrl.searchParams.set(QUERY_PARAMS.IPFS_SW_SUBDOMAIN_REQUEST, 'true')
+    setHashFragment(targetUrl, HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST, 'true')
 
     // helia-sw may already be in the query parameters from the go binary or cloudflare or other service, so we need to add it to the target URL
     const heliaSw = url.searchParams.get(QUERY_PARAMS.HELIA_SW)
@@ -213,7 +213,7 @@ export async function getUrlWithConfig ({ url, isIsolatedOrigin, urlHasSubdomain
     const { translateIpfsRedirectUrl } = await import('./translate-ipfs-redirect-url.js')
     // we are on the root domain, and have been requested by a subdomain to fetch the config and pass it back to them.
     const redirectUrl = url
-    redirectUrl.searchParams.delete(QUERY_PARAMS.IPFS_SW_SUBDOMAIN_REQUEST)
+    deleteHashFragment(redirectUrl, HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST)
     const config = await getConfig(uiLogger)
     const compressedConfig = await compressConfig(config)
     setHashFragment(redirectUrl, HASH_FRAGMENTS.IPFS_SW_CFG, compressedConfig)

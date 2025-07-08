@@ -1,6 +1,5 @@
 /* eslint-env mocha */
 import { expect } from 'aegir/chai'
-import { HASH_FRAGMENTS } from '../src/lib/constants.js'
 import { parseHashFragments, getHashFragment, setHashFragment, deleteHashFragment, hasHashFragment, hashFragmentsToString } from '../src/lib/hash-fragments.js'
 
 describe('hash-fragments', () => {
@@ -140,13 +139,6 @@ describe('hash-fragments', () => {
       const url = new URL('https://example.com/')
       const result = hasHashFragment(url, 'key')
       expect(result).to.be.false()
-    })
-  })
-
-  describe('HASH_FRAGMENTS constants', () => {
-    it('should have correct values', () => {
-      expect(HASH_FRAGMENTS.IPFS_SW_CFG).to.equal('ipfs-sw-cfg')
-      expect(HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST).to.equal('ipfs-sw-subdomain-request')
     })
   })
 

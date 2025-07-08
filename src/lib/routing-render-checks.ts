@@ -1,6 +1,3 @@
-import { HASH_FRAGMENTS } from './constants.js'
-import { hasHashFragment } from './hash-fragments.js'
-
 export async function shouldRenderConfigPage (): Promise<boolean> {
   const { isConfigPage } = await import('../lib/is-config-page.js')
 
@@ -13,9 +10,11 @@ export function shouldRenderNoServiceWorkerError (): boolean {
 }
 
 export async function shouldRenderSubdomainWarningPage (): Promise<boolean> {
-  const url = new URL(window.location.href)
+  if (window.location.hash.startsWith('#/ipfs-sw-origin-isolation-warning')) {
+    return true
+  }
 
-  return hasHashFragment(url, HASH_FRAGMENTS.ORIGIN_ISOLATION_WARNING)
+  return false
 }
 
 export async function shouldRenderFirstHitPage (): Promise<boolean> {
