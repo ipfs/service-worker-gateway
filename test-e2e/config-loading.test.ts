@@ -1,4 +1,5 @@
 import { compressConfig } from '../src/lib/config-db.js'
+import { HASH_FRAGMENTS } from '../src/lib/constants.js'
 import { test, expect } from './fixtures/config-test-fixtures.js'
 import { getConfig, setConfig } from './fixtures/set-sw-config.js'
 import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
@@ -76,6 +77,11 @@ test.describe('ipfs-sw configuration', () => {
   })
 
   test('config can be injected from an untrusted source', async ({ page, baseURL, rootDomain, protocol }) => {
+    if (['webkit', 'safari'].includes(test.info().project.name)) {
+      // @see https://github.com/ipfs/in-web-browsers/issues/206
+      test.skip()
+      return
+    }
     const newConfig: ConfigDbWithoutPrivateFields = {
       ...testConfig,
       gateways: [
@@ -102,7 +108,7 @@ test.describe('ipfs-sw configuration', () => {
     page.on('response', (response) => {
       responses.push(response)
     })
-    await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/?ipfs-sw-cfg=${compressedConfig}`)
+    await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/#${HASH_FRAGMENTS.IPFS_SW_CFG}=${compressedConfig}`)
     await waitForServiceWorker(page, `${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}`)
     await page.waitForLoadState('networkidle')
 

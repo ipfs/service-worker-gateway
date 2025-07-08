@@ -1,8 +1,9 @@
 /* eslint-env mocha */
 import { expect } from 'aegir/chai'
 import { isBrowser } from 'wherearewe'
-import { QUERY_PARAMS } from '../src/lib/constants.js'
+import { HASH_FRAGMENTS, QUERY_PARAMS } from '../src/lib/constants.js'
 import { getHeliaSwRedirectUrl, getConfigRedirectUrl, getUrlWithConfig, getStateFromUrl } from '../src/lib/first-hit-helpers.js'
+import { hasHashFragment } from '../src/lib/hash-fragments.js'
 
 function expectRedirect ({ from, to }: { from: string, to: string }): void {
   const fromURL = new URL(from)
@@ -152,7 +153,7 @@ describe('first-hit-helpers', () => {
     })
 
     it('should return null when subdomain config request already exists', async () => {
-      const url = new URL('https://cid.ipfs.example.com/foo?ipfs-sw-subdomain-request=true')
+      const url = new URL(`https://cid.ipfs.example.com/foo#${HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST}=true`)
       const state = {
         url,
         isIsolatedOrigin: true,
@@ -167,7 +168,7 @@ describe('first-hit-helpers', () => {
     })
 
     it('should return null when compressed config already exists', async () => {
-      const url = new URL('https://cid.ipfs.example.com/foo?ipfs-sw-cfg=compressed')
+      const url = new URL(`https://cid.ipfs.example.com/foo#${HASH_FRAGMENTS.IPFS_SW_CFG}=compressed`)
       const state = {
         url,
         isIsolatedOrigin: true,
@@ -202,7 +203,7 @@ describe('first-hit-helpers', () => {
       const redirectUrl = new URL(result!)
       expect(redirectUrl.origin).to.equal('https://example.com')
       expect(redirectUrl.pathname).to.equal('/')
-      expect(redirectUrl.searchParams.get(QUERY_PARAMS.IPFS_SW_SUBDOMAIN_REQUEST)).to.equal('true')
+      expect(hasHashFragment(redirectUrl, HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST)).to.be.true()
       expect(redirectUrl.searchParams.get(QUERY_PARAMS.HELIA_SW)).to.equal('/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq/foo/bar')
     })
 
@@ -227,7 +228,7 @@ describe('first-hit-helpers', () => {
       const redirectUrl = new URL(result!)
       expect(redirectUrl.origin).to.equal('https://example.com')
       expect(redirectUrl.pathname).to.equal('/')
-      expect(redirectUrl.searchParams.get(QUERY_PARAMS.IPFS_SW_SUBDOMAIN_REQUEST)).to.equal('true')
+      expect(hasHashFragment(redirectUrl, HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST)).to.be.true()
       expect(redirectUrl.searchParams.get(QUERY_PARAMS.HELIA_SW)).to.equal('/ipns/k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam/foo/bar')
     })
 
@@ -272,7 +273,7 @@ describe('first-hit-helpers', () => {
       expect(result).to.not.be.null()
 
       const redirectUrl = new URL(result!)
-      expect(redirectUrl.hash).to.equal('#section1')
+      expect(redirectUrl.hash).to.equal(`#section1&${HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST}=true`)
     })
 
     it('should preserve existing query parameters from original URL', async () => {
@@ -296,7 +297,7 @@ describe('first-hit-helpers', () => {
       const redirectUrl = new URL(result!)
       expect(redirectUrl.searchParams.get('param1')).to.equal('value1')
       expect(redirectUrl.searchParams.get('param2')).to.equal('value2')
-      expect(redirectUrl.searchParams.get(QUERY_PARAMS.IPFS_SW_SUBDOMAIN_REQUEST)).to.equal('true')
+      expect(hasHashFragment(redirectUrl, HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST)).to.be.true()
       expect(redirectUrl.searchParams.get(QUERY_PARAMS.HELIA_SW)).to.equal('/ipfs/cid/foo/bar')
     })
 
@@ -404,7 +405,7 @@ describe('first-hit-helpers', () => {
     })
 
     it('should return correct state for subdomain config request', async () => {
-      const url = new URL('https://example.com/?ipfs-sw-subdomain-request=true&helia-sw=/ipfs/cid/foo')
+      const url = new URL(`https://example.com/?helia-sw=/ipfs/cid/foo#${HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST}=true`)
       const state = await getStateFromUrl(url)
 
       expect(state.isIsolatedOrigin).to.be.false()
@@ -419,7 +420,7 @@ describe('first-hit-helpers', () => {
     })
 
     it('should return correct state for URL with compressed config', async () => {
-      const url = new URL('https://cid.ipfs.example.com/?ipfs-sw-cfg=compressed-config')
+      const url = new URL(`https://cid.ipfs.example.com/#${HASH_FRAGMENTS.IPFS_SW_CFG}=compressed-config`)
       const state = await getStateFromUrl(url)
 
       expect(state.isIsolatedOrigin).to.be.true()
@@ -433,7 +434,7 @@ describe('first-hit-helpers', () => {
     })
 
     it('should return correct state for origin-isolation-warning page request', async () => {
-      const url = new URL('https://example.com/#/ipfs-sw-origin-isolation-warning')
+      const url = new URL(`https://example.com/#/${HASH_FRAGMENTS.IPFS_SW_ORIGIN_ISOLATION_WARNING}`)
       const state = await getStateFromUrl(url)
 
       expect(state.isIsolatedOrigin).to.be.false()
@@ -482,7 +483,7 @@ describe('first-hit-helpers', () => {
     }
 
     it('should return null for isolated origin', async () => {
-      const url = new URL('https://cid.ipfs.example.com/foo?ipfs-sw-subdomain-request=true&helia-sw=/ipfs/cid/foo')
+      const url = new URL(`https://cid.ipfs.example.com/foo?helia-sw=/ipfs/cid/foo#${HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST}=true`)
       const state = {
         url,
         isIsolatedOrigin: true,
@@ -512,7 +513,7 @@ describe('first-hit-helpers', () => {
     })
 
     it('should process subdomain config request on root domain', async () => {
-      const url = new URL('https://example.com/?ipfs-sw-subdomain-request=true&helia-sw=/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq/foo/bar')
+      const url = new URL(`https://example.com/?helia-sw=/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq/foo/bar#${HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST}=true`)
       const state = {
         url,
         isIsolatedOrigin: false,
@@ -529,15 +530,15 @@ describe('first-hit-helpers', () => {
       // Should be a subdomain URL
       expect(resultUrl.host).to.include('.ipfs.example.com')
       // Should have the compressed config parameter
-      expect(resultUrl.searchParams.has(QUERY_PARAMS.IPFS_SW_CFG)).to.be.true()
+      expect(hasHashFragment(resultUrl, HASH_FRAGMENTS.IPFS_SW_CFG)).to.be.true()
       // Should not have the subdomain request parameter
-      expect(resultUrl.searchParams.has(QUERY_PARAMS.IPFS_SW_SUBDOMAIN_REQUEST)).to.be.false()
+      expect(hasHashFragment(resultUrl, HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST)).to.be.false()
       // Should have helia-sw parameter with the path
       expect(resultUrl.searchParams.get(QUERY_PARAMS.HELIA_SW)).to.equal('/foo/bar')
     })
 
     it('should handle IPNS subdomain config request', async () => {
-      const url = new URL('https://example.com/?ipfs-sw-subdomain-request=true&helia-sw=/ipns/k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam/docs/readme')
+      const url = new URL(`https://example.com/?helia-sw=/ipns/k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam/docs/readme#${HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST}=true`)
       const state = {
         url,
         isIsolatedOrigin: false,
@@ -554,13 +555,13 @@ describe('first-hit-helpers', () => {
       // Should be a subdomain URL
       expect(resultUrl.host).to.include('.ipns.example.com')
       // Should have the compressed config parameter
-      expect(resultUrl.searchParams.has(QUERY_PARAMS.IPFS_SW_CFG)).to.be.true()
+      expect(hasHashFragment(resultUrl, HASH_FRAGMENTS.IPFS_SW_CFG)).to.be.true()
       // Should have helia-sw parameter with the path
       expect(resultUrl.searchParams.get(QUERY_PARAMS.HELIA_SW)).to.equal('/docs/readme')
     })
 
     it('should preserve existing query parameters', async () => {
-      const url = new URL('https://example.com/?ipfs-sw-subdomain-request=true&helia-sw=/ipfs/cid/foo&param1=value1&param2=value2')
+      const url = new URL(`https://example.com/?helia-sw=/ipfs/cid/foo&param1=value1&param2=value2#${HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST}=true`)
       const state = {
         url,
         isIsolatedOrigin: false,
@@ -576,11 +577,11 @@ describe('first-hit-helpers', () => {
       const resultUrl = new URL(result!)
       expect(resultUrl.searchParams.get('param1')).to.equal('value1')
       expect(resultUrl.searchParams.get('param2')).to.equal('value2')
-      expect(resultUrl.searchParams.has(QUERY_PARAMS.IPFS_SW_CFG)).to.be.true()
+      expect(hasHashFragment(resultUrl, HASH_FRAGMENTS.IPFS_SW_CFG)).to.be.true()
     })
 
     it('should preserve hash from original URL', async () => {
-      const url = new URL('https://example.com/?ipfs-sw-subdomain-request=true&helia-sw=/ipfs/cid/foo#section1')
+      const url = new URL(`https://example.com/?helia-sw=/ipfs/cid/foo#section1&${HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST}=true`)
       const state = {
         url,
         isIsolatedOrigin: false,
@@ -594,11 +595,12 @@ describe('first-hit-helpers', () => {
       expect(result).to.not.be.null()
 
       const resultUrl = new URL(result!)
-      expect(resultUrl.hash).to.equal('#section1')
+      expect(resultUrl.hash).to.include('#section1')
+      expect(resultUrl.hash).to.include(`${HASH_FRAGMENTS.IPFS_SW_CFG}`)
     })
 
     it('should handle root path correctly', async () => {
-      const url = new URL('https://example.com/?ipfs-sw-subdomain-request=true&helia-sw=/ipfs/cid/')
+      const url = new URL(`https://example.com/?helia-sw=/ipfs/cid/#${HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST}=true`)
       const state = {
         url,
         isIsolatedOrigin: false,
@@ -618,7 +620,7 @@ describe('first-hit-helpers', () => {
     })
 
     it('should handle DNSLink subdomain config request', async () => {
-      const url = new URL('https://example.com/?ipfs-sw-subdomain-request=true&helia-sw=/ipns/docs-ipfs-tech/how-to/')
+      const url = new URL(`https://example.com/?helia-sw=/ipns/docs-ipfs-tech/how-to/#${HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST}=true`)
       const state = {
         url,
         isIsolatedOrigin: false,
@@ -635,13 +637,13 @@ describe('first-hit-helpers', () => {
       // Should be a subdomain URL
       expect(resultUrl.host).to.include('.ipns.example.com')
       // Should have the compressed config parameter
-      expect(resultUrl.searchParams.has(QUERY_PARAMS.IPFS_SW_CFG)).to.be.true()
+      expect(hasHashFragment(resultUrl, HASH_FRAGMENTS.IPFS_SW_CFG)).to.be.true()
       // Should have helia-sw parameter with the path
       expect(resultUrl.searchParams.get(QUERY_PARAMS.HELIA_SW)).to.equal('/how-to')
     })
 
     it('should handle complex path with special characters', async () => {
-      const url = new URL('https://example.com/?ipfs-sw-subdomain-request=true&helia-sw=/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq/1 - Barrel - Part 1 - alt.txt')
+      const url = new URL(`https://example.com/?helia-sw=/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq/1 - Barrel - Part 1 - alt.txt#${HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST}=true`)
       const state = {
         url,
         isIsolatedOrigin: false,
@@ -659,7 +661,7 @@ describe('first-hit-helpers', () => {
     })
 
     it('should handle URL with no helia-sw parameter', async () => {
-      const url = new URL('https://example.com/ipfs/cid/foo?ipfs-sw-subdomain-request=true')
+      const url = new URL(`https://example.com/ipfs/cid/foo#${HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST}=true`)
       const state = {
         url,
         isIsolatedOrigin: false,
@@ -674,9 +676,9 @@ describe('first-hit-helpers', () => {
 
       const resultUrl = new URL(result!)
       // Should have the compressed config parameter
-      expect(resultUrl.searchParams.has(QUERY_PARAMS.IPFS_SW_CFG)).to.be.true()
+      expect(hasHashFragment(resultUrl, HASH_FRAGMENTS.IPFS_SW_CFG)).to.be.true()
       // Should not have the subdomain request parameter
-      expect(resultUrl.searchParams.has(QUERY_PARAMS.IPFS_SW_SUBDOMAIN_REQUEST)).to.be.false()
+      expect(hasHashFragment(resultUrl, HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST)).to.be.false()
     })
   })
 })

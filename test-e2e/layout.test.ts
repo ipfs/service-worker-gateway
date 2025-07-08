@@ -37,10 +37,12 @@ test.describe('smoketests', () => {
 
 testSubdomainRouting.describe('smoketests', () => {
   testSubdomainRouting.describe('config section on subdomains', () => {
+    // TODO: remove this test because we don't want to support config page on subdomains. See
     testSubdomainRouting('only config and header are visible on /#/ipfs-sw-config requests', async ({ page, baseURL, rootDomain, protocol }) => {
       await page.goto(baseURL, { waitUntil: 'networkidle' })
       await waitForServiceWorker(page, baseURL)
       await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/#/ipfs-sw-config`, { waitUntil: 'networkidle' })
+      await page.reload()
 
       await waitForServiceWorker(page, baseURL)
 

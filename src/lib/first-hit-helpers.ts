@@ -1,7 +1,8 @@
 import { checkSubdomainSupport } from './check-subdomain-support.js'
 import { isConfigSet } from './config-db.js'
-import { QUERY_PARAMS } from './constants.js'
+import { HASH_FRAGMENTS, QUERY_PARAMS } from './constants.js'
 import { getSubdomainParts } from './get-subdomain-parts.js'
+import { deleteHashFragment, getHashFragment, hasHashFragment, setHashFragment } from './hash-fragments.js'
 import { uiLogger } from './logger.js'
 import { findOriginIsolationRedirect, isPathGatewayRequest, isPathOrSubdomainRequest, isSubdomainGatewayRequest } from './path-or-subdomain.js'
 import type { UrlParts } from './get-subdomain-parts.js'
@@ -150,7 +151,7 @@ function isRequestForContentAddressedData (url: URL): boolean {
 export async function getStateFromUrl (url: URL): Promise<NavigationState> {
   const { parentDomain, id, protocol } = getSubdomainParts(url.href)
   const isIsolatedOrigin = isSubdomainGatewayRequest(url)
-  const urlHasSubdomainConfigRequest = url.searchParams.get(QUERY_PARAMS.IPFS_SW_SUBDOMAIN_REQUEST) != null && url.searchParams.get(QUERY_PARAMS.HELIA_SW) != null
+  const urlHasSubdomainConfigRequest = hasHashFragment(url, HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST) && url.searchParams.get(QUERY_PARAMS.HELIA_SW) != null
   let hasConfig = false
   const supportsSubdomains = await checkSubdomainSupport(url)
 
@@ -165,7 +166,7 @@ export async function getStateFromUrl (url: URL): Promise<NavigationState> {
     urlHasSubdomainConfigRequest,
     url,
     subdomainParts: { parentDomain, id, protocol },
-    compressedConfig: url.searchParams.get(QUERY_PARAMS.IPFS_SW_CFG),
+    compressedConfig: getHashFragment(url, HASH_FRAGMENTS.IPFS_SW_CFG),
     supportsSubdomains,
     requestForContentAddressedData: isRequestForContentAddressedData(url)
   } satisfies NavigationState
@@ -185,7 +186,7 @@ export async function getConfigRedirectUrl ({ url, isIsolatedOrigin, urlHasSubdo
     targetUrl.pathname = '/'
     targetUrl.hash = url.hash
     targetUrl.search = url.search
-    targetUrl.searchParams.set(QUERY_PARAMS.IPFS_SW_SUBDOMAIN_REQUEST, 'true')
+    setHashFragment(targetUrl, HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST, 'true')
 
     // helia-sw may already be in the query parameters from the go binary or cloudflare or other service, so we need to add it to the target URL
     const heliaSw = url.searchParams.get(QUERY_PARAMS.HELIA_SW)
@@ -212,10 +213,10 @@ export async function getUrlWithConfig ({ url, isIsolatedOrigin, urlHasSubdomain
     const { translateIpfsRedirectUrl } = await import('./translate-ipfs-redirect-url.js')
     // we are on the root domain, and have been requested by a subdomain to fetch the config and pass it back to them.
     const redirectUrl = url
-    redirectUrl.searchParams.delete(QUERY_PARAMS.IPFS_SW_SUBDOMAIN_REQUEST)
+    deleteHashFragment(redirectUrl, HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST)
     const config = await getConfig(uiLogger)
     const compressedConfig = await compressConfig(config)
-    redirectUrl.searchParams.set(QUERY_PARAMS.IPFS_SW_CFG, compressedConfig)
+    setHashFragment(redirectUrl, HASH_FRAGMENTS.IPFS_SW_CFG, compressedConfig)
 
     // translate the url with helia-sw to a path based URL, and then to the proper subdomain URL
     return toSubdomainRequest(translateIpfsRedirectUrl(redirectUrl))
@@ -237,7 +238,7 @@ export async function loadConfigFromUrl ({ url, compressedConfig }: Pick<Navigat
 
   try {
     const config = await decompressConfig(compressedConfig)
-    url.searchParams.delete(QUERY_PARAMS.IPFS_SW_CFG)
+    deleteHashFragment(url, HASH_FRAGMENTS.IPFS_SW_CFG)
     await setConfig(config, uiLogger)
     await registerServiceWorker()
     return translateIpfsRedirectUrl(url).toString()
