@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.5](https://github.com/ipfs/service-worker-gateway/compare/v1.13.4...v1.13.5) (2025-07-08)
+
+
+### Bug Fixes
+
+* allow injection of config ([#791](https://github.com/ipfs/service-worker-gateway/issues/791)) ([470dab7](https://github.com/ipfs/service-worker-gateway/commit/470dab7a1a6f92f9a9e40da94d33b14f4d223dc0))
+
 ## [1.13.4](https://github.com/ipfs/service-worker-gateway/compare/v1.13.3...v1.13.4) (2025-06-26)
 
 
