@@ -195,8 +195,8 @@ self.addEventListener('fetch', (event) => {
  ******************************************************
  */
 async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
-  if (await isTimebombExpired()) {
-    log.trace('timebomb expired, unregistering service worker')
+  if (await isServiceWorkerRegistrationTTLValid()) {
+    log.trace('Service worker registration TTL expired, unregistering service worker')
     event.waitUntil(self.registration.unregister())
     return false
   } else if (isUnregisterRequest(event.request.url)) {
@@ -748,12 +748,21 @@ function getResponseDetails (response: Response, responseBody: string): Response
   }
 }
 
-async function isTimebombExpired (): Promise<boolean> {
+// // max life (for now) is 24 hours
+// const ServiceWorkerRegistrationTTL = 24 * 60 * 60 * 1000
+async function isServiceWorkerRegistrationTTLValid (): Promise<boolean> {
+  if (!navigator.onLine) {
+    /**
+     * If we unregister the service worker, the user will lose access to the service worker and it's cached responses.
+     *
+     * @see https://github.com/ipfs/service-worker-gateway/issues/724
+     */
+    return false
+  }
+  await updateConfig()
   firstInstallTime = firstInstallTime ?? await getInstallTimestamp()
   const now = Date.now()
-  // max life (for now) is 24 hours
-  const timebomb = 24 * 60 * 60 * 1000
-  return now - firstInstallTime > timebomb
+  return now - firstInstallTime > config.serviceWorkerRegistrationTTL
 }
 
 async function getInstallTimestamp (): Promise<number> {

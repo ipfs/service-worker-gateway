@@ -18,6 +18,16 @@ export interface ConfigDbWithoutPrivateFields extends BaseDbConfig {
    * The timeout for fetching content from the gateway, in milliseconds. User input is in seconds, but we store in milliseconds.
    */
   fetchTimeout: number
+
+  /**
+   * The TTL (time to live) for the service worker, in milliseconds.
+   * This is used to determine if the service worker should be unregistered, in order to trigger a new install.
+   *
+   * @see https://github.com/ipfs/service-worker-gateway/issues/724
+   *
+   * @default 86_400_000 (24 hours)
+   */
+  serviceWorkerRegistrationTTL: number
 }
 
 /**
@@ -38,6 +48,7 @@ export const defaultEnableWss = true
 export const defaultEnableWebTransport = false
 export const defaultEnableGatewayProviders = true
 export const defaultSupportsSubdomains: null | boolean = null
+export const defaultServiceWorkerRegistrationTTL = 86_400_000 // 24 hours
 
 /**
  * The default fetch timeout for the gateway, in seconds.
@@ -64,6 +75,7 @@ export async function resetConfig (logger: ComponentLogger): Promise<void> {
     await configDb.put('enableGatewayProviders', defaultEnableGatewayProviders)
     await configDb.put('debug', defaultDebug())
     await configDb.put('fetchTimeout', defaultFetchTimeout * 1000)
+    await configDb.put('serviceWorkerRegistrationTTL', defaultServiceWorkerRegistrationTTL)
     // leave private/app-only fields as is
   } catch (err) {
     log('error resetting config in db', err)
@@ -88,6 +100,7 @@ export async function setConfig (config: ConfigDbWithoutPrivateFields, logger: C
     await configDb.put('enableGatewayProviders', config.enableGatewayProviders)
     await configDb.put('debug', config.debug ?? defaultDebug())
     await configDb.put('fetchTimeout', config.fetchTimeout ?? (defaultFetchTimeout * 1000))
+    await configDb.put('serviceWorkerRegistrationTTL', config.serviceWorkerRegistrationTTL ?? (defaultServiceWorkerRegistrationTTL * 1000))
     // ignore private/app-only fields
   } catch (err) {
     log('error setting config in db', err)
@@ -119,6 +132,7 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
     let enableGatewayProviders
     let fetchTimeout
     let debug = ''
+    let serviceWorkerRegistrationTTL = defaultServiceWorkerRegistrationTTL
     let _supportsSubdomains = defaultSupportsSubdomains
 
     let config: ConfigDb
@@ -142,6 +156,7 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
       enableGatewayProviders = config.enableGatewayProviders ?? defaultEnableGatewayProviders
       fetchTimeout = config.fetchTimeout ?? (defaultFetchTimeout * 1000)
       _supportsSubdomains ??= config._supportsSubdomains
+      serviceWorkerRegistrationTTL = config.serviceWorkerRegistrationTTL ?? defaultServiceWorkerRegistrationTTL
     } catch (err) {
       log('error loading config from db', err)
     } finally {
@@ -170,6 +185,7 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
       enableGatewayProviders,
       debug,
       fetchTimeout,
+      serviceWorkerRegistrationTTL,
       _supportsSubdomains
     }
   })().finally(() => {

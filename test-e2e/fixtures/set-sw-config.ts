@@ -4,7 +4,7 @@
  *
  * Note that this was only tested and confirmed working for subdomain pages.
  */
-import { getConfigDebug, getConfigDnsJsonResolvers, getConfigEnableGatewayProviders, getConfigEnableRecursiveGateways, getConfigEnableWebTransport, getConfigEnableWss, getConfigFetchTimeout, getConfigGatewaysInput, getConfigPage, getConfigPageSaveButton, getConfigRoutersInput } from './locators.js'
+import { getConfigDebug, getConfigDnsJsonResolvers, getConfigEnableGatewayProviders, getConfigEnableRecursiveGateways, getConfigEnableWebTransport, getConfigEnableWss, getConfigFetchTimeout, getConfigGatewaysInput, getConfigPage, getConfigPageSaveButton, getConfigRoutersInput, getConfigServiceWorkerRegistrationTTL } from './locators.js'
 import { waitForServiceWorker } from './wait-for-service-worker.js'
 import type { ConfigDb, ConfigDbWithoutPrivateFields } from '../../src/lib/config-db.js'
 import type { Page } from '@playwright/test'
@@ -91,7 +91,7 @@ export async function getConfigUi ({ page, expectedSwScope }: { page: Page, expe
     }, {})
   })
   const debug = await getConfigDebug(page).locator('textarea').inputValue()
-
+  const serviceWorkerRegistrationTTL = parseInt(await getConfigServiceWorkerRegistrationTTL(page).locator('input').inputValue(), 10) * 1000 * 60 * 60 // convert from hours to milliseconds
   return {
     enableGatewayProviders,
     enableWss,
@@ -101,7 +101,8 @@ export async function getConfigUi ({ page, expectedSwScope }: { page: Page, expe
     gateways,
     dnsJsonResolvers,
     debug,
-    fetchTimeout
+    fetchTimeout,
+    serviceWorkerRegistrationTTL
   }
 }
 
@@ -183,7 +184,8 @@ export async function getConfig ({ page }: { page: Page }): Promise<ConfigDb> {
       enableGatewayProviders: await get('enableGatewayProviders'),
       debug: await get('debug'),
       _supportsSubdomains: await get('_supportsSubdomains'),
-      fetchTimeout: await get('fetchTimeout')
+      fetchTimeout: await get('fetchTimeout'),
+      serviceWorkerRegistrationTTL: await get('serviceWorkerRegistrationTTL')
     }
 
     db.close()
