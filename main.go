@@ -84,8 +84,8 @@ func main() {
 	mux.HandleFunc("/ipfs/", ipfsLikeHandler)
 	mux.HandleFunc("/ipns/", ipfsLikeHandler)
 
-	// Everything else from dist/ (root path “/” included).
-	mux.Handle("/", distHandler)
+	// Everything else - check if file exists, otherwise redirect to SW
+	mux.HandleFunc("/", ipfsLikeHandler)
 
 	addr := ":3000"
 	log.Printf("Service Worker Gateway listening on %s", addr)

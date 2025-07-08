@@ -1,6 +1,6 @@
 import { enable } from '@libp2p/logger'
-import LZString from 'lz-string'
 import { GenericIDB } from './generic-db.js'
+import { uiLogger } from './logger.js'
 import type { BaseDbConfig } from './generic-db.js'
 import type { ComponentLogger } from '@libp2p/logger'
 
@@ -204,6 +204,10 @@ export async function setSubdomainsSupported (supportsSubdomains: boolean, logge
   }
 }
 
+/**
+ * This should only be used by the service worker, or the `checkSubdomainSupport` function in the UI.
+ * If you need to check for subdomain support in the UI, use the `checkSubdomainSupport` function from `check-subdomain-support.ts` instead.
+ */
 export async function areSubdomainsSupported (logger?: ComponentLogger): Promise<null | boolean> {
   const log = logger?.forComponent('are-subdomains-supported')
   try {
@@ -222,10 +226,8 @@ export async function isConfigSet (logger?: ComponentLogger): Promise<boolean> {
   try {
     await configDb.open()
     const config = await configDb.getAll()
-    const _supportsSubdomainsValue = await configDb.get('_supportsSubdomains')
-    const minAllowedKeys = _supportsSubdomainsValue == null ? 0 : 1
-
-    return Object.keys(config).length > minAllowedKeys
+    // ignore private/app-only fields
+    return Object.keys(config).filter(key => !['_supportsSubdomains'].includes(key)).length > 0
   } catch (err) {
     log?.('error loading config from db', err)
   } finally {
@@ -234,18 +236,74 @@ export async function isConfigSet (logger?: ComponentLogger): Promise<boolean> {
   return false
 }
 
-export async function compressConfig (config: ConfigDb): Promise<string> {
+export async function compressConfig (config: ConfigDb | ConfigDbWithoutPrivateFields): Promise<string> {
   const timestamp = Date.now()
-  const configJson = JSON.stringify({ config, timestamp })
+  const configJson = JSON.stringify({ ...config, t: timestamp })
+  const base64Encoded = btoa(configJson)
 
-  return LZString.compressToEncodedURIComponent(configJson)
+  return base64Encoded
 }
 
-export async function decompressConfig (compressedConfig: string): Promise<ConfigDb> {
-  const { config, timestamp } = JSON.parse(LZString.decompressFromEncodedURIComponent(compressedConfig))
-  // if the config is more than 10 seconds old, throw an error
-  if (timestamp < Date.now() - 1000) {
-    throw new Error('Config is too old. Be sure to only use trusted URLs.')
+export async function decompressConfig (compressedConfig: string): Promise<ConfigDbWithoutPrivateFields> {
+  const log = uiLogger.forComponent('decompress-config')
+  let trusted = true
+  let uncompressedConfig = compressedConfig
+  try {
+    uncompressedConfig = atob(compressedConfig)
+  } catch (err) {
+    // it might just be json string encoded, so try that
+    uncompressedConfig = decodeURIComponent(compressedConfig)
   }
+
+  if (document.referrer === '' || document.referrer == null) {
+    /**
+     * document.referrer is empty or null which means the user got to this page from a direct link, not a redirect.
+     *
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Document/referrer#value
+     */
+    log('document.referrer is empty or null, so we can\'t trust it')
+    trusted = false
+  } else {
+    const url = new URL(document.referrer)
+    if (!window.location.host.includes(url.host)) {
+      log('document.referrer is not from the parent domain, so we can\'t trust it')
+      trusted = false
+    }
+  }
+
+  let c: ConfigDbWithoutPrivateFields
+  try {
+    c = JSON.parse(uncompressedConfig)
+    const timestamp = c.t
+    if (timestamp == null) {
+      log('config has no timestamp, so we can\'t trust it')
+      trusted = false
+    } else if (Date.now() - timestamp > 15000) {
+      // if the config is more than 15 seconds old (allow for 3g latency), mark it as untrusted
+      log('config is more than 15 seconds old, so we can\'t trust it')
+      trusted = false
+    }
+  } catch (err) {
+    log.error('error parsing config "%s", will use default config - %e', uncompressedConfig, err)
+    return getConfig(uiLogger)
+  }
+
+  let config: ConfigDbWithoutPrivateFields
+  if (!trusted) {
+    const defaultConfig = await getConfig(uiLogger)
+    // only override allowed settings
+    config = {
+      ...defaultConfig,
+      enableRecursiveGateways: c.enableRecursiveGateways ?? defaultConfig.enableRecursiveGateways,
+      enableWss: c.enableWss ?? defaultConfig.enableWss,
+      enableWebTransport: c.enableWebTransport ?? defaultConfig.enableWebTransport,
+      enableGatewayProviders: c.enableGatewayProviders ?? defaultConfig.enableGatewayProviders,
+      debug: c.debug ?? defaultConfig.debug,
+      fetchTimeout: c.fetchTimeout ?? defaultConfig.fetchTimeout
+    }
+  } else {
+    config = c
+  }
+
   return config
 }
