@@ -56,7 +56,13 @@ export const test = base.extend<{ rootDomain: string, baseURL: string, protocol:
 
     await page.route('**/*', async (route) => {
       const url = new URL(route.request().url())
-      if (!url.host.includes('localhost') && !url.host.includes('127.0.0.1')) {
+      const isNotLocalQuery = !url.host.includes('localhost') && !url.host.includes('127.0.0.1')
+      let isBaseUrl = false
+      if (process.env.BASE_URL != null) {
+        const baseUrl = new URL(process.env.BASE_URL)
+        isBaseUrl = url.host.includes(baseUrl.host)
+      }
+      if (isNotLocalQuery && !isBaseUrl) {
         // eslint-disable-next-line no-console
         console.log('preventing access to route', url)
         await route.abort()

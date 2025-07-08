@@ -164,5 +164,13 @@ describe('path-or-subdomain', () => {
       expect(url.origin).to.equal('http://qmwhatever.potato.example.com')
       expect(getHashFragment(url, HASH_FRAGMENTS.HELIA_SW)).to.equal('/foo')
     })
+
+    it('doesnt use ipfs-sw-first-hit.html in the path', () => {
+      const loc = makeLoc({ pathname: '/ipfs-sw-first-hit.html/ipfs/bafkqablimvwgy3y', href: 'http://example.com/ipfs-sw-first-hit.html/ipfs/bafkqablimvwgy3y' })
+      const out = toSubdomainRequest(loc)
+      const url = new URL(out)
+      expect(url.origin).to.equal('http://bafkqablimvwgy3y.ipfs.example.com')
+      expect(getHashFragment(url, HASH_FRAGMENTS.HELIA_SW)).to.equal(null)
+    })
   })
 })

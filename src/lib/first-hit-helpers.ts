@@ -1,7 +1,8 @@
 import { checkSubdomainSupport } from './check-subdomain-support.js'
 import { isConfigSet } from './config-db.js'
-import { QUERY_PARAMS } from './constants.js'
+import { HASH_FRAGMENTS, QUERY_PARAMS } from './constants.js'
 import { getSubdomainParts } from './get-subdomain-parts.js'
+import { deleteHashFragment, getHashFragment, setHashFragment } from './hash-fragments.js'
 import { uiLogger } from './logger.js'
 import { findOriginIsolationRedirect, isPathGatewayRequest, isPathOrSubdomainRequest, isSubdomainGatewayRequest } from './path-or-subdomain.js'
 import type { UrlParts } from './get-subdomain-parts.js'
@@ -165,7 +166,7 @@ export async function getStateFromUrl (url: URL): Promise<NavigationState> {
     urlHasSubdomainConfigRequest,
     url,
     subdomainParts: { parentDomain, id, protocol },
-    compressedConfig: url.searchParams.get(QUERY_PARAMS.IPFS_SW_CFG),
+    compressedConfig: getHashFragment(url, HASH_FRAGMENTS.IPFS_SW_CFG),
     supportsSubdomains,
     requestForContentAddressedData: isRequestForContentAddressedData(url)
   } satisfies NavigationState
@@ -215,7 +216,7 @@ export async function getUrlWithConfig ({ url, isIsolatedOrigin, urlHasSubdomain
     redirectUrl.searchParams.delete(QUERY_PARAMS.IPFS_SW_SUBDOMAIN_REQUEST)
     const config = await getConfig(uiLogger)
     const compressedConfig = await compressConfig(config)
-    redirectUrl.searchParams.set(QUERY_PARAMS.IPFS_SW_CFG, compressedConfig)
+    setHashFragment(redirectUrl, HASH_FRAGMENTS.IPFS_SW_CFG, compressedConfig)
 
     // translate the url with helia-sw to a path based URL, and then to the proper subdomain URL
     return toSubdomainRequest(translateIpfsRedirectUrl(redirectUrl))
@@ -237,7 +238,7 @@ export async function loadConfigFromUrl ({ url, compressedConfig }: Pick<Navigat
 
   try {
     const config = await decompressConfig(compressedConfig)
-    url.searchParams.delete(QUERY_PARAMS.IPFS_SW_CFG)
+    deleteHashFragment(url, HASH_FRAGMENTS.IPFS_SW_CFG)
     await setConfig(config, uiLogger)
     await registerServiceWorker()
     return translateIpfsRedirectUrl(url).toString()
