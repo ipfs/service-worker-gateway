@@ -2,9 +2,10 @@ import React, { useCallback, useEffect, useState } from 'react'
 import Header from '../components/Header.jsx'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
-import { QUERY_PARAMS } from '../lib/constants.js'
-import type { ReactNode } from 'react'
 import './default-page-styles.css'
+import { HASH_FRAGMENTS } from '../lib/constants.js'
+import { getHashFragment } from '../lib/hash-fragments.js'
+import type { ReactNode } from 'react'
 
 function IpAddressRecommendations ({ currentHost }: { currentHost: string }): ReactNode {
   return (
@@ -39,7 +40,7 @@ function DefaultRecommendations ({ currentHost }: { currentHost: string }): Reac
 export default function SubdomainWarningPage (): ReactNode {
   const [acceptedRisk, setAcceptedRisk] = useState(sessionStorage.getItem('ipfs-sw-gateway-accepted-path-gateway-risk') ?? false)
   const [isSaving, setIsSaving] = useState(false)
-  const originalUrl = new URL(window.location.href).searchParams.get(QUERY_PARAMS.HELIA_SW)
+  const originalPath = getHashFragment(new URL(window.location.href), HASH_FRAGMENTS.HELIA_SW)
 
   const handleAcceptRisk = useCallback(async () => {
     setIsSaving(true)
@@ -60,9 +61,9 @@ export default function SubdomainWarningPage (): ReactNode {
 
   useEffect(() => {
     if (acceptedRisk) {
-      window.location.href = originalUrl ?? '/'
+      window.location.replace(originalPath ?? '/')
     }
-  }, [originalUrl, acceptedRisk])
+  }, [originalPath, acceptedRisk])
 
   const currentHost = window.location.host
 

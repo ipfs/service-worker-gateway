@@ -1,9 +1,5 @@
 /**
- * This script is injected into the ipfs-sw-first-hit.html file. This was added when addressing an issue with redirects not preserving query parameters.
- *
- * The solution we're moving forward with is, instead of using 302 redirects with ipfs _redirects file, we are
- * using 200 responses with the ipfs-sw-first-hit.html file. That file will include the ipfs-sw-first-hit.js script
- * which will be injected into the index.html file, and handle the redirect logic for us.
+ * This script is injected into the ipfs-sw-first-hit.html file.
  *
  * It handles the logic for the first hit to the service worker and should only
  * ever run when _redirects file redirects to ipfs-sw-first-hit.html for /ipns
@@ -24,8 +20,12 @@ const redirectUrl = getHeliaSwRedirectUrl(locationUrl)
 
 const newUrl = redirectUrl.toString()
 
-// remove the current url from the history
-history.replaceState({}, '', newUrl)
+window.location.hash = redirectUrl.hash
 
-// we need to redirect to the new url
-window.location.href = newUrl
+window.location.replace(newUrl)
+
+// // remove the current url from the history
+// history.replaceState({}, '', newUrl)
+
+// // we need to redirect to the new url
+// window.location.href = newUrl

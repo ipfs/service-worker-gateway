@@ -53,9 +53,9 @@ func fileExists(p string) bool {
 	return false
 }
 
-// redirectToHelia sends `302 /?helia-sw=<escaped original URI>`
+// redirectToHelia sends `302 /#helia-sw=<escaped original path, query, and hash>`
 func redirectToHelia(w http.ResponseWriter, r *http.Request) {
-	target := "/?helia-sw=" + url.QueryEscape(r.URL.RequestURI())
+	target := "/#helia-sw=" + url.QueryEscape(r.URL.RequestURI())
 	http.Redirect(w, r, target, http.StatusFound)
 }
 
@@ -84,8 +84,8 @@ func main() {
 	mux.HandleFunc("/ipfs/", ipfsLikeHandler)
 	mux.HandleFunc("/ipns/", ipfsLikeHandler)
 
-	// Everything else - check if file exists, otherwise redirect to SW
-	mux.HandleFunc("/", ipfsLikeHandler)
+	// Everything else from dist/ (root path “/” included).
+	mux.Handle("/", distHandler)
 
 	addr := ":3000"
 	log.Printf("Service Worker Gateway listening on %s", addr)
