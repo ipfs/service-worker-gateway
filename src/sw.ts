@@ -178,7 +178,7 @@ self.addEventListener('fetch', (event) => {
   const urlString = request.url
   const url = new URL(urlString)
   if (firstInstallTime == null) {
-    // if service worker is shut down, the firstInstallTime will be null
+    // if service worker is shut down, the firstInstallTime may be null
     log('firstInstallTime is null, getting install timestamp')
     event.waitUntil(getInstallTimestamp())
   }
