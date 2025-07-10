@@ -177,6 +177,12 @@ self.addEventListener('fetch', (event) => {
   const request = event.request
   const urlString = request.url
   const url = new URL(urlString)
+  if (firstInstallTime == null) {
+    // if service worker is shut down, the firstInstallTime will be null
+    log('firstInstallTime is null, getting install timestamp')
+    event.waitUntil(getInstallTimestamp())
+  }
+
   log.trace('incoming request url: %s:', event.request.url)
 
   event.waitUntil(requestRouting(event, url).then(async (shouldHandle) => {
@@ -195,8 +201,8 @@ self.addEventListener('fetch', (event) => {
  ******************************************************
  */
 async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
-  if (!await isServiceWorkerRegistrationTTLValid()) {
-    log.trace('timebomb: Service worker registration TTL expired, unregistering service worker')
+  if (!isServiceWorkerRegistrationTTLValid()) {
+    log.trace('Service worker registration TTL expired, unregistering service worker')
     event.waitUntil(self.registration.unregister())
     return false
   } else if (isUnregisterRequest(event.request.url)) {
@@ -748,24 +754,22 @@ function getResponseDetails (response: Response, responseBody: string): Response
   }
 }
 
-// // max life (for now) is 24 hours
-// const ServiceWorkerRegistrationTTL = 24 * 60 * 60 * 1000
-async function isServiceWorkerRegistrationTTLValid (): Promise<boolean> {
+function isServiceWorkerRegistrationTTLValid (): boolean {
   if (!navigator.onLine) {
     /**
-     * If we unregister the service worker, the user will lose access to the service worker and it's cached responses.
+     * When we unregister the service worker, the a new one will be installed on the next page load.
      *
      * @see https://github.com/ipfs/service-worker-gateway/issues/724
      */
-    log('timebomb: navigator.onLine is false, considering service worker registration TTL valid')
     return true
   }
-  // await updateConfig()
-  firstInstallTime = firstInstallTime ?? await getInstallTimestamp()
+  if (firstInstallTime == null || config?.serviceWorkerRegistrationTTL == null) {
+    // no firstInstallTime or serviceWorkerRegistrationTTL, assume new and valid
+    return true
+  }
+
   const now = Date.now()
-  const isTTLValid = now - firstInstallTime < (config?.serviceWorkerRegistrationTTL ?? 0)
-  log('timebomb: isServiceWorkerRegistrationTTLValid: ', isTTLValid)
-  return isTTLValid
+  return now - firstInstallTime <= config.serviceWorkerRegistrationTTL
 }
 
 async function getInstallTimestamp (): Promise<number> {
@@ -801,7 +805,7 @@ async function setOriginIsolationWarningAccepted (): Promise<void> {
     await swidb.put('originIsolationWarningAccepted', true)
     swidb.close()
   } catch (e) {
-    log.error('addInstallTimestampToConfig error: ', e)
+    log.error('setOriginIsolationWarningAccepted error: ', e)
   }
 }
 

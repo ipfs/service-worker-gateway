@@ -213,8 +213,8 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
             label='Service Worker Registration TTL'
             value={serviceWorkerRegistrationTTL / 1000 / 60 / 60}
             validationFn={(value) => {
-              if (value < 0.1) {
-                return new Error('Service worker registration TTL must be at least 0.1 hours')
+              if (value < 0.01) {
+                return new Error('Service worker registration TTL must be at least 0.01 hours')
               }
               return null
             }}
