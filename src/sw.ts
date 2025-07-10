@@ -177,6 +177,12 @@ self.addEventListener('fetch', (event) => {
   const request = event.request
   const urlString = request.url
   const url = new URL(urlString)
+  if (firstInstallTime == null) {
+    // if service worker is shut down, the firstInstallTime may be null
+    log('firstInstallTime is null, getting install timestamp')
+    event.waitUntil(getInstallTimestamp())
+  }
+
   log.trace('incoming request url: %s:', event.request.url)
 
   event.waitUntil(requestRouting(event, url).then(async (shouldHandle) => {
@@ -195,8 +201,8 @@ self.addEventListener('fetch', (event) => {
  ******************************************************
  */
 async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
-  if (await isTimebombExpired()) {
-    log.trace('timebomb expired, unregistering service worker')
+  if (!isServiceWorkerRegistrationTTLValid()) {
+    log.trace('Service worker registration TTL expired, unregistering service worker')
     event.waitUntil(self.registration.unregister())
     return false
   } else if (isUnregisterRequest(event.request.url)) {
@@ -748,12 +754,22 @@ function getResponseDetails (response: Response, responseBody: string): Response
   }
 }
 
-async function isTimebombExpired (): Promise<boolean> {
-  firstInstallTime = firstInstallTime ?? await getInstallTimestamp()
+function isServiceWorkerRegistrationTTLValid (): boolean {
+  if (!navigator.onLine) {
+    /**
+     * When we unregister the service worker, the a new one will be installed on the next page load.
+     *
+     * @see https://github.com/ipfs/service-worker-gateway/issues/724
+     */
+    return true
+  }
+  if (firstInstallTime == null || config?.serviceWorkerRegistrationTTL == null) {
+    // no firstInstallTime or serviceWorkerRegistrationTTL, assume new and valid
+    return true
+  }
+
   const now = Date.now()
-  // max life (for now) is 24 hours
-  const timebomb = 24 * 60 * 60 * 1000
-  return now - firstInstallTime > timebomb
+  return now - firstInstallTime <= config.serviceWorkerRegistrationTTL
 }
 
 async function getInstallTimestamp (): Promise<number> {
@@ -789,7 +805,7 @@ async function setOriginIsolationWarningAccepted (): Promise<void> {
     await swidb.put('originIsolationWarningAccepted', true)
     swidb.close()
   } catch (e) {
-    log.error('addInstallTimestampToConfig error: ', e)
+    log.error('setOriginIsolationWarningAccepted error: ', e)
   }
 }
 

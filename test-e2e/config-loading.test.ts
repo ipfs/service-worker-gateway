@@ -18,7 +18,8 @@ test.describe('ipfs-sw configuration', () => {
     enableWebTransport: true,
     enableRecursiveGateways: false,
     enableGatewayProviders: false,
-    fetchTimeout: 29 * 1000
+    fetchTimeout: 29 * 1000,
+    serviceWorkerRegistrationTTL: 24 * 60 * 60 * 1000
   }
   test.beforeAll(async () => {
     if (process.env.KUBO_GATEWAY == null || process.env.KUBO_GATEWAY === '') {
@@ -101,7 +102,8 @@ test.describe('ipfs-sw configuration', () => {
       enableWss: !testConfig.enableWss,
       enableWebTransport: !testConfig.enableWebTransport,
       enableRecursiveGateways: !testConfig.enableRecursiveGateways,
-      enableGatewayProviders: !testConfig.enableGatewayProviders
+      enableGatewayProviders: !testConfig.enableGatewayProviders,
+      serviceWorkerRegistrationTTL: 86_400_000
     }
     const compressedConfig = await compressConfig(newConfig)
     const responses: PlaywrightResponse[] = []
