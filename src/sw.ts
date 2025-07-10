@@ -195,8 +195,8 @@ self.addEventListener('fetch', (event) => {
  ******************************************************
  */
 async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
-  if (await isServiceWorkerRegistrationTTLValid()) {
-    log.trace('Service worker registration TTL expired, unregistering service worker')
+  if (!await isServiceWorkerRegistrationTTLValid()) {
+    log.trace('timebomb: Service worker registration TTL expired, unregistering service worker')
     event.waitUntil(self.registration.unregister())
     return false
   } else if (isUnregisterRequest(event.request.url)) {
@@ -757,12 +757,15 @@ async function isServiceWorkerRegistrationTTLValid (): Promise<boolean> {
      *
      * @see https://github.com/ipfs/service-worker-gateway/issues/724
      */
-    return false
+    log('timebomb: navigator.onLine is false, considering service worker registration TTL valid')
+    return true
   }
-  await updateConfig()
+  // await updateConfig()
   firstInstallTime = firstInstallTime ?? await getInstallTimestamp()
   const now = Date.now()
-  return now - firstInstallTime > config.serviceWorkerRegistrationTTL
+  const isTTLValid = now - firstInstallTime < (config?.serviceWorkerRegistrationTTL ?? 0)
+  log('timebomb: isServiceWorkerRegistrationTTLValid: ', isTTLValid)
+  return isTTLValid
 }
 
 async function getInstallTimestamp (): Promise<number> {

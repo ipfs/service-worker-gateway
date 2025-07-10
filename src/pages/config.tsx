@@ -207,6 +207,21 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
             onChange={(value) => { setConfig('fetchTimeout', value) }}
             resetKey={resetKey}
           />
+          <NumberInput
+            className='e2e-config-page-input e2e-config-page-input-serviceWorkerRegistrationTTL'
+            description='The time for the service worker registration to last, in hours, prior to triggering an explicit unregister event.'
+            label='Service Worker Registration TTL'
+            value={serviceWorkerRegistrationTTL / 1000 / 60 / 60}
+            validationFn={(value) => {
+              if (value < 0.1) {
+                return new Error('Service worker registration TTL must be at least 0.1 hours')
+              }
+              return null
+            }}
+            preSaveFormat={(value) => value * 1000 * 60 * 60}
+            onChange={(value) => { setConfig('serviceWorkerRegistrationTTL', value) }}
+            resetKey={resetKey}
+          />
           <TextInput
             className='e2e-config-page-input e2e-config-page-input-debug'
             description="A string that enables debug logging. Use '*,*:trace' to enable all debug logging."
