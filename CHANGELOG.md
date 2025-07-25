@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.14.0](https://github.com/ipfs/service-worker-gateway/compare/v1.13.5...v1.14.0) (2025-07-10)
+
+
+### Features
+
+* add sw registration ttl config ([#809](https://github.com/ipfs/service-worker-gateway/issues/809)) ([b3a9b8d](https://github.com/ipfs/service-worker-gateway/commit/b3a9b8d29e4771f25670ce4f35fadc7cea652221))
+* migrate to hash fragments ([#760](https://github.com/ipfs/service-worker-gateway/issues/760)) ([a787aa7](https://github.com/ipfs/service-worker-gateway/commit/a787aa71c26a85b002ac80163154e981546f7e5b))
+
 ## [1.13.5](https://github.com/ipfs/service-worker-gateway/compare/v1.13.4...v1.13.5) (2025-07-08)
 
 
