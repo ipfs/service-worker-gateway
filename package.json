@@ -89,7 +89,7 @@
     "@types/react": "^19.1.6",
     "aegir": "^47.0.19",
     "concurrently": "^9.1.2",
-    "cross-env": "^7.0.3",
+    "cross-env": "^10.0.0",
     "esbuild": "^0.25.6",
     "glob": "^11.0.1",
     "http-server": "^14.1.1",
