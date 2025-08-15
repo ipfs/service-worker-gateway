@@ -34,6 +34,10 @@ async function renderUi (): Promise<void> {
   }
   const container = document.getElementById('root')
 
+  if (!container) {
+  throw new Error('Mount element not found.');
+}
+
   const root = ReactDOMClient.createRoot(container)
 
   const LazyConfig = React.lazy(async () => import('./pages/config.jsx'))

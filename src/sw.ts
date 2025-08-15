@@ -98,7 +98,7 @@ const log = swLogger.forComponent('main')
  *
  * @see https://googlechrome.github.io/samples/service-worker/prefetch-video/
  */
-const CACHE_VERSION = 1
+const CACHE_VERSION = 2
 const CURRENT_CACHES = Object.freeze({
   mutable: `mutable-cache-v${CACHE_VERSION}`,
   immutable: `immutable-cache-v${CACHE_VERSION}`,
@@ -493,6 +493,15 @@ async function storeReponseInCache ({ response, isMutable, cacheKey, event }: St
   }
 }
 
+function forceSvgMime(pathOrUrl: string, headers: Headers) {
+  const p = pathOrUrl.split('?')[0].toLowerCase();
+  if (p.endsWith('.svg') || p.endsWith('.svgz')) {
+    headers.set('Content-Type', 'image/svg+xml');
+    headers.set('X-Content-Type-Options', 'nosniff');
+  }
+}
+
+
 async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise<Response> {
   const originalUrl = new URL(request.url)
   // test and enforce origin isolation before anything else is executed
@@ -576,6 +585,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
         log.trace(`${e.type}: `, e.detail)
       }
     })
+    forceSvgMime(path, response.headers);
     response.headers.set('ipfs-sw', 'true')
     /**
      * Now that we've got a response back from Helia, don't abort the promise since any additional networking calls
