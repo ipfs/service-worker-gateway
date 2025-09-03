@@ -31,11 +31,16 @@ async function main (): Promise<void> {
   const url = new URL(window.location.href)
   const state = await getStateFromUrl(url)
 
-  if (!state.requestForContentAddressedData) {
+  if (!state.requestForContentAddressedData || state.isConfigRequest) {
     // not a request for content addressed data, render the UI
     await renderUi()
     return
   } else if (state.hasConfig) {
+    if (state.isHardRefresh) {
+      // this is a hard refresh, we need to soft-reload to ensure the service worker captures the request.
+      window.location.reload()
+      return
+    }
     // user is requesting content addressed data and has the config already, render the UI
     await renderUi()
     return
