@@ -1,8 +1,23 @@
 import { dnsLinkLabelDecoder, isInlinedDnsLink } from './dns-link-labels.js'
 
 export interface UrlParts {
+  /**
+   * The CID or DNSLink name or peer ID.
+   *
+   * e.g. `bafyfoo` for `bafyfoo.ipfs.example.com`
+   */
   id: string | null
+  /**
+   * The protocol of the subdomain.
+   *
+   * e.g. `ipfs` for `bafyfoo.ipfs.example.com` or `ipns` for `bafyfoo.ipns.example.com`
+   */
   protocol: string | null
+  /**
+   * The parent domain of the subdomain.
+   *
+   * e.g. `example.com` for `bafyfoo.ipfs.example.com`
+   */
   parentDomain: string
 }
 

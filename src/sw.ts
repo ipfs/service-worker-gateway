@@ -188,7 +188,22 @@ self.addEventListener('fetch', (event) => {
   event.waitUntil(requestRouting(event, url).then(async (shouldHandle) => {
     if (shouldHandle) {
       log.trace('handling request for %s', url)
-      event.respondWith(getResponseFromCacheOrFetch(event))
+      event.respondWith(getResponseFromCacheOrFetch(event).then(async (response) => {
+        if (!isServiceWorkerRegistrationTTLValid()) {
+          log.trace('Service worker registration TTL expired, unregistering service worker')
+          setTimeout(() => {
+            // we unregister after a timeout to avoid interfering with the response.
+            // This solves some edge cases where the response is not complete yet, and we unregister the service worker
+            // while a response is in-flight.
+            // Ideally, we would return a temporary redirect response, and deregister the service worker between the
+            // time it took to return the response and the time it took to request the redirect URL, but it seems like
+            // that will need some investigation or some changes on the client side to support.
+            // Even more ideally, we would not have a registrationTTL to begin with, as the browser handles sw updates automatically.
+            self.registration.unregister()
+          }, 50)
+        }
+        return response
+      }))
     } else {
       log.trace('not handling request for %s', url)
     }
@@ -201,11 +216,7 @@ self.addEventListener('fetch', (event) => {
  ******************************************************
  */
 async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
-  if (!isServiceWorkerRegistrationTTLValid()) {
-    log.trace('Service worker registration TTL expired, unregistering service worker')
-    event.waitUntil(self.registration.unregister())
-    return false
-  } else if (isUnregisterRequest(event.request.url)) {
+  if (isUnregisterRequest(event.request.url)) {
     event.waitUntil(self.registration.unregister())
     event.respondWith(new Response('Service worker unregistered', {
       status: 200
@@ -758,6 +769,10 @@ function isServiceWorkerRegistrationTTLValid (): boolean {
   if (!navigator.onLine) {
     /**
      * When we unregister the service worker, the a new one will be installed on the next page load.
+     *
+     * Note: returning true here means if the user is not online, we will not unregister the service worker.
+     * However, browsers will have `navigator.onLine === true` if connected to a LAN that is not internet-connected,
+     * so we may want to be smarter about this in the future.
      *
      * @see https://github.com/ipfs/service-worker-gateway/issues/724
      */
