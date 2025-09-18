@@ -53,7 +53,6 @@ async function main (): Promise<void> {
       console.error('helia:sw-gateway:index: error ensuring sw scope and registration', err)
     }
     window.location.replace(translatedUrl.href) // replace with translated URL to remove helia-sw param
-    await renderUi()
     return
   }
 
