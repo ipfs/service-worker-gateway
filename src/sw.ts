@@ -11,7 +11,6 @@ import { findOriginIsolationRedirect, isPathGatewayRequest, isSubdomainGatewayRe
 import { isUnregisterRequest } from './lib/unregister-request.js'
 import type { ConfigDb } from './lib/config-db.js'
 import type { VerifiedFetch } from '@helia/verified-fetch'
-import { translateIpfsRedirectUrl } from './lib/translate-ipfs-redirect-url.js'
 
 /**
  ******************************************************
@@ -198,7 +197,7 @@ self.addEventListener('fetch', (event) => {
               log('Service worker registration TTL expired, unregistering after response consumed')
             }).finally(() => self.registration.unregister())
           )
-          return response;
+          return response
         }
         return response
       }))
@@ -214,11 +213,7 @@ self.addEventListener('fetch', (event) => {
  ******************************************************
  */
 async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
-  if (url.href !== translateIpfsRedirectUrl(url).href) {
-    log.trace('redirecting ipfs redirect url from %s to %s', url.href, translateIpfsRedirectUrl(url).href)
-    event.respondWith(Response.redirect(translateIpfsRedirectUrl(url).href, 307))
-    return false
-  } else if (isUnregisterRequest(event.request.url)) {
+  if (isUnregisterRequest(event.request.url)) {
     event.waitUntil(self.registration.unregister())
     event.respondWith(new Response('Service worker unregistered', {
       status: 200

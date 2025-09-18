@@ -184,7 +184,7 @@ export async function getStateFromUrl (url: URL): Promise<NavigationState> {
   }
 
   // check if url.hash matches exactly
-  if (url.hash === `/${HASH_FRAGMENTS.IPFS_SW_CONFIG_UI}`) {
+  if (url.hash === `#/${HASH_FRAGMENTS.IPFS_SW_CONFIG_UI}`) {
     isConfigRequest = true
   }
 
