@@ -38,7 +38,8 @@ test.describe('smoketests', () => {
 testSubdomainRouting.describe('smoketests', () => {
   testSubdomainRouting.describe('config section on subdomains', () => {
     // TODO: remove this test because we don't want to support config page on subdomains. See
-    testSubdomainRouting('only config and header are visible on /#/ipfs-sw-config requests', async ({ page, baseURL, rootDomain, protocol }) => {
+    testSubdomainRouting('only config and header are visible on /#/ipfs-sw-config requests', async ({ page, baseURL, rootDomain, protocol, browserName }) => {
+      testSubdomainRouting.skip(browserName === 'firefox', 'Playwright doesn\'t treat hard refreshes correctly in Firefox.')
       await page.goto(baseURL, { waitUntil: 'networkidle' })
       await waitForServiceWorker(page, baseURL)
       await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/#/ipfs-sw-config`, { waitUntil: 'networkidle' })

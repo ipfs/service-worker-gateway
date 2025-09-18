@@ -1,10 +1,7 @@
-import type { FrameLocator, Locator, Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 
 export interface GetLocator {
-  (page: Page | FrameLocator): Locator
-}
-export interface GetFrameLocator {
-  (page: Page | FrameLocator): FrameLocator
+  (page: Page): Locator
 }
 
 /**

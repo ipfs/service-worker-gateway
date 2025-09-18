@@ -19,9 +19,24 @@ interface NavigationState {
   /**
    * If the user is requesting content addressed data (instead of service worker gateway UI), this will be true.
    *
-   * e.g. sw-gateway landing page, ipfs-sw-config view, ipfs-sw-origin-isolation-warning view, etc.
+   * e.g. NOT the sw-gateway landing page, ipfs-sw-config view, ipfs-sw-origin-isolation-warning view, etc.
    */
   requestForContentAddressedData: boolean
+
+  /**
+   * If the user is requesting content addressed data, the current URL is an isolated subdomain, and we already have the config,
+   * this will be true iff navigator.serviceWorker.controller is null.
+   *
+   * In this case, we need to reload the page to ensure the service worker captures the request.
+   *
+   * @see https://www.w3.org/TR/service-workers/#dom-serviceworkercontainer-controller
+   */
+  isHardRefresh: boolean
+
+  /**
+   * If the user is requesting the config, this will be true.
+   */
+  isConfigRequest: boolean
 }
 
 const log = uiLogger.forComponent('first-hit-helpers')
@@ -135,11 +150,6 @@ function isRequestForContentAddressedData (url: URL): boolean {
     // query param request
     return true
   }
-  if (url.hash.includes('/ipfs-sw-config')) {
-    // hash request for UI page, with no path/subdomain/query indicating request for content addressed data
-    // we need to do this after the path/subdomain/query check because we need to ensure the config is properly loaded from the root domain
-    return false
-  }
   return false
 }
 
@@ -154,10 +164,28 @@ export async function getStateFromUrl (url: URL): Promise<NavigationState> {
   const urlHasSubdomainConfigRequest = hasHashFragment(url, HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST) && url.searchParams.get(QUERY_PARAMS.HELIA_SW) != null
   let hasConfig = false
   const supportsSubdomains = await checkSubdomainSupport(url)
+  let isHardRefresh = false
+  let isConfigRequest = false
 
   if (isIsolatedOrigin) {
     // check if indexedDb has config
     hasConfig = await isConfigSet(uiLogger)
+    if (hasConfig) {
+      // Check service worker state
+      const registration = await navigator.serviceWorker.getRegistration()
+      const hasActiveWorker = registration?.active != null
+      const hasControllingWorker = navigator.serviceWorker.controller != null
+
+      if (hasActiveWorker && !hasControllingWorker) {
+        // this is a hard refresh
+        isHardRefresh = true
+      }
+    }
+  }
+
+  // check if url.hash matches exactly
+  if (url.hash === `#/${HASH_FRAGMENTS.IPFS_SW_CONFIG_UI}`) {
+    isConfigRequest = true
   }
 
   return {
@@ -168,7 +196,9 @@ export async function getStateFromUrl (url: URL): Promise<NavigationState> {
     subdomainParts: { parentDomain, id, protocol },
     compressedConfig: getHashFragment(url, HASH_FRAGMENTS.IPFS_SW_CFG),
     supportsSubdomains,
-    requestForContentAddressedData: isRequestForContentAddressedData(url)
+    requestForContentAddressedData: isRequestForContentAddressedData(url),
+    isHardRefresh,
+    isConfigRequest
   } satisfies NavigationState
 }
 
