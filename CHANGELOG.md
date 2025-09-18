@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.14.1](https://github.com/ipfs/service-worker-gateway/compare/v1.14.0...v1.14.1) (2025-09-18)
+
+
+### Bug Fixes
+
+* no implicit any, add missing types ([#852](https://github.com/ipfs/service-worker-gateway/issues/852)) ([1d743ab](https://github.com/ipfs/service-worker-gateway/commit/1d743ab22d2f870cbbae0522dad7a0a5273e7744))
+* refresh and ttl edgecases ([#841](https://github.com/ipfs/service-worker-gateway/issues/841)) ([6a532c6](https://github.com/ipfs/service-worker-gateway/commit/6a532c6aafae6cb3393bfa1314afb4cdfe78dacb))
+* svg content-type correction; update helia deps ([#853](https://github.com/ipfs/service-worker-gateway/issues/853)) ([15370d6](https://github.com/ipfs/service-worker-gateway/commit/15370d643f2e26ed3aeaee7cd7bf730fd6d0013c))
+
 ## [1.14.0](https://github.com/ipfs/service-worker-gateway/compare/v1.13.5...v1.14.0) (2025-07-10)
 
 
