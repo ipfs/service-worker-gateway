@@ -28,8 +28,14 @@ function FormatHelp (): ReactElement {
     </>
   )
 }
+interface ValidationMessageProps {
+  cidOrPeerIdOrDnslink?: IpfsUriParts['cidOrPeerIdOrDnslink'],
+  requestPath: string,
+  protocol?: IpfsUriParts['protocol'],
+  children: React.ReactNode
+}
 
-function ValidationMessage ({ cidOrPeerIdOrDnslink, requestPath, protocol, children }): ReactElement {
+const ValidationMessage: React.FC<ValidationMessageProps> = ({ cidOrPeerIdOrDnslink, requestPath, protocol, children }) => {
   let errorElement: ReactElement | null = null
   if (requestPath == null || requestPath === '') {
     errorElement = <span><big className='f3'>↑</big> Enter a valid IPFS/IPNS content path.</span>

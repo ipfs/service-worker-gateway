@@ -3,7 +3,7 @@
   "compilerOptions": {
     "outDir": "dist-tsc",
     "allowJs": true,
-    "noImplicitAny": false, // todo: update
+    "noImplicitAny": true,
     "module": "es2022",
     "target": "es2022",
     "jsx": "preserve",

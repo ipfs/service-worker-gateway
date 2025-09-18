@@ -87,6 +87,8 @@
     "@babel/preset-typescript": "^7.27.1",
     "@playwright/test": "^1.53.2",
     "@types/react": "^19.1.6",
+    "@types/react-dom": "^19.1.9",
+    "@types/wait-on": "^5.3.4",
     "aegir": "^47.0.19",
     "concurrently": "^9.1.2",
     "cross-env": "^7.0.3",

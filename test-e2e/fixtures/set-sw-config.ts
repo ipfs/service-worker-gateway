@@ -84,7 +84,7 @@ export async function getConfigUi ({ page, expectedSwScope }: { page: Page, expe
   const gateways = (await getConfigGatewaysInput(page).locator('textarea').inputValue()).split('\n')
   const fetchTimeout = parseInt(await getConfigFetchTimeout(page).locator('input').inputValue(), 10) * 1000
   const dnsJsonResolvers = await getConfigDnsJsonResolvers(page).locator('textarea').inputValue().then((value) => {
-    return value.split('\n').reduce((acc, line) => {
+    return value.split('\n').reduce<Record<string, string>>((acc, line) => {
       const [key, value] = line.split(' ')
       acc[key] = value
       return acc
@@ -121,7 +121,7 @@ export async function setConfig ({ page, config }: { page: Page, config: Partial
       }
     })
     const db = await openDb()
-    const put = async (key: keyof ConfigDb, value): Promise<void> => {
+    const put = async <K extends keyof ConfigDb>(key: K, value: ConfigDb[K]): Promise<void> => {
       const transaction = db.transaction(storeName, 'readwrite')
       const store = transaction.objectStore(storeName)
       const request = store.put(value, key)
@@ -164,7 +164,7 @@ export async function getConfig ({ page }: { page: Page }): Promise<ConfigDb> {
       }
     })
     const db = await openDb()
-    const get = async (key): Promise<any> => {
+    const get = async <T extends keyof ConfigDb>(key: T): Promise<ConfigDb[T]> => {
       const transaction = db.transaction(storeName, 'readonly')
       const store = transaction.objectStore(storeName)
       const request = store.get(key)

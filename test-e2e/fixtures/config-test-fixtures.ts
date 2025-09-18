@@ -2,17 +2,33 @@ import { test as base } from '@playwright/test'
 import { captureAllSwResponses } from './capture-all-sw-responses.js'
 import { setConfig } from './set-sw-config.js'
 import { waitForServiceWorker } from './wait-for-service-worker.js'
-import type { Response } from '@playwright/test'
+import type { Page, Response, TestFixture } from '@playwright/test'
+
+interface CustomTestFixtures {
+  rootDomain: string,
+  protocol: string,
+  swResponses: Response[]
+}
+
+interface GuaranteedPlaywrightProvidedTestFixtures {
+  baseURL: string,
+  page: Page,
+}
+
+// from playwright types, but not exported.
+type TestFixtureValue<R, Args extends {}> = Exclude<R, Function> | TestFixture<R, Args>
+
+type TestOptions = CustomTestFixtures & GuaranteedPlaywrightProvidedTestFixtures
 
 function isNoServiceWorkerProject <T extends typeof base = typeof base> (test: T): boolean {
   return test.info().project.name === 'no-service-worker'
 }
 
-const rootDomain = async ({ baseURL }, use): Promise<void> => {
+const rootDomain: TestFixtureValue<CustomTestFixtures['rootDomain'], GuaranteedPlaywrightProvidedTestFixtures> = async ({ baseURL }, use): Promise<void> => {
   const url = new URL(baseURL)
   await use(url.host)
 }
-const baseURLProtocol = async ({ baseURL }, use): Promise<void> => {
+const baseURLProtocol: TestFixtureValue<CustomTestFixtures['protocol'], GuaranteedPlaywrightProvidedTestFixtures> = async ({ baseURL }, use): Promise<void> => {
   const url = new URL(baseURL)
   await use(url.protocol)
 }
@@ -20,7 +36,7 @@ const baseURLProtocol = async ({ baseURL }, use): Promise<void> => {
 /**
  * A fixture that captures all the responses from the service worker.
  */
-const swResponses = async ({ page }, use): Promise<void> => {
+const swResponses: TestFixtureValue<CustomTestFixtures['swResponses'], GuaranteedPlaywrightProvidedTestFixtures> = async ({ page }, use): Promise<void> => {
   const capturedResponses: Response[] = []
   const controller = new AbortController()
   const signal = controller.signal;
@@ -44,11 +60,11 @@ const swResponses = async ({ page }, use): Promise<void> => {
   controller.abort()
 }
 
-export const test = base.extend<{ rootDomain: string, baseURL: string, protocol: string, swResponses: Response[] }>({
+export const test = base.extend<TestOptions>({
   rootDomain: [rootDomain, { scope: 'test' }],
   protocol: [baseURLProtocol, { scope: 'test' }],
   swResponses,
-  page: async ({ page }, use) => {
+  page: async ({ page }, use: (value: Page) => Promise<void>): Promise<void> => {
     if (isNoServiceWorkerProject(test)) {
       test.skip()
       return
@@ -78,9 +94,7 @@ export const test = base.extend<{ rootDomain: string, baseURL: string, protocol:
 /**
  * You should use this fixture instead of the `test` fixture from `@playwright/test` when testing path routing via the service worker.
  */
-export const testPathRouting = test.extend<{ rootDomain: string, baseURL: string, protocol: string }>({
-  rootDomain: [rootDomain, { scope: 'test' }],
-  protocol: [baseURLProtocol, { scope: 'test' }],
+export const testPathRouting = test.extend<TestOptions>({
   // eslint-disable-next-line no-empty-pattern
   baseURL: async ({ }, use) => {
     // Override baseURL to always be http://127.0.0.1:3333 for path routing tests
@@ -132,9 +146,7 @@ export const testPathRouting = test.extend<{ rootDomain: string, baseURL: string
  *
  * TODO: do not set config on subdomains automatically.. this should be done by the application
  */
-export const testSubdomainRouting = test.extend<{ rootDomain: string, baseURL: string, protocol: string }>({
-  rootDomain: [rootDomain, { scope: 'test' }],
-  protocol: [baseURLProtocol, { scope: 'test' }],
+export const testSubdomainRouting = test.extend<TestOptions>({
   page: async ({ page, baseURL }, use) => {
     /**
      * if safari, skip subdomain routing tests
@@ -176,7 +188,7 @@ export const testSubdomainRouting = test.extend<{ rootDomain: string, baseURL: s
  *
  * @see https://github.com/ipfs/service-worker-gateway/issues/272
  */
-export const testNoServiceWorker = base.extend<{ rootDomain: string, baseURL: string, protocol: string }>({
+export const testNoServiceWorker = base.extend<Omit<TestOptions, 'swResponses'>>({
   rootDomain: [rootDomain, { scope: 'test' }],
   protocol: [baseURLProtocol, { scope: 'test' }],
   page: async ({ page }, use) => {

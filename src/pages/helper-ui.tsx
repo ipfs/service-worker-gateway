@@ -17,7 +17,7 @@ function HelperUi (): ReactElement {
     localStorage.setItem(LOCAL_STORAGE_KEYS.forms.requestPath, requestPath)
   }, [requestPath])
 
-  const handleSubmit = async (e): Promise<void> => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault()
   }
 

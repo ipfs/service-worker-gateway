@@ -155,14 +155,14 @@ self.addEventListener('activate', (event) => {
 
   // Delete all caches that aren't named in CURRENT_CACHES.
   const expectedCacheNames = Object.keys(CURRENT_CACHES).map(function (key) {
-    return CURRENT_CACHES[key]
+    return CURRENT_CACHES[key as keyof typeof CURRENT_CACHES]
   })
 
   event.waitUntil(
     caches.keys().then(async function (cacheNames) {
       return Promise.all(
         cacheNames.map(async function (cacheName) {
-          if (!expectedCacheNames.includes(cacheName)) {
+          if (!expectedCacheNames.includes(cacheName as (typeof CURRENT_CACHES)[keyof typeof CURRENT_CACHES])) {
             // If this cache name isn't present in the array of "expected" cache names, then delete it.
             log('deleting out of date cache:', cacheName)
             return caches.delete(cacheName)
@@ -660,7 +660,10 @@ async function errorPageResponse (fetchResponse: Response): Promise<Response> {
   if (json == null) {
     json = { error: { message: `${fetchResponse.statusText}: ${responseBodyAsText}`, stack: null } }
   } else if (json.error == null) {
-    json.error = { message: json.errors.map(e => `<li>${e.message}</li>`).join(''), stack: json.errors.map(e => `<li>${e.stack}</li>`).join('\n') }
+    json.error = {
+      message: json.errors.map((e: { message: string }) => `<li>${e.message}</li>`).join(''),
+      stack: json.errors.map((e: { stack: string }) => `<li>${e.stack}</li>`).join('\n')
+    }
   }
 
   const responseDetails = getResponseDetails(fetchResponse, responseBodyAsText)
@@ -740,7 +743,7 @@ async function getServiceWorkerDetails (): Promise<ServiceWorkerDetails> {
 }
 
 function getResponseDetails (response: Response, responseBody: string): ResponseDetails {
-  const headers = {}
+  const headers: Record<string, string> = {}
   response.headers.forEach((value, key) => {
     headers[key] = value
   })
