@@ -98,7 +98,7 @@ const log = swLogger.forComponent('main')
  *
  * @see https://googlechrome.github.io/samples/service-worker/prefetch-video/
  */
-const CACHE_VERSION = 1
+const CACHE_VERSION = 2 // see https://github.com/ipfs/service-worker-gateway/pull/853#issuecomment-3309246532
 const CURRENT_CACHES = Object.freeze({
   mutable: `mutable-cache-v${CACHE_VERSION}`,
   immutable: `immutable-cache-v${CACHE_VERSION}`,
