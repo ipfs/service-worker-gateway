@@ -23,7 +23,7 @@ async function renderUi (): Promise<void> {
 
 async function main (): Promise<void> {
   if (!('serviceWorker' in navigator)) {
-    // no service worker, render the UI
+    // no service worker support, render the UI
     await renderUi()
     return
   }
@@ -36,16 +36,35 @@ async function main (): Promise<void> {
     await renderUi()
     return
   } else if (state.hasConfig) {
+    // user is requesting content addressed data and has the config already
+    // we need to ensure a SW is registered and let it handle the request
+    const translatedUrl = translateIpfsRedirectUrl(url)
     if (state.isHardRefresh) {
-      // this is a hard refresh, we need to soft-reload to ensure the service worker captures the request.
-      window.location.reload()
+      // this is a hard refresh, we need to reload to ensure the service worker captures the request.
+      window.location.replace(translatedUrl.href) // replace with translated URL to remove helia-sw param
       return
     }
-    // user is requesting content addressed data and has the config already, render the UI
-    await renderUi()
+    // else, there is some other reason why sw didn't capture the request, ensure sw is registered and reload
+    try {
+      await ensureSwScope()
+      await registerServiceWorker()
+    } catch (err) {
+      console.error('helia:sw-gateway:index: error ensuring sw scope and registration', err)
+    }
+    window.location.replace(translatedUrl.href) // replace with translated URL to remove helia-sw param
     return
   }
-  // the user is requesting content addressed data and does not have the config, continue with the config loading flow
+
+  /**
+   * **********************************************
+   * From here on, we are handling the case where:
+   * - the user is requesting content addressed data
+   * - the user does not have the config
+   *
+   * We need to load the config, which may involve a redirect to the root domain
+   * before the service worker can be registered
+   * ***********************************************
+   */
   loadingIndicatorElement?.classList.remove('hidden')
 
   if (state.hasConfig && state.isIsolatedOrigin) {

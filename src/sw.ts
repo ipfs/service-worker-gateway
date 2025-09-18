@@ -11,6 +11,7 @@ import { findOriginIsolationRedirect, isPathGatewayRequest, isSubdomainGatewayRe
 import { isUnregisterRequest } from './lib/unregister-request.js'
 import type { ConfigDb } from './lib/config-db.js'
 import type { VerifiedFetch } from '@helia/verified-fetch'
+import { translateIpfsRedirectUrl } from './lib/translate-ipfs-redirect-url.js'
 
 /**
  ******************************************************
@@ -190,17 +191,14 @@ self.addEventListener('fetch', (event) => {
       log.trace('handling request for %s', url)
       event.respondWith(getResponseFromCacheOrFetch(event).then(async (response) => {
         if (!isServiceWorkerRegistrationTTLValid()) {
-          log.trace('Service worker registration TTL expired, unregistering service worker')
-          setTimeout(() => {
-            // we unregister after a timeout to avoid interfering with the response.
-            // This solves some edge cases where the response is not complete yet, and we unregister the service worker
-            // while a response is in-flight.
-            // Ideally, we would return a temporary redirect response, and deregister the service worker between the
-            // time it took to return the response and the time it took to request the redirect URL, but it seems like
-            // that will need some investigation or some changes on the client side to support.
-            // Even more ideally, we would not have a registrationTTL to begin with, as the browser handles sw updates automatically.
-            self.registration.unregister()
-          }, 50)
+          log('Service worker registration TTL expired, unregistering service worker')
+          const clonedResponse = response.clone()
+          event.waitUntil(
+            clonedResponse.blob().then(() => {
+              log('Service worker registration TTL expired, unregistering after response consumed')
+            }).finally(() => self.registration.unregister())
+          )
+          return response;
         }
         return response
       }))
@@ -216,7 +214,11 @@ self.addEventListener('fetch', (event) => {
  ******************************************************
  */
 async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
-  if (isUnregisterRequest(event.request.url)) {
+  if (url.href !== translateIpfsRedirectUrl(url).href) {
+    log.trace('redirecting ipfs redirect url from %s to %s', url.href, translateIpfsRedirectUrl(url).href)
+    event.respondWith(Response.redirect(translateIpfsRedirectUrl(url).href, 307))
+    return false
+  } else if (isUnregisterRequest(event.request.url)) {
     event.waitUntil(self.registration.unregister())
     event.respondWith(new Response('Service worker unregistered', {
       status: 200
