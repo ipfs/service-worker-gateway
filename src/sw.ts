@@ -188,7 +188,19 @@ self.addEventListener('fetch', (event) => {
   event.waitUntil(requestRouting(event, url).then(async (shouldHandle) => {
     if (shouldHandle) {
       log.trace('handling request for %s', url)
-      event.respondWith(getResponseFromCacheOrFetch(event))
+      event.respondWith(getResponseFromCacheOrFetch(event).then(async (response) => {
+        if (!isServiceWorkerRegistrationTTLValid()) {
+          log('Service worker registration TTL expired, unregistering service worker')
+          const clonedResponse = response.clone()
+          event.waitUntil(
+            clonedResponse.blob().then(() => {
+              log('Service worker registration TTL expired, unregistering after response consumed')
+            }).finally(() => self.registration.unregister())
+          )
+          return response
+        }
+        return response
+      }))
     } else {
       log.trace('not handling request for %s', url)
     }
@@ -201,11 +213,7 @@ self.addEventListener('fetch', (event) => {
  ******************************************************
  */
 async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
-  if (!isServiceWorkerRegistrationTTLValid()) {
-    log.trace('Service worker registration TTL expired, unregistering service worker')
-    event.waitUntil(self.registration.unregister())
-    return false
-  } else if (isUnregisterRequest(event.request.url)) {
+  if (isUnregisterRequest(event.request.url)) {
     event.waitUntil(self.registration.unregister())
     event.respondWith(new Response('Service worker unregistered', {
       status: 200
@@ -768,6 +776,10 @@ function isServiceWorkerRegistrationTTLValid (): boolean {
   if (!navigator.onLine) {
     /**
      * When we unregister the service worker, the a new one will be installed on the next page load.
+     *
+     * Note: returning true here means if the user is not online, we will not unregister the service worker.
+     * However, browsers will have `navigator.onLine === true` if connected to a LAN that is not internet-connected,
+     * so we may want to be smarter about this in the future.
      *
      * @see https://github.com/ipfs/service-worker-gateway/issues/724
      */

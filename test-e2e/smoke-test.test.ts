@@ -101,4 +101,37 @@ test.describe('smoke test', () => {
 
     expect(noRegistration).toBe(true)
   })
+
+  test('service worker unregisters automatically when ttl expires', async ({ page, baseURL, protocol, rootDomain, swResponses }) => {
+    await page.goto(baseURL, { waitUntil: 'networkidle' })
+    await waitForServiceWorker(page, baseURL)
+    // set the ttl in milliseconds
+    await setConfig({ page, config: { serviceWorkerRegistrationTTL: 1400 } })
+
+    await page.goto(`${protocol}//bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui.ipfs.${rootDomain}/root2/root3/root4/`, { waitUntil: 'networkidle' })
+    await waitForServiceWorker(page, baseURL)
+    expect(swResponses.length).toBe(1)
+    const response = swResponses[swResponses.length - 1]
+    expect(response?.status()).toBe(200)
+    expect(response?.headers()['content-type']).toBe('text/html; charset=utf-8')
+    expect(await response?.text()).toContain('hello')
+
+    // wait for the ttl to expire
+    await page.waitForTimeout(1500)
+
+    const response2 = await page.reload({ waitUntil: 'networkidle' })
+    expect(swResponses.length).toBe(2)
+    expect(response2?.status()).toBe(200)
+    expect(response2?.headers()['content-type']).toBe('text/html; charset=utf-8')
+    expect(await response2?.text()).toContain('hello')
+
+    // wait for the TTL invalid setTimeout to run.
+    await page.waitForTimeout(100)
+
+    const noServiceWorkerRegistration = await page.evaluate(async () => {
+      return await window.navigator.serviceWorker.getRegistration() === undefined
+    })
+
+    expect(noServiceWorkerRegistration).toBe(true)
+  })
 })

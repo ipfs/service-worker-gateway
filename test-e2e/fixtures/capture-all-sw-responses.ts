@@ -32,7 +32,6 @@ export async function * captureAllSwResponses (page: Page, signal: AbortSignal):
       responseQueue.push(response)
     }
   }
-
   page.on('response', onResponse)
 
   try {

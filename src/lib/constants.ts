@@ -13,6 +13,11 @@ export const QUERY_PARAMS = {
 
 export const HASH_FRAGMENTS = {
   /**
+   * The hash fragment that is used to request the UI config page.
+   */
+  IPFS_SW_CONFIG_UI: 'ipfs-sw-config',
+
+  /**
    * The hash fragment that is used to send the config to the subdomain service worker.
    */
   IPFS_SW_CFG: 'ipfs-sw-cfg',
