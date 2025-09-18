@@ -126,12 +126,12 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
     let gateways = defaultGateways
     let routers = defaultRouters
     let dnsJsonResolvers = defaultDnsJsonResolvers
-    let enableRecursiveGateways
-    let enableWss
-    let enableWebTransport
-    let enableGatewayProviders
-    let fetchTimeout
-    let debug = ''
+    let enableRecursiveGateways = defaultEnableRecursiveGateways
+    let enableWss = defaultEnableWss
+    let enableWebTransport = defaultEnableWebTransport
+    let enableGatewayProviders = defaultEnableGatewayProviders
+    let fetchTimeout = defaultFetchTimeout * 1000
+    let debug = defaultDebug()
     let serviceWorkerRegistrationTTL = defaultServiceWorkerRegistrationTTL
     let _supportsSubdomains = defaultSupportsSubdomains
 
@@ -150,13 +150,13 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
       routers = config.routers
 
       dnsJsonResolvers = config.dnsJsonResolvers
-      enableRecursiveGateways = config.enableRecursiveGateways ?? defaultEnableRecursiveGateways
-      enableWss = config.enableWss ?? defaultEnableWss
-      enableWebTransport = config.enableWebTransport ?? defaultEnableWebTransport
-      enableGatewayProviders = config.enableGatewayProviders ?? defaultEnableGatewayProviders
-      fetchTimeout = config.fetchTimeout ?? (defaultFetchTimeout * 1000)
-      _supportsSubdomains ??= config._supportsSubdomains
-      serviceWorkerRegistrationTTL = config.serviceWorkerRegistrationTTL ?? defaultServiceWorkerRegistrationTTL
+      enableRecursiveGateways = config.enableRecursiveGateways
+      enableWss = config.enableWss
+      enableWebTransport = config.enableWebTransport
+      enableGatewayProviders = config.enableGatewayProviders
+      fetchTimeout = config.fetchTimeout
+      _supportsSubdomains = config._supportsSubdomains
+      serviceWorkerRegistrationTTL = config.serviceWorkerRegistrationTTL
     } catch (err) {
       log('error loading config from db', err)
     } finally {
@@ -176,18 +176,18 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
 
     // always return the config, even if we failed to load it.
     return {
-      gateways,
-      routers,
-      dnsJsonResolvers,
-      enableRecursiveGateways,
-      enableWss,
-      enableWebTransport,
-      enableGatewayProviders,
-      debug,
-      fetchTimeout,
-      serviceWorkerRegistrationTTL,
-      _supportsSubdomains
-    }
+      gateways: gateways ?? defaultGateways,
+      routers: routers ?? defaultRouters,
+      dnsJsonResolvers: dnsJsonResolvers ?? defaultDnsJsonResolvers,
+      enableRecursiveGateways: enableRecursiveGateways ?? defaultEnableRecursiveGateways,
+      enableWss: enableWss ?? defaultEnableWss,
+      enableWebTransport: enableWebTransport ?? defaultEnableWebTransport,
+      enableGatewayProviders: enableGatewayProviders ?? defaultEnableGatewayProviders,
+      debug: debug ?? defaultDebug(),
+      fetchTimeout: fetchTimeout ?? defaultFetchTimeout * 1000,
+      serviceWorkerRegistrationTTL: serviceWorkerRegistrationTTL ?? defaultServiceWorkerRegistrationTTL,
+      _supportsSubdomains: _supportsSubdomains ?? defaultSupportsSubdomains
+    } satisfies ConfigDb
   })().finally(() => {
     getConfigPromise = null
   })

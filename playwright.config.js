@@ -95,6 +95,11 @@ export default defineConfig({
             'dom.serviceWorkers.enabled': false
           }
         },
+        /**
+         *
+         * @param {object} param0
+         * @param {import('@playwright/test').Page} param0.page
+         */
         beforeEach: async ({ page }) => {
           await page.addInitScript(() => {
             Object.defineProperty(navigator, 'serviceWorker', {

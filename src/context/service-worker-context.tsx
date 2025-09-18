@@ -16,7 +16,6 @@ import { uiLogger } from '../lib/logger.js'
 import { findOriginIsolationRedirect } from '../lib/path-or-subdomain.js'
 import { isUnregisterRequest } from '../lib/unregister-request.js'
 import { registerServiceWorker } from '../service-worker-utils.js'
-import type { ReactElement } from 'react'
 
 const log = uiLogger.forComponent('service-worker-context')
 
@@ -24,7 +23,7 @@ export const ServiceWorkerContext = createContext({
   isServiceWorkerRegistered: false
 })
 
-export const ServiceWorkerProvider = ({ children }): ReactElement => {
+export const ServiceWorkerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isServiceWorkerRegistered, setIsServiceWorkerRegistered] = useState(false)
 
   useEffect(() => {

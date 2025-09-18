@@ -23,7 +23,7 @@ export async function doRangeRequest ({ page, range, path }: { range: string, pa
     const bytes = Array.from(new Uint8Array(buffer))
     const text = await clone.text()
     const statusCode = response.status
-    const headers = {}
+    const headers: Record<string, string> = {}
     response.headers.forEach((value, key) => {
       headers[key] = value
     })

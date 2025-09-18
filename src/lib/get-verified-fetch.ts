@@ -20,6 +20,7 @@ import { createLibp2p } from 'libp2p'
 import * as libp2pInfo from 'libp2p/version'
 import { blake3 } from './blake3.js'
 import type { ConfigDb } from './config-db.js'
+import type { DelegatedRoutingV1HttpApiClient } from '@helia/delegated-routing-v1-http-api-client'
 import type { BlockBroker } from '@helia/interface'
 import type { VerifiedFetch } from '@helia/verified-fetch'
 import type { ComponentLogger } from '@libp2p/logger'
@@ -115,7 +116,10 @@ export async function libp2pDefaults (config: Libp2pDefaultsOptions): Promise<Li
     filterAddrs.push('tls') // /ip4/A.B.C.D/tcp/4002/tls/sni/example.com/http
   }
 
-  const libp2pOptions = {
+  interface Libp2pOptionsWithDelegatedRouting extends Libp2pOptions {
+    services: Libp2pOptions['services'] & Record<`delegatedRouter${number}`, () => DelegatedRoutingV1HttpApiClient>
+  }
+  const libp2pOptions: Libp2pOptionsWithDelegatedRouting = {
     privateKey,
     addresses: {}, // no need to listen on any addresses
     transports,
@@ -132,7 +136,7 @@ export async function libp2pDefaults (config: Libp2pDefaultsOptions): Promise<Li
       keychain: keychain(),
       ping: ping()
     }
-  } satisfies Libp2pOptions
+  } satisfies Libp2pOptionsWithDelegatedRouting
 
   // Add delegated routing services for each passed delegated router endpoint
   config.routers.forEach((router, i) => {

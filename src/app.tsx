@@ -33,6 +33,9 @@ async function renderUi (): Promise<void> {
     console.warn('Failed to load CSS config, UI will render without styles:', err)
   }
   const container = document.getElementById('root')
+  if (container == null) {
+    throw new Error('No root container found')
+  }
 
   const root = ReactDOMClient.createRoot(container)
 
