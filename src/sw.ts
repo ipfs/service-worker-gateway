@@ -564,6 +564,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
   }
   /**
    * abort the signal after the configured timeout.
+   *
    * @see https://github.com/ipfs/service-worker-gateway/issues/674
    */
   const signalAbortTimeout = setTimeout(() => {
