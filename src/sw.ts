@@ -564,6 +564,8 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
   }
   /**
    * abort the signal after the configured timeout.
+   *
+   * @see https://github.com/ipfs/service-worker-gateway/issues/674
    */
   const signalAbortTimeout = setTimeout(() => {
     abortFn({ type: 'gateway-timeout' })
@@ -572,11 +574,12 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
   event.request.signal.addEventListener('abort', abortFn)
 
   try {
-    /**
-     * @see https://github.com/ipfs/service-worker-gateway/issues/674
-     */
+    const url = new URL(event.request.url)
+    // remove the query params and hash fragment as verified-fetch/ipfs don't care about them
+    url.search = ''
+    url.hash = ''
 
-    const response = await verifiedFetch(event.request.url, {
+    const response = await verifiedFetch(url.href, {
       signal,
       headers,
       redirect: 'manual',
