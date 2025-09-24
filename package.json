@@ -92,7 +92,7 @@
     "aegir": "^47.0.19",
     "concurrently": "^9.1.2",
     "cross-env": "^7.0.3",
-    "esbuild": "^0.25.6",
+    "esbuild": "^0.25.10",
     "glob": "^11.0.1",
     "http-server": "^14.1.1",
     "it-all": "^3.0.7",
