@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.14.2](https://github.com/ipfs/service-worker-gateway/compare/v1.14.1...v1.14.2) (2025-09-23)
+
+
+### Bug Fixes
+
+* reloading a page with hash fragment doesnt err ([#860](https://github.com/ipfs/service-worker-gateway/issues/860)) ([4a053c4](https://github.com/ipfs/service-worker-gateway/commit/4a053c47a0389a9e56518b330af8fab3a983c8b5))
+
 ## [1.14.1](https://github.com/ipfs/service-worker-gateway/compare/v1.14.0...v1.14.1) (2025-09-18)
 
 
