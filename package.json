@@ -69,7 +69,7 @@
     "@libp2p/websockets": "^9.2.19",
     "@libp2p/webtransport": "^5.0.51",
     "@multiformats/dns": "^1.0.9",
-    "@noble/hashes": "^1.5.0",
+    "@noble/hashes": "^2.0.1",
     "execa": "^9.5.2",
     "helia": "^5.5.1",
     "ipfs-css": "^1.4.0",
