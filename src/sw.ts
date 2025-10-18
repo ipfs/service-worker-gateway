@@ -11,6 +11,8 @@ import { findOriginIsolationRedirect, isPathGatewayRequest, isSubdomainGatewayRe
 import { isUnregisterRequest } from './lib/unregister-request.js'
 import type { ConfigDb } from './lib/config-db.js'
 import type { VerifiedFetch } from '@helia/verified-fetch'
+import { detectErrorType, extractCIDFromURL } from './lib/error-types.ts'
+import { generateErrorPageHTML, generateErrorPageFromInfo } from './lib/error-pages.ts'
 
 /**
  ******************************************************
@@ -614,27 +616,64 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
   } catch (err: unknown) {
     log.trace('fetchHandler: error: ', err)
     const errorMessages: string[] = []
+    let firstError: Error | null = null
     if (isAggregateError(err)) {
       log.error('fetchHandler aggregate error: ', err.message)
       for (const e of err.errors) {
         errorMessages.push(e.message)
         log.error('fetchHandler errors: ', e)
+        if (firstError == null) {
+          firstError = e
+        }
       }
     } else {
-      errorMessages.push(err instanceof Error ? err.message : JSON.stringify(err))
+      const error = err instanceof Error ? err : new Error(JSON.stringify(err))
+      errorMessages.push(error.message)
       log.error('fetchHandler error: ', err)
+      firstError = error
     }
     const errorMessage = errorMessages.join('\n')
 
     if (errorMessage.includes('aborted') || signal.aborted) {
       return await get504Response(event)
     }
-    const response = new Response('Service Worker IPFS Gateway error: ' + errorMessage, { status: 500 })
-    response.headers.set('ipfs-sw', 'true')
-    return response
+
+    const errorInfo = detectErrorType(firstError ?? errorMessage)
+    const url = new URL(event.request.url)
+    const cid = extractCIDFromURL(url)
+
+     const errorHtml = generateErrorPageFromInfo(
+      errorInfo,
+      url.href,
+      cid,
+      firstError?.stack
+    )
+    
+    return new Response(errorHtml, {
+      status: errorInfo.statusCode,
+      statusText: getStatusText(errorInfo.statusCode),
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'ipfs-sw': 'true',
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
+      }
+    })
   } finally {
     clearTimeout(signalAbortTimeout)
   }
+}
+
+function getStatusText(status: number): string {
+  const statusTexts: Record<number, string> = {
+    400: 'Bad Request',
+    404: 'Not Found',
+    415: 'Unsupported Media Type',
+    500: 'Internal Server Error',
+    502: 'Bad Gateway',
+    503: 'Service Unavailable',
+    504: 'Gateway Timeout'
+  }
+  return statusTexts[status] || 'Error'
 }
 
 /**
@@ -677,6 +716,8 @@ async function errorPageResponse (fetchResponse: Response): Promise<Response> {
   const mergedHeaders = new Headers(fetchResponse.headers)
   mergedHeaders.set('Content-Type', 'text/html')
   mergedHeaders.set('ipfs-sw', 'true')
+  mergedHeaders.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+
 
   return new Response(`<!DOCTYPE html>
     <html>
@@ -716,13 +757,32 @@ async function errorPageResponse (fetchResponse: Response): Promise<Response> {
 }
 
 async function get504Response (event: FetchEvent): Promise<Response> {
-  const response504 = await fetch(new URL('/ipfs-sw-504.html', event.request.url))
-
-  return new Response(response504.body, {
+  const url = new URL(event.request.url)
+  const cid = extractCIDFromURL(url)
+  
+  const errorHtml = generateErrorPageHTML({
     status: 504,
+    statusText: 'Gateway Timeout',
+    url: url.href,
+    cid,
+    errorType: 'Timeout',
+    errorMessage: 'The gateway timed out while trying to fetch your content from the IPFS network.',
+    suggestions: [
+      'Wait a few moments and click the Retry button',
+      'The content may be hosted on slow or distant nodes',
+      'Try accessing the content from a public IPFS gateway',
+      'Check if the content is still available on the IPFS network',
+      'Consider increasing the timeout in the config page'
+    ]
+  })
+
+  return new Response(errorHtml, {
+    status: 504,
+    statusText: 'Gateway Timeout',
     headers: {
-      'Content-Type': 'text/html',
-      'ipfs-sw': 'true'
+      'Content-Type': 'text/html; charset=utf-8',
+      'ipfs-sw': 'true',
+      'Cache-Control': 'no-cache, no-store, must-revalidate'
     }
   })
 }
