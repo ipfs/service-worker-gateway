@@ -575,9 +575,26 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
 
   try {
     const url = new URL(event.request.url)
-    // remove the query params and hash fragment as verified-fetch/ipfs don't care about them
-    url.search = ''
+    /**
+     * Sanitize URL before passing to verified-fetch:
+     * - Remove hash fragment: browsers send these to service workers but they cause errors when passed to IPFS path resolution (check #859)
+     * - Preserve IPFS-relevant query params (filename, download, format) for proper file handling
+     * - Remove tracking/irrelevant params (utm_*, ref, etc.) as they're not used by IPFS
+     */
     url.hash = ''
+
+    const ipfsRelevantParams = ['filename', 'download', 'format']
+    const searchParams = new URLSearchParams(url.search)
+    const cleanedSearchParams = new URLSearchParams()
+    
+    ipfsRelevantParams.forEach(param => {
+      const value = searchParams.get(param)
+      if (value !== null) {
+        cleanedSearchParams.set(param, value)
+      }
+    })
+    
+    url.search = cleanedSearchParams.toString()
 
     const response = await verifiedFetch(url.href, {
       signal,
