@@ -1,9 +1,9 @@
 /**
  * Error type detection and categorization for IPFS Service Worker Gateway
- * 
+ *
  * This module analyzes errors and provides user-friendly explanations with
  * actionable suggestions for resolution.
- * 
+ *
  * @module error-types
  */
 
@@ -36,12 +36,11 @@ export enum ErrorType {
 
 /**
  * Analyze an error and return categorized information
- * 
+ *
  * @param error - Error object or error message string
  * @returns Structured error information with suggestions
- * 
  */
-export function detectErrorType(error: Error | string): ErrorInfo {
+export function detectErrorType (error: Error | string): ErrorInfo {
   const errorMsg = typeof error === 'string' ? error : error.message
   const errorMsgLower = errorMsg.toLowerCase()
 
@@ -151,12 +150,11 @@ export function detectErrorType(error: Error | string): ErrorInfo {
 
 /**
  * Extract CID from URL in subdomain or path format
- * 
+ *
  * @param url - URL object to parse
  * @returns Extracted CID or null if not found
- * 
  */
-export function extractCIDFromURL(url: URL): string | null {
+export function extractCIDFromURL (url: URL): string | null {
   // Subdomain format: <cid>.ipfs.domain.com or <cid>.ipns.domain.com
   const subdomainMatch = url.hostname.match(/^(.+?)\.(ipfs|ipns)\./)
   if (subdomainMatch) {

@@ -1,5 +1,7 @@
 import { getConfig } from './lib/config-db.js'
 import { HASH_FRAGMENTS, QUERY_PARAMS } from './lib/constants.js'
+import { generateErrorPageHTML, generateErrorPageFromInfo } from './lib/error-pages.ts'
+import { detectErrorType, extractCIDFromURL } from './lib/error-types.ts'
 import { getHeliaSwRedirectUrl } from './lib/first-hit-helpers.js'
 import { GenericIDB } from './lib/generic-db.js'
 import { getSubdomainParts } from './lib/get-subdomain-parts.js'
@@ -11,8 +13,6 @@ import { findOriginIsolationRedirect, isPathGatewayRequest, isSubdomainGatewayRe
 import { isUnregisterRequest } from './lib/unregister-request.js'
 import type { ConfigDb } from './lib/config-db.js'
 import type { VerifiedFetch } from '@helia/verified-fetch'
-import { detectErrorType, extractCIDFromURL } from './lib/error-types.ts'
-import { generateErrorPageHTML, generateErrorPageFromInfo } from './lib/error-pages.ts'
 
 /**
  ******************************************************
@@ -642,13 +642,13 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
     const url = new URL(event.request.url)
     const cid = extractCIDFromURL(url)
 
-     const errorHtml = generateErrorPageFromInfo(
+    const errorHtml = generateErrorPageFromInfo(
       errorInfo,
       url.href,
       cid,
       firstError?.stack
     )
-    
+
     return new Response(errorHtml, {
       status: errorInfo.statusCode,
       statusText: getStatusText(errorInfo.statusCode),
@@ -663,7 +663,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
   }
 }
 
-function getStatusText(status: number): string {
+function getStatusText (status: number): string {
   const statusTexts: Record<number, string> = {
     400: 'Bad Request',
     404: 'Not Found',
@@ -718,7 +718,6 @@ async function errorPageResponse (fetchResponse: Response): Promise<Response> {
   mergedHeaders.set('ipfs-sw', 'true')
   mergedHeaders.set('Cache-Control', 'no-cache, no-store, must-revalidate')
 
-
   return new Response(`<!DOCTYPE html>
     <html>
       <head>
@@ -759,7 +758,7 @@ async function errorPageResponse (fetchResponse: Response): Promise<Response> {
 async function get504Response (event: FetchEvent): Promise<Response> {
   const url = new URL(event.request.url)
   const cid = extractCIDFromURL(url)
-  
+
   const errorHtml = generateErrorPageHTML({
     status: 504,
     statusText: 'Gateway Timeout',
