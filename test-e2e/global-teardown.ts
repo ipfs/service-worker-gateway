@@ -1,6 +1,6 @@
-import { type Config } from '@playwright/test'
 import { $ } from 'execa'
 import { kuboRepoDir } from './fixtures/load-kubo-fixtures.js'
+import type { Config } from '@playwright/test'
 
 export default async function globalTeardown (config: Config): Promise<void> {
   const kuboPid = process.env.KUBO_PID

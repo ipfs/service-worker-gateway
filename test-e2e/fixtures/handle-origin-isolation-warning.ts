@@ -7,5 +7,5 @@ export async function handleOriginIsolationWarning (page: Page): Promise<void> {
   // now click the button to accept the warning
   await page.click('.e2e-subdomain-warning button')
 
-  await expect(page.locator('.e2e-subdomain-warning')).not.toBeVisible()
+  await expect(page.locator('.e2e-subdomain-warning')).not.toBeVisible({ timeout: 10000 })
 }

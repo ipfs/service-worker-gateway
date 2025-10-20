@@ -1,16 +1,32 @@
 import { dnsLinkLabelDecoder, isInlinedDnsLink } from './dns-link-labels.js'
 
 export interface UrlParts {
+  /**
+   * The CID or DNSLink name or peer ID.
+   *
+   * e.g. `bafyfoo` for `bafyfoo.ipfs.example.com`
+   */
   id: string | null
+  /**
+   * The protocol of the subdomain.
+   *
+   * e.g. `ipfs` for `bafyfoo.ipfs.example.com` or `ipns` for `bafyfoo.ipns.example.com`
+   */
   protocol: string | null
+  /**
+   * The parent domain of the subdomain.
+   *
+   * e.g. `example.com` for `bafyfoo.ipfs.example.com`
+   */
   parentDomain: string
 }
 
 export function getSubdomainParts (urlString: string): UrlParts {
-  const labels = new URL(urlString).hostname.split('.')
+  const url = new URL(urlString)
+  const labels = url.host.split('.')
   let id: string | null = null
   let protocol: string | null = null
-  let parentDomain: string = urlString
+  let parentDomain: string = url.host
 
   // DNS label inspection happens from from right to left
   // to work fine with edge cases like docs.ipfs.tech.ipns.foo.localhost

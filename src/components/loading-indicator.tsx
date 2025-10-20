@@ -1,8 +1,15 @@
-import React from 'react'
-import './loading-indicator.css'
+import React, { useEffect } from 'react'
 
-export default function LoadingIndicator (): React.ReactElement {
-  return (
-    <div className="loading-animation"></div>
-  )
+const loadingIndicatorElement = document.querySelector('.loading-indicator-js')
+const LoadingIndicator: React.FC = (): null => {
+  useEffect(() => {
+    loadingIndicatorElement?.classList.remove('hidden')
+    return () => {
+      loadingIndicatorElement?.classList.add('hidden')
+    }
+  }, [])
+
+  return null
 }
+
+export default LoadingIndicator

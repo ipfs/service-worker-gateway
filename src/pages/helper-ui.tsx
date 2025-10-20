@@ -1,4 +1,4 @@
-import React, { useState, useEffect, type ReactElement } from 'react'
+import React, { useState, useEffect } from 'react'
 import About from '../components/About.jsx'
 import Form from '../components/Form.jsx'
 import Header from '../components/Header.jsx'
@@ -8,6 +8,7 @@ import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
 import { LOCAL_STORAGE_KEYS } from '../lib/local-storage.js'
 import './default-page-styles.css'
 import Config from './config.js'
+import type { ReactElement } from 'react'
 
 function HelperUi (): ReactElement {
   const [requestPath, setRequestPath] = useState(localStorage.getItem(LOCAL_STORAGE_KEYS.forms.requestPath) ?? '')
@@ -16,7 +17,7 @@ function HelperUi (): ReactElement {
     localStorage.setItem(LOCAL_STORAGE_KEYS.forms.requestPath, requestPath)
   }, [requestPath])
 
-  const handleSubmit = async (e): Promise<void> => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault()
   }
 
@@ -31,14 +32,14 @@ function HelperUi (): ReactElement {
           setRequestPath={setRequestPath}
         />
 
-        <div className="bg-snow mw7 center w-100">
+        <div className='bg-snow mw7 center w-100'>
           <CidRenderer requestPath={requestPath} />
         </div>
 
       </main>
 
       <About />
-      <Config/>
+      <Config />
     </>
   )
 }

@@ -1,20 +1,24 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { InputDescription } from './input-description.js'
-import { InputLabel } from './input-label.js'
+import { InputDescription } from './input-description.jsx'
+import { InputLabel } from './input-label.jsx'
 import type { ReactElement } from 'react'
 
-export interface InputProps extends Omit<React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement>, 'onChange'> {
+export interface InputProps extends Omit<React.DetailedHTMLProps<React.HTMLAttributes<HTMLInputElement>, HTMLInputElement>, 'onChange'> {
   label: string
   placeholder?: string
-  value: string
-  validationFn?(value: string): Error | null
+  value: number
+  validationFn?(value: number): Error | null
   resetKey: number
   description?: string
-  preSaveFormat?(value: string): any
-  onChange(value: string): void
+  preSaveFormat?(value: number): any
+  onChange(value: number): void
+  /**
+   * The step value for the input. Defaults to '1'.
+   */
+  step?: string
 }
 
-export default ({ resetKey, onChange, label, placeholder, validationFn, value, description, preSaveFormat, ...props }: InputProps): ReactElement => {
+export default ({ resetKey, onChange, label, placeholder, validationFn, value, description, preSaveFormat, step = '1', ...props }: InputProps): ReactElement => {
   const [internalValue, setInternalValue] = useState(value)
   const [error, setError] = useState<null | Error>(null)
 
@@ -22,12 +26,12 @@ export default ({ resetKey, onChange, label, placeholder, validationFn, value, d
     setInternalValue(value)
   }, [resetKey, value])
 
-  const updateValue = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInternalValue(e.target.value)
+  const updateValue = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setInternalValue(parseFloat(e.target.value))
   }, [])
 
-  const saveValue = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newValue = e.target.value
+  const saveValue = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = parseFloat(e.target.value)
     try {
       const err = validationFn?.(newValue)
       if (err != null) {
@@ -51,7 +55,9 @@ export default ({ resetKey, onChange, label, placeholder, validationFn, value, d
     <div {...props}>
       <InputLabel label={label} />
       <InputDescription description={description} />
-      <textarea
+      <input
+        type='number'
+        step={step}
         className='input-reset ba br2 b--light-silver code lh-copy black-80 bg-white pa2 w-100 mt2'
         id={label}
         name={label}

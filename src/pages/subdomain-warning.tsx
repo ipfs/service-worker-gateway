@@ -1,7 +1,9 @@
-import React, { useCallback, useEffect, useState, type ReactNode } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import Header from '../components/Header.jsx'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
+import { QUERY_PARAMS } from '../lib/constants.js'
+import type { ReactNode } from 'react'
 import './default-page-styles.css'
 
 function IpAddressRecommendations ({ currentHost }: { currentHost: string }): ReactNode {
@@ -35,9 +37,9 @@ function DefaultRecommendations ({ currentHost }: { currentHost: string }): Reac
  * This UI is similar to browser security warnings and informs users about missing features
  */
 export default function SubdomainWarningPage (): ReactNode {
-  const [acceptedRisk, setAcceptedRisk] = useState(sessionStorage.getItem('ipfs-sw-gateway-accepted-path-gateway-risk') != null ?? false)
+  const [acceptedRisk, setAcceptedRisk] = useState(sessionStorage.getItem('ipfs-sw-gateway-accepted-path-gateway-risk') ?? false)
   const [isSaving, setIsSaving] = useState(false)
-  const originalUrl = new URL(window.location.href).searchParams.get('helia-sw')
+  const originalUrl = new URL(window.location.href).searchParams.get(QUERY_PARAMS.HELIA_SW)
 
   const handleAcceptRisk = useCallback(async () => {
     setIsSaving(true)
@@ -75,21 +77,21 @@ export default function SubdomainWarningPage (): ReactNode {
     <ServiceWorkerProvider>
       <Header />
       <main className='pa4-l bg-red mw7 mb5 center pa4 e2e-subdomain-warning mt4'>
-        <div className="flex items-center mb3 bg-red">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr2">
-            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
-            <line x1="12" y1="9" x2="12" y2="13"></line>
-            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        <div className='flex items-center mb3 bg-red'>
+          <svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' className='mr2'>
+            <path d='m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z' />
+            <line x1='12' y1='9' x2='12' y2='13' />
+            <line x1='12' y1='17' x2='12.01' y2='17' />
           </svg>
-          <h1 className="ma0 f3">Warning: Subdomain Gateway Not Available</h1>
+          <h1 className='ma0 f3'>Warning: Subdomain Gateway Not Available</h1>
         </div>
 
-        <div className="ba b--yellow-dark pa3 mb4 bg-red-muted">
-          <p className="ma0 mb2 b">This website is using a path-based IPFS gateway without proper origin isolation.</p>
-          <p className="ma0">
+        <div className='ba b--yellow-dark pa3 mb4 bg-red-muted'>
+          <p className='ma0 mb2 b'>This website is using a path-based IPFS gateway without proper origin isolation.</p>
+          <p className='ma0'>
             Without subdomain support, the following features will be missing:
           </p>
-          <ul className="mt2">
+          <ul className='mt2'>
             <li>Origin isolation for security</li>
             <li>Support for _redirects functionality</li>
             <li>Proper web application functionality</li>
@@ -98,8 +100,8 @@ export default function SubdomainWarningPage (): ReactNode {
 
         <RecommendationsElement currentHost={currentHost} />
 
-        <div className="flex justify-center mt4">
-          <ServiceWorkerReadyButton id="accept-warning" label={isSaving ? 'Accepting...' : 'I understand the risks - Continue anyway'} waitingLabel='Waiting for service worker registration...' onClick={() => { void handleAcceptRisk() }} />
+        <div className='flex justify-center mt4'>
+          <ServiceWorkerReadyButton id='accept-warning' label={isSaving ? 'Accepting...' : 'I understand the risks - Continue anyway'} waitingLabel='Waiting for service worker registration...' onClick={() => { void handleAcceptRisk() }} />
         </div>
       </main>
     </ServiceWorkerProvider>

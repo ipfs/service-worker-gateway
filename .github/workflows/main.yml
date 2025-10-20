@@ -86,7 +86,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-debug
+          name: playwright-debug-chrome
           path: test-results
 
   test-chrome-webworker:
@@ -153,11 +153,27 @@ jobs:
         with:
           node-version: lts/*
       - uses: ipfs/aegir/actions/cache-node-modules@main
+      - name: Cache Playwright dependencies
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+      - run: npx playwright install --with-deps
+        timeout-minutes: 10 # should take no longer than 2min
       - run: npm run --if-present test:webkit
       - uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4.6.0
         with:
           flags: webkit
           files: .coverage/*,packages/*/.coverage/*
+      - name: Upload Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-debug-webkit
+          path: test-results
 
   test-electron-main:
     needs: build
@@ -188,6 +204,30 @@ jobs:
         with:
           flags: electron-renderer
           files: .coverage/*,packages/*/.coverage/*
+
+  test-local-binary:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - uses: ipfs/aegir/actions/cache-node-modules@main
+      - name: Cache Playwright dependencies
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+      - run: npx playwright install --with-deps
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24'
+      - run: npx xvfb-maybe npm run --if-present test:local-binary
 
   release-please:
     runs-on: ubuntu-latest

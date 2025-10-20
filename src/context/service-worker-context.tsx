@@ -11,11 +11,10 @@
  * After the service worker is loaded. Usually any react code isn't loaded, but some edge cases are:
  * 1. The page being loaded using some /ip[fn]s/<path> url, but subdomain isolation is supported, so we need to redirect to the isolated origin
  */
-import React, { createContext, useEffect, useState, type ReactElement } from 'react'
-import { getRedirectUrl, isDeregisterRequest } from '../lib/deregister-request.js'
-import { ensureSwScope } from '../lib/first-hit-helpers.js'
+import React, { createContext, useEffect, useState } from 'react'
 import { uiLogger } from '../lib/logger.js'
 import { findOriginIsolationRedirect } from '../lib/path-or-subdomain.js'
+import { isUnregisterRequest } from '../lib/unregister-request.js'
 import { registerServiceWorker } from '../service-worker-utils.js'
 
 const log = uiLogger.forComponent('service-worker-context')
@@ -24,7 +23,7 @@ export const ServiceWorkerContext = createContext({
   isServiceWorkerRegistered: false
 })
 
-export const ServiceWorkerProvider = ({ children }): ReactElement => {
+export const ServiceWorkerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isServiceWorkerRegistered, setIsServiceWorkerRegistered] = useState(false)
 
   useEffect(() => {
@@ -41,19 +40,15 @@ export const ServiceWorkerProvider = ({ children }): ReactElement => {
       return
     }
     async function doWork (): Promise<void> {
-      if (isDeregisterRequest(window.location.href)) {
-        log.trace('deregistering service worker')
+      if (isUnregisterRequest(window.location.href)) {
+        log.trace('unregistering service worker')
         const registration = await navigator.serviceWorker.getRegistration()
         if (registration != null) {
           await registration.unregister()
-          window.location.replace(getRedirectUrl(window.location.href).href)
         } else {
-          log.error('service worker not registered, cannot deregister')
+          log.error('service worker not registered, cannot unregister')
         }
       }
-
-      // TODO: Handle this in index.tsx, before UI is loaded (but we need to ensure config loading is still handled properly)
-      await ensureSwScope()
 
       const registration = await navigator.serviceWorker.getRegistration()
 

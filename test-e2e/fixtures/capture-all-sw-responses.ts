@@ -32,13 +32,12 @@ export async function * captureAllSwResponses (page: Page, signal: AbortSignal):
       responseQueue.push(response)
     }
   }
-
   page.on('response', onResponse)
 
   try {
     while (!signal.aborted) {
       const response = await getNextResponse()
-      if (signal.aborted) break
+      if (signal.aborted) { break }
       yield response
     }
   } finally {

@@ -11,7 +11,7 @@ test.describe('first-hit ipfs-hosted', () => {
    */
   test.describe('path-routing', () => {
     test.beforeAll(async ({ rootDomain }) => {
-      if (!rootDomain.includes('localhost')) {
+      if (!rootDomain.includes('localhost') || process.env.BASE_URL != null) {
         test.skip()
       }
     })
@@ -38,18 +38,21 @@ test.describe('first-hit ipfs-hosted', () => {
   })
 
   test.describe('subdomain-routing', () => {
+    test.beforeAll(async () => {
+      if (['webkit', 'safari'].includes(test.info().project.name)) {
+        // @see https://github.com/ipfs/in-web-browsers/issues/206
+        test.skip()
+      }
+    })
     test('redirects to ?helia-sw=<path> are handled', async ({ page, rootDomain, protocol }) => {
       const response = await page.goto('http://localhost:3334/ipfs/bafkqablimvwgy3y')
-
-      // we no longer redirect to ?helia-sw=<path> for subdomain routing, because we immediately redirect to the subdomain
-      // expect(response?.url()).toBe('http://localhost:3334/?helia-sw=/ipfs/bafkqablimvwgy3y')
 
       // first loads the root page
       expect(response?.status()).toBe(200)
       const headers = await response?.allHeaders()
 
       expect(headers?.['content-type']).toContain('text/html')
-      await expect(page).toHaveURL('http://bafkqablimvwgy3y.ipfs.localhost:3334', { timeout: 10000 })
+      await page.waitForURL('http://bafkqablimvwgy3y.ipfs.localhost:3334', { timeout: 10000 })
 
       // wait for loading page to finish '.loading-page' to be removed
       await page.waitForSelector('.loading-page', { state: 'detached' })
@@ -80,7 +83,7 @@ test.describe('first-hit direct-hosted', () => {
    */
   test.describe('path-routing', () => {
     test.beforeAll(async ({ rootDomain }) => {
-      if (!rootDomain.includes('localhost')) {
+      if (!rootDomain.includes('localhost') || process.env.BASE_URL != null) {
         test.skip()
       }
     })
@@ -101,6 +104,12 @@ test.describe('first-hit direct-hosted', () => {
   })
 
   test.describe('subdomain-routing', () => {
+    test.beforeAll(async () => {
+      if (['webkit', 'safari'].includes(test.info().project.name)) {
+        // @see https://github.com/ipfs/in-web-browsers/issues/206
+        test.skip()
+      }
+    })
     test('requests to new pages are redirected', async ({ page, rootDomain, protocol }) => {
       const response = await page.goto(`${protocol}//${rootDomain}/ipfs/bafkqablimvwgy3y`, { waitUntil: 'commit' })
 
@@ -130,6 +139,18 @@ test.describe('first-hit direct-hosted', () => {
       await page.waitForSelector('.loading-page', { state: 'detached' })
 
       // and we verify the content was returned
+      await page.waitForSelector('text=Don\'t we all.')
+    })
+
+    test('cloudflare-redirect works', async ({ page, rootDomain, protocol }) => {
+      // when accessing https://inbrowser.dev/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq, cloudflare will redirect to https://inbrowser.dev/ipfs-sw-first-hit.html/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq
+      const response = await page.goto(`${protocol}//${rootDomain}/ipfs-sw-first-hit.html/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq/1 - Barrel - Part 1 - alt.txt`, { waitUntil: 'commit' })
+
+      // first loads the root page
+      expect(response?.status()).toBe(200)
+
+      await page.waitForURL(`${protocol}//bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq.ipfs.${rootDomain}/1%20-%20Barrel%20-%20Part%201%20-%20alt.txt`, { timeout: 10000 })
+
       await page.waitForSelector('text=Don\'t we all.')
     })
   })

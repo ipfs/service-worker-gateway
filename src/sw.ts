@@ -1,12 +1,15 @@
-import { getConfig, type ConfigDb } from './lib/config-db.js'
-import { getRedirectUrl, isDeregisterRequest } from './lib/deregister-request.js'
+import { getConfig } from './lib/config-db.js'
+import { HASH_FRAGMENTS, QUERY_PARAMS } from './lib/constants.js'
 import { getHeliaSwRedirectUrl } from './lib/first-hit-helpers.js'
 import { GenericIDB } from './lib/generic-db.js'
 import { getSubdomainParts } from './lib/get-subdomain-parts.js'
 import { getVerifiedFetch } from './lib/get-verified-fetch.js'
+import { hasHashFragment } from './lib/hash-fragments.js'
 import { isConfigPage } from './lib/is-config-page.js'
 import { swLogger } from './lib/logger.js'
 import { findOriginIsolationRedirect, isPathGatewayRequest, isSubdomainGatewayRequest } from './lib/path-or-subdomain.js'
+import { isUnregisterRequest } from './lib/unregister-request.js'
+import type { ConfigDb } from './lib/config-db.js'
 import type { VerifiedFetch } from '@helia/verified-fetch'
 
 /**
@@ -95,14 +98,13 @@ const log = swLogger.forComponent('main')
  *
  * @see https://googlechrome.github.io/samples/service-worker/prefetch-video/
  */
-const CACHE_VERSION = 1
+const CACHE_VERSION = 2 // see https://github.com/ipfs/service-worker-gateway/pull/853#issuecomment-3309246532
 const CURRENT_CACHES = Object.freeze({
   mutable: `mutable-cache-v${CACHE_VERSION}`,
   immutable: `immutable-cache-v${CACHE_VERSION}`,
   swAssets: `sw-assets-v${CACHE_VERSION}`
 })
 let verifiedFetch: VerifiedFetch
-const timeoutAbortEventType = 'verified-fetch-timeout'
 const ONE_HOUR_IN_SECONDS = 3600
 const urlInterceptRegex = [new RegExp(`${self.location.origin}/ip(n|f)s/`)]
 let config: ConfigDb
@@ -118,7 +120,10 @@ const updateVerifiedFetch = async (): Promise<void> => {
 let swIdb: GenericIDB<LocalSwConfig>
 let firstInstallTime: number
 const getSwConfig = (): GenericIDB<LocalSwConfig> => {
-  return swIdb ?? new GenericIDB<LocalSwConfig>('helia-sw-unique', 'config')
+  if (typeof swIdb === 'undefined') {
+    swIdb = new GenericIDB<LocalSwConfig>('helia-sw-unique', 'config')
+  }
+  return swIdb
 }
 
 /**
@@ -135,7 +140,7 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   // ensure verifiedFetch is ready for use
-  event.waitUntil(updateVerifiedFetch())
+  // event.waitUntil(updateVerifiedFetch())
   /**
    * 👇 Claim all clients immediately. This handles the case when subdomain is
    * loaded for the first time, and config is updated and then a pre-fetch is
@@ -145,16 +150,19 @@ self.addEventListener('activate', (event) => {
    */
   event.waitUntil(self.clients.claim())
 
+  // eslint-disable-next-line no-console
+  console.info('Service Worker Gateway: To manually unregister, append "?ipfs-sw-unregister=true" to the URL, or use the button on the config page.')
+
   // Delete all caches that aren't named in CURRENT_CACHES.
   const expectedCacheNames = Object.keys(CURRENT_CACHES).map(function (key) {
-    return CURRENT_CACHES[key]
+    return CURRENT_CACHES[key as keyof typeof CURRENT_CACHES]
   })
 
   event.waitUntil(
     caches.keys().then(async function (cacheNames) {
       return Promise.all(
         cacheNames.map(async function (cacheName) {
-          if (!expectedCacheNames.includes(cacheName)) {
+          if (!expectedCacheNames.includes(cacheName as (typeof CURRENT_CACHES)[keyof typeof CURRENT_CACHES])) {
             // If this cache name isn't present in the array of "expected" cache names, then delete it.
             log('deleting out of date cache:', cacheName)
             return caches.delete(cacheName)
@@ -169,12 +177,30 @@ self.addEventListener('fetch', (event) => {
   const request = event.request
   const urlString = request.url
   const url = new URL(urlString)
+  if (firstInstallTime == null) {
+    // if service worker is shut down, the firstInstallTime may be null
+    log('firstInstallTime is null, getting install timestamp')
+    event.waitUntil(getInstallTimestamp())
+  }
+
   log.trace('incoming request url: %s:', event.request.url)
 
   event.waitUntil(requestRouting(event, url).then(async (shouldHandle) => {
     if (shouldHandle) {
       log.trace('handling request for %s', url)
-      event.respondWith(getResponseFromCacheOrFetch(event))
+      event.respondWith(getResponseFromCacheOrFetch(event).then(async (response) => {
+        if (!isServiceWorkerRegistrationTTLValid()) {
+          log('Service worker registration TTL expired, unregistering service worker')
+          const clonedResponse = response.clone()
+          event.waitUntil(
+            clonedResponse.blob().then(() => {
+              log('Service worker registration TTL expired, unregistering after response consumed')
+            }).finally(() => self.registration.unregister())
+          )
+          return response
+        }
+        return response
+      }))
     } else {
       log.trace('not handling request for %s', url)
     }
@@ -187,12 +213,14 @@ self.addEventListener('fetch', (event) => {
  ******************************************************
  */
 async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
-  if (await isTimebombExpired()) {
-    log.trace('timebomb expired, deregistering service worker')
-    event.waitUntil(deregister(event, false))
+  if (isUnregisterRequest(event.request.url)) {
+    event.waitUntil(self.registration.unregister())
+    event.respondWith(new Response('Service worker unregistered', {
+      status: 200
+    }))
     return false
-  } else if (isDeregisterRequest(event.request.url)) {
-    event.waitUntil(deregister(event))
+  } else if (isSubdomainConfigRequest(event)) {
+    log.trace('subdomain config request, ignoring and letting index.html handle it', event.request.url)
     return false
   } else if (isConfigPageRequest(url)) {
     log.trace('config page request, ignoring ', event.request.url)
@@ -224,14 +252,16 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
     }))
     return false
   } else if (isSwConfigGETRequest(event)) {
+    // TODO: remove? I don't think we need this anymore.
     log.trace('sw-config GET request')
-    event.waitUntil(new Promise<void>((resolve) => {
-      event.respondWith(new Response(JSON.stringify(config), {
+    // event.waitUntil(new Promise<void>((resolve) => {
+    event.respondWith(new Promise<Response>((resolve) => {
+      resolve(new Response(JSON.stringify(config), {
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
         }
       }))
-      resolve()
     }))
     return false
   } else if (isSwAssetRequest(event)) {
@@ -240,12 +270,32 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
      * Return the asset from the cache if it exists, otherwise fetch it.
      */
     event.respondWith(caches.open(CURRENT_CACHES.swAssets).then(async (cache) => {
-      const cachedResponse = await cache.match(event.request)
-      if (cachedResponse != null) {
-        return cachedResponse
+      try {
+        const cachedResponse = await cache.match(event.request)
+        if (cachedResponse != null) {
+          return cachedResponse
+        }
+      } catch (err) {
+        log.error('error matching cached response', err)
       }
-      const response = await fetch(event.request)
-      await cache.put(event.request, response.clone())
+      let response: Response
+      try {
+        response = await fetch(event.request)
+      } catch (err) {
+        log.error('error fetching response', err)
+        return new Response('No response', {
+          status: 500,
+          headers: {
+            'x-debug-request-uri': event.request.url
+          }
+        })
+      }
+      try {
+        await cache.put(event.request, response.clone())
+        return response
+      } catch (err) {
+        log.error('error caching response', err)
+      }
       return response
     }))
     return false
@@ -268,25 +318,6 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
   return false
 }
 
-// potential race condition
-async function deregister (event, redirectToConfig = true): Promise<void> {
-  if (!isSubdomainRequest(event)) {
-    // if we are at the root, we need to ignore this request due to race conditions with the UI
-    return
-  }
-  await self.registration.unregister()
-  const clients = await self.clients.matchAll({ type: 'window' })
-
-  for (const client of clients) {
-    const newUrl = redirectToConfig ? getRedirectUrl(client.url) : client.url
-    try {
-      await client.navigate(newUrl)
-    } catch (e) {
-      log.error('error navigating client to ', newUrl, e)
-    }
-  }
-}
-
 function isRootRequestForContent (event: FetchEvent): boolean {
   const urlIsPreviouslyIntercepted = urlInterceptRegex.some(regex => regex.test(event.request.url))
   const isRootRequest = urlIsPreviouslyIntercepted
@@ -303,6 +334,11 @@ function isSubdomainRequest (event: FetchEvent): boolean {
 
 function isConfigPageRequest (url: URL): boolean {
   return isConfigPage(url.hash)
+}
+
+function isSubdomainConfigRequest (event: FetchEvent): boolean {
+  const url = new URL(event.request.url)
+  return hasHashFragment(url, HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST)
 }
 
 function isValidRequestForSW (event: FetchEvent): boolean {
@@ -371,6 +407,7 @@ function getCacheKey (event: FetchEvent): string {
 
 async function fetchAndUpdateCache (event: FetchEvent, url: URL, cacheKey: string): Promise<Response> {
   const response = await fetchHandler({ path: url.pathname, request: event.request, event })
+  log.trace('got response from fetchHandler')
 
   // log all of the headers:
   response.headers.forEach((value, key) => {
@@ -417,15 +454,16 @@ async function getResponseFromCacheOrFetch (event: FetchEvent): Promise<Response
 
 function shouldCacheResponse ({ event, response }: { event: FetchEvent, response: Response }): boolean {
   if (!response.ok) {
+    log.trace('response not ok, not caching', response)
     return false
   }
   const statusCodesToNotCache = [206]
   if (statusCodesToNotCache.some(code => code === response.status)) {
-    log('not caching response with status %s', response.status)
+    log.trace('not caching response with status %s', response.status)
     return false
   }
   if (event.request.headers.get('pragma') === 'no-cache' || event.request.headers.get('cache-control') === 'no-cache') {
-    log('request indicated no-cache, not caching')
+    log.trace('request indicated no-cache, not caching')
     return false
   }
 
@@ -453,7 +491,14 @@ async function storeReponseInCache ({ response, isMutable, cacheKey, event }: St
 
   log('storing response for key %s in cache', cacheKey)
   // do not await this.. large responses will delay [TTFB](https://web.dev/articles/ttfb) and [TTI](https://web.dev/articles/tti)
-  void cache.put(cacheKey, respToCache)
+
+  try {
+    void cache.put(cacheKey, respToCache).catch((err) => {
+      log.error('error storing response in cache', err)
+    })
+  } catch (err) {
+    log.error('error storing response in cache', err)
+  }
 }
 
 async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise<Response> {
@@ -469,7 +514,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
         Location: originLocation
       }
     })
-  } else if (!isSubdomainGatewayRequest(originalUrl) && isPathGatewayRequest(originalUrl) && !(await getOriginIsolationWarningAccepted()) && !originalUrl.searchParams.has('helia-sw')) {
+  } else if (!isSubdomainGatewayRequest(originalUrl) && isPathGatewayRequest(originalUrl) && !(await getOriginIsolationWarningAccepted()) && !originalUrl.searchParams.has(QUERY_PARAMS.HELIA_SW)) {
     const newUrl = new URL(originalUrl.href)
     newUrl.pathname = '/'
     newUrl.hash = '/ipfs-sw-origin-isolation-warning'
@@ -494,16 +539,22 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
     await updateVerifiedFetch()
   }
 
+  const headers = request.headers
+  headers.forEach((value, key) => {
+    log.trace('fetchHandler: request headers: %s: %s', key, value)
+  })
+  log('verifiedFetch for ', event.request.url)
+
   /**
    * Note that there are existing bugs regarding service worker signal handling:
-   * * https://bugs.chromium.org/p/chromium/issues/detail?id=823697
-   * * https://bugzilla.mozilla.org/show_bug.cgi?id=1394102
+   * https://bugs.chromium.org/p/chromium/issues/detail?id=823697
+   * https://bugzilla.mozilla.org/show_bug.cgi?id=1394102
    */
   const abortController = new AbortController()
   const signal = abortController.signal
   const abortFn = (event: Pick<AbortSignalEventMap['abort'], 'type'>): void => {
     clearTimeout(signalAbortTimeout)
-    if (event?.type === timeoutAbortEventType) {
+    if (event?.type === 'gateway-timeout') {
       log.trace('timeout waiting for response from @helia/verified-fetch')
       abortController.abort('timeout')
     } else {
@@ -512,25 +563,23 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
     }
   }
   /**
-   * five minute delay to get the initial response.
+   * abort the signal after the configured timeout.
    *
-   * @todo reduce to 2 minutes?
+   * @see https://github.com/ipfs/service-worker-gateway/issues/674
    */
   const signalAbortTimeout = setTimeout(() => {
-    abortFn({ type: timeoutAbortEventType })
-  }, 5 * 60 * 1000)
+    abortFn({ type: 'gateway-timeout' })
+  }, config.fetchTimeout)
   // if the fetch event is aborted, we need to abort the signal we give to @helia/verified-fetch
   event.request.signal.addEventListener('abort', abortFn)
 
   try {
-    log('verifiedFetch for ', event.request.url)
+    const url = new URL(event.request.url)
+    // remove the query params and hash fragment as verified-fetch/ipfs don't care about them
+    url.search = ''
+    url.hash = ''
 
-    const headers = request.headers
-    headers.forEach((value, key) => {
-      log.trace('fetchHandler: request headers: %s: %s', key, value)
-    })
-
-    const response = await verifiedFetch(event.request.url, {
+    const response = await verifiedFetch(url.href, {
       signal,
       headers,
       redirect: 'manual',
@@ -548,13 +597,22 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
      * Note: we haven't awaited the arrayBuffer, blob, json, etc. `await verifiedFetch` only awaits the construction of
      * the response object, regardless of it's inner content
      */
-    clearTimeout(signalAbortTimeout)
-    if (response.status >= 400) {
+    if (response.status >= 400 && response.status !== 504) {
       log.error('fetchHandler: response not ok: ', response)
       return await errorPageResponse(response)
     }
-    return response
+
+    // Create a completely new response object with the same body, status, statusText, and headers.
+    // This is necessary to work around a bug with Safari not rendering content correctly.
+    const newResponse = new Response(response.body, {
+      status: response.status,
+      headers: response.headers,
+      statusText: response.statusText
+    })
+
+    return newResponse
   } catch (err: unknown) {
+    log.trace('fetchHandler: error: ', err)
     const errorMessages: string[] = []
     if (isAggregateError(err)) {
       log.error('fetchHandler aggregate error: ', err.message)
@@ -568,10 +626,14 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
     }
     const errorMessage = errorMessages.join('\n')
 
-    if (errorMessage.includes('aborted')) {
-      return new Response('heliaFetch error aborted due to timeout: ' + errorMessage, { status: 408 })
+    if (errorMessage.includes('aborted') || signal.aborted) {
+      return await get504Response(event)
     }
-    return new Response('heliaFetch error: ' + errorMessage, { status: 500 })
+    const response = new Response('Service Worker IPFS Gateway error: ' + errorMessage, { status: 500 })
+    response.headers.set('ipfs-sw', 'true')
+    return response
+  } finally {
+    clearTimeout(signalAbortTimeout)
   }
 }
 
@@ -601,7 +663,10 @@ async function errorPageResponse (fetchResponse: Response): Promise<Response> {
   if (json == null) {
     json = { error: { message: `${fetchResponse.statusText}: ${responseBodyAsText}`, stack: null } }
   } else if (json.error == null) {
-    json.error = { message: json.errors.map(e => `<li>${e.message}</li>`).join(''), stack: json.errors.map(e => `<li>${e.stack}</li>`).join('\n') }
+    json.error = {
+      message: json.errors.map((e: { message: string }) => `<li>${e.message}</li>`).join(''),
+      stack: json.errors.map((e: { stack: string }) => `<li>${e.stack}</li>`).join('\n')
+    }
   }
 
   const responseDetails = getResponseDetails(fetchResponse, responseBodyAsText)
@@ -611,6 +676,7 @@ async function errorPageResponse (fetchResponse: Response): Promise<Response> {
    */
   const mergedHeaders = new Headers(fetchResponse.headers)
   mergedHeaders.set('Content-Type', 'text/html')
+  mergedHeaders.set('ipfs-sw', 'true')
 
   return new Response(`<!DOCTYPE html>
     <html>
@@ -649,6 +715,18 @@ async function errorPageResponse (fetchResponse: Response): Promise<Response> {
   })
 }
 
+async function get504Response (event: FetchEvent): Promise<Response> {
+  const response504 = await fetch(new URL('/ipfs-sw-504.html', event.request.url))
+
+  return new Response(response504.body, {
+    status: 504,
+    headers: {
+      'Content-Type': 'text/html',
+      'ipfs-sw': 'true'
+    }
+  })
+}
+
 /**
  * TODO: more service worker details
  */
@@ -668,7 +746,7 @@ async function getServiceWorkerDetails (): Promise<ServiceWorkerDetails> {
 }
 
 function getResponseDetails (response: Response, responseBody: string): ResponseDetails {
-  const headers = {}
+  const headers: Record<string, string> = {}
   response.headers.forEach((value, key) => {
     headers[key] = value
   })
@@ -690,12 +768,26 @@ function getResponseDetails (response: Response, responseBody: string): Response
   }
 }
 
-async function isTimebombExpired (): Promise<boolean> {
-  firstInstallTime = firstInstallTime ?? await getInstallTimestamp()
+function isServiceWorkerRegistrationTTLValid (): boolean {
+  if (!navigator.onLine) {
+    /**
+     * When we unregister the service worker, the a new one will be installed on the next page load.
+     *
+     * Note: returning true here means if the user is not online, we will not unregister the service worker.
+     * However, browsers will have `navigator.onLine === true` if connected to a LAN that is not internet-connected,
+     * so we may want to be smarter about this in the future.
+     *
+     * @see https://github.com/ipfs/service-worker-gateway/issues/724
+     */
+    return true
+  }
+  if (firstInstallTime == null || config?.serviceWorkerRegistrationTTL == null) {
+    // no firstInstallTime or serviceWorkerRegistrationTTL, assume new and valid
+    return true
+  }
+
   const now = Date.now()
-  // max life (for now) is 24 hours
-  const timebomb = 24 * 60 * 60 * 1000
-  return now - firstInstallTime > timebomb
+  return now - firstInstallTime <= config.serviceWorkerRegistrationTTL
 }
 
 async function getInstallTimestamp (): Promise<number> {
@@ -731,7 +823,7 @@ async function setOriginIsolationWarningAccepted (): Promise<void> {
     await swidb.put('originIsolationWarningAccepted', true)
     swidb.close()
   } catch (e) {
-    log.error('addInstallTimestampToConfig error: ', e)
+    log.error('setOriginIsolationWarningAccepted error: ', e)
   }
 }
 

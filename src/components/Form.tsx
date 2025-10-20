@@ -1,6 +1,14 @@
-import React, { type ReactElement } from 'react'
+import React from 'react'
 
-export default ({ handleSubmit, requestPath, setRequestPath }): ReactElement => (
+const Form: React.FC<{
+  handleSubmit(e: React.FormEvent<HTMLFormElement>): void
+  requestPath: string
+  setRequestPath(path: string): void
+}> = ({
+  handleSubmit,
+  requestPath,
+  setRequestPath
+}) => (
   <form id='add-file' onSubmit={handleSubmit}>
     <label htmlFor='inputContent' className='f5 ma0 pb2 teal fw4 db'>CID, Content Path, or URL</label>
     <input
@@ -14,3 +22,5 @@ export default ({ handleSubmit, requestPath, setRequestPath }): ReactElement => 
     />
   </form>
 )
+
+export default Form

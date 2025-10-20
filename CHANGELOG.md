@@ -1,5 +1,111 @@
 # Changelog
 
+## [1.14.2](https://github.com/ipfs/service-worker-gateway/compare/v1.14.1...v1.14.2) (2025-09-23)
+
+
+### Bug Fixes
+
+* reloading a page with hash fragment doesnt err ([#860](https://github.com/ipfs/service-worker-gateway/issues/860)) ([4a053c4](https://github.com/ipfs/service-worker-gateway/commit/4a053c47a0389a9e56518b330af8fab3a983c8b5))
+
+## [1.14.1](https://github.com/ipfs/service-worker-gateway/compare/v1.14.0...v1.14.1) (2025-09-18)
+
+
+### Bug Fixes
+
+* no implicit any, add missing types ([#852](https://github.com/ipfs/service-worker-gateway/issues/852)) ([1d743ab](https://github.com/ipfs/service-worker-gateway/commit/1d743ab22d2f870cbbae0522dad7a0a5273e7744))
+* refresh and ttl edgecases ([#841](https://github.com/ipfs/service-worker-gateway/issues/841)) ([6a532c6](https://github.com/ipfs/service-worker-gateway/commit/6a532c6aafae6cb3393bfa1314afb4cdfe78dacb))
+* svg content-type correction; update helia deps ([#853](https://github.com/ipfs/service-worker-gateway/issues/853)) ([15370d6](https://github.com/ipfs/service-worker-gateway/commit/15370d643f2e26ed3aeaee7cd7bf730fd6d0013c))
+
+## [1.14.0](https://github.com/ipfs/service-worker-gateway/compare/v1.13.5...v1.14.0) (2025-07-10)
+
+
+### Features
+
+* add sw registration ttl config ([#809](https://github.com/ipfs/service-worker-gateway/issues/809)) ([b3a9b8d](https://github.com/ipfs/service-worker-gateway/commit/b3a9b8d29e4771f25670ce4f35fadc7cea652221))
+* migrate to hash fragments ([#760](https://github.com/ipfs/service-worker-gateway/issues/760)) ([a787aa7](https://github.com/ipfs/service-worker-gateway/commit/a787aa71c26a85b002ac80163154e981546f7e5b))
+
+## [1.13.5](https://github.com/ipfs/service-worker-gateway/compare/v1.13.4...v1.13.5) (2025-07-08)
+
+
+### Bug Fixes
+
+* allow injection of config ([#791](https://github.com/ipfs/service-worker-gateway/issues/791)) ([470dab7](https://github.com/ipfs/service-worker-gateway/commit/470dab7a1a6f92f9a9e40da94d33b14f4d223dc0))
+
+## [1.13.4](https://github.com/ipfs/service-worker-gateway/compare/v1.13.3...v1.13.4) (2025-06-26)
+
+
+### Bug Fixes
+
+* loading indicator displays while loading content ([#784](https://github.com/ipfs/service-worker-gateway/issues/784)) ([761e8be](https://github.com/ipfs/service-worker-gateway/commit/761e8be157cfb3c447c1309fa80d8d0e9c6012ed))
+* remove unused redirect-page ([#785](https://github.com/ipfs/service-worker-gateway/issues/785)) ([c73132b](https://github.com/ipfs/service-worker-gateway/commit/c73132bed54d2c31e89599ef2ef651d0a16a48db))
+
+## [1.13.3](https://github.com/ipfs/service-worker-gateway/compare/v1.13.2...v1.13.3) (2025-06-24)
+
+
+### Bug Fixes
+
+* css and UI js load dynamically ([#782](https://github.com/ipfs/service-worker-gateway/issues/782)) ([da05cdc](https://github.com/ipfs/service-worker-gateway/commit/da05cdc08537c69e1a8b4473d6a0c5546555dedf))
+
+## [1.13.2](https://github.com/ipfs/service-worker-gateway/compare/v1.13.1...v1.13.2) (2025-06-23)
+
+
+### Bug Fixes
+
+* dynamically import UI css&js ([#778](https://github.com/ipfs/service-worker-gateway/issues/778)) ([61fb6b7](https://github.com/ipfs/service-worker-gateway/commit/61fb6b7acd38802175795c6ce28ab10e0377b210))
+
+## [1.13.1](https://github.com/ipfs/service-worker-gateway/compare/v1.13.0...v1.13.1) (2025-06-23)
+
+
+### Bug Fixes
+
+* cloudflare redirect not being handled properly ([#776](https://github.com/ipfs/service-worker-gateway/issues/776)) ([35a288b](https://github.com/ipfs/service-worker-gateway/commit/35a288b63a211076364f89baf5892643033c92ca))
+
+## [1.13.0](https://github.com/ipfs/service-worker-gateway/compare/v1.12.3...v1.13.0) (2025-06-23)
+
+
+### Features
+
+* add dag-cbor HTML preview ([#774](https://github.com/ipfs/service-worker-gateway/issues/774)) ([343a26e](https://github.com/ipfs/service-worker-gateway/commit/343a26e4f82615c4882c4800f690002f8b8cd0db))
+
+
+### Bug Fixes
+
+* build allows for not including js or css file ([#768](https://github.com/ipfs/service-worker-gateway/issues/768)) ([0a10b47](https://github.com/ipfs/service-worker-gateway/commit/0a10b471f071b34aeaeec59cf3eeb1226238b2d3))
+* do not import css or react JS unless needed ([#773](https://github.com/ipfs/service-worker-gateway/issues/773)) ([78d4d45](https://github.com/ipfs/service-worker-gateway/commit/78d4d4507d8893639e119941d14c7c9305969dae))
+* global config is passed to subdomains ([#759](https://github.com/ipfs/service-worker-gateway/issues/759)) ([58fc25b](https://github.com/ipfs/service-worker-gateway/commit/58fc25b4f6f3f25a2e72bf7b67fbac1d8f77640b))
+* go server handles requests with paths ([#761](https://github.com/ipfs/service-worker-gateway/issues/761)) ([7b4ffce](https://github.com/ipfs/service-worker-gateway/commit/7b4ffce8aa160bceef6a784e51309f060befdc65))
+
+## [1.12.3](https://github.com/ipfs/service-worker-gateway/compare/v1.12.2...v1.12.3) (2025-06-13)
+
+
+### Bug Fixes
+
+* safari renders images correctly ([#753](https://github.com/ipfs/service-worker-gateway/issues/753)) ([1f1de46](https://github.com/ipfs/service-worker-gateway/commit/1f1de4675a0eab7b9ce8c724a98da2e4049dd803))
+
+## [1.12.2](https://github.com/ipfs/service-worker-gateway/compare/v1.12.1...v1.12.2) (2025-06-04)
+
+
+### Bug Fixes
+
+* inform users how to deregister the service worker ([#721](https://github.com/ipfs/service-worker-gateway/issues/721)) ([573519e](https://github.com/ipfs/service-worker-gateway/commit/573519e5bc987607d1b2883f7bd687493f440ed6))
+* update deps and ensure 504 test passes ([#738](https://github.com/ipfs/service-worker-gateway/issues/738)) ([6ce9735](https://github.com/ipfs/service-worker-gateway/commit/6ce973567d2abc942168a5921851fbde6f59b82c))
+
+## [1.12.1](https://github.com/ipfs/service-worker-gateway/compare/v1.12.0...v1.12.1) (2025-05-14)
+
+
+### Bug Fixes
+
+* improve binary onboarding experience  ([#718](https://github.com/ipfs/service-worker-gateway/issues/718)) ([d491194](https://github.com/ipfs/service-worker-gateway/commit/d4911943feff543eaf12eee06c22250ed3135aa8))
+
+## [1.12.0](https://github.com/ipfs/service-worker-gateway/compare/v1.11.0...v1.12.0) (2025-04-23)
+
+
+### Features
+
+* configurable 30s timeout ([#681](https://github.com/ipfs/service-worker-gateway/issues/681)) ([fc1b9ec](https://github.com/ipfs/service-worker-gateway/commit/fc1b9ec3310d63ad82a8172aad322bfb55bff55d))
+* display 504 error page with helpful info ([#689](https://github.com/ipfs/service-worker-gateway/issues/689)) ([9275bc6](https://github.com/ipfs/service-worker-gateway/commit/9275bc68e5d1c442e4ec26a7a139227ec610e367))
+* single sw-gateway binary ([#673](https://github.com/ipfs/service-worker-gateway/issues/673)) ([4cd09ee](https://github.com/ipfs/service-worker-gateway/commit/4cd09eed5d1d350e97267fe7920fa743a32c6b98))
+
 ## [1.11.0](https://github.com/ipfs/service-worker-gateway/compare/v1.10.5...v1.11.0) (2025-04-15)
 
 

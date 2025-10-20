@@ -26,7 +26,7 @@ test.describe('config-ui', () => {
     expect(await getConfig({ page })).toMatchObject(testConfig)
 
     // reload the page, and ensure the config is the same as the one we set
-    await page.reload()
+    await page.goto(`${protocol}//${rootDomain}`)
     expect(await getConfigUi({ page, expectedSwScope: `${protocol}//${rootDomain}` })).toMatchObject(testConfig)
     expect(await getConfig({ page })).toMatchObject(testConfig)
   })

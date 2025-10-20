@@ -1,0 +1,257 @@
+name: Build Binary
+
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'The release tag to attach assets to (must already exist)'
+        required: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            arch: x86_64-unknown-linux-gnu
+            output_suffix: ''
+          - os: ubuntu-latest
+            goos: linux
+            goarch: arm64
+            arch: aarch64-unknown-linux-gnu
+            output_suffix: ''
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
+            arch: x86_64-pc-windows-msvc
+            output_suffix: '.exe'
+          - os: windows-latest
+            goos: windows
+            goarch: arm64
+            arch: aarch64-pc-windows-msvc
+            output_suffix: '.exe'
+          - os: macos-latest
+            goos: darwin
+            goarch: amd64
+            arch: x86_64-apple-darwin
+            output_suffix: ''
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
+            arch: aarch64-apple-darwin
+            output_suffix: ''
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Set Release Tag
+        id: set_release_tag
+        shell: bash # force bash even on windows-latest
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "release_tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "release_tag=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.set_release_tag.outputs.release_tag }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - uses: ipfs/aegir/actions/cache-node-modules@main # this will cache node_modules and run `npm run build`
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24'
+
+      - name: Build binary
+        shell: bash # force bash even on windows-latest
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          echo "Building for GOOS=${GOOS} GOARCH=${GOARCH}"
+          go build -o service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }} main.go
+          chmod +x service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}
+
+      # ###
+      # # Windows signing -- disabled because we don't have a valid cert
+      # ###
+      # - name: Windows - Decode code-signing cert
+      #   if: runner.os == 'Windows'
+      #   shell: bash
+      #   run: |
+      #     echo "${{ secrets.WINDOWS_CERTS }}" | base64 -d > win-cert.p12
+
+      # - name: Windows - Sign EXE with signtool
+      #   if: runner.os == 'Windows'
+      #   shell: powershell
+      #   env:
+      #     PFX_PWD: ${{ secrets.WINDOWS_CERTS_PASSWORD }}
+      #   run: |
+      #     # Define search order: prefer x64, then arm64, then x86
+      #     $architectures = @('x64', 'arm64', 'x86')
+      #     $sdkRoot = "${env:ProgramFiles(x86)}\Windows Kits\10\bin"
+      #     $signtool = $null
+
+      #     foreach ($arch in $architectures) {
+      #       $found = Get-ChildItem $sdkRoot -Recurse -Filter signtool.exe |
+      #               Where-Object { $_.FullName -match "\\$arch\\" } |
+      #               Sort-Object -Property FullName -Descending |
+      #               Select-Object -First 1
+
+      #       if ($found) {
+      #         $signtool = $found
+      #         Write-Host "Found $arch signtool at: $($signtool.FullName)"
+      #         break
+      #       }
+      #     }
+
+      #     if (-not $signtool) {
+      #       Write-Error "signtool.exe not found under $sdkRoot for any architecture"
+      #       exit 1
+      #     }
+
+      #     # Check the certificate details (without showing sensitive info)
+      #     Write-Host "Examining certificate in win-cert.p12..."
+      #     & $signtool.FullName verify /pa /v win-cert.p12
+
+      #     # First try listing certificates in the file
+      #     & $signtool.FullName sign /v /fd sha256 /f win-cert.p12 /p $Env:PFX_PWD /csp "Microsoft Enhanced RSA and AES Cryptographic Provider" /debug
+
+      #     # Try direct signing without auto-select
+      #     Write-Host "Attempting to sign with specific parameters..."
+      #     & $signtool.FullName sign /v /fd sha256 /f win-cert.p12 /p $Env:PFX_PWD /tr http://timestamp.digicert.com /td sha256 "service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
+
+      #     # If previous command failed, try with auto-select as fallback
+      #     if ($LASTEXITCODE -ne 0) {
+      #       Write-Host "First attempt failed, trying with auto-select..."
+      #       & $signtool.FullName sign /v /a /fd sha256 /f win-cert.p12 /p $Env:PFX_PWD /tr http://timestamp.digicert.com /td sha256 "service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
+      #     }
+      # ###
+      # # End Windows signing
+      # ###
+
+      ###
+      # macOS signing
+      ###
+      - name: macOS – Import Developer-ID cert
+        id: import_mac_certs
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          MAC_CERTS:          ${{ secrets.MAC_CERTS }}
+          MAC_CERTS_PASSWORD: ${{ secrets.MAC_CERTS_PASSWORD }}
+        run: |
+          echo "$MAC_CERTS" | base64 -d > mac-cert.p12
+
+          # 1. Throw-away keychain for this job
+          security create-keychain -p '' build.keychain
+          security import mac-cert.p12 -k build.keychain \
+                  -P "$MAC_CERTS_PASSWORD" -T /usr/bin/codesign
+
+          # 2. Allow non-interactive use of the private key
+          security set-key-partition-list -S apple-tool:,apple: -s -k '' build.keychain
+
+          # 3. Make the keychain searchable and unlock it
+          security list-keychain -d user -s build.keychain
+          security unlock-keychain -p '' build.keychain
+
+      - name: macOS – Codesign Go binary
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          BIN="service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
+          # find the exact identity (match Team ID to be safe)
+          IDENTITY=$(security find-identity -v -p codesigning build.keychain | awk '/[A-F0-9]{40}/{print $2; exit}')
+          echo "Using identity: $IDENTITY"
+
+          codesign --force --options runtime \
+                  --timestamp \
+                  --sign "$IDENTITY" --verbose "$BIN"
+          codesign --verify -v --verbose "$BIN"
+
+      - name: macOS - Store notarization credentials
+        if: runner.os == 'macOS'
+        env:
+          APPLEID:     ${{ secrets.APPLE_ID }}
+          APPLEIDPASS: ${{ secrets.APPLE_ID_PASS }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          xcrun notarytool store-credentials AC_PASSWORD \
+                --apple-id "$APPLEID" \
+                --password "$APPLEIDPASS" \
+                --team-id "$TEAM_ID"
+
+      - name: macOS - Notarize & staple
+        if: runner.os == 'macOS'
+        run: |
+          BIN="service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}"
+
+          # Create a zip file for notarization without the extra directory level
+          ditto -c -k "$BIN" "${BIN}.zip"
+
+          # Submit the zip for notarization and capture the submission ID
+          SUBMISSION_OUTPUT=$(xcrun notarytool submit "${BIN}.zip" --keychain-profile AC_PASSWORD --wait)
+          echo "$SUBMISSION_OUTPUT"
+
+          # Extract the submission ID
+          SUBMISSION_ID=$(echo "$SUBMISSION_OUTPUT" | grep "id:" | head -1 | awk '{print $2}')
+          echo "Submission ID: $SUBMISSION_ID"
+
+          # Check the notarization status and logs
+          if [ -n "$SUBMISSION_ID" ]; then
+            echo "Getting notarization log for $SUBMISSION_ID"
+            xcrun notarytool log "$SUBMISSION_ID" --keychain-profile AC_PASSWORD
+          fi
+
+          # Check if the submission was successful
+          if echo "$SUBMISSION_OUTPUT" | grep -q "status: Accepted"; then
+            echo "Notarization successful, proceeding with stapling"
+
+            # Check binary info before stapling
+            echo "Binary info before stapling:"
+            codesign -dvv "$BIN"
+            spctl -a -vv "$BIN" || true  # may fail but shows info
+
+            # Try multiple stapling approaches
+            echo "Trying stapler staple..."
+            xcrun stapler staple "$BIN" || true
+
+            echo "Trying alternative stapling method..."
+            xcrun stapler staple -v "$BIN" || true
+
+            # Verify notarization status
+            echo "Verifying notarization status:"
+            spctl --assess --verbose=4 "$BIN" || true
+
+            # Even if stapling fails, we continue because the binary is notarized
+            # We can upload it anyway because it can be validated online by Gatekeeper
+            echo "Binary is notarized, continuing with upload even if stapling failed"
+          else
+            echo "Notarization failed, exiting"
+            exit 1
+          fi
+      ###
+      # End macOS signing
+      ###
+
+      - name: Upload release asset
+        if: steps.set_release_tag.outputs.release_tag != ''   # safety check
+        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2.2.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name:  ${{ steps.set_release_tag.outputs.release_tag }}
+          files: |
+            ./service-worker-gateway-${{ matrix.arch }}${{ matrix.output_suffix }}

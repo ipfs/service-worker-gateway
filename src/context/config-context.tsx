@@ -1,7 +1,9 @@
-import React, { createContext, useCallback, useEffect, useState, type ReactElement } from 'react'
-import { defaultDebug, defaultDnsJsonResolvers, defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, defaultGateways, defaultRouters, defaultSupportsSubdomains, getConfig, resetConfig, type ConfigDb } from '../lib/config-db.js'
+import React, { createContext, useCallback, useEffect, useState } from 'react'
+import { defaultDebug, defaultDnsJsonResolvers, defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, defaultFetchTimeout, defaultGateways, defaultRouters, defaultServiceWorkerRegistrationTTL, defaultSupportsSubdomains, getConfig, resetConfig } from '../lib/config-db.js'
 import { getUiComponentLogger } from '../lib/logger.js'
+import type { ConfigDb } from '../lib/config-db.js'
 import type { ComponentLogger } from '@libp2p/logger'
+import type { ReactElement } from 'react'
 
 type ConfigKey = keyof ConfigDb
 export interface ConfigContextType extends ConfigDb {
@@ -22,7 +24,9 @@ export const ConfigContext = createContext<ConfigContextType>({
   enableGatewayProviders: defaultEnableGatewayProviders,
   enableRecursiveGateways: defaultEnableRecursiveGateways,
   debug: defaultDebug(),
+  fetchTimeout: defaultFetchTimeout,
   _supportsSubdomains: defaultSupportsSubdomains,
+  serviceWorkerRegistrationTTL: defaultServiceWorkerRegistrationTTL,
   isLoading: true
 })
 
@@ -36,6 +40,8 @@ export const ConfigProvider: React.FC<{ children: ReactElement[] | ReactElement,
   const [enableGatewayProviders, setEnableGatewayProviders] = useState(defaultEnableGatewayProviders)
   const [enableRecursiveGateways, setEnableRecursiveGateways] = useState(defaultEnableRecursiveGateways)
   const [debug, setDebug] = useState(defaultDebug())
+  const [fetchTimeout, setFetchTimeout] = useState(defaultFetchTimeout)
+  const [serviceWorkerRegistrationTTL, setServiceWorkerRegistrationTTL] = useState(defaultServiceWorkerRegistrationTTL)
   const [_supportsSubdomains, setSupportsSubdomains] = useState(defaultSupportsSubdomains)
   const logger = getUiComponentLogger('config-context')
   const log = logger.forComponent('main')
@@ -50,6 +56,8 @@ export const ConfigProvider: React.FC<{ children: ReactElement[] | ReactElement,
     setEnableGatewayProviders(config.enableGatewayProviders)
     setEnableRecursiveGateways(config.enableRecursiveGateways)
     setDebug(config.debug)
+    setFetchTimeout(config.fetchTimeout)
+    setServiceWorkerRegistrationTTL(config.serviceWorkerRegistrationTTL)
   }
   /**
    * We need to make sure that the configDb types are loaded with the values from IDB
@@ -91,6 +99,12 @@ export const ConfigProvider: React.FC<{ children: ReactElement[] | ReactElement,
       case 'debug':
         setDebug(value)
         break
+      case 'fetchTimeout':
+        setFetchTimeout(value)
+        break
+      case 'serviceWorkerRegistrationTTL':
+        setServiceWorkerRegistrationTTL(value)
+        break
       case '_supportsSubdomains':
         setSupportsSubdomains(value)
         break
@@ -115,6 +129,8 @@ export const ConfigProvider: React.FC<{ children: ReactElement[] | ReactElement,
     enableWebTransport,
     enableGatewayProviders,
     enableRecursiveGateways,
+    fetchTimeout,
+    serviceWorkerRegistrationTTL,
     debug,
     _supportsSubdomains,
     isLoading

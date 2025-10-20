@@ -3,7 +3,6 @@ export type BaseDbConfig = Record<string, any>
 type DbKeys<T extends BaseDbConfig> = (keyof T)
 type validDbKey<T extends BaseDbConfig, K> = K extends IDBValidKey ? keyof T : never
 
-// eslint-disable-next-line @typescript-eslint/consistent-indexed-object-style
 interface TypedIDBDatabase<T extends BaseDbConfig> extends IDBDatabase {
   get<K extends keyof T>(key: validDbKey<T, K>): Promise<T[K]>
   put<K extends DbKeys<T>>(value: T[K], key: validDbKey<T, K>): Promise<void>

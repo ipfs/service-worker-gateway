@@ -34,8 +34,8 @@ export function isInlinedDnsLink (label: string): boolean {
 
 /**
  * DNSLink label decoding
- * * Every standalone - is replaced with .
- * * Every remaining -- is replaced with -
+ * Every standalone - is replaced with .
+ * Every remaining -- is replaced with -
  *
  * @example en-wikipedia--on--ipfs-org.ipns.example.net -> example.net/ipns/en.wikipedia-on-ipfs.org
  */
@@ -45,8 +45,8 @@ export function dnsLinkLabelDecoder (linkLabel: string): string {
 
 /**
  * DNSLink label encoding:
- * * Every - is replaced with --
- * * Every . is replaced with -
+ * Every - is replaced with --
+ * Every . is replaced with -
  *
  * @example example.net/ipns/en.wikipedia-on-ipfs.org → Host: en-wikipedia--on--ipfs-org.ipns.example.net
  */

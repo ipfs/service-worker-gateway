@@ -40,8 +40,8 @@ export const findOriginIsolationRedirect = async (location: Pick<Location, 'prot
   return null
 }
 
-const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' | 'pathname' | 'search' | 'hash' | 'href' | 'origin'>): string => {
-  const segments = location.pathname.split('/').filter(segment => segment !== '')
+export const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' | 'pathname' | 'search' | 'hash' | 'href' | 'origin'>): string => {
+  const segments = location.pathname.split('/').filter(segment => segment !== '' && segment !== 'ipfs-sw-first-hit.html')
   const ns = segments[0]
   let id = segments[1]
 

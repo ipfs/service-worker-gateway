@@ -11,7 +11,7 @@ export const convertDnsResolverObjectToInput = (dnsResolvers: Record<string, str
 }
 
 export const convertDnsResolverInputToObject = (dnsResolverInput: string): Record<string, string> => {
-  return dnsResolverInput.split('\n').map((u) => u.trim().split(' ')).reduce((acc, [key, url]) => {
+  return dnsResolverInput.split('\n').map((u) => u.trim().split(' ')).reduce<Record<string, string>>((acc, [key, url]) => {
     acc[key] = url
     return acc
   }, {})

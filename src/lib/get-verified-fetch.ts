@@ -3,10 +3,9 @@ import { yamux } from '@chainsafe/libp2p-yamux'
 import { trustlessGateway, bitswap } from '@helia/block-brokers'
 import { createDelegatedRoutingV1HttpApiClient } from '@helia/delegated-routing-v1-http-api-client'
 import { createHeliaHTTP } from '@helia/http'
-import { type BlockBroker } from '@helia/interface'
 import { httpGatewayRouting, delegatedHTTPRouting, libp2pRouting } from '@helia/routers'
-import { createVerifiedFetch, type VerifiedFetch } from '@helia/verified-fetch'
-import { dirIndexHtmlPluginFactory } from '@helia/verified-fetch/plugins'
+import { createVerifiedFetch } from '@helia/verified-fetch'
+import { dagCborHtmlPreviewPluginFactory, dirIndexHtmlPluginFactory } from '@helia/verified-fetch/plugins'
 import { generateKeyPair } from '@libp2p/crypto/keys'
 import { dcutr } from '@libp2p/dcutr'
 import { identify, identifyPush } from '@libp2p/identify'
@@ -14,14 +13,20 @@ import { keychain } from '@libp2p/keychain'
 import { ping } from '@libp2p/ping'
 import { webSockets } from '@libp2p/websockets'
 import { webTransport } from '@libp2p/webtransport'
-import { dns, type DNSResolvers } from '@multiformats/dns'
+import { dns } from '@multiformats/dns'
 import { dnsJsonOverHttps } from '@multiformats/dns/resolvers'
-import { createHelia, type Helia, type Routing } from 'helia'
-import { createLibp2p, type Libp2pOptions } from 'libp2p'
+import { createHelia } from 'helia'
+import { createLibp2p } from 'libp2p'
 import * as libp2pInfo from 'libp2p/version'
 import { blake3 } from './blake3.js'
 import type { ConfigDb } from './config-db.js'
+import type { DelegatedRoutingV1HttpApiClient } from '@helia/delegated-routing-v1-http-api-client'
+import type { BlockBroker } from '@helia/interface'
+import type { VerifiedFetch } from '@helia/verified-fetch'
 import type { ComponentLogger } from '@libp2p/logger'
+import type { DNSResolvers } from '@multiformats/dns'
+import type { Helia, Routing } from 'helia'
+import type { Libp2pOptions } from 'libp2p'
 
 export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogger): Promise<VerifiedFetch> {
   const log = logger.forComponent('get-verified-fetch')
@@ -85,7 +90,7 @@ export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogge
     })
   }
 
-  return createVerifiedFetch(helia, { withServerTiming: true, plugins: [dirIndexHtmlPluginFactory] })
+  return createVerifiedFetch(helia, { withServerTiming: true, plugins: [dirIndexHtmlPluginFactory, dagCborHtmlPreviewPluginFactory] })
 }
 
 type Libp2pDefaultsOptions = Pick<ConfigDb, 'routers' | 'enableWss' | 'enableWebTransport' | 'enableGatewayProviders'>
@@ -111,24 +116,26 @@ export async function libp2pDefaults (config: Libp2pDefaultsOptions): Promise<Li
     filterAddrs.push('tls') // /ip4/A.B.C.D/tcp/4002/tls/sni/example.com/http
   }
 
-  const libp2pOptions = {
+  interface Libp2pOptionsWithDelegatedRouting extends Libp2pOptions {
+    services: Libp2pOptions['services'] & Record<`delegatedRouter${number}`, () => DelegatedRoutingV1HttpApiClient>
+  }
+  const libp2pOptions: Libp2pOptionsWithDelegatedRouting = {
     privateKey,
+    nodeInfo: {
+      userAgent: agentVersion
+    },
     addresses: {}, // no need to listen on any addresses
     transports,
     connectionEncrypters: [noise()],
     streamMuxers: [yamux()],
     services: {
       dcutr: dcutr(),
-      identify: identify({
-        agentVersion
-      }),
-      identifyPush: identifyPush({
-        agentVersion
-      }),
+      identify: identify(),
+      identifyPush: identifyPush(),
       keychain: keychain(),
       ping: ping()
     }
-  } satisfies Libp2pOptions
+  } satisfies Libp2pOptionsWithDelegatedRouting
 
   // Add delegated routing services for each passed delegated router endpoint
   config.routers.forEach((router, i) => {
