@@ -24,7 +24,10 @@ export default {
       'http-server',
 
       // package.json or playwright.config.js deps
-      'wait-on'
+      'wait-on',
+
+      // used in scripts
+      'cross-env'
     ],
     productionIgnorePatterns: [
       'webpack.config.js',
