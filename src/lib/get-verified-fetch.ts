@@ -121,18 +121,17 @@ export async function libp2pDefaults (config: Libp2pDefaultsOptions): Promise<Li
   }
   const libp2pOptions: Libp2pOptionsWithDelegatedRouting = {
     privateKey,
+    nodeInfo: {
+      userAgent: agentVersion
+    },
     addresses: {}, // no need to listen on any addresses
     transports,
     connectionEncrypters: [noise()],
     streamMuxers: [yamux()],
     services: {
       dcutr: dcutr(),
-      identify: identify({
-        agentVersion
-      }),
-      identifyPush: identifyPush({
-        agentVersion
-      }),
+      identify: identify(),
+      identifyPush: identifyPush(),
       keychain: keychain(),
       ping: ping()
     }
