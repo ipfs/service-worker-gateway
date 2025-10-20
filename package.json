@@ -85,7 +85,7 @@
     "@babel/preset-env": "^7.28.0",
     "@babel/preset-react": "^7.27.1",
     "@babel/preset-typescript": "^7.27.1",
-    "@playwright/test": "^1.53.2",
+    "@playwright/test": "^1.56.1",
     "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.9",
     "@types/wait-on": "^5.3.4",
