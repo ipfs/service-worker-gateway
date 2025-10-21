@@ -7,7 +7,7 @@ import { getVerifiedFetch } from './lib/get-verified-fetch.js'
 import { hasHashFragment } from './lib/hash-fragments.js'
 import { isConfigPage } from './lib/is-config-page.js'
 import { swLogger } from './lib/logger.js'
-import { findOriginIsolationRedirect, isPathGatewayRequest, isSubdomainGatewayRequest } from './lib/path-or-subdomain.js'
+import { findOriginIsolationRedirect, isPathGatewayRequest, isSubdomainGatewayRequest, getDNSLinkPath, isDNSLinkGatewayRequest } from './lib/path-or-subdomain.js'
 import { isUnregisterRequest } from './lib/unregister-request.js'
 import type { ConfigDb } from './lib/config-db.js'
 import type { VerifiedFetch } from '@helia/verified-fetch'
@@ -264,7 +264,7 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
       }))
     }))
     return false
-  } else if (isSwAssetRequest(event)) {
+  } else if (await isSwAssetRequest(event)) {
     log.trace('sw-asset request, returning cached response ', event.request.url)
     /**
      * Return the asset from the cache if it exists, otherwise fetch it.
@@ -299,7 +299,7 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
       return response
     }))
     return false
-  } else if (!isValidRequestForSW(event)) {
+  } else if (!await isValidRequestForSW(event)) {
     log.trace('not a valid request for helia-sw, ignoring ', event.request.url)
     return false
   } else if (url.href.includes('bafkqaaa.ipfs')) {
@@ -312,7 +312,7 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
     return false
   }
 
-  if (isRootRequestForContent(event) || isSubdomainRequest(event)) {
+  if (isRootRequestForContent(event) || await isSubdomainRequest(event)) {
     return true
   }
   return false
@@ -324,12 +324,25 @@ function isRootRequestForContent (event: FetchEvent): boolean {
   return isRootRequest // && getCidFromUrl(event.request.url) != null
 }
 
-function isSubdomainRequest (event: FetchEvent): boolean {
+async function isSubdomainRequest (event: FetchEvent): Promise<boolean> {
+  const url = new URL(event.request.url)
   const { id, protocol } = getSubdomainParts(event.request.url)
   log.trace('isSubdomainRequest.id: ', id)
   log.trace('isSubdomainRequest.protocol: ', protocol)
 
-  return id != null && protocol != null
+  // Check standard subdomain pattern first
+  if (id != null && protocol != null) {
+    return true
+  }
+
+  // Check for DNSLink
+  const isDNSLink = await isDNSLinkGatewayRequest(url)
+  if (isDNSLink) {
+    log('Request is for DNSLink domain: %s', url.hostname)
+    return true
+  }
+
+  return false
 }
 
 function isConfigPageRequest (url: URL): boolean {
@@ -341,8 +354,8 @@ function isSubdomainConfigRequest (event: FetchEvent): boolean {
   return hasHashFragment(url, HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST)
 }
 
-function isValidRequestForSW (event: FetchEvent): boolean {
-  return isSubdomainRequest(event) || isRootRequestForContent(event)
+async function isValidRequestForSW (event: FetchEvent): Promise<boolean> {
+  return await isSubdomainRequest(event) || isRootRequestForContent(event)
 }
 
 function isAggregateError (err: unknown): err is AggregateError {
@@ -364,12 +377,12 @@ function isAcceptOriginIsolationWarningRequest (event: FetchEvent): boolean {
   return url.pathname.includes('/#/ipfs-sw-accept-origin-isolation-warning') || url.searchParams.get('ipfs-sw-accept-origin-isolation-warning') === 'true'
 }
 
-function isSwAssetRequest (event: FetchEvent): boolean {
+async function isSwAssetRequest (event: FetchEvent):Promise<boolean> {
   const isActualSwAsset = /^.+\/(?:ipfs-sw-).+$/.test(event.request.url)
   // if path is not set, then it's a request for index.html which we should consider a sw asset
   const url = new URL(event.request.url)
   // but only if it's not a subdomain request (root index.html should not be returned for subdomains)
-  const isIndexHtmlRequest = url.pathname === '/' && !isSubdomainRequest(event)
+  const isIndexHtmlRequest = url.pathname === '/' && !(await isSubdomainRequest(event))
 
   return isActualSwAsset || isIndexHtmlRequest
 }
@@ -429,7 +442,8 @@ async function fetchAndUpdateCache (event: FetchEvent, url: URL, cacheKey: strin
 async function getResponseFromCacheOrFetch (event: FetchEvent): Promise<Response> {
   const { protocol } = getSubdomainParts(event.request.url)
   const url = new URL(event.request.url)
-  const isMutable = protocol === 'ipns'
+  const dnslinkPath = await getDNSLinkPath(url)
+  const isMutable = dnslinkPath ? true : protocol === 'ipns'
   const cacheKey = getCacheKey(event)
   log.trace('cache key: %s', cacheKey)
   const cache = await caches.open(isMutable ? CURRENT_CACHES.mutable : CURRENT_CACHES.immutable)
@@ -503,6 +517,20 @@ async function storeReponseInCache ({ response, isMutable, cacheKey, event }: St
 
 async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise<Response> {
   const originalUrl = new URL(request.url)
+  // Check for DNSLink and construct the proper URL
+  const dnslinkPath = await getDNSLinkPath(originalUrl)
+
+  let fetchUrl: string
+  if (dnslinkPath) {
+    // For DNSLink, construct URL with resolved path
+    const urlForFetch = new URL(originalUrl.origin)
+    urlForFetch.pathname = dnslinkPath
+    fetchUrl = urlForFetch.href
+    log('DNSLink request, fetching from: %s', fetchUrl)
+  } else {
+    fetchUrl = originalUrl.href
+  }
+
   // test and enforce origin isolation before anything else is executed
   const originLocation = await findOriginIsolationRedirect(originalUrl, swLogger)
   if (originLocation !== null) {
@@ -543,7 +571,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
   headers.forEach((value, key) => {
     log.trace('fetchHandler: request headers: %s: %s', key, value)
   })
-  log('verifiedFetch for ', event.request.url)
+  log('verifiedFetch for ', fetchUrl)
 
   /**
    * Note that there are existing bugs regarding service worker signal handling:
@@ -574,7 +602,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
   event.request.signal.addEventListener('abort', abortFn)
 
   try {
-    const url = new URL(event.request.url)
+    const url = new URL(fetchUrl)
     // remove the query params and hash fragment as verified-fetch/ipfs don't care about them
     url.search = ''
     url.hash = ''
@@ -588,6 +616,13 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
       }
     })
     response.headers.set('ipfs-sw', 'true')
+
+    if (dnslinkPath) {
+      response.headers.set('X-IPFS-Gateway-Type', 'dnslink')
+      response.headers.set('X-DNSLink-Domain', originalUrl.hostname)
+      response.headers.set('X-DNSLink-Path', dnslinkPath)
+    }
+
     /**
      * Now that we've got a response back from Helia, don't abort the promise since any additional networking calls
      * that may performed by Helia would be dropped.

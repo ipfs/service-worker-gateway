@@ -3,6 +3,7 @@ import { base36 } from 'multiformats/bases/base36'
 import { CID } from 'multiformats/cid'
 import { areSubdomainsSupported } from './config-db.js'
 import { dnsLinkLabelEncoder } from './dns-link-labels.js'
+import { getDNSLinkContentPath, isDNSLinkDomain } from './dnslink.js'
 import { getHeliaSwRedirectUrl } from './first-hit-helpers.js'
 import { pathRegex, subdomainRegex } from './regex.js'
 import type { ComponentLogger } from '@libp2p/logger'
@@ -19,6 +20,32 @@ export const isSubdomainGatewayRequest = (location: Pick<Location, 'host' | 'pat
 export const isPathGatewayRequest = (location: Pick<Location, 'host' | 'pathname'>): boolean => {
   const pathMatch = location.pathname.match(pathRegex)
   return pathMatch?.groups != null
+}
+
+/**
+ * This checks if the hostname has a _dnslink.{hostname} TXT record
+ */
+export async function isDNSLinkGatewayRequest (url: URL): Promise<boolean> {
+  // Skip if it's already a path or subdomain gateway request
+  if (isPathGatewayRequest(url) || isSubdomainGatewayRequest(url)) {
+    return false
+  }
+
+  return isDNSLinkDomain(url.hostname)
+}
+
+/**
+ * Returns the resolved IPFS path (e.g., /ipfs/{cid}/path) or null
+ */
+export async function getDNSLinkPath (url: URL): Promise<string | null> {
+  const hostname = url.hostname
+
+  try {
+    const contentPath = await getDNSLinkContentPath(hostname, url.pathname)
+    return contentPath
+  } catch (error) {
+    return null
+  }
 }
 
 /**
