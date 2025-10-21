@@ -405,7 +405,7 @@ function getCacheKey (event: FetchEvent): string {
   return `${event.request.url}-${event.request.headers.get('Accept') ?? ''}`
 }
 
-async function fetchAndUpdateCache (event: FetchEvent, url: URL, cacheKey: string): Promise<Response> {
+async function fetchAndUpdateCache (event: FetchEvent, url: URL, cacheKey: string, isMutable: boolean): Promise<Response> {
   const response = await fetchHandler({ path: url.pathname, request: event.request, event })
   log.trace('got response from fetchHandler')
 
@@ -417,7 +417,7 @@ async function fetchAndUpdateCache (event: FetchEvent, url: URL, cacheKey: strin
   log('response status: %s', response.status)
 
   try {
-    await storeReponseInCache({ response, isMutable: true, cacheKey, event })
+    await storeReponseInCache({ response, isMutable, cacheKey, event })
     log.trace('updated cache for %s', cacheKey)
   } catch (err) {
     log.error('failed updating response in cache for %s', cacheKey, err)
@@ -441,7 +441,7 @@ async function getResponseFromCacheOrFetch (event: FetchEvent): Promise<Response
 
     if (isMutable) {
       // If the response is mutable, update the cache in the background.
-      void fetchAndUpdateCache(event, url, cacheKey)
+      void fetchAndUpdateCache(event, url, cacheKey, isMutable)
     }
 
     return cachedResponse
@@ -449,7 +449,7 @@ async function getResponseFromCacheOrFetch (event: FetchEvent): Promise<Response
 
   log('cached response MISS for %s', cacheKey)
 
-  return fetchAndUpdateCache(event, url, cacheKey)
+  return fetchAndUpdateCache(event, url, cacheKey, isMutable)
 }
 
 function shouldCacheResponse ({ event, response }: { event: FetchEvent, response: Response }): boolean {
