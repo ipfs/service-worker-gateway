@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/ipfs/service-worker-gateway/compare/v1.14.2...v2.0.0) (2025-10-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* upgrades helia to v6, verified fetch to v4 and libp2p to v3
+
+### deps
+
+* upgrade helia to v6, verified fetch to v4 and libp2p to v3 ([#881](https://github.com/ipfs/service-worker-gateway/issues/881)) ([b28ab8f](https://github.com/ipfs/service-worker-gateway/commit/b28ab8f7912ff52a8eccdde1f3e03f4d1ef3b6d5))
+
 ## [1.14.2](https://github.com/ipfs/service-worker-gateway/compare/v1.14.1...v1.14.2) (2025-09-23)
 
 
