@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/ipfs/service-worker-gateway/compare/v2.0.0...v2.0.1) (2025-10-22)
+
+
+### Bug Fixes
+
+* internal error page styling ([#893](https://github.com/ipfs/service-worker-gateway/issues/893)) ([16ec8c5](https://github.com/ipfs/service-worker-gateway/commit/16ec8c5cdec085c529d0f522bcfa147e247b1941)), closes [#875](https://github.com/ipfs/service-worker-gateway/issues/875)
+
 ## [2.0.0](https://github.com/ipfs/service-worker-gateway/compare/v1.14.2...v2.0.0) (2025-10-20)
 
 
