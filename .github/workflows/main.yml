@@ -224,7 +224,7 @@ jobs:
             playwright-${{ runner.os }}-
       - run: npx playwright install --with-deps
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v6
         with:
           go-version: '1.24'
       - run: npx xvfb-maybe npm run --if-present test:local-binary
