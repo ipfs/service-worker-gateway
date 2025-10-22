@@ -64,7 +64,7 @@ jobs:
           ref: ${{ steps.set_release_tag.outputs.release_tag }}
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: lts/*
       - uses: ipfs/aegir/actions/cache-node-modules@main # this will cache node_modules and run `npm run build`
