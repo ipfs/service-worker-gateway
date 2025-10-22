@@ -181,6 +181,56 @@ const renameSwPlugin = {
 }
 
 /**
+ * Replaces strings with paths to built files, e.g. `'<%-- src/app.tsx --%>'`
+ * becomes `'./path/to/app-HASH.js'`
+ *
+ * @type {esbuild.Plugin}
+ */
+const replaceImports = {
+  name: 'modify-built-files',
+  setup (build) {
+    build.onEnd(async (result) => {
+      const metafile = result.metafile
+
+      // Replace '<%-- src --%>' with 'path/to/built/file'
+      const buildInfo = {}
+      const jsFiles = []
+
+      for (const [outputFile, meta] of Object.entries(metafile.outputs)) {
+        if (outputFile.endsWith('.css')) {
+          buildInfo[Object.keys(meta.inputs)[0]] = outputFile
+        } else if (outputFile.endsWith('.svg')) {
+          buildInfo[Object.keys(meta.inputs)[0]] = outputFile
+        } else if (outputFile.endsWith('.js') && meta.entryPoint != null) {
+          buildInfo[meta.entryPoint] = outputFile
+          jsFiles.push(outputFile)
+        } else if (outputFile.endsWith('.map')) {
+          // ignore
+        } else {
+          console.info('Unknown file type:', outputFile, meta)
+        }
+      }
+
+      const regex = /<%--\s(.*)\s--%>/g
+
+      for (const jsFile of jsFiles) {
+        let file = await fs.readFile(path.resolve(jsFile), 'utf-8')
+
+        for (const [target, source] of file.matchAll(regex)) {
+          const bundledFile = buildInfo[source].replace('dist', '')
+
+          console.info('Replace', target, 'with', bundledFile, 'in', jsFile)
+
+          file = file.replaceAll(target, bundledFile)
+        }
+
+        await fs.writeFile(path.resolve(jsFile), file)
+      }
+    })
+  }
+}
+
+/**
  * Plugin to modify built files by running post-build tasks.
  *
  * @type {esbuild.Plugin}
@@ -242,7 +292,14 @@ const excludeFilesPlugin = (extensions) => ({
  * @type {esbuild.BuildOptions}
  */
 export const buildOptions = {
-  entryPoints: ['src/index.tsx', 'src/sw.ts', 'src/app.tsx', 'src/ipfs-sw-*.ts', 'src/ipfs-sw-*.css'],
+  entryPoints: [
+    'src/index.tsx',
+    'src/sw.ts',
+    'src/app.tsx',
+    'src/internal-error.tsx',
+    'src/ipfs-sw-*.ts',
+    'src/ipfs-sw-*.css'
+  ],
   bundle: true,
   outdir: 'dist',
   loader: {
@@ -250,7 +307,7 @@ export const buildOptions = {
     '.css': 'css',
     '.svg': 'file'
   },
-  minify: true,
+  minify: false,
   sourcemap: true,
   metafile: true,
   splitting: false,
@@ -258,7 +315,7 @@ export const buildOptions = {
   format: 'esm',
   entryNames: 'ipfs-sw-[name]-[hash]',
   assetNames: 'ipfs-sw-[name]-[hash]',
-  plugins: [renameSwPlugin, modifyBuiltFiles, excludeFilesPlugin(['.eot?#iefix', '.otf', '.woff', '.woff2'])]
+  plugins: [replaceImports, renameSwPlugin, modifyBuiltFiles, excludeFilesPlugin(['.eot?#iefix', '.otf', '.woff', '.woff2'])]
 }
 
 const ctx = await esbuild.context(buildOptions)

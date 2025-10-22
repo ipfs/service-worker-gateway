@@ -41,10 +41,11 @@ async function renderUi (): Promise<void> {
 
   const LazyConfig = React.lazy(async () => import('./pages/config.jsx'))
   const LazyHelperUi = React.lazy(async () => import('./pages/helper-ui.jsx'))
-  const LazyServiceWorkerErrorPage = React.lazy(async () => import('./pages/errors/no-service-worker.jsx'))
+  const LazyNoServiceWorkerErrorPage = React.lazy(async () => import('./pages/errors/no-service-worker.jsx'))
   const LazySubdomainWarningPage = React.lazy(async () => import('./pages/subdomain-warning.jsx'))
 
-  let ErrorPage: null | React.LazyExoticComponent<() => ReactElement> = LazyServiceWorkerErrorPage
+  let ErrorPage: null | React.LazyExoticComponent<() => ReactElement> = LazyNoServiceWorkerErrorPage
+
   if ('serviceWorker' in navigator) {
     ErrorPage = null
   }
@@ -52,7 +53,7 @@ async function renderUi (): Promise<void> {
   const routes: Route[] = [
     { default: true, component: ErrorPage ?? LazyHelperUi },
     { shouldRender: async () => renderChecks.shouldRenderConfigPage(), component: LazyConfig },
-    { shouldRender: async () => renderChecks.shouldRenderNoServiceWorkerError(), component: LazyServiceWorkerErrorPage },
+    { shouldRender: async () => renderChecks.shouldRenderNoServiceWorkerError(), component: LazyNoServiceWorkerErrorPage },
     { shouldRender: renderChecks.shouldRenderSubdomainWarningPage, component: LazySubdomainWarningPage }
   ]
 
