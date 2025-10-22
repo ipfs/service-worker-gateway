@@ -120,7 +120,7 @@ aiming to be a drop-in replacement for `ipfs.io`:
 
 #### Deploying to `production` and `staging`
 
-Deploying to [production[(https://github.com/ipfs/service-worker-gateway/actions/workflows/deploy-to-production.yml) and [staging](https://github.com/ipfs/service-worker-gateway/actions/workflows/deploy-to-staging.yml) is done by manually running the deployment action and passing the release version to the action.
+Deploying to [production](https://github.com/ipfs/service-worker-gateway/actions/workflows/deploy-to-production.yml) and [staging](https://github.com/ipfs/service-worker-gateway/actions/workflows/deploy-to-staging.yml) is done by manually running the deployment action and passing the release version to the action.
 
 ## Manual Service Worker Deregistration
 
