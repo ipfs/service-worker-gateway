@@ -1,5 +1,50 @@
 @import 'tachyons';
 @import 'ipfs-css';
 
+body {
+  --navy: #0b3a53;
+  --navy-muted: #244e66;
+  --aqua: #69c4cd;
+  --aqua-muted: #9ad4db;
+  --gray: #b7bbc8;
+  --gray-muted: #d9dbe2;
+  --charcoal: #34373f;
+  --charcoal-muted: #7f8491;
+  --red: #ea5037;
+  --red-muted: #f36149;
+  --yellow: #f39021;
+  --yellow-muted: #f9a13e;
+  --teal: #378085;
+  --teal-muted: #439a9d;
+  --green: #0cb892;
+  --green-muted: #0aca9f;
+  --snow: #edf0f4;
+  --snow-muted: #f7f8fa;
+  --link: #117eb3;
+  --washed-blue: #F0F6FA;
+  --steel-gray: #3f5667;
+}
+
 /* ensure we don't fetch any external fonts */
-.sans-serif { font-family: system-ui, sans-serif; }
+.sans-serif {
+  font-family: system-ui, sans-serif;
+}
+
+.button {
+  display: inline-block;
+  cursor: pointer;
+}
+
+.button:hover {
+  background-color: var(--navy);
+}
+
+.terminal {
+  background-color: var(--steel-gray);
+  overflow: scroll;
+}
+
+.link:hover {
+  text-decoration: underline;
+  color: var(--aqua-muted);
+}

@@ -1,3 +1,4 @@
+import { renderToString } from 'react-dom/server'
 import { getConfig } from './lib/config-db.js'
 import { HASH_FRAGMENTS, QUERY_PARAMS } from './lib/constants.js'
 import { getHeliaSwRedirectUrl } from './lib/first-hit-helpers.js'
@@ -9,6 +10,8 @@ import { isConfigPage } from './lib/is-config-page.js'
 import { swLogger } from './lib/logger.js'
 import { findOriginIsolationRedirect, isPathGatewayRequest, isSubdomainGatewayRequest } from './lib/path-or-subdomain.js'
 import { isUnregisterRequest } from './lib/unregister-request.js'
+import { InternalErrorPage } from './pages/errors/internal-error.jsx'
+import { Page } from './pages/page.jsx'
 import type { ConfigDb } from './lib/config-db.js'
 import type { VerifiedFetch } from '@helia/verified-fetch'
 
@@ -31,7 +34,7 @@ interface FetchHandlerArg {
   event: FetchEvent
 }
 
-interface StoreReponseInCacheOptions {
+interface StoreResponseInCacheOptions {
   response: Response
   cacheKey: string
   isMutable: boolean
@@ -177,6 +180,7 @@ self.addEventListener('fetch', (event) => {
   const request = event.request
   const urlString = request.url
   const url = new URL(urlString)
+
   if (firstInstallTime == null) {
     // if service worker is shut down, the firstInstallTime may be null
     log('firstInstallTime is null, getting install timestamp')
@@ -197,8 +201,10 @@ self.addEventListener('fetch', (event) => {
               log('Service worker registration TTL expired, unregistering after response consumed')
             }).finally(() => self.registration.unregister())
           )
+
           return response
         }
+
         return response
       }))
     } else {
@@ -218,15 +224,19 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
     event.respondWith(new Response('Service worker unregistered', {
       status: 200
     }))
+
     return false
   } else if (isSubdomainConfigRequest(event)) {
     log.trace('subdomain config request, ignoring and letting index.html handle it', event.request.url)
+
     return false
   } else if (isConfigPageRequest(url)) {
     log.trace('config page request, ignoring ', event.request.url)
+
     return false
   } else if (isSwConfigReloadRequest(event)) {
     log.trace('sw-config reload request, updating verifiedFetch')
+
     // Wait for the update to complete before sending response
     event.respondWith(
       updateVerifiedFetch()
@@ -243,6 +253,7 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
           })
         })
     )
+
     return false
   } else if (isAcceptOriginIsolationWarningRequest(event)) {
     event.waitUntil(setOriginIsolationWarningAccepted().then(() => {
@@ -250,6 +261,7 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
     }).catch((err) => {
       log.error('origin isolation warning accepted, error', err)
     }))
+
     return false
   } else if (isSwConfigGETRequest(event)) {
     // TODO: remove? I don't think we need this anymore.
@@ -263,6 +275,7 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
         }
       }))
     }))
+
     return false
   } else if (isSwAssetRequest(event)) {
     log.trace('sw-asset request, returning cached response ', event.request.url)
@@ -272,17 +285,21 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
     event.respondWith(caches.open(CURRENT_CACHES.swAssets).then(async (cache) => {
       try {
         const cachedResponse = await cache.match(event.request)
+
         if (cachedResponse != null) {
           return cachedResponse
         }
       } catch (err) {
         log.error('error matching cached response', err)
       }
+
       let response: Response
+
       try {
         response = await fetch(event.request)
       } catch (err) {
         log.error('error fetching response', err)
+
         return new Response('No response', {
           status: 500,
           headers: {
@@ -290,6 +307,7 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
           }
         })
       }
+
       try {
         await cache.put(event.request, response.clone())
         return response
@@ -298,6 +316,7 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
       }
       return response
     }))
+
     return false
   } else if (!isValidRequestForSW(event)) {
     log.trace('not a valid request for helia-sw, ignoring ', event.request.url)
@@ -417,7 +436,7 @@ async function fetchAndUpdateCache (event: FetchEvent, url: URL, cacheKey: strin
   log('response status: %s', response.status)
 
   try {
-    await storeReponseInCache({ response, isMutable: true, cacheKey, event })
+    await storeResponseInCache({ response, isMutable: true, cacheKey, event })
     log.trace('updated cache for %s', cacheKey)
   } catch (err) {
     log.error('failed updating response in cache for %s', cacheKey, err)
@@ -470,7 +489,7 @@ function shouldCacheResponse ({ event, response }: { event: FetchEvent, response
   return true
 }
 
-async function storeReponseInCache ({ response, isMutable, cacheKey, event }: StoreReponseInCacheOptions): Promise<void> {
+async function storeResponseInCache ({ response, isMutable, cacheKey, event }: StoreResponseInCacheOptions): Promise<void> {
   if (!shouldCacheResponse({ event, response })) {
     return
   }
@@ -543,7 +562,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
   headers.forEach((value, key) => {
     log.trace('fetchHandler: request headers: %s: %s', key, value)
   })
-  log('verifiedFetch for ', event.request.url)
+  log('verifiedFetch for %s', event.request.url)
 
   /**
    * Note that there are existing bugs regarding service worker signal handling:
@@ -678,37 +697,26 @@ async function errorPageResponse (fetchResponse: Response): Promise<Response> {
   mergedHeaders.set('Content-Type', 'text/html')
   mergedHeaders.set('ipfs-sw', 'true')
 
-  return new Response(`<!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Error - Service Worker IPFS Gateway</title>
-      </head>
-      <body>
-        <div id="root" class="sans-serif f5">
-          <h1>Oops! Something went wrong inside of Service Worker IPFS Gateway.</h1>
-          <p>
-            <button onclick="window.history.back();">Go back</button>
-            <button onclick="window.location.reload(true);">Click here to retry</button>
-          </p>
-          <p>
-            <h2>Error details:</h2>
-            <p><b>Message: </b>${json.error.message}</p>
-            <b>Stacktrace: </b><pre>${json.error.stack}</pre>
-          </p>
-          <p>
-            <h2>Response details:</h2>
-            <h3>${responseDetails.status} ${responseDetails.statusText}</h3>
-            <pre>${JSON.stringify(responseDetails, null, 2)}</pre>
-          </p>
-          <p>
-            <h2>Service worker details:</h2>
-            <pre>${JSON.stringify(await getServiceWorkerDetails(), null, 2)}</pre>
-          </p>
-        </div>
-      </body>
-    </html>`, {
+  const props = {
+    response: responseDetails,
+    error: json.error,
+    config: await getServiceWorkerDetails(),
+    title: responseDetails.statusText,
+    stylesheet: '<%-- src/app.css --%>',
+    script: '<%-- src/internal-error.tsx --%>'
+  }
+
+  // inject props as a page global
+  const script = `<script type="text/javascript">globalThis.props = ${JSON.stringify(props, null, 2)}</script>`
+
+  const string = '<!DOCTYPE html>\n' + renderToString(
+    Page({
+      ...props,
+      children: InternalErrorPage(props)
+    })
+  ).replace('</head>', `${script}</head>`)
+
+  return new Response(string, {
     status: fetchResponse.status,
     statusText: fetchResponse.statusText,
     headers: mergedHeaders

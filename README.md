@@ -82,11 +82,12 @@ The main goals of this project are:
 You can build and run the project locally:
 
 ```console
-> npm ci
+> npm i
+> npm run build
 > npm start
 ```
 
-Now open your browser and go to `http://localhost:3333`
+Now open your browser and go to `http://localhost:3000`
 
 Below is an explanation of the different URLs and what they do:
 
@@ -137,4 +138,3 @@ This project is dual-licensed under
 `SPDX-License-Identifier: Apache-2.0 OR MIT`
 
 See [LICENSE](./LICENSE) for more details.
-
