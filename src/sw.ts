@@ -709,7 +709,7 @@ async function errorPageResponse (fetchResponse: Response): Promise<Response> {
   // inject props as a page global
   const script = `<script type="text/javascript">globalThis.props = ${JSON.stringify(props, null, 2)}</script>`
 
-  const string = renderToString(
+  const string = '<!DOCTYPE html>\n' + renderToString(
     Page({
       ...props,
       children: InternalErrorPage(props)

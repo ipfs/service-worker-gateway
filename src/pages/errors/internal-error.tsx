@@ -72,10 +72,10 @@ export function InternalErrorPage ({ error, response, config }: InternalErrorPag
       <ContentBox title='Internal Error'>
         <>
           <p>An error occurred in the service worker gateway.</p>
-          <p>Please <a href='https://github.com/ipfs/service-worker-gateway/issues' className='link' target='_blank' rel='noopener noreferrer'>open an issue</a> and include the URL you tried to access and any debugging information displayed below.</p>
+          <p>Please <a href='https://github.com/ipfs/service-worker-gateway/issues' className='link' target='_blank' rel='noopener noreferrer'>open an issue</a> with the URL you tried to access and any debugging information displayed below.</p>
           <p>
-            <Button className='bg-navy-muted' onClick={goBack}>Go back</Button>
             <Button className='bg-teal' onClick={retry}>Retry</Button>
+            <Button className='bg-navy-muted' onClick={goBack}>Go back</Button>
           </p>
           {errorDisplay}
           {responseDisplay}
