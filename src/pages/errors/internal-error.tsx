@@ -6,10 +6,10 @@ import React, { useState } from 'react'
 import { Button } from '../../button.jsx'
 import Header from '../../components/Header.jsx'
 import ContentBox from '../../components/content-box.jsx'
+import { Link } from '../../components/link.jsx'
 import Terminal from '../../components/terminal.jsx'
 import type { RequestDetails, ResponseDetails } from '../../sw.js'
 import type { ReactElement } from 'react'
-import { Link } from '../../components/link.jsx'
 
 declare global {
   var props: any
