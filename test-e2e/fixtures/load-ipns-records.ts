@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { basename } from 'node:path'
 import { glob } from 'glob'
 import itAll from 'it-all'
-import type { Logger } from '@libp2p/logger'
+import type { Logger } from '@libp2p/interface'
 import type { KuboNode } from 'ipfsd-ctl'
 
 export async function loadIpnsRecords (node: KuboNode, log?: Logger): Promise<void> {

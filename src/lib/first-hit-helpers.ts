@@ -68,7 +68,7 @@ export async function ensureSwScope (): Promise<void> {
 
     if (supportsSubdomains === true) {
       log.trace('subdomain support is enabled, redirecting before service worker registration')
-      const redirect = await findOriginIsolationRedirect(window.location, uiLogger)
+      const redirect = await findOriginIsolationRedirect(window.location, log)
       if (redirect !== null) {
         window.location.replace(redirect)
       }
@@ -169,7 +169,7 @@ export async function getStateFromUrl (url: URL): Promise<NavigationState> {
 
   if (isIsolatedOrigin) {
     // check if indexedDb has config
-    hasConfig = await isConfigSet(uiLogger)
+    hasConfig = await isConfigSet(log)
     if (hasConfig) {
       // Check service worker state
       const registration = await navigator.serviceWorker.getRegistration()
@@ -244,7 +244,7 @@ export async function getUrlWithConfig ({ url, isIsolatedOrigin, urlHasSubdomain
     // we are on the root domain, and have been requested by a subdomain to fetch the config and pass it back to them.
     const redirectUrl = url
     deleteHashFragment(redirectUrl, HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST)
-    const config = await getConfig(uiLogger)
+    const config = await getConfig(log)
     const compressedConfig = await compressConfig(config)
     setHashFragment(redirectUrl, HASH_FRAGMENTS.IPFS_SW_CFG, compressedConfig)
 
@@ -269,7 +269,7 @@ export async function loadConfigFromUrl ({ url, compressedConfig }: Pick<Navigat
   try {
     const config = await decompressConfig(compressedConfig)
     deleteHashFragment(url, HASH_FRAGMENTS.IPFS_SW_CFG)
-    await setConfig(config, uiLogger)
+    await setConfig(config, log)
     await registerServiceWorker()
     return translateIpfsRedirectUrl(url).toString()
   } catch (err) {

@@ -77,11 +77,11 @@ export function createReverseProxy ({
 
     req.pipe(proxyReq, { end: true })
 
-    proxyReq.on('error', (e) => {
-      log.error(`Problem with request: ${e.message}`)
+    proxyReq.on('error', (err) => {
+      log.error('problem with request - %e', err)
       setCommonHeaders(res)
       res.writeHead(500)
-      res.end(`Internal Server Error: ${e.message}`)
+      res.end(`Internal Server Error: ${err.message}`)
     })
   }
 

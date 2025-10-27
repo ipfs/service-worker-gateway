@@ -5,7 +5,7 @@ import { areSubdomainsSupported } from './config-db.js'
 import { dnsLinkLabelEncoder } from './dns-link-labels.js'
 import { getHeliaSwRedirectUrl } from './first-hit-helpers.js'
 import { pathRegex, subdomainRegex } from './regex.js'
-import type { ComponentLogger } from '@libp2p/logger'
+import type { Logger } from '@libp2p/interface'
 
 export const isPathOrSubdomainRequest = (location: Pick<Location, 'host' | 'pathname'>): boolean => {
   return isPathGatewayRequest(location) || isSubdomainGatewayRequest(location)
@@ -25,8 +25,9 @@ export const isPathGatewayRequest = (location: Pick<Location, 'host' | 'pathname
  * Origin isolation check and enforcement
  * https://github.com/ipfs-shipyard/helia-service-worker-gateway/issues/30
  */
-export const findOriginIsolationRedirect = async (location: Pick<Location, 'protocol' | 'host' | 'pathname' | 'search' | 'hash' | 'href' | 'origin'>, logger?: ComponentLogger): Promise<string | null> => {
-  const log = logger?.forComponent('find-origin-isolation-redirect')
+export const findOriginIsolationRedirect = async (location: Pick<Location, 'protocol' | 'host' | 'pathname' | 'search' | 'hash' | 'href' | 'origin'>, logger?: Logger): Promise<string | null> => {
+  const log = logger?.newScope('find-origin-isolation-redirect')
+
   if (isPathGatewayRequest(location) && !isSubdomainGatewayRequest(location)) {
     log?.trace('checking for subdomain support')
     if (await areSubdomainsSupported(logger) === true) {
@@ -36,6 +37,7 @@ export const findOriginIsolationRedirect = async (location: Pick<Location, 'prot
       log?.trace('subdomain support is disabled')
     }
   }
+
   log?.trace('no need to check for subdomain support - is path gateway request %s, is subdomain gateway request %s', isPathGatewayRequest(location), isSubdomainGatewayRequest(location))
   return null
 }
@@ -65,7 +67,7 @@ export const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' 
       default:
         throw new Error('Unknown namespace: ' + ns)
     }
-  } catch (_) {
+  } catch {
     // not a CID, so we assume a DNSLink name and inline it according to
     // https://specs.ipfs.tech/http-gateways/subdomain-gateway/#host-request-header
     if (id.includes('.')) {

@@ -99,7 +99,7 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
       // base_domain service worker is updated
       log.trace('config-page: RELOAD_CONFIG_SUCCESS for %s', window.location.origin)
     } catch (err) {
-      log.error('Error saving config', err)
+      log.error('error saving config - %e', err)
       setError(err as Error)
     } finally {
       setIsSaving(false)

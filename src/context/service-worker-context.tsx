@@ -28,7 +28,7 @@ export const ServiceWorkerProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     if (isServiceWorkerRegistered) {
-      void findOriginIsolationRedirect(window.location, uiLogger).then((originRedirect) => {
+      void findOriginIsolationRedirect(window.location, log).then((originRedirect) => {
         if (originRedirect !== null) {
           window.location.replace(originRedirect)
         }
@@ -59,7 +59,7 @@ export const ServiceWorkerProvider: React.FC<{ children: React.ReactNode }> = ({
           await registerServiceWorker()
           setIsServiceWorkerRegistered(true)
         } catch (err) {
-          log.error('error registering service worker', err)
+          log.error('error registering service worker - %e', err)
         }
       }
     }

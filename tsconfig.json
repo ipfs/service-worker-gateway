@@ -7,7 +7,6 @@
     "module": "es2022",
     "target": "es2022",
     "jsx": "preserve",
-    "lib": ["WebWorker", "ES6", "DOM"],
     "strictNullChecks": true,
     "moduleResolution": "bundler",
     "ignoreDeprecations": "5.0" // needed due to deprecated usage in tsconfig.aegir.json
