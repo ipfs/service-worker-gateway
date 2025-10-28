@@ -4,8 +4,8 @@
 
 import React, { useState } from 'react'
 import { Button } from '../../button.jsx'
-import Header from '../../components/header.jsx'
 import ContentBox from '../../components/content-box.jsx'
+import Header from '../../components/header.jsx'
 import { Link } from '../../components/link.jsx'
 import Terminal from '../../components/terminal.jsx'
 import type { RequestDetails, ResponseDetails } from '../../sw.js'
