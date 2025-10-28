@@ -82,11 +82,12 @@ The main goals of this project are:
 You can build and run the project locally:
 
 ```console
-> npm ci
+> npm i
+> npm run build
 > npm start
 ```
 
-Now open your browser and go to `http://localhost:3333`
+Now open your browser and go to `http://localhost:3000`
 
 Below is an explanation of the different URLs and what they do:
 
@@ -119,7 +120,7 @@ aiming to be a drop-in replacement for `ipfs.io`:
 
 #### Deploying to `production` and `staging`
 
-Deploying to [production[(https://github.com/ipfs/service-worker-gateway/actions/workflows/deploy-to-production.yml) and [staging](https://github.com/ipfs/service-worker-gateway/actions/workflows/deploy-to-staging.yml) is done by manually running the deployment action and passing the release version to the action.
+Deploying to [production](https://github.com/ipfs/service-worker-gateway/actions/workflows/deploy-to-production.yml) and [staging](https://github.com/ipfs/service-worker-gateway/actions/workflows/deploy-to-staging.yml) is done by manually running the deployment action and passing the release version to the action.
 
 ## Manual Service Worker Deregistration
 
@@ -137,4 +138,3 @@ This project is dual-licensed under
 `SPDX-License-Identifier: Apache-2.0 OR MIT`
 
 See [LICENSE](./LICENSE) for more details.
-

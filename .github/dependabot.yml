@@ -3,14 +3,13 @@ updates:
 - package-ecosystem: npm
   directories:
     - "/"
-    - "/packages/*"
   schedule:
     interval: daily
     time: "10:00"
   open-pull-requests-limit: 20
   commit-message:
     prefix: "deps"
-    prefix-development: "deps(dev)"
+    prefix-development: "chore"
   groups:
     helia-deps: # group all deps that should be updated when Helia deps need updated
       patterns:
@@ -25,6 +24,9 @@ updates:
       patterns:
         - "*kubo*"
         - "ipfsd-ctl"
-    react-deps: # group all react deps updates
-      patterns:
-        - "*react*"
+- package-ecosystem: "github-actions"
+  directory: "/"
+  schedule:
+    interval: "weekly"
+  commit-message:
+    prefix: chore

@@ -1,4 +1,4 @@
-import { blake3 as b3 } from '@noble/hashes/blake3'
+import { blake3 as b3 } from '@noble/hashes/blake3.js'
 import { from } from 'multiformats/hashes/hasher'
 
 export const blake3 = from({
