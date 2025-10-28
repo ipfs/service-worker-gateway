@@ -55,11 +55,11 @@ test.describe('ipfs-sw configuration', () => {
     // now query a new subdomain and make sure that the config on this page is the same as the root after the page loads
     await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/`)
 
-    // wait for the service worker to be registered
-    await waitForServiceWorker(page, `${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}`)
-
     // wait for config loading and final redirect to complete
     await page.waitForLoadState('networkidle')
+
+    // wait for the service worker to be registered
+    await waitForServiceWorker(page, `${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}`)
 
     // now get the config from the subdomain
     const subdomainConfig = await getConfig({ page })
@@ -111,8 +111,8 @@ test.describe('ipfs-sw configuration', () => {
       responses.push(response)
     })
     await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/#${HASH_FRAGMENTS.IPFS_SW_CFG}=${compressedConfig}`)
-    await waitForServiceWorker(page, `${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}`)
     await page.waitForLoadState('networkidle')
+    await waitForServiceWorker(page, `${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}`)
 
     // we injected the config and were never redirected to the root domain
     expect(responses.map(r => r.url())).not.toContain(`${protocol}//${rootDomain}/`)

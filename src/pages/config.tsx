@@ -1,5 +1,5 @@
 import React, { useCallback, useContext, useState } from 'react'
-import Header from '../components/Header.jsx'
+import Header from '../components/header.jsx'
 import { InputSection } from '../components/input-section.jsx'
 import { InputToggle } from '../components/input-toggle.jsx'
 import NumberInput from '../components/number-input.jsx'

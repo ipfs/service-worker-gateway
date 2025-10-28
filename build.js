@@ -336,11 +336,14 @@ const excludeFilesPlugin = (extensions) => ({
  * @type {esbuild.BuildOptions}
  */
 export const buildOptions = {
+  define: {
+    'process.env.NODE_ENV': '"production"'
+  },
   entryPoints: [
     'src/index.tsx',
     'src/sw.ts',
     'src/app.tsx',
-    'src/internal-error.tsx',
+    'src/error.tsx',
     'src/ipfs-sw-*.ts',
     'src/ipfs-sw-*.css'
   ],
@@ -352,7 +355,7 @@ export const buildOptions = {
     '.svg': 'file'
   },
   minify: false,
-  sourcemap: 'inline',
+  sourcemap: 'linked',
   metafile: true,
   splitting: false,
   target: ['es2020'],
@@ -386,7 +389,8 @@ const serveRequested = process.argv.includes('--serve')
 
 if (!watchRequested && !serveRequested) {
   try {
-    await ctx.rebuild()
+    const result = await ctx.rebuild()
+    await fs.writeFile('dist/meta.json', JSON.stringify(result.metafile))
     console.log('Build completed successfully.')
   } catch (error) {
     console.error('Build failed:', error)

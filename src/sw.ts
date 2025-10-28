@@ -1,5 +1,4 @@
 import { AbortError, setMaxListeners } from '@libp2p/interface'
-import { renderToString } from 'react-dom/server'
 import { getConfig } from './lib/config-db.js'
 import { HASH_FRAGMENTS, QUERY_PARAMS } from './lib/constants.js'
 import { errorToObject } from './lib/error-to-object.js'
@@ -13,11 +12,9 @@ import { getSwLogger } from './lib/logger.js'
 import { findOriginIsolationRedirect, isPathGatewayRequest, isSubdomainGatewayRequest } from './lib/path-or-subdomain.js'
 import { isBitswapProvider, isTrustlessGatewayProvider } from './lib/providers.js'
 import { isUnregisterRequest } from './lib/unregister-request.js'
-import { InternalErrorPage } from './pages/errors/internal-error.jsx'
-import { Page } from './pages/page.jsx'
 import { APP_VERSION, GIT_REVISION } from './version.js'
 import type { ConfigDb } from './lib/config-db.js'
-import type { Providers as ErrorPageProviders } from './pages/errors/internal-error.jsx'
+import type { Providers as ErrorPageProviders } from './pages/errors/fetch-error.jsx'
 import type { VerifiedFetch, VerifiedFetchInit } from '@helia/verified-fetch'
 
 /**
@@ -713,8 +710,7 @@ async function fetchHandler ({ request, event, logs }: FetchHandlerArg): Promise
 }
 
 /**
- * TODO: better styling
- * TODO: more error details from @helia/verified-fetch
+ * Shows an error page to the user
  */
 function errorPageResponse (resource: string, request: RequestInit, fetchResponse: Response, responseBody: string, providers: Providers, logs: string[]): Response {
   const responseContentType = fetchResponse.headers.get('Content-Type')
@@ -724,10 +720,6 @@ function errorPageResponse (resource: string, request: RequestInit, fetchRespons
   }
 
   const responseDetails = getResponseDetails(fetchResponse, responseBody)
-
-  /**
-   * TODO: output configuration
-   */
   const mergedHeaders = new Headers(fetchResponse.headers)
   mergedHeaders.set('Content-Type', 'text/html')
   mergedHeaders.set('ipfs-sw', 'true')
@@ -738,24 +730,29 @@ function errorPageResponse (resource: string, request: RequestInit, fetchRespons
     config: getServiceWorkerDetails(),
     providers: toErrorPageProviders(providers),
     title: `${responseDetails.status} ${responseDetails.statusText}`,
-    stylesheet: '<%-- src/app.css --%>',
-    script: '<%-- src/internal-error.tsx --%>',
     logs
   }
 
-  // inject props as a page global - this lets us render static HTML with the
-  // error information but also rehydrate a react context to give us additional
-  // interactivity to help the user resolve what went wrong with their request
-  const script = `<script type="text/javascript">globalThis.props = ${JSON.stringify(props, null, 2)}</script>`
+  const page = `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charSet='utf-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+    <link rel='shortcut icon' href='data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlo89/56ZQ/8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACUjDu1lo89/6mhTP+zrVP/nplD/5+aRK8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHNiIS6Wjz3/ubFY/761W/+vp1D/urRZ/8vDZf/GvmH/nplD/1BNIm8AAAAAAAAAAAAAAAAAAAAAAAAAAJaPPf+knEj/vrVb/761W/++tVv/r6dQ/7q0Wf/Lw2X/y8Nl/8vDZf+tpk7/nplD/wAAAAAAAAAAAAAAAJaPPf+2rVX/vrVb/761W/++tVv/vrVb/6+nUP+6tFn/y8Nl/8vDZf/Lw2X/y8Nl/8G6Xv+emUP/AAAAAAAAAACWjz3/vrVb/761W/++tVv/vrVb/761W/+vp1D/urRZ/8vDZf/Lw2X/y8Nl/8vDZf/Lw2X/nplD/wAAAAAAAAAAlo89/761W/++tVv/vrVb/761W/++tVv/r6dQ/7q0Wf/Lw2X/y8Nl/8vDZf/Lw2X/y8Nl/56ZQ/8AAAAAAAAAAJaPPf++tVv/vrVb/761W/++tVv/vbRa/5aPPf+emUP/y8Nl/8vDZf/Lw2X/y8Nl/8vDZf+emUP/AAAAAAAAAACWjz3/vrVb/761W/++tVv/vrVb/5qTQP+inkb/op5G/6KdRv/Lw2X/y8Nl/8vDZf/Lw2X/nplD/wAAAAAAAAAAlo89/761W/++tVv/sqlS/56ZQ//LxWb/0Mlp/9DJaf/Kw2X/oJtE/7+3XP/Lw2X/y8Nl/56ZQ/8AAAAAAAAAAJaPPf+9tFr/mJE+/7GsUv/Rymr/0cpq/9HKav/Rymr/0cpq/9HKav+xrFL/nplD/8vDZf+emUP/AAAAAAAAAACWjz3/op5G/9HKav/Rymr/0cpq/9HKav/Rymr/0cpq/9HKav/Rymr/0cpq/9HKav+inkb/nplD/wAAAAAAAAAAAAAAAKKeRv+3slb/0cpq/9HKav/Rymr/0cpq/9HKav/Rymr/0cpq/9HKav+1sFX/op5G/wAAAAAAAAAAAAAAAAAAAAAAAAAAop5GUKKeRv/Nxmf/0cpq/9HKav/Rymr/0cpq/83GZ/+inkb/op5GSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAop5G16KeRv/LxWb/y8Vm/6KeRv+inkaPAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAop5G/6KeRtcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/n8AAPgfAADwDwAAwAMAAIABAACAAQAAgAEAAIABAACAAQAAgAEAAIABAACAAQAAwAMAAPAPAAD4HwAA/n8AAA==' />
+    <title>${props.title}</title>
+    <link rel="stylesheet" href="<%-- src/app.css --%>">
+    <script type="text/javascript">
+globalThis.props = ${JSON.stringify(props, null, 2)}
+    </script>
+  </head>
+  <body class="san-serif charcoal">
+    <div id="app"></div>
+    <script type="text/javascript" src="<%-- src/error.tsx --%>"></script>
+  </body>
+</html>
+`
 
-  const string = '<!DOCTYPE html>\n' + renderToString(
-    Page({
-      ...props,
-      children: InternalErrorPage(props)
-    })
-  ).replace('</head>', `${script}</head>`)
-
-  return new Response(string, {
+  return new Response(page, {
     status: fetchResponse.status,
     statusText: fetchResponse.statusText,
     headers: mergedHeaders

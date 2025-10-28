@@ -12,7 +12,8 @@ export interface RangeRequestResult {
 }
 
 /**
- * Normally, you could use request.get in playwright to query a server, but this does not go to the service worker
+ * Normally, you could use request.get in playwright to query a server, but this
+ * does not go to the service worker
  */
 export async function doRangeRequest ({ page, range, path }: { range: string, page: Page, path: string }): Promise<RangeRequestResult> {
   return page.evaluate(async ({ path, range }) => {

@@ -1,4 +1,4 @@
-import 'react'
+import React from 'react'
 import type { PropsWithChildren, ReactElement } from 'react'
 
 export interface LinkProps extends PropsWithChildren {

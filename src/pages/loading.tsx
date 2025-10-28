@@ -3,7 +3,7 @@
  */
 
 import React from 'react'
-import Header from '../components/Header.jsx'
+import Header from '../components/header.jsx'
 import LoadingIndicator from '../components/loading-indicator.jsx'
 import type { ReactElement } from 'react'
 

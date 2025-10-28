@@ -4,7 +4,7 @@
 
 import React, { useState } from 'react'
 import { Button } from '../../button.jsx'
-import Header from '../../components/Header.jsx'
+import Header from '../../components/header.jsx'
 import ContentBox from '../../components/content-box.jsx'
 import { Link } from '../../components/link.jsx'
 import Terminal from '../../components/terminal.jsx'
@@ -147,7 +147,7 @@ function DebugInfo ({ request, response, config, logs }: FetchErrorPageProps): R
   )
 }
 
-export function InternalErrorPage ({ request, response, config, logs, providers }: FetchErrorPageProps): ReactElement {
+export function FetchErrorPage ({ request, response, config, logs, providers }: FetchErrorPageProps): ReactElement {
   request = request ?? globalThis.props?.request
   response = response ?? globalThis.props?.response
   config = config ?? globalThis.props?.config
