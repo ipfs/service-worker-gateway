@@ -3,8 +3,8 @@
  */
 
 import React from 'react'
-import About from '../../components/About.jsx'
-import Header from '../../components/Header.jsx'
+import About from '../../components/about.jsx'
+import Header from '../../components/header.jsx'
 import type { ReactElement } from 'react'
 import '../default-page-styles.css'
 

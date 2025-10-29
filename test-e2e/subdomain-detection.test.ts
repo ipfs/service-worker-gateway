@@ -34,10 +34,12 @@ test.describe('subdomain-detection', () => {
     await page.goto('/ipfs/bafkqablimvwgy3y', { waitUntil: 'commit' })
 
     await page.waitForURL(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}`)
-    const bodyTextLocator = page.locator('body')
+    // wait for config loading and final redirect to complete
+    await page.waitForLoadState('networkidle')
 
     await waitForServiceWorker(page, `${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}`)
 
+    const bodyTextLocator = page.locator('body')
     await expect(bodyTextLocator).toContainText('hello')
   })
 })

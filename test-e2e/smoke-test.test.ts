@@ -83,8 +83,7 @@ test.describe('smoke test', () => {
     const response = swResponses[swResponses.length - 1]
     expect(response?.status()).toBe(504)
     const text = await response?.text()
-    expect(text).toContain('504 Gateway timeout')
-    expect(text).toContain('Increase the timeout in the')
+    expect(text).toContain('504 Gateway Timeout')
   })
 
   test('unregistering the service worker works', async ({ page, baseURL }) => {

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import Header from '../components/Header.jsx'
+import Header from '../components/header.jsx'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
 import { QUERY_PARAMS } from '../lib/constants.js'

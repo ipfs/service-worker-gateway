@@ -5,7 +5,8 @@ import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
 test.describe('byte-ranges', () => {
   test.beforeEach(async ({ page, baseURL }) => {
     await waitForServiceWorker(page, baseURL)
-    // we need to send a request to the service worker to accept the origin isolation warning
+    // we need to send a request to the service worker to accept the origin
+    // isolation warning
     await page.evaluate(async () => {
       const response = await fetch('?ipfs-sw-accept-origin-isolation-warning=true')
       if (!response.ok) {
@@ -14,7 +15,7 @@ test.describe('byte-ranges', () => {
     })
   })
 
-  test('should be able to get a single character', async ({ page }) => {
+  test('should be able to get a single character', async ({ page, baseURL }) => {
     test.setTimeout(60000)
     const { text, byteSize, statusCode } = await doRangeRequest({ page, range: 'bytes=1-2', path: '/ipfs/bafkqaddimvwgy3zao5xxe3debi' })
 

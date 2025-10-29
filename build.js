@@ -29,21 +29,28 @@ function gitRevision () {
     const ref = execSync('git rev-parse --abbrev-ref HEAD').toString().trim()
     const sha = execSync('git rev-parse --short HEAD').toString().trim()
 
-    try {
-      // detect production build
-      execSync('git fetch --force --depth=1 --quiet origin production')
-      const latestProduction = execSync('git rev-parse remotes/origin/production').toString().trim()
-      if (latestProduction.startsWith(sha)) {
-        return `production@${sha}`
-      }
+    // only try to detect prod/staging during a CI run
+    if (process.env.CI != null) {
+      try {
+        // detect production build
+        execSync('git fetch --force --depth=1 --quiet origin production')
 
-      // detect staging build
-      execSync('git fetch --force --depth=1 --quiet origin staging')
-      const latestStaging = execSync('git rev-parse remotes/origin/staging').toString().trim()
-      if (latestStaging.startsWith(sha)) {
-        return `staging@${sha}`
+        const latestProduction = execSync('git rev-parse remotes/origin/production').toString().trim()
+        if (latestProduction.startsWith(sha)) {
+          return `production@${sha}`
+        }
+
+        // detect staging build
+        execSync('git fetch --force --depth=1 --quiet origin staging')
+
+        const latestStaging = execSync('git rev-parse remotes/origin/staging').toString().trim()
+        if (latestStaging.startsWith(sha)) {
+          return `staging@${sha}`
+        }
+      } catch (_) {
+        /** noop */
       }
-    } catch (_) { /* noop */ }
+    }
 
     return `${ref}@${sha}`
   } catch (_) {
@@ -168,6 +175,7 @@ const renameSwPlugin = {
             const newPath = path.join(outdir, `ipfs-sw-sw${extension}`)
             await fs.rename(oldPath, newPath)
             console.log(`Renamed ${file} to ipfs-sw-sw${extension}`)
+
             if (extension === '.js') {
               const contents = await fs.readFile(newPath, 'utf8')
               const newContents = contents.replace(/sourceMappingURL=.*\.js\.map/, 'sourceMappingURL=ipfs-sw-sw.js.map')
@@ -225,6 +233,42 @@ const replaceImports = {
         }
 
         await fs.writeFile(path.resolve(jsFile), file)
+      }
+    })
+  }
+}
+
+/**
+ * Updates the built version of `src/version.ts` to contain the latest package
+ * version and git revision, then overrides the path to the file when it is
+ * imported
+ *
+ * @type {esbuild.Plugin}
+ */
+const updateVersions = {
+  name: 'update-versions',
+  async setup (build) {
+    const pkg = JSON.parse(await fs.readFile(path.resolve('package.json'), 'utf-8'))
+    const rev = gitRevision()
+
+    console.info('Detected versions', pkg.name, pkg.version, rev)
+
+    await fs.writeFile(path.resolve('dist-tsc/src/version.js'), `export const APP_NAME = '${pkg.name}'
+export const APP_VERSION = '${pkg.version}'
+export const GIT_REVISION = '${rev}'
+`)
+
+    const target = path.resolve('src/version')
+
+    build.onResolve({ filter: /(.*)version\.[j|t]s/ }, args => {
+      const file = path.resolve(args.resolveDir, args.path)
+
+      if (file !== `${target}.js` && file !== `${target}.ts`) {
+        return
+      }
+
+      return {
+        path: path.resolve('dist-tsc/src/version.js')
       }
     })
   }
@@ -292,11 +336,14 @@ const excludeFilesPlugin = (extensions) => ({
  * @type {esbuild.BuildOptions}
  */
 export const buildOptions = {
+  define: {
+    'process.env.NODE_ENV': '"production"'
+  },
   entryPoints: [
     'src/index.tsx',
     'src/sw.ts',
     'src/app.tsx',
-    'src/internal-error.tsx',
+    'src/error.tsx',
     'src/ipfs-sw-*.ts',
     'src/ipfs-sw-*.css'
   ],
@@ -308,14 +355,14 @@ export const buildOptions = {
     '.svg': 'file'
   },
   minify: false,
-  sourcemap: true,
+  sourcemap: 'linked',
   metafile: true,
   splitting: false,
   target: ['es2020'],
   format: 'esm',
   entryNames: 'ipfs-sw-[name]-[hash]',
   assetNames: 'ipfs-sw-[name]-[hash]',
-  plugins: [replaceImports, renameSwPlugin, modifyBuiltFiles, excludeFilesPlugin(['.eot?#iefix', '.otf', '.woff', '.woff2'])]
+  plugins: [replaceImports, renameSwPlugin, updateVersions, modifyBuiltFiles, excludeFilesPlugin(['.eot?#iefix', '.otf', '.woff', '.woff2'])]
 }
 
 const ctx = await esbuild.context(buildOptions)
@@ -342,7 +389,8 @@ const serveRequested = process.argv.includes('--serve')
 
 if (!watchRequested && !serveRequested) {
   try {
-    await ctx.rebuild()
+    const result = await ctx.rebuild()
+    await fs.writeFile('dist/meta.json', JSON.stringify(result.metafile))
     console.log('Build completed successfully.')
   } catch (error) {
     console.error('Build failed:', error)

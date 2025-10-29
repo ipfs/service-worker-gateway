@@ -39,12 +39,18 @@ async function main (): Promise<void> {
     // user is requesting content addressed data and has the config already
     // we need to ensure a SW is registered and let it handle the request
     const translatedUrl = translateIpfsRedirectUrl(url)
+
     if (state.isHardRefresh) {
-      // this is a hard refresh, we need to reload to ensure the service worker captures the request.
-      window.location.replace(translatedUrl.href) // replace with translated URL to remove helia-sw param
+      // this is a hard refresh, we need to reload to ensure the service worker
+      // captures the request.
+
+      // replace with translated URL to remove helia-sw param
+      window.location.replace(translatedUrl.href)
       return
     }
-    // else, there is some other reason why sw didn't capture the request, ensure sw is registered and reload
+
+    // else, there is some other reason why sw didn't capture the request,
+    // ensure sw is registered and reload
     try {
       await ensureSwScope()
       await registerServiceWorker()
@@ -52,7 +58,9 @@ async function main (): Promise<void> {
       // eslint-disable-next-line no-console
       console.error('helia:sw-gateway:index: error ensuring sw scope and registration', err)
     }
-    window.location.replace(translatedUrl.href) // replace with translated URL to remove helia-sw param
+
+    // replace with translated URL to remove helia-sw param
+    window.location.replace(translatedUrl.href)
     return
   }
 

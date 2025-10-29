@@ -2,7 +2,7 @@ import { enable } from '@libp2p/logger'
 import { GenericIDB } from './generic-db.js'
 import { uiLogger } from './logger.js'
 import type { BaseDbConfig } from './generic-db.js'
-import type { ComponentLogger } from '@libp2p/logger'
+import type { Logger } from '@libp2p/interface'
 
 export interface ConfigDbWithoutPrivateFields extends BaseDbConfig {
   gateways: string[]
@@ -31,8 +31,10 @@ export interface ConfigDbWithoutPrivateFields extends BaseDbConfig {
 }
 
 /**
- * Private fields for app-only config added to ConfigDbWithoutPrivateFields
- * These are not configurable by the user, and are only for programmatic use and changing functionality.
+ * Private fields for app-only config added to ConfigDbWithoutPrivateFields.
+ *
+ * These are not configurable by the user, and are only for programmatic use and
+ * changing functionality.
  */
 export interface ConfigDb extends ConfigDbWithoutPrivateFields {
   _supportsSubdomains: null | boolean
@@ -56,14 +58,16 @@ export const defaultServiceWorkerRegistrationTTL = 86_400_000 // 24 hours
 export const defaultFetchTimeout = 30
 
 /**
- * On dev/testing environments, (inbrowser.dev, localhost:${port}, or 127.0.0.1) we should set the default debug config to helia:sw-gateway*,helia:sw-gateway*:trace so we don't need to go set it manually
+ * On dev/testing environments, (inbrowser.dev, localhost:${port}, or 127.0.0.1)
+ * set the default debug config to something useful automatically
  */
-export const defaultDebug = (): string => self.location.hostname.search(/localhost|inbrowser\.dev|127\.0\.0\.1/) === -1 ? '' : 'helia:sw-gateway*,helia:sw-gateway*:trace,helia*,helia*:trace'
+export const defaultDebug = (): string => self.location.hostname.search(/localhost|inbrowser\.dev|127\.0\.0\.1/) === -1 ? '' : '*,*:trace'
 
 const configDb = new GenericIDB<ConfigDb>('helia-sw', 'config')
 
-export async function resetConfig (logger: ComponentLogger): Promise<void> {
-  const log = logger.forComponent('reset-config')
+export async function resetConfig (logger: Logger): Promise<void> {
+  const log = logger.newScope('reset-config')
+
   try {
     await configDb.open()
     await configDb.put('gateways', defaultGateways)
@@ -78,18 +82,18 @@ export async function resetConfig (logger: ComponentLogger): Promise<void> {
     await configDb.put('serviceWorkerRegistrationTTL', defaultServiceWorkerRegistrationTTL)
     // leave private/app-only fields as is
   } catch (err) {
-    log('error resetting config in db', err)
+    log.error('error resetting config in db - %e', err)
   } finally {
     configDb.close()
   }
 }
 
-export async function setConfig (config: ConfigDbWithoutPrivateFields, logger: ComponentLogger): Promise<void> {
-  const log = logger.forComponent('set-config')
+export async function setConfig (config: ConfigDbWithoutPrivateFields, logger: Logger): Promise<void> {
+  const log = logger.newScope('set-config')
   enable(config.debug ?? defaultDebug()) // set debug level first.
   await validateConfig(config, logger)
   try {
-    log('config-debug: setting config %s for domain %s', JSON.stringify(config), window.location.origin)
+    log('setting config %s for domain %s', JSON.stringify(config), window.location.origin)
     await configDb.open()
     await configDb.put('gateways', config.gateways)
     await configDb.put('routers', config.routers)
@@ -103,7 +107,7 @@ export async function setConfig (config: ConfigDbWithoutPrivateFields, logger: C
     await configDb.put('serviceWorkerRegistrationTTL', config.serviceWorkerRegistrationTTL ?? (defaultServiceWorkerRegistrationTTL * 1000))
     // ignore private/app-only fields
   } catch (err) {
-    log('error setting config in db', err)
+    log('error setting config in db - %e', err)
   } finally {
     configDb.close()
   }
@@ -111,18 +115,20 @@ export async function setConfig (config: ConfigDbWithoutPrivateFields, logger: C
 
 let getConfigPromise: Promise<ConfigDb> | null = null
 
-export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
+export async function getConfig (logger: Logger): Promise<ConfigDb> {
   if (getConfigPromise != null) {
     /**
      * If there is already a promise to get the config, return it.
-     * This is to prevent multiple calls to the db to get the same config, because
-     * each request will close the DB when done, and then the next request will fail at some point
+     *
+     * This is to prevent multiple calls to the db to get the same config,
+     * because each request will close the DB when done, and then the next
+     * request will fail at some point
      */
     return getConfigPromise
   }
 
   getConfigPromise = (async () => {
-    const log = logger.forComponent('get-config')
+    const log = logger.newScope('get-config')
     let gateways = defaultGateways
     let routers = defaultRouters
     let dnsJsonResolvers = defaultDnsJsonResolvers
@@ -137,7 +143,8 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
 
     let config: ConfigDb
 
-    log('config-debug: getting config for domain %s', globalThis.location.origin)
+    log('getting config for domain %s', globalThis.location.origin)
+
     try {
       await configDb.open()
 
@@ -158,7 +165,7 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
       _supportsSubdomains = config._supportsSubdomains
       serviceWorkerRegistrationTTL = config.serviceWorkerRegistrationTTL
     } catch (err) {
-      log('error loading config from db', err)
+      log.error('error loading config from db - %e', err)
     } finally {
       configDb.close()
     }
@@ -192,15 +199,14 @@ export async function getConfig (logger: ComponentLogger): Promise<ConfigDb> {
     getConfigPromise = null
   })
 
-  const result = await getConfigPromise
-  return result
+  return getConfigPromise
 }
 
-export async function validateConfig (config: ConfigDbWithoutPrivateFields, logger: ComponentLogger): Promise<void> {
-  const log = logger.forComponent('validate-config')
+export async function validateConfig (config: ConfigDbWithoutPrivateFields, logger: Logger): Promise<void> {
+  const log = logger.newScope('validate-config')
 
   if (!config.enableRecursiveGateways && !config.enableGatewayProviders && !config.enableWss && !config.enableWebTransport) {
-    log.error('Config is invalid. At least one of the following must be enabled: recursive gateways, gateway providers, wss, or webtransport.')
+    log.error('config is invalid. At least one of the following must be enabled: recursive gateways, gateway providers, wss, or webtransport.')
     throw new Error('Config is invalid. At least one of the following must be enabled: recursive gateways, gateway providers, wss, or webtransport.')
   }
 }
@@ -208,13 +214,14 @@ export async function validateConfig (config: ConfigDbWithoutPrivateFields, logg
 /**
  * Private field setters/getters
  */
-export async function setSubdomainsSupported (supportsSubdomains: boolean, logger?: ComponentLogger): Promise<void> {
-  const log = logger?.forComponent('set-subdomains-supported')
+export async function setSubdomainsSupported (supportsSubdomains: boolean, logger?: Logger): Promise<void> {
+  const log = logger?.newScope('set-subdomains-supported')
+
   try {
     await configDb.open()
     await configDb.put('_supportsSubdomains', supportsSubdomains)
   } catch (err) {
-    log?.('error setting subdomain support in db', err)
+    log?.error('error setting subdomain support in db - %e', err)
   } finally {
     configDb.close()
   }
@@ -224,28 +231,30 @@ export async function setSubdomainsSupported (supportsSubdomains: boolean, logge
  * This should only be used by the service worker, or the `checkSubdomainSupport` function in the UI.
  * If you need to check for subdomain support in the UI, use the `checkSubdomainSupport` function from `check-subdomain-support.ts` instead.
  */
-export async function areSubdomainsSupported (logger?: ComponentLogger): Promise<null | boolean> {
-  const log = logger?.forComponent('are-subdomains-supported')
+export async function areSubdomainsSupported (logger?: Logger): Promise<null | boolean> {
+  const log = logger?.newScope('are-subdomains-supported')
+
   try {
     await configDb.open()
     return await configDb.get('_supportsSubdomains') ?? defaultSupportsSubdomains
   } catch (err) {
-    log?.('error loading subdomain support from db', err)
+    log?.('error loading subdomain support from db - %e', err)
   } finally {
     configDb.close()
   }
   return false
 }
 
-export async function isConfigSet (logger?: ComponentLogger): Promise<boolean> {
-  const log = logger?.forComponent('is-config-set')
+export async function isConfigSet (logger?: Logger): Promise<boolean> {
+  const log = logger?.newScope('is-config-set')
+
   try {
     await configDb.open()
     const config = await configDb.getAll()
     // ignore private/app-only fields
     return Object.keys(config).filter(key => !['_supportsSubdomains'].includes(key)).length > 0
   } catch (err) {
-    log?.('error loading config from db', err)
+    log?.('error loading config from db - %e', err)
   } finally {
     configDb.close()
   }
@@ -264,6 +273,7 @@ export async function decompressConfig (compressedConfig: string): Promise<Confi
   const log = uiLogger.forComponent('decompress-config')
   let trusted = true
   let uncompressedConfig = compressedConfig
+
   try {
     uncompressedConfig = atob(compressedConfig)
   } catch (err) {
@@ -281,6 +291,7 @@ export async function decompressConfig (compressedConfig: string): Promise<Confi
     trusted = false
   } else {
     const url = new URL(document.referrer)
+
     if (!window.location.host.includes(url.host)) {
       log('document.referrer is not from the parent domain, so we can\'t trust it')
       trusted = false
@@ -288,9 +299,11 @@ export async function decompressConfig (compressedConfig: string): Promise<Confi
   }
 
   let c: ConfigDbWithoutPrivateFields
+
   try {
     c = JSON.parse(uncompressedConfig)
     const timestamp = c.t
+
     if (timestamp == null) {
       log('config has no timestamp, so we can\'t trust it')
       trusted = false
@@ -301,12 +314,13 @@ export async function decompressConfig (compressedConfig: string): Promise<Confi
     }
   } catch (err) {
     log.error('error parsing config "%s", will use default config - %e', uncompressedConfig, err)
-    return getConfig(uiLogger)
+    return getConfig(log)
   }
 
   let config: ConfigDbWithoutPrivateFields
+
   if (!trusted) {
-    const defaultConfig = await getConfig(uiLogger)
+    const defaultConfig = await getConfig(log)
     // only override allowed settings
     config = {
       ...defaultConfig,

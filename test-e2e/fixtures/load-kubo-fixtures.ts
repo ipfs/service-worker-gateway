@@ -47,8 +47,8 @@ export async function downloadFixtures (force = false): Promise<void> {
   log('Downloading fixtures')
   try {
     await $`docker run -v ${process.cwd()}:/workspace -w /workspace ghcr.io/ipfs/gateway-conformance:v0.7.1 extract-fixtures --directory ${relative('.', GWC_FIXTURES_PATH)} --merged false`
-  } catch (e) {
-    log.error('Error downloading fixtures, assuming current or previous success', e)
+  } catch (err) {
+    log.error('error downloading fixtures, assuming current or previous success - %e', err)
   }
 }
 

@@ -35,9 +35,9 @@ async function loadFixtures (): Promise<{
   console.log('loading ipns records')
   try {
     await loadIpnsRecords(controller, log)
-  } catch (error) {
+  } catch (err) {
     // eslint-disable-next-line no-console
-    console.error('error loading ipns records', error)
+    console.error('error loading ipns records', err)
   }
   // eslint-disable-next-line no-console
   console.log('loaded ipns records')

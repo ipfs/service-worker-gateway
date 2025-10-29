@@ -56,7 +56,7 @@ export async function getKuboDistCid (): Promise<string> {
     log('initializing kubo node at %s', uniqueIpfsPath)
     await $(uniqueExecaOptions)`${kuboBin} init`
   } catch (error) {
-    log('error: ', error)
+    log('error - %e', error)
   }
   const { stdout: cid } = await $(uniqueExecaOptions)`${kuboBin} add --only-hash -r -Q ${kuboDistPath} --cid-version 1`
 

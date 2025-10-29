@@ -2,13 +2,13 @@ import React, { createContext, useCallback, useEffect, useState } from 'react'
 import { defaultDebug, defaultDnsJsonResolvers, defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, defaultFetchTimeout, defaultGateways, defaultRouters, defaultServiceWorkerRegistrationTTL, defaultSupportsSubdomains, getConfig, resetConfig } from '../lib/config-db.js'
 import { getUiComponentLogger } from '../lib/logger.js'
 import type { ConfigDb } from '../lib/config-db.js'
-import type { ComponentLogger } from '@libp2p/logger'
+import type { Logger } from '@libp2p/interface'
 import type { ReactElement } from 'react'
 
 type ConfigKey = keyof ConfigDb
 export interface ConfigContextType extends ConfigDb {
   setConfig(key: ConfigKey, value: any): void
-  resetConfig(logger?: ComponentLogger): Promise<void>
+  resetConfig(logger?: Logger): Promise<void>
   isLoading: boolean
 }
 
@@ -43,11 +43,10 @@ export const ConfigProvider: React.FC<{ children: ReactElement[] | ReactElement,
   const [fetchTimeout, setFetchTimeout] = useState(defaultFetchTimeout)
   const [serviceWorkerRegistrationTTL, setServiceWorkerRegistrationTTL] = useState(defaultServiceWorkerRegistrationTTL)
   const [_supportsSubdomains, setSupportsSubdomains] = useState(defaultSupportsSubdomains)
-  const logger = getUiComponentLogger('config-context')
-  const log = logger.forComponent('main')
+  const log = getUiComponentLogger('config-provider')
 
   async function loadConfig (): Promise<void> {
-    const config = await getConfig(logger)
+    const config = await getConfig(log)
     setGateways(config.gateways)
     setRouters(config.routers)
     setDnsJsonResolvers(config.dnsJsonResolvers)
@@ -64,7 +63,7 @@ export const ConfigProvider: React.FC<{ children: ReactElement[] | ReactElement,
    */
   useEffect(() => {
     void loadConfig().catch((err) => {
-      log.error('Error loading config', err)
+      log.error('Error loading config - %e', err)
     }).finally(() => {
       setIsLoading(false)
     })
@@ -109,13 +108,13 @@ export const ConfigProvider: React.FC<{ children: ReactElement[] | ReactElement,
         setSupportsSubdomains(value)
         break
       default:
-        log.error(`Unknown config key: ${key}`)
+        log.error('Unknown config key: %s', key)
         throw new Error(`Unknown config key: ${key}`)
     }
   }, [])
 
   const resetConfigLocal: ConfigContextType['resetConfig'] = async (givenLogger): Promise<void> => {
-    await resetConfig(givenLogger ?? logger)
+    await resetConfig(givenLogger ?? log)
     await loadConfig()
   }
 

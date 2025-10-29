@@ -1,14 +1,20 @@
 import { prefixLogger } from '@libp2p/logger'
-import type { ComponentLogger } from '@libp2p/logger'
+import { collectingLogger } from './get-verified-fetch.js'
+import type { ComponentLogger, Logger } from '@libp2p/interface'
 
-const host = globalThis.location?.host.replace(':', '_') ?? 'test.localhost'
+export const uiLogger = prefixLogger('ui')
 
-const swLogPrefix = `helia:sw-gateway:sw:${host}`
-const uiLogPrefix = `helia:sw-gateway:ui:${host}`
+export const getUiComponentLogger = (component: string): Logger => {
+  return uiLogger.forComponent(component)
+}
 
-export const swLogger = prefixLogger(swLogPrefix)
-export const uiLogger = prefixLogger(uiLogPrefix)
+// globally scoped values can be lost when the sw is unloaded
+let swLogger: ComponentLogger
 
-export const getUiComponentLogger = (component: string): ComponentLogger => {
-  return prefixLogger(`${uiLogPrefix}:${component}`)
+export function getSwLogger (component: string): Logger {
+  if (swLogger == null) {
+    swLogger = collectingLogger('service-worker')
+  }
+
+  return swLogger.forComponent(component)
 }

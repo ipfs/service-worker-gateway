@@ -1,19 +1,21 @@
-import { renderToString } from 'react-dom/server'
+import { AbortError, setMaxListeners } from '@libp2p/interface'
 import { getConfig } from './lib/config-db.js'
 import { HASH_FRAGMENTS, QUERY_PARAMS } from './lib/constants.js'
+import { errorToObject } from './lib/error-to-object.js'
 import { getHeliaSwRedirectUrl } from './lib/first-hit-helpers.js'
 import { GenericIDB } from './lib/generic-db.js'
 import { getSubdomainParts } from './lib/get-subdomain-parts.js'
-import { getVerifiedFetch } from './lib/get-verified-fetch.js'
+import { getVerifiedFetch, logEmitter } from './lib/get-verified-fetch.js'
 import { hasHashFragment } from './lib/hash-fragments.js'
 import { isConfigPage } from './lib/is-config-page.js'
-import { swLogger } from './lib/logger.js'
+import { getSwLogger } from './lib/logger.js'
 import { findOriginIsolationRedirect, isPathGatewayRequest, isSubdomainGatewayRequest } from './lib/path-or-subdomain.js'
+import { isBitswapProvider, isTrustlessGatewayProvider } from './lib/providers.js'
 import { isUnregisterRequest } from './lib/unregister-request.js'
-import { InternalErrorPage } from './pages/errors/internal-error.jsx'
-import { Page } from './pages/page.jsx'
+import { APP_VERSION, GIT_REVISION } from './version.js'
 import type { ConfigDb } from './lib/config-db.js'
-import type { VerifiedFetch } from '@helia/verified-fetch'
+import type { Providers as ErrorPageProviders } from './pages/errors/fetch-error.jsx'
+import type { VerifiedFetch, VerifiedFetchInit } from '@helia/verified-fetch'
 
 /**
  ******************************************************
@@ -21,17 +23,11 @@ import type { VerifiedFetch } from '@helia/verified-fetch'
  ******************************************************
  */
 
-/**
- * Not available in ServiceWorkerGlobalScope
- */
-interface AggregateError extends Error {
-  errors: Error[]
-}
-
 interface FetchHandlerArg {
   path: string
   request: Request
   event: FetchEvent
+  logs: string[]
 }
 
 interface StoreResponseInCacheOptions {
@@ -63,18 +59,21 @@ interface ServiceWorkerDetails {
   origin: string
   scope: string
   state: string
+  version: string
+  commit: string
 }
 
 /**
- * When returning a meaningful error page, we provide the following details about
- * the response that failed
+ * These are block/car providers that were used while downloading data
  */
-interface ResponseDetails {
-  responseBody: string
-  headers: Record<string, string>
-  status: number
-  statusText: string
-  url: string
+interface Providers {
+  total: number
+  bitswap: Map<string, Set<string>>
+  trustlessGateway: Set<string>
+
+  // this is limited to 5x entries to prevent new routing systems causing OOMs
+  other: any[]
+  otherCount: number
 }
 
 /**
@@ -83,7 +82,7 @@ interface ResponseDetails {
  ******************************************************
  */
 declare let self: ServiceWorkerGlobalScope
-const log = swLogger.forComponent('main')
+// const log = swLogger.forComponent('main')
 
 /**
  * This is one best practice that can be followed in general to keep track of
@@ -113,19 +112,22 @@ const urlInterceptRegex = [new RegExp(`${self.location.origin}/ip(n|f)s/`)]
 let config: ConfigDb
 
 const updateConfig = async (): Promise<void> => {
-  config = await getConfig(swLogger)
+  config = await getConfig(getSwLogger('update-config'))
 }
-const updateVerifiedFetch = async (): Promise<void> => {
+
+async function updateVerifiedFetch (): Promise<void> {
   await updateConfig()
 
-  verifiedFetch = await getVerifiedFetch(config, swLogger)
+  verifiedFetch = await getVerifiedFetch(config, getSwLogger('update-verified-fetch'))
 }
+
 let swIdb: GenericIDB<LocalSwConfig>
 let firstInstallTime: number
 const getSwConfig = (): GenericIDB<LocalSwConfig> => {
   if (typeof swIdb === 'undefined') {
     swIdb = new GenericIDB<LocalSwConfig>('helia-sw-unique', 'config')
   }
+
   return swIdb
 }
 
@@ -142,6 +144,8 @@ self.addEventListener('install', (event) => {
 })
 
 self.addEventListener('activate', (event) => {
+  const log = getSwLogger('activate')
+
   // ensure verifiedFetch is ready for use
   // event.waitUntil(updateVerifiedFetch())
   /**
@@ -162,21 +166,27 @@ self.addEventListener('activate', (event) => {
   })
 
   event.waitUntil(
-    caches.keys().then(async function (cacheNames) {
-      return Promise.all(
-        cacheNames.map(async function (cacheName) {
-          if (!expectedCacheNames.includes(cacheName as (typeof CURRENT_CACHES)[keyof typeof CURRENT_CACHES])) {
-            // If this cache name isn't present in the array of "expected" cache names, then delete it.
-            log('deleting out of date cache:', cacheName)
-            return caches.delete(cacheName)
-          }
-        })
-      )
-    })
+    caches.keys()
+      .then(async function (cacheNames) {
+        return Promise.all(
+          cacheNames.map(async function (cacheName) {
+            if (!expectedCacheNames.includes(cacheName as (typeof CURRENT_CACHES)[keyof typeof CURRENT_CACHES])) {
+              // If this cache name isn't present in the array of "expected" cache names, then delete it.
+              log('deleting out of date cache:', cacheName)
+              return caches.delete(cacheName)
+            }
+          })
+        )
+      })
+      .catch(err => {
+        log.error('could not delete out of date cache - %e', err)
+      })
   )
 })
 
 self.addEventListener('fetch', (event) => {
+  const log = getSwLogger('fetch')
+
   const request = event.request
   const urlString = request.url
   const url = new URL(urlString)
@@ -192,21 +202,35 @@ self.addEventListener('fetch', (event) => {
   event.waitUntil(requestRouting(event, url).then(async (shouldHandle) => {
     if (shouldHandle) {
       log.trace('handling request for %s', url)
-      event.respondWith(getResponseFromCacheOrFetch(event).then(async (response) => {
-        if (!isServiceWorkerRegistrationTTLValid()) {
-          log('Service worker registration TTL expired, unregistering service worker')
-          const clonedResponse = response.clone()
-          event.waitUntil(
-            clonedResponse.blob().then(() => {
-              log('Service worker registration TTL expired, unregistering after response consumed')
-            }).finally(() => self.registration.unregister())
-          )
+
+      // collect logs from Helia/libp2p during the fetch operation
+      const logs: string[] = []
+
+      function onLog (event: CustomEvent<string>): void {
+        logs.push(event.detail)
+      }
+
+      logEmitter.addEventListener('log', onLog)
+
+      event.respondWith(getResponseFromCacheOrFetch(event, logs)
+        .then(async (response) => {
+          if (!isServiceWorkerRegistrationTTLValid()) {
+            log('Service worker registration TTL expired, unregistering service worker')
+            const clonedResponse = response.clone()
+            event.waitUntil(
+              clonedResponse.blob().then(() => {
+                log('Service worker registration TTL expired, unregistering after response consumed')
+              }).finally(() => self.registration.unregister())
+            )
+
+            return response
+          }
 
           return response
-        }
-
-        return response
-      }))
+        })
+        .finally(() => {
+          logEmitter.removeEventListener('log', onLog)
+        }))
     } else {
       log.trace('not handling request for %s', url)
     }
@@ -219,6 +243,8 @@ self.addEventListener('fetch', (event) => {
  ******************************************************
  */
 async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
+  const log = getSwLogger('request-routing')
+
   if (isUnregisterRequest(event.request.url)) {
     event.waitUntil(self.registration.unregister())
     event.respondWith(new Response('Service worker unregistered', {
@@ -227,11 +253,11 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
 
     return false
   } else if (isSubdomainConfigRequest(event)) {
-    log.trace('subdomain config request, ignoring and letting index.html handle it', event.request.url)
+    log.trace('subdomain config request, ignoring and letting index.html handle it %s', event.request.url)
 
     return false
   } else if (isConfigPageRequest(url)) {
-    log.trace('config page request, ignoring ', event.request.url)
+    log.trace('config page request, ignoring %s', event.request.url)
 
     return false
   } else if (isSwConfigReloadRequest(event)) {
@@ -247,7 +273,7 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
           })
         })
         .catch((err) => {
-          log.error('sw-config reload request, error updating verifiedFetch', err)
+          log.error('sw-config reload request, error updating verifiedFetch - %e', err)
           return new Response('Failed to update verifiedFetch: ' + err.message, {
             status: 500
           })
@@ -290,7 +316,7 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
           return cachedResponse
         }
       } catch (err) {
-        log.error('error matching cached response', err)
+        log.error('error matching cached response - %e', err)
       }
 
       let response: Response
@@ -298,7 +324,7 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
       try {
         response = await fetch(event.request)
       } catch (err) {
-        log.error('error fetching response', err)
+        log.error('error fetching response - %e', err)
 
         return new Response('No response', {
           status: 500,
@@ -312,7 +338,7 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
         await cache.put(event.request, response.clone())
         return response
       } catch (err) {
-        log.error('error caching response', err)
+        log.error('error caching response - %e', err)
       }
       return response
     }))
@@ -334,6 +360,7 @@ async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
   if (isRootRequestForContent(event) || isSubdomainRequest(event)) {
     return true
   }
+
   return false
 }
 
@@ -344,6 +371,8 @@ function isRootRequestForContent (event: FetchEvent): boolean {
 }
 
 function isSubdomainRequest (event: FetchEvent): boolean {
+  const log = getSwLogger('is-subdomain-request')
+
   const { id, protocol } = getSubdomainParts(event.request.url)
   log.trace('isSubdomainRequest.id: ', id)
   log.trace('isSubdomainRequest.protocol: ', protocol)
@@ -362,10 +391,6 @@ function isSubdomainConfigRequest (event: FetchEvent): boolean {
 
 function isValidRequestForSW (event: FetchEvent): boolean {
   return isSubdomainRequest(event) || isRootRequestForContent(event)
-}
-
-function isAggregateError (err: unknown): err is AggregateError {
-  return err instanceof Error && (err as AggregateError).errors != null
 }
 
 function isSwConfigReloadRequest (event: FetchEvent): boolean {
@@ -424,8 +449,10 @@ function getCacheKey (event: FetchEvent): string {
   return `${event.request.url}-${event.request.headers.get('Accept') ?? ''}`
 }
 
-async function fetchAndUpdateCache (event: FetchEvent, url: URL, cacheKey: string): Promise<Response> {
-  const response = await fetchHandler({ path: url.pathname, request: event.request, event })
+async function fetchAndUpdateCache (event: FetchEvent, url: URL, cacheKey: string, logs: string[]): Promise<Response> {
+  const log = getSwLogger('fetch-and-update-cache')
+
+  const response = await fetchHandler({ path: url.pathname, request: event.request, event, logs })
   log.trace('got response from fetchHandler')
 
   // log all of the headers:
@@ -439,13 +466,15 @@ async function fetchAndUpdateCache (event: FetchEvent, url: URL, cacheKey: strin
     await storeResponseInCache({ response, isMutable: true, cacheKey, event })
     log.trace('updated cache for %s', cacheKey)
   } catch (err) {
-    log.error('failed updating response in cache for %s', cacheKey, err)
+    log.error('failed updating response in cache for %s - %e', cacheKey, err)
   }
 
   return response
 }
 
-async function getResponseFromCacheOrFetch (event: FetchEvent): Promise<Response> {
+async function getResponseFromCacheOrFetch (event: FetchEvent, logs: string[]): Promise<Response> {
+  const log = getSwLogger('get-response-from-cache-or-fetch')
+
   const { protocol } = getSubdomainParts(event.request.url)
   const url = new URL(event.request.url)
   const isMutable = protocol === 'ipns'
@@ -460,7 +489,7 @@ async function getResponseFromCacheOrFetch (event: FetchEvent): Promise<Response
 
     if (isMutable) {
       // If the response is mutable, update the cache in the background.
-      void fetchAndUpdateCache(event, url, cacheKey)
+      void fetchAndUpdateCache(event, url, cacheKey, logs)
     }
 
     return cachedResponse
@@ -468,19 +497,24 @@ async function getResponseFromCacheOrFetch (event: FetchEvent): Promise<Response
 
   log('cached response MISS for %s', cacheKey)
 
-  return fetchAndUpdateCache(event, url, cacheKey)
+  return fetchAndUpdateCache(event, url, cacheKey, logs)
 }
 
 function shouldCacheResponse ({ event, response }: { event: FetchEvent, response: Response }): boolean {
+  const log = getSwLogger('should-cache-response')
+
   if (!response.ok) {
-    log.trace('response not ok, not caching', response)
+    log.trace('response not ok, not caching %o', response)
     return false
   }
+
   const statusCodesToNotCache = [206]
+
   if (statusCodesToNotCache.some(code => code === response.status)) {
     log.trace('not caching response with status %s', response.status)
     return false
   }
+
   if (event.request.headers.get('pragma') === 'no-cache' || event.request.headers.get('cache-control') === 'no-cache') {
     log.trace('request indicated no-cache, not caching')
     return false
@@ -490,9 +524,12 @@ function shouldCacheResponse ({ event, response }: { event: FetchEvent, response
 }
 
 async function storeResponseInCache ({ response, isMutable, cacheKey, event }: StoreResponseInCacheOptions): Promise<void> {
+  const log = getSwLogger('store-response-in-cache')
+
   if (!shouldCacheResponse({ event, response })) {
     return
   }
+
   log.trace('updating cache for %s in the background', cacheKey)
 
   const cache = await caches.open(isMutable ? CURRENT_CACHES.mutable : CURRENT_CACHES.immutable)
@@ -513,20 +550,24 @@ async function storeResponseInCache ({ response, isMutable, cacheKey, event }: S
 
   try {
     void cache.put(cacheKey, respToCache).catch((err) => {
-      log.error('error storing response in cache', err)
+      log.error('error storing response in cache - %e', err)
     })
   } catch (err) {
-    log.error('error storing response in cache', err)
+    log.error('error storing response in cache - %e', err)
   }
 }
 
-async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise<Response> {
+async function fetchHandler ({ request, event, logs }: FetchHandlerArg): Promise<Response> {
+  const log = getSwLogger('fetch-handler')
+
   const originalUrl = new URL(request.url)
+
   // test and enforce origin isolation before anything else is executed
-  const originLocation = await findOriginIsolationRedirect(originalUrl, swLogger)
+  const originLocation = await findOriginIsolationRedirect(originalUrl, log)
+
   if (originLocation !== null) {
-    const body = 'Gateway supports subdomain mode, redirecting to ensure Origin isolation..'
-    return new Response(body, {
+    log.trace('redirecting to subdomain')
+    return new Response('Gateway supports subdomain mode, redirecting to ensure Origin isolation..', {
       status: 301,
       headers: {
         'Content-Type': 'text/plain',
@@ -534,6 +575,7 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
       }
     })
   } else if (!isSubdomainGatewayRequest(originalUrl) && isPathGatewayRequest(originalUrl) && !(await getOriginIsolationWarningAccepted()) && !originalUrl.searchParams.has(QUERY_PARAMS.HELIA_SW)) {
+    log.trace('showing origin isolation warning')
     const newUrl = new URL(originalUrl.href)
     newUrl.pathname = '/'
     newUrl.hash = '/ipfs-sw-origin-isolation-warning'
@@ -558,221 +600,241 @@ async function fetchHandler ({ path, request, event }: FetchHandlerArg): Promise
     await updateVerifiedFetch()
   }
 
-  const headers = request.headers
-  headers.forEach((value, key) => {
-    log.trace('fetchHandler: request headers: %s: %s', key, value)
-  })
-  log('verifiedFetch for %s', event.request.url)
-
   /**
    * Note that there are existing bugs regarding service worker signal handling:
    * https://bugs.chromium.org/p/chromium/issues/detail?id=823697
    * https://bugzilla.mozilla.org/show_bug.cgi?id=1394102
    */
-  const abortController = new AbortController()
-  const signal = abortController.signal
-  const abortFn = (event: Pick<AbortSignalEventMap['abort'], 'type'>): void => {
-    clearTimeout(signalAbortTimeout)
-    if (event?.type === 'gateway-timeout') {
-      log.trace('timeout waiting for response from @helia/verified-fetch')
-      abortController.abort('timeout')
-    } else {
-      log.trace('request signal aborted')
-      abortController.abort('request signal aborted')
+  const timeoutSignal = AbortSignal.timeout(config.fetchTimeout)
+  const signal = AbortSignal.any([
+    event.request.signal,
+    timeoutSignal
+  ])
+  setMaxListeners(Infinity, signal)
+
+  const providers: Providers = {
+    total: 0,
+    bitswap: new Map(),
+    trustlessGateway: new Set(),
+    other: [],
+    otherCount: 0
+  }
+
+  const resource = new URL(event.request.url).href
+  const init: VerifiedFetchInit = {
+    signal,
+    headers: request.headers,
+    redirect: 'manual',
+    onProgress: (evt) => {
+      if (evt.type.endsWith(':found-provider')) {
+        providers.total++
+
+        if (isBitswapProvider(evt.detail)) {
+          // store deduplicated peer multiaddrs
+          const mas = providers.bitswap.get(evt.detail.provider.id.toString()) ?? new Set()
+          evt.detail.provider.multiaddrs.forEach(ma => mas.add(ma.toString()))
+          providers.bitswap.set(evt.detail.provider.id.toString(), mas)
+        } else if (isTrustlessGatewayProvider(evt.detail)) {
+          providers.trustlessGateway.add(evt.detail.url)
+        } else {
+          providers.other.push(evt.detail)
+          providers.otherCount++
+
+          // truncate unknown routing providers if there are too many
+          if (providers.other.length > 5) {
+            providers.other.length = 5
+          }
+        }
+      }
     }
   }
-  /**
-   * abort the signal after the configured timeout.
-   *
-   * @see https://github.com/ipfs/service-worker-gateway/issues/674
-   */
-  const signalAbortTimeout = setTimeout(() => {
-    abortFn({ type: 'gateway-timeout' })
-  }, config.fetchTimeout)
-  // if the fetch event is aborted, we need to abort the signal we give to @helia/verified-fetch
-  event.request.signal.addEventListener('abort', abortFn)
+  const start = Date.now()
 
   try {
-    const url = new URL(event.request.url)
-    // remove the query params and hash fragment as verified-fetch/ipfs don't care about them
-    url.search = ''
-    url.hash = ''
-
-    const response = await verifiedFetch(url.href, {
-      signal,
-      headers,
-      redirect: 'manual',
-      onProgress: (e) => {
-        log.trace(`${e.type}: `, e.detail)
-      }
-    })
+    const response = await verifiedFetch(resource, init)
     response.headers.set('ipfs-sw', 'true')
+
+    log('GET %s %d', resource, response.status, response.statusText)
+
     /**
-     * Now that we've got a response back from Helia, don't abort the promise since any additional networking calls
-     * that may performed by Helia would be dropped.
+     * Now that we've got a response back from Helia, don't abort the promise
+     * since any additional networking calls that may performed by Helia would
+     * be dropped.
      *
-     * If `event.request.signal` is aborted, that would cancel any underlying network requests.
+     * If `event.request.signal` is aborted, that would cancel any underlying
+     * network requests.
      *
-     * Note: we haven't awaited the arrayBuffer, blob, json, etc. `await verifiedFetch` only awaits the construction of
-     * the response object, regardless of it's inner content
+     * Note: we haven't awaited the arrayBuffer, blob, json, etc.
+     * `await verifiedFetch` only awaits the construction of the response
+     * object, regardless of it's inner content
      */
-    if (response.status >= 400 && response.status !== 504) {
-      log.error('fetchHandler: response not ok: ', response)
-      return await errorPageResponse(response)
+    if (!response.ok) {
+      return errorPageResponse(resource, init, response, await response.text(), providers, logs)
     }
 
-    // Create a completely new response object with the same body, status, statusText, and headers.
-    // This is necessary to work around a bug with Safari not rendering content correctly.
-    const newResponse = new Response(response.body, {
+    // Create a completely new response object with the same body, status,
+    // statusText, and headers.
+    //
+    // This is necessary to work around a bug with Safari not rendering
+    // content correctly.
+    return new Response(response.body, {
       status: response.status,
       headers: response.headers,
       statusText: response.statusText
     })
+  } catch (err: any) {
+    if (timeoutSignal.aborted) {
+      return errorPageResponse(resource, init, new Response('', {
+        status: 504,
+        statusText: 'Gateway Timeout',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }), JSON.stringify(errorToObject(new AbortError(`Timed out after ${Date.now() - start}ms`)), null, 2), providers, logs)
+    }
 
-    return newResponse
-  } catch (err: unknown) {
-    log.trace('fetchHandler: error: ', err)
-    const errorMessages: string[] = []
-    if (isAggregateError(err)) {
-      log.error('fetchHandler aggregate error: ', err.message)
-      for (const e of err.errors) {
-        errorMessages.push(e.message)
-        log.error('fetchHandler errors: ', e)
+    if (event.request.signal.aborted) {
+      // the request was cancelled?
+    }
+
+    log.error('error during request - %e', err)
+
+    return errorPageResponse(resource, init, new Response('', {
+      status: 500,
+      statusText: 'Internal Server Error',
+      headers: {
+        'Content-Type': 'application/json'
       }
-    } else {
-      errorMessages.push(err instanceof Error ? err.message : JSON.stringify(err))
-      log.error('fetchHandler error: ', err)
-    }
-    const errorMessage = errorMessages.join('\n')
-
-    if (errorMessage.includes('aborted') || signal.aborted) {
-      return await get504Response(event)
-    }
-    const response = new Response('Service Worker IPFS Gateway error: ' + errorMessage, { status: 500 })
-    response.headers.set('ipfs-sw', 'true')
-    return response
-  } finally {
-    clearTimeout(signalAbortTimeout)
+    }), JSON.stringify(errorToObject(err), null, 2), providers, logs)
   }
 }
 
 /**
- * TODO: better styling
- * TODO: more error details from @helia/verified-fetch
+ * Shows an error page to the user
  */
-async function errorPageResponse (fetchResponse: Response): Promise<Response> {
+function errorPageResponse (resource: string, request: RequestInit, fetchResponse: Response, responseBody: string, providers: Providers, logs: string[]): Response {
   const responseContentType = fetchResponse.headers.get('Content-Type')
-  let json: Record<string, any> | null = null
-  // Clone the response before consuming the body
-  const responseCopy = fetchResponse.clone()
-  const responseBodyAsText: string | null = await responseCopy.text()
 
-  if (responseContentType != null) {
-    if (responseContentType.includes('text/html')) {
-      return fetchResponse
-    } else if (responseContentType.includes('application/json')) {
-      // we may eventually provide error messaging from @helia/verified-fetch
-      try {
-        json = JSON.parse(responseBodyAsText)
-      } catch (e) {
-        log.error('error parsing json for error page response', e)
-      }
-    }
-  }
-  if (json == null) {
-    json = { error: { message: `${fetchResponse.statusText}: ${responseBodyAsText}`, stack: null } }
-  } else if (json.error == null) {
-    json.error = {
-      message: json.errors.map((e: { message: string }) => `<li>${e.message}</li>`).join(''),
-      stack: json.errors.map((e: { stack: string }) => `<li>${e.stack}</li>`).join('\n')
-    }
+  if (responseContentType?.includes('text/html')) {
+    return fetchResponse
   }
 
-  const responseDetails = getResponseDetails(fetchResponse, responseBodyAsText)
-
-  /**
-   * TODO: output configuration
-   */
+  const responseDetails = getResponseDetails(fetchResponse, responseBody)
   const mergedHeaders = new Headers(fetchResponse.headers)
   mergedHeaders.set('Content-Type', 'text/html')
   mergedHeaders.set('ipfs-sw', 'true')
 
   const props = {
+    request: getRequestDetails(resource, request),
     response: responseDetails,
-    error: json.error,
-    config: await getServiceWorkerDetails(),
-    title: responseDetails.statusText,
-    stylesheet: '<%-- src/app.css --%>',
-    script: '<%-- src/internal-error.tsx --%>'
+    config: getServiceWorkerDetails(),
+    providers: toErrorPageProviders(providers),
+    title: `${responseDetails.status} ${responseDetails.statusText}`,
+    logs
   }
 
-  // inject props as a page global
-  const script = `<script type="text/javascript">globalThis.props = ${JSON.stringify(props, null, 2)}</script>`
+  const page = `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charSet='utf-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+    <link rel='shortcut icon' href='data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlo89/56ZQ/8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACUjDu1lo89/6mhTP+zrVP/nplD/5+aRK8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHNiIS6Wjz3/ubFY/761W/+vp1D/urRZ/8vDZf/GvmH/nplD/1BNIm8AAAAAAAAAAAAAAAAAAAAAAAAAAJaPPf+knEj/vrVb/761W/++tVv/r6dQ/7q0Wf/Lw2X/y8Nl/8vDZf+tpk7/nplD/wAAAAAAAAAAAAAAAJaPPf+2rVX/vrVb/761W/++tVv/vrVb/6+nUP+6tFn/y8Nl/8vDZf/Lw2X/y8Nl/8G6Xv+emUP/AAAAAAAAAACWjz3/vrVb/761W/++tVv/vrVb/761W/+vp1D/urRZ/8vDZf/Lw2X/y8Nl/8vDZf/Lw2X/nplD/wAAAAAAAAAAlo89/761W/++tVv/vrVb/761W/++tVv/r6dQ/7q0Wf/Lw2X/y8Nl/8vDZf/Lw2X/y8Nl/56ZQ/8AAAAAAAAAAJaPPf++tVv/vrVb/761W/++tVv/vbRa/5aPPf+emUP/y8Nl/8vDZf/Lw2X/y8Nl/8vDZf+emUP/AAAAAAAAAACWjz3/vrVb/761W/++tVv/vrVb/5qTQP+inkb/op5G/6KdRv/Lw2X/y8Nl/8vDZf/Lw2X/nplD/wAAAAAAAAAAlo89/761W/++tVv/sqlS/56ZQ//LxWb/0Mlp/9DJaf/Kw2X/oJtE/7+3XP/Lw2X/y8Nl/56ZQ/8AAAAAAAAAAJaPPf+9tFr/mJE+/7GsUv/Rymr/0cpq/9HKav/Rymr/0cpq/9HKav+xrFL/nplD/8vDZf+emUP/AAAAAAAAAACWjz3/op5G/9HKav/Rymr/0cpq/9HKav/Rymr/0cpq/9HKav/Rymr/0cpq/9HKav+inkb/nplD/wAAAAAAAAAAAAAAAKKeRv+3slb/0cpq/9HKav/Rymr/0cpq/9HKav/Rymr/0cpq/9HKav+1sFX/op5G/wAAAAAAAAAAAAAAAAAAAAAAAAAAop5GUKKeRv/Nxmf/0cpq/9HKav/Rymr/0cpq/83GZ/+inkb/op5GSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAop5G16KeRv/LxWb/y8Vm/6KeRv+inkaPAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAop5G/6KeRtcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/n8AAPgfAADwDwAAwAMAAIABAACAAQAAgAEAAIABAACAAQAAgAEAAIABAACAAQAAwAMAAPAPAAD4HwAA/n8AAA==' />
+    <title>${props.title}</title>
+    <link rel="stylesheet" href="<%-- src/app.css --%>">
+    <script type="text/javascript">
+globalThis.props = ${JSON.stringify(props, null, 2)}
+    </script>
+  </head>
+  <body class="san-serif charcoal">
+    <div id="app"></div>
+    <script type="text/javascript" src="<%-- src/error.tsx --%>"></script>
+  </body>
+</html>
+`
 
-  const string = '<!DOCTYPE html>\n' + renderToString(
-    Page({
-      ...props,
-      children: InternalErrorPage(props)
-    })
-  ).replace('</head>', `${script}</head>`)
-
-  return new Response(string, {
+  return new Response(page, {
     status: fetchResponse.status,
     statusText: fetchResponse.statusText,
     headers: mergedHeaders
   })
 }
 
-async function get504Response (event: FetchEvent): Promise<Response> {
-  const response504 = await fetch(new URL('/ipfs-sw-504.html', event.request.url))
-
-  return new Response(response504.body, {
-    status: 504,
-    headers: {
-      'Content-Type': 'text/html',
-      'ipfs-sw': 'true'
-    }
-  })
-}
-
 /**
  * TODO: more service worker details
  */
-async function getServiceWorkerDetails (): Promise<ServiceWorkerDetails> {
+function getServiceWorkerDetails (): ServiceWorkerDetails {
   const registration = self.registration
   const state = registration.installing?.state ?? registration.waiting?.state ?? registration.active?.state ?? 'unknown'
 
   return {
-    config: await getConfig(swLogger),
+    config,
     // TODO: implement https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Opener-Policy
     crossOriginIsolated: self.crossOriginIsolated,
     installTime: (new Date(firstInstallTime)).toUTCString(),
     origin: self.location.origin,
     scope: registration.scope,
-    state
+    state,
+    version: APP_VERSION,
+    commit: GIT_REVISION
   }
 }
 
-function getResponseDetails (response: Response, responseBody: string): ResponseDetails {
+function toErrorPageProviders (providers: Providers): ErrorPageProviders {
+  const output: ErrorPageProviders = {
+    total: providers.total,
+    other: providers.other,
+    otherCount: providers.otherCount,
+    trustlessGateway: [...providers.trustlessGateway],
+    bitswap: {}
+  }
+
+  for (const [key, addresses] of providers.bitswap) {
+    output.bitswap[key] = [...addresses]
+  }
+
+  return output
+}
+
+export interface RequestDetails {
+  resource: string
+  method: string
+  headers: Record<string, string>
+}
+
+function getRequestDetails (resource: string, init: RequestInit): RequestDetails {
+  const requestHeaders = new Headers(init.headers)
+  const headers: Record<string, string> = {}
+  requestHeaders.forEach((value, key) => {
+    headers[key] = value
+  })
+
+  return {
+    resource,
+    method: init.method ?? 'GET',
+    headers
+  }
+}
+
+export interface ResponseDetails {
+  resource: string,
+  headers: Record<string, string>
+  status: number
+  statusText: string
+  body: string
+}
+
+function getResponseDetails (response: Response, body: string): ResponseDetails {
   const headers: Record<string, string> = {}
   response.headers.forEach((value, key) => {
     headers[key] = value
   })
 
-  if (response.headers.get('Content-Type')?.includes('application/json') === true) {
-    try {
-      responseBody = JSON.parse(responseBody)
-    } catch (e) {
-      log.error('error parsing json for error page response', e)
-    }
-  }
-
   return {
-    responseBody,
+    resource: response.url,
     headers,
     status: response.status,
     statusText: response.statusText,
-    url: response.url
+    body
   }
 }
 
@@ -799,19 +861,23 @@ function isServiceWorkerRegistrationTTLValid (): boolean {
 }
 
 async function getInstallTimestamp (): Promise<number> {
+  const log = getSwLogger('get-install-timestamp')
+
   try {
     const swidb = getSwConfig()
     await swidb.open()
     firstInstallTime = await swidb.get('installTimestamp')
     swidb.close()
     return firstInstallTime
-  } catch (e) {
-    log.error('getInstallTimestamp error: ', e)
+  } catch (err) {
+    log.error('getInstallTimestamp error = %e', err)
     return 0
   }
 }
 
 async function addInstallTimestampToConfig (): Promise<void> {
+  const log = getSwLogger('add-install-timestamp-to-config')
+
   try {
     const timestamp = Date.now()
     firstInstallTime = timestamp
@@ -819,31 +885,35 @@ async function addInstallTimestampToConfig (): Promise<void> {
     await swidb.open()
     await swidb.put('installTimestamp', timestamp)
     swidb.close()
-  } catch (e) {
-    log.error('addInstallTimestampToConfig error: ', e)
+  } catch (err) {
+    log.error('addInstallTimestampToConfig error - %e', err)
   }
 }
 
 async function setOriginIsolationWarningAccepted (): Promise<void> {
+  const log = getSwLogger('set-origin-isolation-warning-accepted')
+
   try {
     const swidb = getSwConfig()
     await swidb.open()
     await swidb.put('originIsolationWarningAccepted', true)
     swidb.close()
-  } catch (e) {
-    log.error('setOriginIsolationWarningAccepted error: ', e)
+  } catch (err) {
+    log.error('setOriginIsolationWarningAccepted error - %e', err)
   }
 }
 
 async function getOriginIsolationWarningAccepted (): Promise<boolean> {
+  const log = getSwLogger('get-origin-isolation-warning-accepted')
+
   try {
     const swidb = getSwConfig()
     await swidb.open()
     const accepted = await swidb.get('originIsolationWarningAccepted')
     swidb.close()
     return accepted ?? false
-  } catch (e) {
-    log.error('getOriginIsolationWarningAccepted error: ', e)
+  } catch (err) {
+    log.error('getOriginIsolationWarningAccepted error - %e', err)
     return false
   }
 }
@@ -853,11 +923,18 @@ async function getOriginIsolationWarningAccepted (): Promise<boolean> {
  * which is used for storing the service worker's css,js, and html assets.
  */
 async function clearSwAssetCache (): Promise<void> {
+  const log = getSwLogger('clear-sw-asset-cache')
+
   // clear out old swAssets cache
   const cacheName = CURRENT_CACHES.swAssets
   const cache = await caches.open(cacheName)
-  const keys = await cache.keys()
-  for (const request of keys) {
-    await cache.delete(request)
+
+  try {
+    const keys = await cache.keys()
+    for (const request of keys) {
+      await cache.delete(request)
+    }
+  } catch (err) {
+    log.error('could not clear SW asset cache - %e', err)
   }
 }

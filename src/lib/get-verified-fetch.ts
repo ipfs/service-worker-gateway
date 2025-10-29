@@ -9,28 +9,59 @@ import { dagCborHtmlPreviewPluginFactory, dirIndexHtmlPluginFactory } from '@hel
 import { generateKeyPair } from '@libp2p/crypto/keys'
 import { dcutr } from '@libp2p/dcutr'
 import { identify, identifyPush } from '@libp2p/identify'
+import { TypedEventEmitter } from '@libp2p/interface'
 import { keychain } from '@libp2p/keychain'
+import { logger } from '@libp2p/logger'
 import { ping } from '@libp2p/ping'
 import { webSockets } from '@libp2p/websockets'
 import { webTransport } from '@libp2p/webtransport'
+import { blake2b256 } from '@multiformats/blake2/blake2b'
 import { dns } from '@multiformats/dns'
 import { dnsJsonOverHttps } from '@multiformats/dns/resolvers'
 import { createHelia } from 'helia'
 import { createLibp2p } from 'libp2p'
 import * as libp2pInfo from 'libp2p/version'
+import { format } from 'weald/format'
 import { blake3 } from './blake3.js'
 import type { ConfigDb } from './config-db.js'
 import type { DelegatedRoutingV1HttpApiClient } from '@helia/delegated-routing-v1-http-api-client'
 import type { BlockBroker } from '@helia/interface'
 import type { VerifiedFetch } from '@helia/verified-fetch'
-import type { ComponentLogger } from '@libp2p/logger'
+import type { Logger, TypedEventTarget, ComponentLogger } from '@libp2p/interface'
 import type { DNSResolvers } from '@multiformats/dns'
 import type { Helia, Routing } from 'helia'
 import type { Libp2pOptions } from 'libp2p'
 
-export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogger): Promise<VerifiedFetch> {
-  const log = logger.forComponent('get-verified-fetch')
-  log(`config-debug: got config for sw location ${self.location.origin}`, JSON.stringify(config, null, 2))
+export interface LogEvents {
+  log: CustomEvent<string>
+}
+
+/**
+ * Listen for 'log' events to collect logs for operations
+ */
+export const logEmitter: TypedEventTarget<LogEvents> = new TypedEventEmitter<LogEvents>()
+
+/**
+ * A log implementation that also emits all log lines as 'log' events on the
+ * exported `logEmitter`.
+ */
+export function collectingLogger (prefix?: string): ComponentLogger {
+  return {
+    forComponent (name: string) {
+      return logger(`${prefix == null ? '' : `${prefix}:`}${name}`, {
+        onLog (fmt: string, ...args: any[]): void {
+          logEmitter.safeDispatchEvent('log', {
+            detail: format(fmt.replaceAll('%c', ''), ...args.filter(arg => !`${arg}`.startsWith('color:')))
+          })
+        }
+      })
+    }
+  }
+}
+
+export async function getVerifiedFetch (config: ConfigDb, logger: Logger): Promise<VerifiedFetch> {
+  const log = logger.newScope('get-verified-fetch')
+  log('got config for sw location %s %o', self.location.origin, config)
 
   // Start by adding the config routers as delegated routers
   const routers: Array<Partial<Routing>> = []
@@ -53,7 +84,7 @@ export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogge
     blockBrokers.push(trustlessGateway({ allowLocal: true }))
   }
 
-  const hashers = [blake3]
+  const hashers = [blake3, blake2b256]
 
   let helia: Helia
   if (config.enableWss || config.enableWebTransport) {
@@ -61,10 +92,12 @@ export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogge
     blockBrokers.push(bitswap())
     const libp2pOptions = await libp2pDefaults(config)
     libp2pOptions.dns = dnsConfig
+    libp2pOptions.logger = collectingLogger()
     const libp2p = await createLibp2p(libp2pOptions)
     routers.push(libp2pRouting(libp2p))
 
     helia = await createHelia({
+      logger: collectingLogger(),
       libp2p,
       routers,
       blockBrokers,
@@ -74,8 +107,10 @@ export async function getVerifiedFetch (config: ConfigDb, logger: ComponentLogge
   } else {
     config.routers.forEach((router) => {
       routers.push(delegatedHTTPRouting(router, {
-        // NOTE: in practice 'transport-ipfs-gateway-http' exists only in IPNI results, we won't have any DHT results like this unless..
-        // TODO: someguy starts doing active probing (https://github.com/ipfs/someguy/issues/53) to identify peers which have functional HTTP gateway
+        // NOTE: in practice 'transport-ipfs-gateway-http' exists only in IPNI
+        // results, we won't have any DHT results like this unless..
+        // TODO: someguy starts doing active probing (https://github.com/ipfs/someguy/issues/53)
+        // to identify peers which have functional HTTP gateway
         filterProtocols: ['transport-ipfs-gateway-http'],
         // Include both /https && /tls/../http
         filterAddrs: ['https', 'tls']
