@@ -1,20 +1,19 @@
 import { AbortError, setMaxListeners } from '@libp2p/interface'
-import { getConfig } from './lib/config-db.js'
+import { Config } from './lib/config-db.js'
 import { HASH_FRAGMENTS, QUERY_PARAMS } from './lib/constants.js'
 import { errorToObject } from './lib/error-to-object.js'
-import { getHeliaSwRedirectUrl } from './lib/first-hit-helpers.js'
 import { GenericIDB } from './lib/generic-db.js'
 import { getSubdomainParts } from './lib/get-subdomain-parts.js'
 import { getVerifiedFetch, logEmitter } from './lib/get-verified-fetch.js'
 import { hasHashFragment } from './lib/hash-fragments.js'
 import { isConfigPage } from './lib/is-config-page.js'
 import { getSwLogger } from './lib/logger.js'
-import { findOriginIsolationRedirect, isPathGatewayRequest, isSubdomainGatewayRequest } from './lib/path-or-subdomain.js'
+import { isPathGatewayRequest, isSubdomainGatewayRequest, toSubdomainRequest } from './lib/path-or-subdomain.js'
 import { isBitswapProvider, isTrustlessGatewayProvider } from './lib/providers.js'
 import { isUnregisterRequest } from './lib/unregister-request.js'
-import { APP_VERSION, GIT_REVISION } from './version.js'
+import { fetchErrorPageResponse } from './sw/fetch-error-page.js'
+import { originIsolationWarningPageResponse } from './sw/origin-isolation-warning-page.js'
 import type { ConfigDb } from './lib/config-db.js'
-import type { Providers as ErrorPageProviders } from './pages/errors/fetch-error.jsx'
 import type { VerifiedFetch, VerifiedFetchInit } from '@helia/verified-fetch'
 
 /**
@@ -49,24 +48,9 @@ interface LocalSwConfig {
 }
 
 /**
- * When returning a meaningful error page, we provide the following details about
- * the service worker
- */
-interface ServiceWorkerDetails {
-  config: ConfigDb
-  crossOriginIsolated: boolean
-  installTime: string
-  origin: string
-  scope: string
-  state: string
-  version: string
-  commit: string
-}
-
-/**
  * These are block/car providers that were used while downloading data
  */
-interface Providers {
+export interface Providers {
   total: number
   bitswap: Map<string, Set<string>>
   trustlessGateway: Set<string>
@@ -82,25 +66,28 @@ interface Providers {
  ******************************************************
  */
 declare let self: ServiceWorkerGlobalScope
-// const log = swLogger.forComponent('main')
 
 /**
  * This is one best practice that can be followed in general to keep track of
  * multiple caches used by a given service worker, and keep them all versioned.
- * It maps a shorthand identifier for a cache to a specific, versioned cache name.
+ * It maps a shorthand identifier for a cache to a specific, versioned cache
+ * name.
  *
- * Note that since global state is discarded in between service worker restarts, these
- * variables will be reinitialized each time the service worker handles an event, and you
- * should not attempt to change their values inside an event handler. (Treat them as constants.)
+ * Note that since global state is discarded in between service worker restarts,
+ * these variables will be reinitialized each time the service worker handles an
+ * event, and you should not attempt to change their values inside an event
+ * handler. (Treat them as constants.)
  *
- * If at any point you want to force pages that use this service worker to start using a fresh
- * cache, then increment the CACHE_VERSION value. It will kick off the service worker update
- * flow and the old cache(s) will be purged as part of the activate event handler when the
- * updated service worker is activated.
+ * If at any point you want to force pages that use this service worker to start
+ * using a fresh cache, then increment the CACHE_VERSION value. It will kick off
+ * the service worker update flow and the old cache(s) will be purged as part of
+ * the activate event handler when the updated service worker is activated.
  *
  * @see https://googlechrome.github.io/samples/service-worker/prefetch-video/
  */
-const CACHE_VERSION = 2 // see https://github.com/ipfs/service-worker-gateway/pull/853#issuecomment-3309246532
+
+// see https://github.com/ipfs/service-worker-gateway/pull/853#issuecomment-3309246532
+const CACHE_VERSION = 2
 const CURRENT_CACHES = Object.freeze({
   mutable: `mutable-cache-v${CACHE_VERSION}`,
   immutable: `immutable-cache-v${CACHE_VERSION}`,
@@ -112,7 +99,11 @@ const urlInterceptRegex = [new RegExp(`${self.location.origin}/ip(n|f)s/`)]
 let config: ConfigDb
 
 const updateConfig = async (): Promise<void> => {
-  config = await getConfig(getSwLogger('update-config'))
+  const conf = new Config({
+    logger: getSwLogger()
+  })
+  await conf.init()
+  config = await conf.get()
 }
 
 async function updateVerifiedFetch (): Promise<void> {
@@ -158,7 +149,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim())
 
   // eslint-disable-next-line no-console
-  console.info('Service Worker Gateway: To manually unregister, append "?ipfs-sw-unregister=true" to the URL, or use the button on the config page.')
+  console.info(`Service Worker Gateway: To manually unregister, append "?${QUERY_PARAMS.UNREGISTER_SERVICE_WORKER}=true" to the URL, or use the button on the config page.`)
 
   // Delete all caches that aren't named in CURRENT_CACHES.
   const expectedCacheNames = Object.keys(CURRENT_CACHES).map(function (key) {
@@ -374,8 +365,8 @@ function isSubdomainRequest (event: FetchEvent): boolean {
   const log = getSwLogger('is-subdomain-request')
 
   const { id, protocol } = getSubdomainParts(event.request.url)
-  log.trace('isSubdomainRequest.id: ', id)
-  log.trace('isSubdomainRequest.protocol: ', protocol)
+  log.trace('isSubdomainRequest.id: %s', id)
+  log.trace('isSubdomainRequest.protocol: %s', protocol)
 
   return id != null && protocol != null
 }
@@ -395,7 +386,7 @@ function isValidRequestForSW (event: FetchEvent): boolean {
 
 function isSwConfigReloadRequest (event: FetchEvent): boolean {
   const url = new URL(event.request.url)
-  return url.pathname.includes('/#/ipfs-sw-config-reload') || url.searchParams.get('ipfs-sw-config-reload') === 'true'
+  return url.searchParams.get(QUERY_PARAMS.RELOAD_CONFIG) === 'true'
 }
 
 function isSwConfigGETRequest (event: FetchEvent): boolean {
@@ -558,37 +549,48 @@ async function storeResponseInCache ({ response, isMutable, cacheKey, event }: S
 }
 
 async function fetchHandler ({ request, event, logs }: FetchHandlerArg): Promise<Response> {
-  const log = getSwLogger('fetch-handler')
+  /**
+   * > Any global variables you set will be lost if the service worker shuts down.
+   *
+   * @see https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle
+   */
+  if (config == null) {
+    await updateConfig()
+  }
 
+  const log = getSwLogger('fetch-handler')
   const originalUrl = new URL(request.url)
+  const subdomainGatewayRequest = isSubdomainGatewayRequest(originalUrl)
+  const pathGatewayRequest = isPathGatewayRequest(originalUrl)
 
   // test and enforce origin isolation before anything else is executed
-  const originLocation = await findOriginIsolationRedirect(originalUrl, log)
+  if (!subdomainGatewayRequest && pathGatewayRequest) {
+    try {
+      const asSubdomainRequest = toSubdomainRequest(originalUrl)
 
-  if (originLocation !== null) {
-    log.trace('redirecting to subdomain')
-    return new Response('Gateway supports subdomain mode, redirecting to ensure Origin isolation..', {
-      status: 301,
-      headers: {
-        'Content-Type': 'text/plain',
-        Location: originLocation
+      if (config._supportsSubdomains) {
+        log.trace('redirecting to subdomain')
+        return new Response('Gateway supports subdomain mode, redirecting to ensure Origin isolation..', {
+          status: 301,
+          headers: {
+            'Content-Type': 'text/plain',
+            Location: asSubdomainRequest
+          }
+        })
       }
-    })
-  } else if (!isSubdomainGatewayRequest(originalUrl) && isPathGatewayRequest(originalUrl) && !(await getOriginIsolationWarningAccepted()) && !originalUrl.searchParams.has(QUERY_PARAMS.HELIA_SW)) {
-    log.trace('showing origin isolation warning')
-    const newUrl = new URL(originalUrl.href)
-    newUrl.pathname = '/'
-    newUrl.hash = '/ipfs-sw-origin-isolation-warning'
+    } catch {
+      // URL was invalid (may have been an IP address which can't be translated
+      // to a subdomain gateway URL)
+    }
 
-    const redirectUrl = getHeliaSwRedirectUrl(originalUrl, newUrl)
+    const acceptedOriginIsolationWarning = await getOriginIsolationWarningAccepted()
 
-    return new Response('Origin isolation is not supported, please accept the risk to continue.', {
-      status: 307,
-      headers: {
-        'Content-Type': 'text/plain',
-        Location: redirectUrl.href
-      }
-    })
+    if (!acceptedOriginIsolationWarning) {
+      log.trace('showing origin isolation warning')
+      return originIsolationWarningPageResponse(request.url)
+    }
+
+    // no subdomain support and the user has yolo'ed the warning so do nothing
   }
 
   /**
@@ -669,7 +671,7 @@ async function fetchHandler ({ request, event, logs }: FetchHandlerArg): Promise
      * object, regardless of it's inner content
      */
     if (!response.ok) {
-      return errorPageResponse(resource, init, response, await response.text(), providers, logs)
+      return fetchErrorPageResponse(resource, init, response, await response.text(), providers, config, firstInstallTime, logs)
     }
 
     // Create a completely new response object with the same body, status,
@@ -684,13 +686,13 @@ async function fetchHandler ({ request, event, logs }: FetchHandlerArg): Promise
     })
   } catch (err: any) {
     if (timeoutSignal.aborted) {
-      return errorPageResponse(resource, init, new Response('', {
+      return fetchErrorPageResponse(resource, init, new Response('', {
         status: 504,
         statusText: 'Gateway Timeout',
         headers: {
           'Content-Type': 'application/json'
         }
-      }), JSON.stringify(errorToObject(new AbortError(`Timed out after ${Date.now() - start}ms`)), null, 2), providers, logs)
+      }), JSON.stringify(errorToObject(new AbortError(`Timed out after ${Date.now() - start}ms`)), null, 2), providers, config, firstInstallTime, logs)
     }
 
     if (event.request.signal.aborted) {
@@ -699,142 +701,13 @@ async function fetchHandler ({ request, event, logs }: FetchHandlerArg): Promise
 
     log.error('error during request - %e', err)
 
-    return errorPageResponse(resource, init, new Response('', {
+    return fetchErrorPageResponse(resource, init, new Response('', {
       status: 500,
       statusText: 'Internal Server Error',
       headers: {
         'Content-Type': 'application/json'
       }
-    }), JSON.stringify(errorToObject(err), null, 2), providers, logs)
-  }
-}
-
-/**
- * Shows an error page to the user
- */
-function errorPageResponse (resource: string, request: RequestInit, fetchResponse: Response, responseBody: string, providers: Providers, logs: string[]): Response {
-  const responseContentType = fetchResponse.headers.get('Content-Type')
-
-  if (responseContentType?.includes('text/html')) {
-    return fetchResponse
-  }
-
-  const responseDetails = getResponseDetails(fetchResponse, responseBody)
-  const mergedHeaders = new Headers(fetchResponse.headers)
-  mergedHeaders.set('Content-Type', 'text/html')
-  mergedHeaders.set('ipfs-sw', 'true')
-
-  const props = {
-    request: getRequestDetails(resource, request),
-    response: responseDetails,
-    config: getServiceWorkerDetails(),
-    providers: toErrorPageProviders(providers),
-    title: `${responseDetails.status} ${responseDetails.statusText}`,
-    logs
-  }
-
-  const page = `<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charSet='utf-8' />
-    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
-    <link rel='shortcut icon' href='data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlo89/56ZQ/8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACUjDu1lo89/6mhTP+zrVP/nplD/5+aRK8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHNiIS6Wjz3/ubFY/761W/+vp1D/urRZ/8vDZf/GvmH/nplD/1BNIm8AAAAAAAAAAAAAAAAAAAAAAAAAAJaPPf+knEj/vrVb/761W/++tVv/r6dQ/7q0Wf/Lw2X/y8Nl/8vDZf+tpk7/nplD/wAAAAAAAAAAAAAAAJaPPf+2rVX/vrVb/761W/++tVv/vrVb/6+nUP+6tFn/y8Nl/8vDZf/Lw2X/y8Nl/8G6Xv+emUP/AAAAAAAAAACWjz3/vrVb/761W/++tVv/vrVb/761W/+vp1D/urRZ/8vDZf/Lw2X/y8Nl/8vDZf/Lw2X/nplD/wAAAAAAAAAAlo89/761W/++tVv/vrVb/761W/++tVv/r6dQ/7q0Wf/Lw2X/y8Nl/8vDZf/Lw2X/y8Nl/56ZQ/8AAAAAAAAAAJaPPf++tVv/vrVb/761W/++tVv/vbRa/5aPPf+emUP/y8Nl/8vDZf/Lw2X/y8Nl/8vDZf+emUP/AAAAAAAAAACWjz3/vrVb/761W/++tVv/vrVb/5qTQP+inkb/op5G/6KdRv/Lw2X/y8Nl/8vDZf/Lw2X/nplD/wAAAAAAAAAAlo89/761W/++tVv/sqlS/56ZQ//LxWb/0Mlp/9DJaf/Kw2X/oJtE/7+3XP/Lw2X/y8Nl/56ZQ/8AAAAAAAAAAJaPPf+9tFr/mJE+/7GsUv/Rymr/0cpq/9HKav/Rymr/0cpq/9HKav+xrFL/nplD/8vDZf+emUP/AAAAAAAAAACWjz3/op5G/9HKav/Rymr/0cpq/9HKav/Rymr/0cpq/9HKav/Rymr/0cpq/9HKav+inkb/nplD/wAAAAAAAAAAAAAAAKKeRv+3slb/0cpq/9HKav/Rymr/0cpq/9HKav/Rymr/0cpq/9HKav+1sFX/op5G/wAAAAAAAAAAAAAAAAAAAAAAAAAAop5GUKKeRv/Nxmf/0cpq/9HKav/Rymr/0cpq/83GZ/+inkb/op5GSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAop5G16KeRv/LxWb/y8Vm/6KeRv+inkaPAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAop5G/6KeRtcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/n8AAPgfAADwDwAAwAMAAIABAACAAQAAgAEAAIABAACAAQAAgAEAAIABAACAAQAAwAMAAPAPAAD4HwAA/n8AAA==' />
-    <title>${props.title}</title>
-    <link rel="stylesheet" href="<%-- src/app.css --%>">
-    <script type="text/javascript">
-globalThis.props = ${JSON.stringify(props, null, 2)}
-    </script>
-  </head>
-  <body class="san-serif charcoal">
-    <div id="app"></div>
-    <script type="text/javascript" src="<%-- src/error.tsx --%>"></script>
-  </body>
-</html>
-`
-
-  return new Response(page, {
-    status: fetchResponse.status,
-    statusText: fetchResponse.statusText,
-    headers: mergedHeaders
-  })
-}
-
-/**
- * TODO: more service worker details
- */
-function getServiceWorkerDetails (): ServiceWorkerDetails {
-  const registration = self.registration
-  const state = registration.installing?.state ?? registration.waiting?.state ?? registration.active?.state ?? 'unknown'
-
-  return {
-    config,
-    // TODO: implement https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Opener-Policy
-    crossOriginIsolated: self.crossOriginIsolated,
-    installTime: (new Date(firstInstallTime)).toUTCString(),
-    origin: self.location.origin,
-    scope: registration.scope,
-    state,
-    version: APP_VERSION,
-    commit: GIT_REVISION
-  }
-}
-
-function toErrorPageProviders (providers: Providers): ErrorPageProviders {
-  const output: ErrorPageProviders = {
-    total: providers.total,
-    other: providers.other,
-    otherCount: providers.otherCount,
-    trustlessGateway: [...providers.trustlessGateway],
-    bitswap: {}
-  }
-
-  for (const [key, addresses] of providers.bitswap) {
-    output.bitswap[key] = [...addresses]
-  }
-
-  return output
-}
-
-export interface RequestDetails {
-  resource: string
-  method: string
-  headers: Record<string, string>
-}
-
-function getRequestDetails (resource: string, init: RequestInit): RequestDetails {
-  const requestHeaders = new Headers(init.headers)
-  const headers: Record<string, string> = {}
-  requestHeaders.forEach((value, key) => {
-    headers[key] = value
-  })
-
-  return {
-    resource,
-    method: init.method ?? 'GET',
-    headers
-  }
-}
-
-export interface ResponseDetails {
-  resource: string,
-  headers: Record<string, string>
-  status: number
-  statusText: string
-  body: string
-}
-
-function getResponseDetails (response: Response, body: string): ResponseDetails {
-  const headers: Record<string, string> = {}
-  response.headers.forEach((value, key) => {
-    headers[key] = value
-  })
-
-  return {
-    resource: response.url,
-    headers,
-    status: response.status,
-    statusText: response.statusText,
-    body
+    }), JSON.stringify(errorToObject(err), null, 2), providers, config, firstInstallTime, logs)
   }
 }
 

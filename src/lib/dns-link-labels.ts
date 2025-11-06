@@ -17,7 +17,7 @@ const dnsLabelRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/
  *
  * IPNS Names do not have dots or dashes.
  */
-export function isValidDnsLabel (label: string): boolean {
+function isValidDnsLabel (label: string): boolean {
   // If string is not a valid IPNS Name (CID)
   // then we assume it may be a valid DNSLabel.
   try {

@@ -59,7 +59,7 @@ function gitRevision () {
 }
 
 /**
- * Inject all ipfs-sw-*.html pages (not index.html and not ipfs-sw-first-hit.html) in the dist folder with CSS, git revision, and logo.
+ * Inject all ipfs-sw-*.html pages (not index.html) in the dist folder with CSS, git revision, and logo.
  *
  * @param {esbuild.Metafile} metafile - esbuild's metafile to extract output file names
  * @param {string} revision - Pre-computed Git revision string
@@ -343,7 +343,6 @@ export const buildOptions = {
     'src/index.tsx',
     'src/sw.ts',
     'src/app.tsx',
-    'src/error.tsx',
     'src/ipfs-sw-*.ts',
     'src/ipfs-sw-*.css'
   ],

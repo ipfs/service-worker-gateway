@@ -4,6 +4,7 @@
  *
  * Note that this was only tested and confirmed working for subdomain pages.
  */
+import { QUERY_PARAMS } from '../../src/lib/constants.js'
 import { getConfigDebug, getConfigDnsJsonResolvers, getConfigEnableGatewayProviders, getConfigEnableRecursiveGateways, getConfigEnableWebTransport, getConfigEnableWss, getConfigFetchTimeout, getConfigGatewaysInput, getConfigPage, getConfigPageSaveButton, getConfigRoutersInput, getConfigServiceWorkerRegistrationTTL } from './locators.js'
 import { waitForServiceWorker } from './wait-for-service-worker.js'
 import type { ConfigDb, ConfigDbWithoutPrivateFields } from '../../src/lib/config-db.js'
@@ -62,7 +63,7 @@ export async function setConfigViaUi ({ page, config, expectedSwScope }: { page:
   // create a promise for waiting for the response from the service worker when the save is completed.
   const savePromise = new Promise((resolve) => {
     page.on('response', (response) => {
-      if (response.url().includes('?ipfs-sw-config-reload=true')) {
+      if (response.url().includes(`?${QUERY_PARAMS.RELOAD_CONFIG}=true`)) {
         resolve(response)
       }
     })
@@ -108,7 +109,7 @@ export async function getConfigUi ({ page, expectedSwScope }: { page: Page, expe
 
 export async function setConfig ({ page, config }: { page: Page, config: Partial<ConfigDb> }): Promise<void> {
   // we can't pass through functions we already have defined, so many of these things are copied over from <root>/src/lib/generic-db.ts
-  await page.evaluate(async (configInPage) => {
+  await page.evaluate(async ({ config, QUERY_PARAMS }) => {
     const dbName = 'helia-sw'
     const storeName = 'config'
     const openDb = async (): Promise<IDBDatabase> => new Promise((resolve, reject) => {
@@ -132,21 +133,24 @@ export async function setConfig ({ page, config }: { page: Page, config: Partial
     }
 
     // for every config value passed, make sure we set them in the db
-    for (const [key, value] of Object.entries(configInPage)) {
+    for (const [key, value] of Object.entries(config)) {
       await put(key, value)
     }
 
     db.close()
 
-    const resp = await fetch('?ipfs-sw-config-reload=true')
+    const resp = await fetch(`?${QUERY_PARAMS.RELOAD_CONFIG}=true`)
 
     if (!resp.ok) {
       throw new Error('Failed to reload config')
     }
   }, {
-    gateways: [process.env.KUBO_GATEWAY],
-    routers: [process.env.KUBO_GATEWAY],
-    ...config
+    config: {
+      gateways: [process.env.KUBO_GATEWAY],
+      routers: [process.env.KUBO_GATEWAY],
+      ...config
+    },
+    QUERY_PARAMS
   })
 }
 

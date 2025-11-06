@@ -12,10 +12,6 @@ export async function waitForServiceWorker (page: Page, scope: string): Promise<
     for (let i = 0; i < iterations; i++) {
       const registration = await window.navigator.serviceWorker.getRegistration()
 
-      if (registration == null) {
-        continue
-      }
-
       if (registration?.active?.state === 'activated') {
         return
       }

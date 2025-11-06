@@ -103,16 +103,10 @@
     </style>
   </head>
   <body>
-    <div class="loading-container loading-indicator-js hidden">
+    <div class="loading-container loading-indicator-js">
       <div class="loading-animation"></div>
     </div>
-    <div id="root" class="sans-serif f5"></div>
-    <script>
-      window.addEventListener('DOMContentLoaded', () => {
-        document.querySelector('.loading-indicator-js').classList.add('hidden')
-        document.getElementById('root').style.display = 'block'
-      })
-    </script>
+    <div id="root" class="sans-serif charcoal f5"></div>
     <%= JS_SCRIPT_TAG %>
   </body>
 </html>

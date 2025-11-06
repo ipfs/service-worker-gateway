@@ -7,7 +7,7 @@ export interface ContentBoxProps extends PropsWithChildren {
 
 export default function ContentBox ({ title, children }: ContentBoxProps): ReactElement {
   return (
-    <main className='ma3 br2 ba sans-serif ba br2 b--gray-muted'>
+    <main className='ma3 br2 ba sans-serif ba br2 b--gray-muted br2'>
       <header className='pt2 pb2 pl3 pr3 bg-snow bb b--gray-muted'>
         <strong>{title}</strong>
       </header>

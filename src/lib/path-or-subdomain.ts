@@ -1,7 +1,6 @@
 import { base32 } from 'multiformats/bases/base32'
 import { base36 } from 'multiformats/bases/base36'
 import { CID } from 'multiformats/cid'
-import { areSubdomainsSupported } from './config-db.js'
 import { dnsLinkLabelEncoder } from './dns-link-labels.js'
 import { getHeliaSwRedirectUrl } from './first-hit-helpers.js'
 import { pathRegex, subdomainRegex } from './regex.js'
@@ -25,25 +24,38 @@ export const isPathGatewayRequest = (location: Pick<Location, 'host' | 'pathname
  * Origin isolation check and enforcement
  * https://github.com/ipfs-shipyard/helia-service-worker-gateway/issues/30
  */
-export const findOriginIsolationRedirect = async (location: Pick<Location, 'protocol' | 'host' | 'pathname' | 'search' | 'hash' | 'href' | 'origin'>, logger?: Logger): Promise<string | null> => {
+export const findOriginIsolationRedirect = (location: Pick<Location, 'protocol' | 'host' | 'pathname' | 'search' | 'hash' | 'href' | 'origin'>, logger: Logger, supportsSubdomains: boolean | null): string | null => {
   const log = logger?.newScope('find-origin-isolation-redirect')
 
-  if (isPathGatewayRequest(location) && !isSubdomainGatewayRequest(location)) {
+  if (isSubdomainGatewayRequest(location)) {
+    // already on an isolated origin
+    return null
+  }
+
+  if (isPathGatewayRequest(location)) {
     log?.trace('checking for subdomain support')
-    if (await areSubdomainsSupported(logger) === true) {
+
+    if (supportsSubdomains === true) {
       log?.trace('subdomain support is enabled')
       return toSubdomainRequest(location)
-    } else {
-      log?.trace('subdomain support is disabled')
     }
   }
+
+  // TODO: if not a subdomain or path gateway request, should throw here?
 
   log?.trace('no need to check for subdomain support - is path gateway request %s, is subdomain gateway request %s', isPathGatewayRequest(location), isSubdomainGatewayRequest(location))
   return null
 }
 
 export const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' | 'pathname' | 'search' | 'hash' | 'href' | 'origin'>): string => {
-  const segments = location.pathname.split('/').filter(segment => segment !== '' && segment !== 'ipfs-sw-first-hit.html')
+  const segments = location.pathname
+    .split('/')
+    .filter(segment => segment !== '')
+
+  if (segments.length < 2) {
+    throw new Error(`Invalid location ${location}`)
+  }
+
   const ns = segments[0]
   let id = segments[1]
 
@@ -70,7 +82,7 @@ export const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' 
   } catch {
     // not a CID, so we assume a DNSLink name and inline it according to
     // https://specs.ipfs.tech/http-gateways/subdomain-gateway/#host-request-header
-    if (id.includes('.')) {
+    if (id?.includes('.') === true) {
       id = dnsLinkLabelEncoder(id)
     }
   }

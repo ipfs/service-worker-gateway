@@ -1,4 +1,5 @@
-import { compressConfig } from '../src/lib/config-db.js'
+import { defaultLogger } from '@libp2p/logger'
+import { Config } from '../src/lib/config-db.js'
 import { HASH_FRAGMENTS } from '../src/lib/constants.js'
 import { test, expect } from './fixtures/config-test-fixtures.js'
 import { getConfig, setConfig } from './fixtures/set-sw-config.js'
@@ -83,6 +84,7 @@ test.describe('ipfs-sw configuration', () => {
       test.skip()
       return
     }
+
     const newConfig: ConfigDbWithoutPrivateFields = {
       ...testConfig,
       gateways: [
@@ -105,7 +107,11 @@ test.describe('ipfs-sw configuration', () => {
       enableGatewayProviders: !testConfig.enableGatewayProviders,
       serviceWorkerRegistrationTTL: 86_400_000
     }
-    const compressedConfig = await compressConfig(newConfig)
+    const conf = new Config({
+      logger: defaultLogger()
+    })
+
+    const compressedConfig = conf.compressConfig(newConfig)
     const responses: PlaywrightResponse[] = []
     page.on('response', (response) => {
       responses.push(response)

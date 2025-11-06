@@ -88,12 +88,12 @@ describe('path-or-subdomain', () => {
 
       const out = toSubdomainRequest(loc)
       const exp = new URL(`http://${cidV1}.ipfs.example.com/`)
-      exp.searchParams.set(QUERY_PARAMS.HELIA_SW, '/foo/bar.txt')
+      exp.searchParams.set(QUERY_PARAMS.REDIRECT, '/foo/bar.txt')
 
       expect(out).to.equal(exp.href)
     })
 
-    it('preserves existing ?search=params and #hash', () => {
+    it('encodes ?search=params and #hash', () => {
       const cid = 'QmbQDovX7wRe9ek7u6QXe9zgCXkTzoUSsTFJEkrYV1HrVR'
       const cidV1 = CID.parse(cid).toV1().toString(base32)
       const loc = makeLoc({
@@ -106,10 +106,7 @@ describe('path-or-subdomain', () => {
 
       const out = toSubdomainRequest(loc)
       const exp = new URL(`https://${cidV1}.ipfs.example.com/`)
-      exp.searchParams.set(QUERY_PARAMS.HELIA_SW, '/path/to/file')
-      exp.searchParams.set('foo', 'bar')
-      exp.searchParams.set('baz', 'qux')
-      exp.hash = '#section2'
+      exp.searchParams.set(QUERY_PARAMS.REDIRECT, '/path/to/file?foo=bar&baz=qux#section2')
 
       expect(out).to.equal(exp.href)
     })
@@ -139,7 +136,7 @@ describe('path-or-subdomain', () => {
 
       const out = toSubdomainRequest(loc)
       const exp = new URL(`https://${keyV1}.ipns.gateway.local/`)
-      exp.searchParams.set(QUERY_PARAMS.HELIA_SW, '/blog/post')
+      exp.searchParams.set(QUERY_PARAMS.REDIRECT, '/blog/post')
       expect(out).to.equal(exp.href)
     })
 
@@ -155,7 +152,7 @@ describe('path-or-subdomain', () => {
       const url = new URL(out)
       expect(url.origin).to.equal(`http://foo-bar.ipns.${hostname}`)
       expect(url.pathname).to.equal('/')
-      expect(url.searchParams.get(QUERY_PARAMS.HELIA_SW)).to.equal('/baz')
+      expect(url.searchParams.get(QUERY_PARAMS.REDIRECT)).to.equal('/baz')
     })
 
     it('ignores invalid namespaces', () => {
@@ -164,15 +161,7 @@ describe('path-or-subdomain', () => {
       const out = toSubdomainRequest(loc)
       const url = new URL(out)
       expect(url.origin).to.equal('http://qmwhatever.potato.example.com')
-      expect(url.searchParams.get(QUERY_PARAMS.HELIA_SW)).to.equal('/foo')
-    })
-
-    it('doesnt use ipfs-sw-first-hit.html in the path', () => {
-      const loc = makeLoc({ pathname: '/ipfs-sw-first-hit.html/ipfs/bafkqablimvwgy3y', href: 'http://example.com/ipfs-sw-first-hit.html/ipfs/bafkqablimvwgy3y' })
-      const out = toSubdomainRequest(loc)
-      const url = new URL(out)
-      expect(url.origin).to.equal('http://bafkqablimvwgy3y.ipfs.example.com')
-      expect(url.searchParams.get(QUERY_PARAMS.HELIA_SW)).to.equal(null)
+      expect(url.searchParams.get(QUERY_PARAMS.REDIRECT)).to.equal('/foo')
     })
   })
 })

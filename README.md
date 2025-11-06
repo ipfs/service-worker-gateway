@@ -26,11 +26,10 @@ and the [`verified-fetch` library](https://github.com/ipfs/helia-verified-fetch)
 within a [Service Worker](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API)
 to facilitate direct verified retrieval of content-addressed data.
 
-A Service Worker is registered on the initial page load, and then intercepts HTTP requests
-for content stored on IPFS paths such as `/ipfs/*` (immutable) and
-`/ipns/*` (mutable) and returns
-[`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response) objects
-to the browser.
+A Service Worker is registered on the initial page load, and then intercepts
+HTTP requests for content stored on IPFS paths such as `/ipfs/*` (immutable) and
+`/ipns/*` (mutable) and returns [`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response)
+objects to the browser.
 
 It functions as an IPFS gateway within the browser, offering enhanced security
 ([hash verification](https://docs.ipfs.tech/concepts/content-addressing/)
@@ -98,15 +97,18 @@ With reverse-proxy:
 Without reverse-proxy:
 * `http://localhost:8345` - The service worker gateway front-end served directly with esbuild.
 
-For the above URLs with reverse-proxy, the reverse proxy ensures subdomain support. This ensures you can access URLs like `https://<hash>.ipfs.localhost:<port>/` and `https://<dnslink>.ipns.localhost:<port>/`
+For the above URLs with reverse-proxy, the reverse proxy ensures subdomain
+support. This ensures you can access URLs like `https://<hash>.ipfs.localhost:<port>/`
+and `https://<dnslink>.ipns.localhost:<port>/`
 
-As you type in a content path, you will be redirected to appropriate URL (typically that means [subdomain style resolution](https://docs.ipfs.tech/how-to/gateway-best-practices/#use-subdomain-gateway-resolution-for-origin-isolation)).
+As you type in a content path, you will be redirected to appropriate URL
+(typically that means [subdomain style resolution](https://docs.ipfs.tech/how-to/gateway-best-practices/#use-subdomain-gateway-resolution-for-origin-isolation)).
 
 For more information about local development setup, see [/docs/DEVELOPMENT.md](/docs/DEVELOPMENT.md).
 
 ### Try hosted instance
 
-We provide a public good instance of this projct configured to run in [subdomain mode](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway),
+We provide a public good instance of this projct configured to run in[subdomain mode](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway),
 aiming to be a drop-in replacement for `dweb.link`:
 
 - 🚧 **WIP: alpha quality** https://inbrowser.link hosts the `release` branch, with a stable [release](https://github.com/ipfs/service-worker-gateway/releases)
@@ -120,21 +122,31 @@ aiming to be a drop-in replacement for `ipfs.io`:
 
 #### Deploying to `production` and `staging`
 
-Deploying to [production](https://github.com/ipfs/service-worker-gateway/actions/workflows/deploy-to-production.yml) and [staging](https://github.com/ipfs/service-worker-gateway/actions/workflows/deploy-to-staging.yml) is done by manually running the deployment action and passing the release version to the action.
+Deploying to [production](https://github.com/ipfs/service-worker-gateway/actions/workflows/deploy-to-production.yml)
+and [staging](https://github.com/ipfs/service-worker-gateway/actions/workflows/deploy-to-staging.yml)
+is done by manually running the deployment action and passing the release
+version to the action.
 
 ## Manual Service Worker Deregistration
 
-In some cases, you might want to manually unregister or remove the Helia service worker from your browser. This can be useful for debugging purposes or to ensure a clean state.
+In some cases, you might want to manually unregister or remove the Helia service
+worker from your browser. This can be useful for debugging purposes or to ensure
+a clean state.
 
-You can instruct the service worker to unregister itself by appending the `?ipfs-sw-unregister=true` query parameter to the URL of any page controlled by the service worker.
+You can instruct the service worker to unregister itself by appending the
+`?ipfs-sw-unregister=true` query parameter to the URL of any page controlled by
+the service worker.
 
-For example, if the service worker is active for `https://example.com`, navigating to `https://example.com/?ipfs-sw-unregister=true` will cause the service worker to unregister itself and attempt to reload all controlled clients (browser tabs).
+For example, if the service worker is active for `https://example.com`,
+navigating to `https://example.com/?ipfs-sw-unregister=true` will cause the
+service worker to unregister itself and attempt to reload all controlled clients
+(browser tabs).
 
-This option is also available via a button on the service worker's configuration page (`#/ipfs-sw-config`).
+This option is also available via a button on the service worker's configuration
+page (`#/ipfs-sw-config`).
 
 ## License
 
-This project is dual-licensed under
-`SPDX-License-Identifier: Apache-2.0 OR MIT`
+This project is dual-licensed under `SPDX-License-Identifier: Apache-2.0 OR MIT`
 
 See [LICENSE](./LICENSE) for more details.

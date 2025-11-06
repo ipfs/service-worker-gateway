@@ -1,9 +1,11 @@
-import { getStateFromUrl, getConfigRedirectUrl, getUrlWithConfig, loadConfigFromUrl, ensureSwScope } from './lib/first-hit-helpers.js'
-import { toSubdomainRequest } from './lib/path-or-subdomain.js'
-import { translateIpfsRedirectUrl } from './lib/translate-ipfs-redirect-url.js'
+import { QUERY_PARAMS } from './lib/constants.js'
+import { getStateFromUrl } from './lib/first-hit-helpers.js'
 import { registerServiceWorker } from './service-worker-utils.js'
 
-const loadingIndicatorElement = document.querySelector('.loading-indicator-js')
+/**
+ * Asynchronously loads and shows the UI - this is to make the number of bytes
+ * downloaded before the service worker is installed smaller
+ */
 async function renderUi (): Promise<void> {
   // dynamically load the app chunk using the correct filename
   try {
@@ -21,98 +23,108 @@ async function renderUi (): Promise<void> {
   }
 }
 
+/**
+ * The `index.html` page is loaded either directly (e.g. `http://localhost:1234`
+ * or `http://bafyfoo.ipfs.localhost:1234`)
+ * or via an internal redirect (e.g. `http://localhost:1234/ipfs/bafyfoo` or
+ * `http://bafyfoo.ipfs.localhost:1234/bar/baz`).
+ *
+ * A direct load means we need to install the service worker and then either
+ * show the UI (if it was explicitly requested/it was a non-subdomain gateway
+ * request) or redirect the user to an onward page (either due to the presence
+ * of the `helia-sw` param or if it was a subdomain gateway request).
+ *
+ * An indirect load means we need to install the service worker and then
+ * redirect.
+ *
+ * In both cases we need to write the config into IndexedDB if present.
+ *
+ * If loaded directly or indirectly:
+ *
+ * 1. Check for service worker support
+ * - If not found, render the UI which will show an error
+ * 2. Check for pre-existing config
+ * - If not found, initialize using contents of `QUERY_PARAMS.CONFIG` param or defaults
+ * 3. Check for service worker
+ * - If not found, initialize service worker
+ *
+ * If loaded directly
+ *
+ * This means we are either about to redirect back to a path/subdomain gateway
+ * or show the UI
+ *
+ * 1. Check `QUERY_PARAMS.REDIRECT` param
+ * - If present
+ * - - Check `helia-get-config` param
+ * - - - If present, load config, compress and add to redirect URL
+ * - - Redirect to param value
+ * - Otherwise show service worker UI
+ *
+ * If loaded indirectly:
+ *
+ * This means a subdomain or path gateway request was made but the service
+ * worker was not installed (as it would have intercepted the request).
+ *
+ * 1. If the request is for a path gateway:
+ * - Detect subdomain support
+ * - - If present, redirect to subdomain gateway URL
+ * - - If not present, detect whether origin isolation warning has been accepted
+ * - - - If accepted encode current URL as `helia-sw` and redirect to domain root
+ * - - - If not accepted, show origin isolation warning UI
+ * 2. Otherwise if the request is for a subdomain gateway
+ * - Check `helia-config` param, if present, deserialize and write into IndexedDB
+ *
+ * -------
+ *
+ * Maybe we are done?
+ */
 async function main (): Promise<void> {
-  if (!('serviceWorker' in navigator)) {
-    // no service worker support, render the UI
-    await renderUi()
-    return
-  }
-
   const url = new URL(window.location.href)
   const state = await getStateFromUrl(url)
 
-  if (!state.requestForContentAddressedData || state.isConfigRequest) {
-    // not a request for content addressed data, render the UI
+  if (!('serviceWorker' in navigator)) {
+    // no service worker support, render the UI which will tell the user service
+    // workers are not supported
     await renderUi()
     return
-  } else if (state.hasConfig) {
-    // user is requesting content addressed data and has the config already
-    // we need to ensure a SW is registered and let it handle the request
-    const translatedUrl = translateIpfsRedirectUrl(url)
+  }
 
-    if (state.isHardRefresh) {
-      // this is a hard refresh, we need to reload to ensure the service worker
-      // captures the request.
+  // check service worker state
+  const registration = await navigator.serviceWorker.getRegistration()
 
-      // replace with translated URL to remove helia-sw param
-      window.location.replace(translatedUrl.href)
-      return
+  if (registration?.active == null) {
+    // install the service worker on the root path of this domain, either path
+    // or subdomain gateway
+    await registerServiceWorker()
+  }
+
+  let redirectTo = url.searchParams.get(QUERY_PARAMS.REDIRECT)
+
+  if (redirectTo != null) {
+    const includeConfig = url.searchParams.get(QUERY_PARAMS.GET_CONFIG)
+
+    // append config to the redirect if requested
+    if (includeConfig === 'true') {
+      const redirectUrl = new URL(redirectTo)
+      redirectUrl.searchParams.set(QUERY_PARAMS.CONFIG, await state.config.getCompressed())
+
+      redirectTo = `${redirectUrl.protocol}//${redirectUrl.host}${redirectUrl.pathname}${redirectUrl.search}${redirectUrl.hash}`
     }
 
-    // else, there is some other reason why sw didn't capture the request,
-    // ensure sw is registered and reload
-    try {
-      await ensureSwScope()
-      await registerServiceWorker()
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('helia:sw-gateway:index: error ensuring sw scope and registration', err)
-    }
-
-    // replace with translated URL to remove helia-sw param
-    window.location.replace(translatedUrl.href)
+    window.location.href = redirectTo
     return
   }
 
-  /**
-   * **********************************************
-   * From here on, we are handling the case where:
-   * - the user is requesting content addressed data
-   * - the user does not have the config
-   *
-   * We need to load the config, which may involve a redirect to the root domain
-   * before the service worker can be registered
-   * ***********************************************
-   */
-  loadingIndicatorElement?.classList.remove('hidden')
-
-  if (state.hasConfig && state.isIsolatedOrigin) {
-    // we are on a subdomain, and have a config, the service worker should be rendering the content shortly.
-    // TODO: this implicitly assumes the service worker is registered because config is set.. which should be true, but we should be more explicit.
+  // no redirect requested, no content requested, show UI
+  if (!state.requestForContentAddressedData) {
+    await renderUi()
     return
   }
 
-  const configRedirectUrl = await getConfigRedirectUrl(state)
-  if (configRedirectUrl != null) {
-    window.location.replace(configRedirectUrl)
-    return
-  }
+  // service worker is now installed so redirect to path or subdomain for data
+  // so it can intercept the request
 
-  const configForUri = await getUrlWithConfig(state)
-  if (configForUri != null) {
-    window.location.replace(configForUri)
-    return
-  }
-
-  const urlAfterLoadingConfig = await loadConfigFromUrl(state)
-  if (urlAfterLoadingConfig != null) {
-    window.location.replace(urlAfterLoadingConfig)
-    return
-  }
-
-  // if we are not on a subdomain, but we should be, we need to redirect to the subdomain
-  await ensureSwScope()
-  await registerServiceWorker()
-
-  const translatedUrl = translateIpfsRedirectUrl(url)
-  let actualContentUrl: string
-  if (state.supportsSubdomains) {
-    actualContentUrl = toSubdomainRequest(translatedUrl)
-  } else {
-    actualContentUrl = translatedUrl.href
-  }
-
-  window.location.replace(actualContentUrl)
+  window.location.href = url.toString()
 }
 
 void main().catch((err) => {

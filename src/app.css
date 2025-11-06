@@ -36,3 +36,12 @@ form {
 .cursor-disabled {
   cursor: not-allowed;
 }
+
+header a {
+  text-decoration: none;
+  color: var(--aqua);
+}
+
+header a:hover {
+  color: #EEE;
+}

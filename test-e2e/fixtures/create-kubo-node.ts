@@ -41,23 +41,26 @@ export async function getKuboDistCid (): Promise<string> {
   }
 
   const uniqueIpfsPath = `${tmpdir()}/.ipfs/${Date.now()}_${Math.random()}`
-  // init kubo in a completely different and unique directory so we can generate the CID for the dist folder
+  // init kubo in a completely different and unique directory so we can generate
+  // the CID for the dist folder
   const uniqueExecaOptions = { ...execaOptions, env: { ...execaOptions.env, IPFS_PATH: uniqueIpfsPath } }
-  // copy the dist folder to a temporary directory and then replace the _redirects file with the kubo_redirects file
+  // copy the dist folder to a temporary directory and then replace the
+  // _redirects file with the kubo_redirects file
   await mkdir(kuboDistPath, { recursive: true })
   await cp(join(cwd(), './dist'), kuboDistPath, { recursive: true })
 
   const kuboRedirects = await readFile(join(kuboDistPath, '_kubo_redirects'), 'utf-8')
 
   await writeFile(join(kuboDistPath, '_redirects'), kuboRedirects)
-
   await mkdir(IPFS_PATH, { recursive: true })
+
   try {
     log('initializing kubo node at %s', uniqueIpfsPath)
     await $(uniqueExecaOptions)`${kuboBin} init`
   } catch (error) {
     log('error - %e', error)
   }
+
   const { stdout: cid } = await $(uniqueExecaOptions)`${kuboBin} add --only-hash -r -Q ${kuboDistPath} --cid-version 1`
 
   log('sw-gateway dist CID: ', cid.trim())
@@ -68,6 +71,7 @@ export async function getKuboDistCid (): Promise<string> {
 export async function createKuboNode (IPFS_NS_MAP?: string): Promise<KuboNode> {
   const cidString1 = (await getKuboDistCid()).trim()
   const localNsMap = `ipfs-host.local:/ipfs/${cidString1}`
+
   if (IPFS_NS_MAP == null) {
     IPFS_NS_MAP = localNsMap
     log('using localNsMap for IPFS_NS_MAP: ', IPFS_NS_MAP)
@@ -124,7 +128,9 @@ export async function createKuboNode (IPFS_NS_MAP?: string): Promise<KuboNode> {
   const { stdout: cidString2 } = await $(execaOptions)`${kuboBin} add -r -Q ${kuboDistPath} --cid-version 1`
 
   if (cidString1 !== cidString2) {
-    // if for some reason the CID generated in order to add to IPFS_NS_MAP is different from the CID generated for our running kubo node, throw an error
+    // if for some reason the CID generated in order to add to IPFS_NS_MAP is
+    // different from the CID generated for our running kubo node, throw an
+    // error
     throw new Error(`CID mismatch, ${cidString1} !== ${cidString2}`)
   }
 

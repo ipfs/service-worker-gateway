@@ -1,5 +1,4 @@
 import React, { useCallback, useContext, useState } from 'react'
-import Header from '../components/header.jsx'
 import { InputSection } from '../components/input-section.jsx'
 import { InputToggle } from '../components/input-toggle.jsx'
 import NumberInput from '../components/number-input.jsx'
@@ -7,12 +6,10 @@ import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
 import TextInput from '../components/textarea-input.jsx'
 import { ConfigContext, ConfigProvider } from '../context/config-context.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
-import { setConfig as storeConfig } from '../lib/config-db.js'
+import { QUERY_PARAMS } from '../lib/constants.js'
 import { convertDnsResolverInputToObject, convertDnsResolverObjectToInput, convertUrlArrayToInput, convertUrlInputToArray } from '../lib/input-helpers.js'
-import { isConfigPage } from '../lib/is-config-page.js'
 import { getUiComponentLogger, uiLogger } from '../lib/logger.js'
 import './default-page-styles.css'
-import { isSubdomainGatewayRequest } from '../lib/path-or-subdomain.js'
 import { tellSwToReloadConfig } from '../lib/sw-comms.js'
 import type { FunctionComponent, ReactElement } from 'react'
 
@@ -77,22 +74,20 @@ const dnsJsonValidationFn = (value: string): Error | null => {
   }
 }
 
-export interface ConfigPageProps extends React.HTMLProps<HTMLElement> {
-
-}
-
 // Config Page can be loaded either as a page or as a component in the landing helper-ui page
-const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
-  const { setConfig, resetConfig, gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, fetchTimeout, serviceWorkerRegistrationTTL, isLoading: isConfigDataLoading } = useContext(ConfigContext)
+const ConfigPage: FunctionComponent = () => {
+  const { setConfig, resetConfig, gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, fetchTimeout, serviceWorkerRegistrationTTL } = useContext(ConfigContext)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [resetKey, setResetKey] = useState(0)
 
+  const context = useContext(ConfigContext)
+
   const saveConfig = useCallback(async () => {
     try {
-      const config = { gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, fetchTimeout, serviceWorkerRegistrationTTL }
+      const db = { gateways, routers, dnsJsonResolvers, debug, enableGatewayProviders, enableRecursiveGateways, enableWss, enableWebTransport, fetchTimeout, serviceWorkerRegistrationTTL }
       setIsSaving(true)
-      await storeConfig(config, uiComponentLogger)
+      await context.updateConfig(db)
       log.trace('config-page: sending RELOAD_CONFIG to service worker')
       // update the BASE_URL service worker
       await tellSwToReloadConfig()
@@ -113,15 +108,9 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
     setResetKey((prev) => prev + 1)
   }, [])
 
-  let HeaderComponent: ReactElement | null = null
-  if (!isConfigDataLoading && isConfigPage(window.location.hash) && isSubdomainGatewayRequest(window.location)) {
-    HeaderComponent = <Header />
-  }
-
   return (
     <>
-      {HeaderComponent}
-      <section className='e2e-config-page pa4-l bg-snow mw7 center pa4'>
+      <section className='e2e-config-page pa4-l bg-snow mw7 mv4-l center pa4 br2'>
         <h1 className='pa0 f3 ma0 mb4 teal tc'>Configure your IPFS Gateway</h1>
         <InputSection label='Routing'>
           <TextInput
@@ -232,22 +221,22 @@ const ConfigPage: FunctionComponent<ConfigPageProps> = () => {
           />
         </InputSection>
         <div className='w-100 inline-flex flex-row justify-between'>
-          <ServiceWorkerReadyButton
-            className='e2e-config-page-button pv3 tc bg-animate hover-bg-red-muted pointer w-30 bn'
-            id='unregister-sw'
-            label='Reset Worker'
-            waitingLabel='Waiting for SW...'
-            onClick={() => {
-              const currentUrl = new URL(window.location.href)
-              currentUrl.searchParams.set('ipfs-sw-unregister', 'true')
-              window.location.href = currentUrl.href
-            }}
-            disabled={isSaving}
-          />
           <button className='e2e-config-page-button button-reset pv3 tc bg-animate hover-bg-gold pointer w-30 bn mr5' id='reset-config' onClick={() => { void doResetConfig() }}>Reset Config</button>
           <ServiceWorkerReadyButton className='e2e-config-page-button white w-100 pa3 bg-animate bg-teal-muted hover-bg-navy-muted' id='save-config' label={isSaving ? 'Saving...' : 'Save Config'} waitingLabel='Waiting for service worker registration...' onClick={() => { void saveConfig() }} disabled={isSaving} />
         </div>
         {error != null && <span style={{ color: 'red' }}>{error.message}</span>}
+        <ServiceWorkerReadyButton
+          className='e2e-config-page-button pv3 tc bg-animate hover-bg-red-muted pointer w-100 bn mt3'
+          id='unregister-sw'
+          label='Uninstall Service Worker'
+          waitingLabel='Waiting for SW...'
+          onClick={() => {
+            const currentUrl = new URL(window.location.href)
+            currentUrl.searchParams.set(QUERY_PARAMS.UNREGISTER_SERVICE_WORKER, 'true')
+            window.location.href = currentUrl.href
+          }}
+          disabled={isSaving}
+        />
       </section>
     </>
   )

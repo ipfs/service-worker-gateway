@@ -1,28 +1,109 @@
-import React, { Suspense } from 'react'
+import React from 'react'
 import ReactDOMClient from 'react-dom/client'
-import LoadingIndicator from './components/loading-indicator.jsx'
-import { RouteContext, RouterProvider } from './context/router-context.jsx'
-import { injectCSS } from './lib/css-injector.js'
-import { ensureSwScope } from './lib/first-hit-helpers.js'
-import * as renderChecks from './lib/routing-render-checks.js'
-import type { Route } from './context/router-context.jsx'
-import type { ReactElement } from 'react'
 import './app.css'
+import { FaInfoCircle, FaCog, FaGithub, FaDownload, FaExclamationTriangle, FaExclamationCircle } from 'react-icons/fa'
+import { HashRouter, Route, Routes, NavLink } from 'react-router-dom'
+import ipfsLogo from './ipfs-logo.svg'
+import { HASH_FRAGMENTS } from './lib/constants.js'
+import { injectCSS } from './lib/css-injector.js'
+import AboutPage from './pages/about.jsx'
+import ConfigPage from './pages/config.jsx'
+import { FetchErrorPage } from './pages/fetch-error.jsx'
+import HomePage from './pages/home.jsx'
+import OriginIsolationWarningPage from './pages/origin-isolation-warning.jsx'
 
 // SW did not trigger for this request
 
-function App (): React.ReactElement {
-  const { currentRoute } = React.useContext(RouteContext)
+function toAbsolutePath (path: string): string {
+  if (path.startsWith('./')) {
+    return path.substring(1)
+  }
+
+  return path
+}
+
+function Header (): React.ReactElement {
+  let errorPageLink: React.ReactElement | undefined
+
+  if (globalThis.fetchError != null) {
+    errorPageLink = (
+      <NavLink to={`/${HASH_FRAGMENTS.IPFS_SW_ERROR_UI}`} className={({ isActive }) => isActive ? 'white' : ''}>
+        <FaExclamationCircle className='ml2 f3' />
+      </NavLink>
+    )
+  }
+
+  let warningPageLink: React.ReactElement | undefined
+
+  if (globalThis.originIsolationWarning != null) {
+    warningPageLink = (
+      <NavLink to={`/${HASH_FRAGMENTS.IPFS_SW_ORIGIN_ISOLATION_WARNING}`} className={({ isActive }) => isActive ? 'white' : ''}>
+        <FaExclamationTriangle className='ml2 f3' />
+      </NavLink>
+    )
+  }
 
   return (
-    <Suspense fallback={<LoadingIndicator />}>
-      {currentRoute?.component != null && <currentRoute.component />}
-    </Suspense>
+    <header className='e2e-header flex items-center pa2 bg-navy bb bw3 b--aqua tc justify-between'>
+      <div>
+        <a href='https://ipfs.tech' title='IPFS Project' target='_blank' rel='noopener noreferrer' aria-label='Visit the website of the IPFS Project'>
+          <img alt='IPFS logo' src={toAbsolutePath(ipfsLogo)} style={{ height: 50 }} className='v-top' />
+        </a>
+      </div>
+      <div className='pb1 ma0 mr2 inline-flex items-center aqua'>
+        <h1 className='e2e-header-title f3 fw2 ttu sans-serif'>Service Worker Gateway</h1>
+        {errorPageLink}
+        {warningPageLink}
+        <NavLink to='/' className={({ isActive }) => isActive ? 'white' : ''}>
+          <FaDownload className='ml2 f3' />
+        </NavLink>
+        <NavLink to={`/${HASH_FRAGMENTS.IPFS_SW_ABOUT_UI}`} className={({ isActive }) => isActive ? 'white' : ''}>
+          <FaInfoCircle className='ml2 f3' />
+        </NavLink>
+        <NavLink to={`/${HASH_FRAGMENTS.IPFS_SW_CONFIG_UI}`} className={({ isActive }) => isActive ? 'white' : ''}>
+          <FaCog className='ml2 f3' />
+        </NavLink>
+        <a href='https://github.com/ipfs/service-worker-gateway' title='IPFS Service Worker Gateway on GitHub' target='_blank' rel='noopener noreferrer' aria-label='Visit the GitHub repository for the IPFS Service Worker Gateway'>
+          <FaGithub className='ml2 f3' />
+        </a>
+      </div>
+    </header>
+  )
+}
+
+/**
+ * This component is used when either:
+ *
+ * 1. the SW encountered an error fulfilling the request
+ * 2. Installing the service worker failed
+ * 3. The user wants to update the service worker config
+ * 4. The user needs to accept the origin isolation warning
+ */
+function App (): React.ReactElement {
+  if (globalThis.fetchError != null && globalThis.location.hash === '') {
+    window.location.hash = `/${HASH_FRAGMENTS.IPFS_SW_ERROR_UI}`
+  }
+
+  if (globalThis.originIsolationWarning != null && globalThis.location.hash === '') {
+    window.location.hash = `/${HASH_FRAGMENTS.IPFS_SW_ORIGIN_ISOLATION_WARNING}`
+  }
+
+  return (
+    <HashRouter>
+      <Header />
+      <Routes>
+        <Route index element={<HomePage />} />,
+        <Route path={`/${HASH_FRAGMENTS.IPFS_SW_LOAD_UI}`} element={<HomePage />} />,
+        <Route path={`/${HASH_FRAGMENTS.IPFS_SW_ABOUT_UI}`} element={<AboutPage />} />,
+        <Route path={`/${HASH_FRAGMENTS.IPFS_SW_CONFIG_UI}`} element={<ConfigPage />} />,
+        <Route path={`/${HASH_FRAGMENTS.IPFS_SW_ERROR_UI}`} element={<FetchErrorPage />} />
+        <Route path={`/${HASH_FRAGMENTS.IPFS_SW_ORIGIN_ISOLATION_WARNING}`} element={<OriginIsolationWarningPage />} />
+      </Routes>
+    </HashRouter>
   )
 }
 
 async function renderUi (): Promise<void> {
-  await ensureSwScope()
   try {
     // @ts-expect-error - css config is generated at build time
     // eslint-disable-next-line import-x/no-absolute-path
@@ -32,36 +113,24 @@ async function renderUi (): Promise<void> {
     // eslint-disable-next-line no-console
     console.warn('Failed to load CSS config, UI will render without styles:', err)
   }
+
+  const loadingIndicator = document.querySelector('.loading-indicator-js')
+
+  if (loadingIndicator != null) {
+    loadingIndicator.classList.add('hidden')
+  }
+
   const container = document.getElementById('root')
+
   if (container == null) {
     throw new Error('No root container found')
   }
 
   const root = ReactDOMClient.createRoot(container)
 
-  const LazyConfig = React.lazy(async () => import('./pages/config.jsx'))
-  const LazyHelperUi = React.lazy(async () => import('./pages/helper-ui.jsx'))
-  const LazyNoServiceWorkerErrorPage = React.lazy(async () => import('./pages/errors/no-service-worker.jsx'))
-  const LazySubdomainWarningPage = React.lazy(async () => import('./pages/subdomain-warning.jsx'))
-
-  let ErrorPage: null | React.LazyExoticComponent<() => ReactElement> = LazyNoServiceWorkerErrorPage
-
-  if ('serviceWorker' in navigator) {
-    ErrorPage = null
-  }
-
-  const routes: Route[] = [
-    { default: true, component: ErrorPage ?? LazyHelperUi },
-    { shouldRender: async () => renderChecks.shouldRenderConfigPage(), component: LazyConfig },
-    { shouldRender: async () => renderChecks.shouldRenderNoServiceWorkerError(), component: LazyNoServiceWorkerErrorPage },
-    { shouldRender: renderChecks.shouldRenderSubdomainWarningPage, component: LazySubdomainWarningPage }
-  ]
-
   root.render(
     <React.StrictMode>
-      <RouterProvider routes={routes}>
-        <App />
-      </RouterProvider>
+      <App />
     </React.StrictMode>
   )
 }

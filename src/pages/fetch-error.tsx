@@ -3,16 +3,25 @@
  */
 
 import React, { useState } from 'react'
-import { Button } from '../../button.jsx'
-import ContentBox from '../../components/content-box.jsx'
-import Header from '../../components/header.jsx'
-import { Link } from '../../components/link.jsx'
-import Terminal from '../../components/terminal.jsx'
-import type { RequestDetails, ResponseDetails } from '../../sw.js'
+import { Button } from '../button.jsx'
+import ContentBox from '../components/content-box.jsx'
+import { Link } from '../components/link.jsx'
+import Terminal from '../components/terminal.jsx'
+import { HASH_FRAGMENTS } from '../lib/constants.js'
+import { toGatewayRoot } from '../lib/to-gateway-root.js'
+import type { ConfigDb } from '../lib/config-db.js'
+import type { RequestDetails, ResponseDetails } from '../sw/fetch-error-page.js'
 import type { ReactElement } from 'react'
 
 declare global {
-  var props: any
+  var fetchError: {
+    request: RequestDetails
+    response: ResponseDetails
+    config: ConfigDb
+    providers: Providers
+    title: string
+    logs: string[]
+  }
 }
 
 function capitalizeHeader (key: string): string {
@@ -148,17 +157,17 @@ function DebugInfo ({ request, response, config, logs }: FetchErrorPageProps): R
 }
 
 export function FetchErrorPage ({ request, response, config, logs, providers }: FetchErrorPageProps): ReactElement {
-  request = request ?? globalThis.props?.request
-  response = response ?? globalThis.props?.response
-  config = config ?? globalThis.props?.config
-  logs = logs ?? globalThis.props?.logs
-  providers = providers ?? globalThis.props?.providers
+  request = request ?? globalThis.fetchError?.request
+  response = response ?? globalThis.fetchError?.response
+  config = config ?? globalThis.fetchError?.config
+  logs = logs ?? globalThis.fetchError?.logs
+  providers = providers ?? globalThis.fetchError?.providers
 
   if (request == null || response == null || config == null || logs == null || providers == null) {
+    globalThis.location.href = toGatewayRoot('/')
+
     return (
-      <>
-        <p>Could not produce any useful debug info - please open a bug!</p>
-      </>
+      <></>
     )
   }
 
@@ -179,7 +188,10 @@ export function FetchErrorPage ({ request, response, config, logs, providers }: 
   }
 
   function retry (): void {
-    // @ts-expect-error boolean argument is firefox-only
+    // remove any UI-added navigation info
+    history.pushState('', document.title, window.location.pathname + window.location.search)
+
+    // @ts-expect-error boolean `forceGet` argument is firefox-only
     window.location.reload(true)
   }
 
@@ -195,13 +207,13 @@ export function FetchErrorPage ({ request, response, config, logs, providers }: 
 
   const openIssueLink = (
     <>
-      <p>Please <Link href='https://github.com/ipfs/service-worker-gateway/issues'>open an issue</Link> with the URL you tried to access and any debugging information displayed below.</p>
+      <p className='f5 ma0 pt3 teal fw4 db'>Please <Link href='https://github.com/ipfs/service-worker-gateway/issues'>open an issue</Link> with the URL you tried to access and any debugging information displayed below.</p>
     </>
   )
 
   let message = (
     <>
-      <p>An error occurred in the service worker gateway.</p>
+      <p className='f5 ma0 pt3 teal fw4 db'>An error occurred in the service worker gateway.</p>
       {openIssueLink}
     </>
   )
@@ -209,14 +221,14 @@ export function FetchErrorPage ({ request, response, config, logs, providers }: 
   if (response.status === 501) {
     message = (
       <>
-        <p>This gateway encountered content it did not know how to handle.</p>
+        <p className='f5 ma0 pt3 teal fw4 db'>This gateway encountered content it did not know how to handle.</p>
         {openIssueLink}
       </>
     )
   } else if (response.status === 502) {
     message = (
       <>
-        <p>'This gateway failed to load the requested content.'</p>
+        <p className='f5 ma0 pt3 teal fw4 db'>'This gateway failed to load the requested content.'</p>
       </>
     )
   } else if (response.status === 504) {
@@ -254,23 +266,31 @@ export function FetchErrorPage ({ request, response, config, logs, providers }: 
 
     message = (
       <>
-        <p>The <Link href='https://docs.ipfs.tech/concepts/glossary/#gateway'>gateway</Link> is taking too long to fetch your content from the <Link href='https://docs.ipfs.tech/concepts/glossary/#mainnet'>public IPFS network</Link>.</p>
+        <p className='charcoal f6 fw1 db pt1 lh-copy mb2'>The <Link href='https://docs.ipfs.tech/concepts/glossary/#gateway'>gateway</Link> is taking too long to fetch your content from the <Link href='https://docs.ipfs.tech/concepts/glossary/#mainnet'>public IPFS network</Link>.</p>
         {providersMessage}
-        <p>How you can proceed:</p>
-        <ul>
+        <p className='f5 ma0 pt3 teal fw4 db'>How you can proceed:</p>
+        <ul className='charcoal f6 fw1 db pt1 lh-copy mb2'>
           <li>Verify the URL and try again.</li>
           <li>Self-host and run an <Link href='https://docs.ipfs.tech/concepts/ipfs-implementations/'>IPFS client</Link> that verifies your data.</li>
           <li>Try diagnosing your request with the <Link href='https://docs.ipfs.tech/reference/diagnostic-tools/'>IPFS diagnostic tools</Link>.</li>
           <li>Inspect the <Link href={`https://cid.ipfs.tech/${cid ? `#${cid}` : ''}`}>CID</Link> or <Link href={`https://explore.ipld.io/${cid ? `#/explore/${cid}` : ''}`}>DAG</Link>.</li>
-          <li>Increase the timeout in the <Link href='/#/ipfs-sw-config'>config page</Link> for this Service Worker Gateway instance.</li>
+          <li>Increase the timeout in the <Link href={`/#/${HASH_FRAGMENTS.IPFS_SW_CONFIG_UI}`}>config page</Link> for this Service Worker Gateway instance.</li>
           <li>Install the <Link href='https://docs.ipfs.tech/install/ipfs-companion'>IPFS companion browser extension </Link> to run a local IPFS node.</li>
         </ul>
+      </>
+    )
+  } else if (response.status === 404) {
+    const url = new URL(request.resource)
+
+    message = (
+      <>
+        <p className='f5 ma0 pt3 teal fw4 db'>The path {url.pathname} was not found under the CID {url.hostname.split('.ipfs')[0]}</p>
       </>
     )
   } else if (response.status >= 400 && response.status < 500) {
     message = (
       <>
-        <p>'The request was invalid.'</p>
+        <p className='f5 ma0 pt3 teal fw4 db'>The request was invalid</p>
       </>
     )
   }
@@ -287,7 +307,6 @@ export function FetchErrorPage ({ request, response, config, logs, providers }: 
 
   return (
     <>
-      <Header />
       <ContentBox title={`${response.status} ${response.statusText}`}>
         <>
           {message}

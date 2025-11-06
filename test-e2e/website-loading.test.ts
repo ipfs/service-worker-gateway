@@ -10,6 +10,7 @@ test.describe('website-loading', () => {
       }
     })
   })
+
   test('ensure unixfs directory trailing slash is added', async ({ page }) => {
     const response = await page.goto('http://127.0.0.1:3333/ipfs/bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q')
 

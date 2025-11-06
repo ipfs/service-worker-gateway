@@ -3,15 +3,13 @@
  */
 
 import React from 'react'
-import About from '../../components/about.jsx'
-import Header from '../../components/header.jsx'
-import type { ReactElement } from 'react'
+import { Link } from '../components/link.jsx'
 import '../default-page-styles.css'
+import type { ReactElement } from 'react'
 
 export default function NoServiceWorkerErrorPage (): ReactElement {
   return (
     <>
-      <Header />
       <main className='pa4-l bg-red-muted mw7 mb5 center pa4 e2e-no-service-worker-error'>
         <h1>Service Worker Error</h1>
         <p>
@@ -21,11 +19,10 @@ export default function NoServiceWorkerErrorPage (): ReactElement {
         </p>
         <p>
           If you are using Firefox, please note that
-          <a href='https://bugzilla.mozilla.org/show_bug.cgi?id=1320796' target='_blank' rel='noreferrer'>service workers are disabled in private browsing mode</a>.
+          <Link href='https://bugzilla.mozilla.org/show_bug.cgi?id=1320796'>service workers are disabled in private browsing mode</Link>.
           Please try again in a regular browsing window.
         </p>
       </main>
-      <About />
     </>
   )
 }
