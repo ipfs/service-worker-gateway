@@ -14,15 +14,13 @@ export default function NoServiceWorkerErrorPage (): ReactElement {
         <h1 className='ma0 f3'>Warning: Service Workers Are Not Supported</h1>
       </div>
       <p>
-        This page requires support for service workers. Please ensure that
-        your browser supports service workers and that they are enabled
-        (ie. navigator.serviceWorker is present).
+        This page requires support for <Link href='https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API'>service workers</Link>.
       </p>
       <p>
-        If you are using Firefox, please note that <Link href='https://bugzilla.mozilla.org/show_bug.cgi?id=1320796'>service workers are disabled in private browsing mode</Link>.
+        Please ensure that your browser has support and that it is enabled (ie. navigator.serviceWorker is present).
       </p>
       <p>
-        Please try again in a regular browsing window.
+        If you are using Firefox, please note that <Link href='https://bugzilla.mozilla.org/show_bug.cgi?id=1320796'>service workers are disabled in private browsing mode</Link> - please try again in a regular browsing window.
       </p>
     </main>
   )
