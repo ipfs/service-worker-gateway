@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import Form from '../components/form.jsx'
 import CidRenderer from '../components/input-validator.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
+import { dnsLinkLabelDecoder, isInlinedDnsLink } from '../lib/dns-link-labels.js'
 import { LOCAL_STORAGE_KEYS } from '../lib/local-storage.js'
 import './default-page-styles.css'
 import { pathRegex, subdomainRegex } from '../lib/regex.js'
@@ -15,9 +16,16 @@ function LoadContent (): ReactElement {
     const groups = globalThis.location.href.match(subdomainRegex)?.groups ?? globalThis.location.href.match(pathRegex)?.groups
 
     if (groups != null) {
+      let name = groups.cidOrPeerIdOrDnslink
+
+      // decode the domain name if it's an inline dnslink
+      if (groups.protocol === 'ipns' && isInlinedDnsLink(name)) {
+        name = dnsLinkLabelDecoder(name)
+      }
+
       initialPath = `/${[
         groups.protocol,
-        groups.cidOrPeerIdOrDnslink,
+        name,
         groups.path.split('#')[0]
       ]
         .filter((val) => Boolean(val) && val !== '/')
