@@ -48,7 +48,7 @@ test.describe('subdomain-detection', () => {
 testSubdomainRouting.describe('subdomain-detection auto fixture', () => {
   testSubdomainRouting('loads subdomains easily', async ({ page, rootDomain, protocol }) => {
     await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/`, {
-     waitUntil: 'networkidle'
+      waitUntil: 'networkidle'
     })
 
     const bodyTextLocator = page.locator('body')

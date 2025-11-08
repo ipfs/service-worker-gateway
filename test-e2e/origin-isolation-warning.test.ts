@@ -10,8 +10,8 @@ test.describe('origin isolation warning', () => {
     const testUrl = 'http://127.0.0.1:3333/ipfs/bafkqablimvwgy3y'
     const testURL = new URL(testUrl)
     await page.goto(testUrl, {
-        waitUntil: 'networkidle'
-      })
+      waitUntil: 'networkidle'
+    })
 
     const warningUrl = new URL(testURL)
     warningUrl.hash = `/${HASH_FRAGMENTS.IPFS_SW_ORIGIN_ISOLATION_WARNING}`
