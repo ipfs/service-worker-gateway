@@ -140,7 +140,9 @@ export const testPathRouting = test.extend<TestOptions>({
  *
  * test.describe('subdomain-detection', () => {
  *   test('path requests are redirected to subdomains', async ({ page, rootDomain, protocol }) => {
- *     await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/`, { waitUntil: 'networkidle' })
+ *     await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/`, {
+ *       waitUntil: 'networkidle'
+ *     })
  *     const bodyTextLocator = page.locator('body')
  *     await expect(bodyTextLocator).toContainText('hello')
  *   })
@@ -162,7 +164,9 @@ export const testSubdomainRouting = test.extend<TestOptions>({
       return
     }
 
-    await page.goto(baseURL, { waitUntil: 'networkidle' })
+    await page.goto(baseURL, {
+      waitUntil: 'networkidle'
+    })
     await waitForServiceWorker(page)
 
     if (process.env.KUBO_GATEWAY == null || process.env.KUBO_GATEWAY === '') {

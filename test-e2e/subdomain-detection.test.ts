@@ -19,7 +19,9 @@ test.describe('subdomain-detection', () => {
       return
     }
 
-    await page.goto(baseURL, { waitUntil: 'networkidle' })
+    await page.goto(baseURL, {
+      waitUntil: 'networkidle'
+    })
     await waitForServiceWorker(page)
     await setConfig(page, {
       gateways,
@@ -28,7 +30,9 @@ test.describe('subdomain-detection', () => {
         '.': 'https://delegated-ipfs.dev/dns-query'
       }
     })
-    await page.goto('/ipfs/bafkqablimvwgy3y', { waitUntil: 'commit' })
+    await page.goto('/ipfs/bafkqablimvwgy3y', {
+      waitUntil: 'commit'
+    })
 
     await page.waitForURL(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}`)
     // wait for config loading and final redirect to complete
@@ -43,7 +47,9 @@ test.describe('subdomain-detection', () => {
 
 testSubdomainRouting.describe('subdomain-detection auto fixture', () => {
   testSubdomainRouting('loads subdomains easily', async ({ page, rootDomain, protocol }) => {
-    await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/`, { waitUntil: 'networkidle' })
+    await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/`, {
+     waitUntil: 'networkidle'
+    })
 
     const bodyTextLocator = page.locator('body')
 

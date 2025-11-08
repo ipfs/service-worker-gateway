@@ -33,7 +33,9 @@ test.describe('ipfs-sw configuration', () => {
   })
 
   test('setting the config actually works', async ({ page, baseURL }) => {
-    await page.goto(baseURL, { waitUntil: 'networkidle' })
+    await page.goto(baseURL, {
+      waitUntil: 'networkidle'
+    })
     await waitForServiceWorker(page)
 
     await setConfig(page, testConfig)

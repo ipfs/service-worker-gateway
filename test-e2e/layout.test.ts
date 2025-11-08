@@ -5,7 +5,9 @@ import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
 
 test.describe('smoketests', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/', {
+      waitUntil: 'networkidle'
+    })
   })
 
   test.describe('landing page', () => {

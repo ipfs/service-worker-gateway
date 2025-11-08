@@ -18,8 +18,10 @@ test.describe('first-hit ipfs-hosted', () => {
       }
     })
 
-    test('redirects to ?helia-redirect=<path> are handled', async ({ page }) => {
-      const response = await page.goto('http://127.0.0.1:3334/ipfs/bafkqablimvwgy3y')
+    test('redirects are handled', async ({ page }) => {
+      const response = await page.goto('http://127.0.0.1:3334/ipfs/bafkqablimvwgy3y', {
+        waitUntil: 'networkidle'
+      })
 
       // first loads the root page
       expect(response?.status()).toBe(200)
