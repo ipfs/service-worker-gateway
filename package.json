@@ -59,7 +59,7 @@
     "@helia/http": "^3.0.8",
     "@helia/interface": "^6.0.2",
     "@helia/routers": "^4.0.3",
-    "@helia/verified-fetch": "^4.0.1",
+    "@helia/verified-fetch": "^4.0.3",
     "@libp2p/crypto": "^5.1.13",
     "@libp2p/dcutr": "^3.0.7",
     "@libp2p/identify": "^4.0.7",
@@ -107,8 +107,7 @@
     "patch-package": "^8.0.0",
     "playwright": "^1.45.3",
     "rimraf": "^6.0.1",
-    "wait-on": "^9.0.1",
-    "wherearewe": "^2.0.1"
+    "wait-on": "^9.0.1"
   },
   "sideEffects": [
     "*.css"
