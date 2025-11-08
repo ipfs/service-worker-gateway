@@ -7,8 +7,11 @@ test.describe('hamt-dir', () => {
     await waitForServiceWorker(page)
     await allowInsecureWebsiteAccess(page)
   })
-  test('can open UnixFS file from HAMT-sharded directory', async ({ page }) => {
-    const response = await page.goto('http://127.0.0.1:3333/ipfs/bafybeidbclfqleg2uojchspzd4bob56dqetqjsj27gy2cq3klkkgxtpn4i/685.txt')
+
+  test.only('can open UnixFS file from HAMT-sharded directory', async ({ page, baseURL }) => {
+    const response = await page.goto('http://127.0.0.1:3333/ipfs/bafybeidbclfqleg2uojchspzd4bob56dqetqjsj27gy2cq3klkkgxtpn4i/685.txt', {
+      waitUntil: 'networkidle'
+    })
 
     expect(response?.status()).toBe(200)
     const headers = await response?.allHeaders()

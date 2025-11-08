@@ -30,7 +30,9 @@ test.describe('video', () => {
   test('starts playing automatically', async ({ page }) => {
     await setConfig(page, testConfig)
     await waitForServiceWorker(page)
-    const response = await page.goto(`http://127.0.0.1:3333/ipfs/${cid}`, { waitUntil: 'commit' })
+    const response = await page.goto(`http://127.0.0.1:3333/ipfs/${cid}`, {
+      waitUntil: 'commit'
+    })
     const start = performance.now()
 
     expect(response?.status()).toBe(200)
