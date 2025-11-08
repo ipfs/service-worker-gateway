@@ -14,6 +14,7 @@ import AboutPage from './pages/about.jsx'
 import ConfigPage from './pages/config.jsx'
 import { FetchErrorPage } from './pages/fetch-error.jsx'
 import HomePage from './pages/home.jsx'
+import NoServiceWorkerErrorPage from './pages/no-service-worker.jsx'
 import OriginIsolationWarningPage from './pages/origin-isolation-warning.jsx'
 import { ServerErrorPage } from './pages/server-error.jsx'
 
@@ -142,6 +143,29 @@ async function renderUi (): Promise<void> {
   }
 
   const root = ReactDOMClient.createRoot(container)
+
+  if (!('serviceWorker' in navigator)) {
+    root.render(
+      <React.StrictMode>
+        <header className='e2e-header flex items-center pa2 bg-navy bb bw3 b--aqua tc justify-between'>
+          <div>
+            <a href='https://ipfs.tech' title='IPFS Project' target='_blank' rel='noopener noreferrer' aria-label='Visit the website of the IPFS Project'>
+              <img alt='IPFS logo' src={toAbsolutePath(ipfsLogo)} style={{ height: 50 }} className='v-top' />
+            </a>
+          </div>
+          <div className='pb1 ma0 mr2 inline-flex items-center aqua'>
+            <h1 className='e2e-header-title f3 fw2 ttu sans-serif'>Service Worker Gateway</h1>
+            <a href='https://github.com/ipfs/service-worker-gateway' title='IPFS Service Worker Gateway on GitHub' target='_blank' rel='noopener noreferrer' aria-label='Visit the GitHub repository for the IPFS Service Worker Gateway'>
+              <FaGithub className='ml2 f3' />
+            </a>
+          </div>
+        </header>
+        <NoServiceWorkerErrorPage />
+      </React.StrictMode>
+    )
+
+    return
+  }
 
   const config = new Config({
     logger: uiLogger

@@ -2,7 +2,7 @@ import type { Page } from '@playwright/test'
 
 export async function waitForServiceWorker (page: Page): Promise<void> {
   await page.evaluate(async () => {
-    const iterations = 10
+    const iterations = 1000
     const delay = 1_000
 
     for (let i = 0; i < iterations; i++) {

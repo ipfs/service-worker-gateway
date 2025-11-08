@@ -47,3 +47,7 @@ body {
 .link:hover {
   text-decoration: underline;
 }
+
+.white .link {
+  color: var(--gray-muted);
+}

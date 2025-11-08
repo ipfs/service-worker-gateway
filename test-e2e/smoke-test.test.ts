@@ -111,12 +111,15 @@ test.describe('smoke test', () => {
       waitUntil: 'networkidle'
     })
     await waitForServiceWorker(page)
+
     // set the ttl in milliseconds
     await setConfig(page, {
       serviceWorkerRegistrationTTL: 1400
     })
 
-    await page.goto(`${protocol}//bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui.ipfs.${rootDomain}/root2/root3/root4/`, { waitUntil: 'networkidle' })
+    await page.goto(`${protocol}//bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui.ipfs.${rootDomain}/root2/root3/root4/`, {
+      waitUntil: 'networkidle'
+    })
     await waitForServiceWorker(page)
     expect(swResponses.length).toBe(1)
     const response = swResponses[swResponses.length - 1]
@@ -127,7 +130,9 @@ test.describe('smoke test', () => {
     // wait for the ttl to expire
     await page.waitForTimeout(1500)
 
-    const response2 = await page.reload({ waitUntil: 'networkidle' })
+    const response2 = await page.reload({
+      waitUntil: 'networkidle'
+    })
     expect(swResponses.length).toBe(2)
     expect(response2?.status()).toBe(200)
     expect(response2?.headers()['content-type']).toBe('text/html; charset=utf-8')
