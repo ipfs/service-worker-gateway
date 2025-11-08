@@ -65,12 +65,16 @@ func redirectToHelia(w http.ResponseWriter, r *http.Request) {
 
 func ipfsLikeHandler(w http.ResponseWriter, r *http.Request) {
 	if fileExists(r.URL.Path) {
-		// Serve the embedded file.
+		// Serve the embedded file
 		distHandler.ServeHTTP(w, r)
 		return
 	}
-	// Otherwise hand off to the SW via redirect.
-	redirectToHelia(w, r)
+
+	// Otherwise serve the index file
+	http.ServeFile(w, r, "dist/index.html")
+
+	// Otherwise hand off to the SW via redirect
+	// redirectToHelia(w, r)
 }
 
 // -----------------------------------------------------------------------------

@@ -1,5 +1,8 @@
+import { checkSubdomainSupport } from './lib/check-subdomain-support.js'
+import { Config } from './lib/config-db.js'
 import { QUERY_PARAMS } from './lib/constants.js'
-import { getStateFromUrl } from './lib/first-hit-helpers.js'
+import { createSearch, isRequestForContentAddressedData } from './lib/first-hit-helpers.js'
+import { uiLogger } from './lib/logger.js'
 import { registerServiceWorker } from './service-worker-utils.js'
 
 /**
@@ -32,7 +35,8 @@ async function renderUi (): Promise<void> {
  * A direct load means we need to install the service worker and then either
  * show the UI (if it was explicitly requested/it was a non-subdomain gateway
  * request) or redirect the user to an onward page (either due to the presence
- * of the `helia-sw` param or if it was a subdomain gateway request).
+ * of the `QUERY_PARAMS.REDIRECT` param or if it was a subdomain gateway
+ * request).
  *
  * An indirect load means we need to install the service worker and then
  * redirect.
@@ -69,7 +73,7 @@ async function renderUi (): Promise<void> {
  * - Detect subdomain support
  * - - If present, redirect to subdomain gateway URL
  * - - If not present, detect whether origin isolation warning has been accepted
- * - - - If accepted encode current URL as `helia-sw` and redirect to domain root
+ * - - - If accepted encode current URL as `QUERY_PARAMS.REDIRECT` and redirect to domain root
  * - - - If not accepted, show origin isolation warning UI
  * 2. Otherwise if the request is for a subdomain gateway
  * - Check `helia-config` param, if present, deserialize and write into IndexedDB
@@ -79,9 +83,6 @@ async function renderUi (): Promise<void> {
  * Maybe we are done?
  */
 async function main (): Promise<void> {
-  const url = new URL(window.location.href)
-  const state = await getStateFromUrl(url)
-
   if (!('serviceWorker' in navigator)) {
     // no service worker support, render the UI which will tell the user service
     // workers are not supported
@@ -89,10 +90,45 @@ async function main (): Promise<void> {
     return
   }
 
-  // check service worker state
-  const registration = await navigator.serviceWorker.getRegistration()
+  let url = new URL(window.location.href)
 
-  if (registration?.active == null) {
+  const config = new Config({
+    logger: uiLogger
+  }, {
+    url
+  })
+  await config.init()
+
+  // check for subdomain support if we have not already so service worker will
+  // know it can redirect path gateway requests to subdomains
+  if ((await config.areSubdomainsSupported() == null)) {
+    await checkSubdomainSupport(url, config)
+  }
+
+  if (url.searchParams.get(QUERY_PARAMS.CONFIG) && document.referrer === '') {
+    // someone has been linked to this page directly with config - if the
+    // timestamp field is present, delete it to cause the config to become
+    // untrusted which will reduce the number of fields allowed to be updated
+    try {
+      const uncompressed = JSON.parse(atob(url.searchParams.get(QUERY_PARAMS.CONFIG) ?? ''))
+      delete uncompressed.t
+      const compressed = btoa(JSON.stringify(uncompressed))
+
+      const search = createSearch(url.searchParams, {
+        filter: (key) => key !== QUERY_PARAMS.CONFIG,
+        params: {
+          [QUERY_PARAMS.CONFIG]: compressed
+        }
+      })
+
+      url = new URL(`${url.protocol}//${url.host}${url.pathname}${search}${url.hash}`)
+    } catch {}
+  }
+
+  const registration = await navigator.serviceWorker.getRegistration()
+  const hasActiveWorker = registration?.active != null
+
+  if (!hasActiveWorker) {
     // install the service worker on the root path of this domain, either path
     // or subdomain gateway
     await registerServiceWorker()
@@ -106,9 +142,16 @@ async function main (): Promise<void> {
     // append config to the redirect if requested
     if (includeConfig === 'true') {
       const redirectUrl = new URL(redirectTo)
-      redirectUrl.searchParams.set(QUERY_PARAMS.CONFIG, await state.config.getCompressed())
 
-      redirectTo = `${redirectUrl.protocol}//${redirectUrl.host}${redirectUrl.pathname}${redirectUrl.search}${redirectUrl.hash}`
+      // remove config request param from search
+      const search = createSearch(redirectUrl.searchParams, {
+        params: {
+          [QUERY_PARAMS.CONFIG]: await config.getCompressed()
+        },
+        filter: (key) => key !== QUERY_PARAMS.GET_CONFIG && key !== QUERY_PARAMS.REDIRECT
+      })
+
+      redirectTo = `${redirectUrl.protocol}//${redirectUrl.host}${redirectUrl.pathname}${search}${redirectUrl.hash}`
     }
 
     window.location.href = redirectTo
@@ -116,14 +159,13 @@ async function main (): Promise<void> {
   }
 
   // no redirect requested, no content requested, show UI
-  if (!state.requestForContentAddressedData) {
+  if (!isRequestForContentAddressedData(url)) {
     await renderUi()
     return
   }
 
   // service worker is now installed so redirect to path or subdomain for data
   // so it can intercept the request
-
   window.location.href = url.toString()
 }
 

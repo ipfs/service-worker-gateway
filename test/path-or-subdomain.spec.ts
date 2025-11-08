@@ -163,5 +163,31 @@ describe('path-or-subdomain', () => {
       expect(url.origin).to.equal('http://qmwhatever.potato.example.com')
       expect(url.searchParams.get(QUERY_PARAMS.REDIRECT)).to.equal('/foo')
     })
+
+    it('redirects cloudflare-style CIDv0 requests to a subdomain', () => {
+      // Use CIDv0 for this test
+      const cid = 'QmbQDovX7wRe9ek7u6QXe9zgCXkTzoUSsTFJEkrYV1HrVR'
+      const cidV1 = CID.parse(cid).toV1().toString(base32)
+      const loc = new URL(`http://example.com/index.html/ipfs/${cid}/foo/bar.txt`)
+
+      const out = toSubdomainRequest(loc)
+      const exp = new URL(`http://${cidV1}.ipfs.example.com/`)
+      exp.searchParams.set(QUERY_PARAMS.REDIRECT, '/foo/bar.txt')
+
+      expect(out).to.equal(exp.href)
+    })
+
+    it('redirects cloudflare-style CIDv1 requests to a subdomain', () => {
+      // Use CIDv0 for this test
+      const cid = 'QmbQDovX7wRe9ek7u6QXe9zgCXkTzoUSsTFJEkrYV1HrVR'
+      const cidV1 = CID.parse(cid).toV1().toString(base32)
+      const loc = new URL(`http://example.com/index.html/ipfs/${cidV1}/foo/bar.txt`)
+
+      const out = toSubdomainRequest(loc)
+      const exp = new URL(`http://${cidV1}.ipfs.example.com/`)
+      exp.searchParams.set(QUERY_PARAMS.REDIRECT, '/foo/bar.txt')
+
+      expect(out).to.equal(exp.href)
+    })
   })
 })

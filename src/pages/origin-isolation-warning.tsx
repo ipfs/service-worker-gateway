@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useState } from 'react'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
-import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
+import { ConfigContext } from '../context/config-context.jsx'
 import { QUERY_PARAMS } from '../lib/constants.js'
 import './default-page-styles.css'
 import { toGatewayRoot } from '../lib/to-gateway-root.js'
@@ -55,32 +55,36 @@ export default function SubdomainWarningPage (): ReactNode {
     )
   }
 
-  const [acceptedRisk, setAcceptedRisk] = useState(sessionStorage.getItem('ipfs-sw-gateway-accepted-path-gateway-risk') ?? false)
   const [isSaving, setIsSaving] = useState(false)
-  const originalUrl = new URL(window.location.href).searchParams.get(QUERY_PARAMS.REDIRECT)
+  const configContext = useContext(ConfigContext)
+
+  const originalUrl = new URL(window.location.href)
 
   const handleAcceptRisk = useCallback(async () => {
     setIsSaving(true)
-    // Store the user's choice in sessionStorage so it persists during the session
-    sessionStorage.setItem('ipfs-sw-gateway-accepted-path-gateway-risk', 'true')
-    // post to SW to accept the risk
+
     try {
-      await fetch('?ipfs-sw-accept-origin-isolation-warning=true').then(() => {
-        setAcceptedRisk(true)
+      // update the config
+      await configContext.saveConfig({
+        acceptOriginIsolationWarning: true
       })
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Error accepting risk', error)
+
+      // tell the service worker to reload the config
+      await fetch(`/?${QUERY_PARAMS.RELOAD_CONFIG}=true`)
     } finally {
       setIsSaving(false)
     }
   }, [])
 
   useEffect(() => {
-    if (acceptedRisk) {
-      window.location.href = originalUrl ?? '/'
+    if (configContext.configDb.acceptOriginIsolationWarning) {
+      // remove any UI-added navigation info
+      history.pushState('', document.title, window.location.pathname + window.location.search)
+
+      // @ts-expect-error boolean `forceGet` argument is firefox-only
+      window.location.reload(true)
     }
-  }, [originalUrl, acceptedRisk])
+  }, [originalUrl, configContext])
 
   const currentHost = window.location.host
 
@@ -93,35 +97,33 @@ export default function SubdomainWarningPage (): ReactNode {
   }
 
   return (
-    <ServiceWorkerProvider>
-      <main className='e2e-subdomain-warning pa4-l bg-red mw7 mv4-l center pa4 br2 white'>
-        <div className='flex items-center mb4'>
-          <svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' className='mr2'>
-            <path d='m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z' />
-            <line x1='12' y1='9' x2='12' y2='13' />
-            <line x1='12' y1='17' x2='12.01' y2='17' />
-          </svg>
-          <h1 className='ma0 f3'>Warning: Subdomain Gateway Not Available</h1>
-        </div>
+    <main className='e2e-subdomain-warning pa4-l bg-red mw7 mv4-l center pa4 br2 white'>
+      <div className='flex items-center mb4'>
+        <svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' className='mr2'>
+          <path d='m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z' />
+          <line x1='12' y1='9' x2='12' y2='13' />
+          <line x1='12' y1='17' x2='12.01' y2='17' />
+        </svg>
+        <h1 className='ma0 f3'>Warning: Subdomain Gateway Not Available</h1>
+      </div>
 
-        <div className='bg-yellow pa3 mb4 br2'>
-          <p className='ma0 mb2 b'>This website is using a path-based IPFS gateway without proper origin isolation.</p>
-          <p className='ma0'>
-            Without subdomain support, the following features will be missing:
-          </p>
-          <ul className='mt2 mb0'>
-            <li>Origin isolation for security</li>
-            <li>Support for _redirects functionality</li>
-            <li>Proper web application functionality</li>
-          </ul>
-        </div>
+      <div className='bg-yellow pa3 mb4 br2'>
+        <p className='ma0 mb2 b'>This website is using a path-based IPFS gateway without proper origin isolation.</p>
+        <p className='ma0'>
+          Without subdomain support, the following features will be missing:
+        </p>
+        <ul className='mt2 mb0'>
+          <li>Origin isolation for security</li>
+          <li>Support for _redirects functionality</li>
+          <li>Proper web application functionality</li>
+        </ul>
+      </div>
 
-        <RecommendationsElement currentHost={currentHost} />
+      <RecommendationsElement currentHost={currentHost} />
 
-        <div className='flex justify-center mt4'>
-          <ServiceWorkerReadyButton id='accept-warning' label={isSaving ? 'Accepting...' : 'I understand the risks - Continue anyway'} waitingLabel='Waiting for service worker registration...' onClick={() => { void handleAcceptRisk() }} />
-        </div>
-      </main>
-    </ServiceWorkerProvider>
+      <div className='flex justify-center mt4'>
+        <ServiceWorkerReadyButton id='accept-warning' label={isSaving ? 'Accepting...' : 'I understand the risks - Continue anyway'} waitingLabel='Waiting for service worker registration...' onClick={() => { void handleAcceptRisk() }} />
+      </div>
+    </main>
   )
 }

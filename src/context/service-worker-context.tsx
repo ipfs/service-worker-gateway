@@ -31,7 +31,7 @@ export const ServiceWorkerProvider: React.FC<PropsWithChildren> = ({ children })
 
   useEffect(() => {
     if (isServiceWorkerRegistered) {
-      const originRedirect = findOriginIsolationRedirect(window.location, log, context._supportsSubdomains)
+      const originRedirect = findOriginIsolationRedirect(window.location, log, context.configDb._supportsSubdomains)
 
       if (originRedirect !== null) {
         window.location.replace(originRedirect)

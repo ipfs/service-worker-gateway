@@ -1,8 +1,7 @@
 /* eslint-env mocha */
 import { expect } from 'aegir/chai'
-import { isBrowser } from 'wherearewe'
-import { HASH_FRAGMENTS, QUERY_PARAMS } from '../src/lib/constants.js'
-import { getHeliaSwRedirectUrl, getStateFromUrl } from '../src/lib/first-hit-helpers.js'
+import { QUERY_PARAMS } from '../src/lib/constants.js'
+import { getHeliaSwRedirectUrl } from '../src/lib/first-hit-helpers.js'
 
 function expectRedirect ({ from, to }: { from: string, to: string }): void {
   const fromURL = new URL(from)
@@ -30,45 +29,45 @@ function expectRedirect ({ from, to }: { from: string, to: string }): void {
 
 describe('first-hit-helpers', () => {
   describe('getHeliaSwRedirectUrl', () => {
-    it('should bounce to ?helia-sw=<path> url', () => {
+    it(`should bounce to ?${QUERY_PARAMS.REDIRECT}=<path> url`, () => {
       expectRedirect({
         from: 'http://localhost:3334/ipfs/bafkqablimvwgy3y',
-        to: `http://localhost:3334/?helia-sw=${encodeURIComponent('/ipfs/bafkqablimvwgy3y')}`
+        to: `http://localhost:3334/?${QUERY_PARAMS.REDIRECT}=${encodeURIComponent('/ipfs/bafkqablimvwgy3y')}`
       })
     })
 
-    it('should bounce to ?helia-sw=<path> url with extra query params', () => {
+    it(`should bounce to ?${QUERY_PARAMS.REDIRECT}=<path> url with extra query params`, () => {
       expectRedirect({
         from: 'http://localhost:3334/ipfs/bafkqablimvwgy3y?foo=bar',
-        to: `http://localhost:3334/?helia-sw=${encodeURIComponent('/ipfs/bafkqablimvwgy3y?foo=bar')}`
+        to: `http://localhost:3334/?${QUERY_PARAMS.REDIRECT}=${encodeURIComponent('/ipfs/bafkqablimvwgy3y?foo=bar')}`
       })
     })
 
     it('should handle origin isolation redirect hash', () => {
       expectRedirect({
         from: 'http://localhost:3334/ipfs/bafkqablimvwgy3y#/ipfs-sw-origin-isolation-warning',
-        to: `http://localhost:3334/?helia-sw=${encodeURIComponent('/ipfs/bafkqablimvwgy3y#/ipfs-sw-origin-isolation-warning')}`
+        to: `http://localhost:3334/?${QUERY_PARAMS.REDIRECT}=${encodeURIComponent('/ipfs/bafkqablimvwgy3y#/ipfs-sw-origin-isolation-warning')}`
       })
     })
 
     it('should handle origin isolation redirect hash with query string', () => {
       expectRedirect({
         from: 'http://localhost:3334/ipfs/bafkqablimvwgy3y?foo=bar#/ipfs-sw-origin-isolation-warning',
-        to: `http://localhost:3334/?helia-sw=${encodeURIComponent('/ipfs/bafkqablimvwgy3y?foo=bar#/ipfs-sw-origin-isolation-warning')}`
+        to: `http://localhost:3334/?${QUERY_PARAMS.REDIRECT}=${encodeURIComponent('/ipfs/bafkqablimvwgy3y?foo=bar#/ipfs-sw-origin-isolation-warning')}`
       })
     })
 
     it('should handle deep path requests properly', () => {
       expectRedirect({
         from: 'http://localhost:3333/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq/1 - Barrel - Part 1 - alt.txt',
-        to: `http://localhost:3333/?helia-sw=${encodeURIComponent('/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq/1 - Barrel - Part 1 - alt.txt')}`
+        to: `http://localhost:3333/?${QUERY_PARAMS.REDIRECT}=${encodeURIComponent('/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq/1 - Barrel - Part 1 - alt.txt')}`
       })
     })
 
     it('should handle subdomain requests properly', () => {
       expectRedirect({
         from: 'http://bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq.ipfs.localhost:3333/1 - Barrel - Part 1 - alt.txt',
-        to: `http://bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq.ipfs.localhost:3333/?helia-sw=${encodeURIComponent('/1 - Barrel - Part 1 - alt.txt')}`
+        to: `http://bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq.ipfs.localhost:3333/?${QUERY_PARAMS.REDIRECT}=${encodeURIComponent('/1 - Barrel - Part 1 - alt.txt')}`
       })
     })
 
@@ -143,113 +142,5 @@ describe('first-hit-helpers', () => {
       const result = getHeliaSwRedirectUrl(originalURL)
       expect(result.hash).to.equal('')
     })
-  })
-})
-
-describe('getStateFromUrl', () => {
-  // skip if nodejs because we don't have indexedDB
-  if (!isBrowser) {
-    return
-  }
-
-  it('should return correct state for path gateway request', async () => {
-    const url = new URL('https://example.com/ipfs/bafkqablimvwgy3y')
-    const state = await getStateFromUrl(url)
-
-    expect(state.isIsolatedOrigin).to.be.false()
-    expect(state.urlHasSubdomainConfigRequest).to.be.false()
-    expect(state.url).to.equal(url)
-    expect(state.subdomainParts.parentDomain).to.equal('example.com')
-    expect(state.subdomainParts.id).to.be.null()
-    expect(state.subdomainParts.protocol).to.be.null()
-    expect(state.compressedConfig).to.be.null()
-    expect(state.requestForContentAddressedData).to.be.true()
-    expect(state.supportsSubdomains).to.be.false()
-  })
-
-  it('should return correct state for subdomain gateway request', async () => {
-    const url = new URL('https://bafkqablimvwgy3y.ipfs.example.com/')
-    const state = await getStateFromUrl(url)
-
-    expect(state.isIsolatedOrigin).to.be.true()
-    expect(state.urlHasSubdomainConfigRequest).to.be.false()
-    expect(state.url).to.equal(url)
-    expect(state.subdomainParts.parentDomain).to.equal('example.com')
-    expect(state.subdomainParts.id).to.equal('bafkqablimvwgy3y')
-    expect(state.subdomainParts.protocol).to.equal('ipfs')
-    expect(state.compressedConfig).to.be.null()
-    expect(state.requestForContentAddressedData).to.be.true()
-    expect(state.supportsSubdomains).to.be.true()
-  })
-
-  it('should return correct state for subdomain config request', async () => {
-    const url = new URL(`https://example.com/?helia-sw=/ipfs/cid/foo#${HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST}=true`)
-    const state = await getStateFromUrl(url)
-
-    expect(state.isIsolatedOrigin).to.be.false()
-    expect(state.urlHasSubdomainConfigRequest).to.be.true()
-    expect(state.url).to.equal(url)
-    expect(state.subdomainParts.parentDomain).to.equal('example.com')
-    expect(state.subdomainParts.id).to.be.null()
-    expect(state.subdomainParts.protocol).to.be.null()
-    expect(state.compressedConfig).to.be.null()
-    expect(state.requestForContentAddressedData).to.be.true()
-    expect(state.supportsSubdomains).to.be.true()
-  })
-
-  it('should return correct state for URL with compressed config', async () => {
-    const url = new URL(`https://cid.ipfs.example.com/#${HASH_FRAGMENTS.IPFS_SW_CFG}=compressed-config`)
-    const state = await getStateFromUrl(url)
-
-    expect(state.isIsolatedOrigin).to.be.true()
-    expect(state.urlHasSubdomainConfigRequest).to.be.false()
-    expect(state.url).to.equal(url)
-    expect(state.subdomainParts.parentDomain).to.equal('example.com')
-    expect(state.subdomainParts.id).to.equal('cid')
-    expect(state.subdomainParts.protocol).to.equal('ipfs')
-    expect(state.compressedConfig).to.equal('compressed-config')
-    expect(state.requestForContentAddressedData).to.be.true()
-  })
-
-  it('should return correct state for origin-isolation-warning page request', async () => {
-    const url = new URL(`https://example.com/#/${HASH_FRAGMENTS.IPFS_SW_ORIGIN_ISOLATION_WARNING}`)
-    const state = await getStateFromUrl(url)
-
-    expect(state.isIsolatedOrigin).to.be.false()
-    expect(state.urlHasSubdomainConfigRequest).to.be.false()
-    expect(state.url).to.equal(url)
-    expect(state.subdomainParts.parentDomain).to.equal('example.com')
-    expect(state.subdomainParts.id).to.be.null()
-    expect(state.subdomainParts.protocol).to.be.null()
-    expect(state.compressedConfig).to.be.null()
-    expect(state.requestForContentAddressedData).to.be.false()
-  })
-
-  it('should return correct state for config page request', async () => {
-    const url = new URL('https://example.com/#/ipfs-sw-config')
-    const state = await getStateFromUrl(url)
-
-    expect(state.isIsolatedOrigin).to.be.false()
-    expect(state.urlHasSubdomainConfigRequest).to.be.false()
-    expect(state.url).to.equal(url)
-    expect(state.subdomainParts.parentDomain).to.equal('example.com')
-    expect(state.subdomainParts.id).to.be.null()
-    expect(state.subdomainParts.protocol).to.be.null()
-    expect(state.compressedConfig).to.be.null()
-    expect(state.requestForContentAddressedData).to.be.false()
-  })
-
-  it('should return correct state for helia-sw query param request', async () => {
-    const url = new URL('https://example.com/?helia-sw=/ipfs/cid/foo')
-    const state = await getStateFromUrl(url)
-
-    expect(state.isIsolatedOrigin).to.be.false()
-    expect(state.urlHasSubdomainConfigRequest).to.be.false()
-    expect(state.url).to.equal(url)
-    expect(state.subdomainParts.parentDomain).to.equal('example.com')
-    expect(state.subdomainParts.id).to.be.null()
-    expect(state.subdomainParts.protocol).to.be.null()
-    expect(state.compressedConfig).to.be.null()
-    expect(state.requestForContentAddressedData).to.be.true()
   })
 })

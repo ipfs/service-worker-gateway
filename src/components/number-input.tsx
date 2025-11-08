@@ -53,8 +53,8 @@ export default ({ resetKey, onChange, label, placeholder, validationFn, value, d
 
   return (
     <div {...props}>
-      <InputLabel label={label} />
-      <InputDescription description={description} />
+      <InputLabel>{label}</InputLabel>
+      <InputDescription>{description}</InputDescription>
       <input
         type='number'
         step={step}

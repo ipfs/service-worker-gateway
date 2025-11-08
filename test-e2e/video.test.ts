@@ -1,3 +1,4 @@
+import { allowInsecureWebsiteAccess } from './allow-insecure-website-access.js'
 import { testPathRouting as test, expect } from './fixtures/config-test-fixtures.js'
 import { setConfig } from './fixtures/set-sw-config.js'
 import { waitForServiceWorker } from './fixtures/wait-for-service-worker'
@@ -7,13 +8,8 @@ const cid = 'bafybeie4vcqkutumw7s26ob2bwqwqi44m6lrssjmiirlhrzhs2akdqmkw4' // big
 
 test.describe('video', () => {
   test.beforeEach(async ({ page }) => {
-    // we need to send a request to the service worker to accept the origin isolation warning
-    await page.evaluate(async () => {
-      const response = await fetch('?ipfs-sw-accept-origin-isolation-warning=true')
-      if (!response.ok) {
-        throw new Error('Failed to accept origin isolation warning')
-      }
-    })
+    await waitForServiceWorker(page)
+    await allowInsecureWebsiteAccess(page)
   })
 
   const testConfig: Partial<ConfigDbWithoutPrivateFields> = {
@@ -32,13 +28,13 @@ test.describe('video', () => {
    * We want to load the video fixture and ensure it starts playing.
    */
   test('starts playing automatically', async ({ page }) => {
-    await setConfig({ page, config: testConfig })
-    await waitForServiceWorker(page, 'http://127.0.0.1:3333')
+    await setConfig(page, testConfig)
+    await waitForServiceWorker(page)
     const response = await page.goto(`http://127.0.0.1:3333/ipfs/${cid}`, { waitUntil: 'commit' })
     const start = performance.now()
 
     expect(response?.status()).toBe(200)
-    await waitForServiceWorker(page, 'http://127.0.0.1:3333')
+    await waitForServiceWorker(page)
 
     // expect a video player
     await page.waitForSelector('video')

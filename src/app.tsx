@@ -3,14 +3,19 @@ import ReactDOMClient from 'react-dom/client'
 import './app.css'
 import { FaInfoCircle, FaCog, FaGithub, FaDownload, FaExclamationTriangle, FaExclamationCircle } from 'react-icons/fa'
 import { HashRouter, Route, Routes, NavLink } from 'react-router-dom'
+import { ConfigProvider } from './context/config-context.jsx'
+import { ServiceWorkerProvider } from './context/service-worker-context.jsx'
 import ipfsLogo from './ipfs-logo.svg'
+import { Config } from './lib/config-db.js'
 import { HASH_FRAGMENTS } from './lib/constants.js'
 import { injectCSS } from './lib/css-injector.js'
+import { uiLogger } from './lib/logger.js'
 import AboutPage from './pages/about.jsx'
 import ConfigPage from './pages/config.jsx'
 import { FetchErrorPage } from './pages/fetch-error.jsx'
 import HomePage from './pages/home.jsx'
 import OriginIsolationWarningPage from './pages/origin-isolation-warning.jsx'
+import { ServerErrorPage } from './pages/server-error.jsx'
 
 // SW did not trigger for this request
 
@@ -27,16 +32,22 @@ function Header (): React.ReactElement {
 
   if (globalThis.fetchError != null) {
     errorPageLink = (
-      <NavLink to={`/${HASH_FRAGMENTS.IPFS_SW_ERROR_UI}`} className={({ isActive }) => isActive ? 'white' : ''}>
+      <NavLink to={`/${HASH_FRAGMENTS.IPFS_SW_FETCH_ERROR_UI}`} className={({ isActive }) => isActive ? 'white' : ''}>
         <FaExclamationCircle className='ml2 f3' />
       </NavLink>
     )
   }
 
-  let warningPageLink: React.ReactElement | undefined
+  if (globalThis.serverError != null) {
+    errorPageLink = (
+      <NavLink to={`/${HASH_FRAGMENTS.IPFS_SW_SERVER_ERROR_UI}`} className={({ isActive }) => isActive ? 'white' : ''}>
+        <FaExclamationCircle className='ml2 f3' />
+      </NavLink>
+    )
+  }
 
   if (globalThis.originIsolationWarning != null) {
-    warningPageLink = (
+    errorPageLink = (
       <NavLink to={`/${HASH_FRAGMENTS.IPFS_SW_ORIGIN_ISOLATION_WARNING}`} className={({ isActive }) => isActive ? 'white' : ''}>
         <FaExclamationTriangle className='ml2 f3' />
       </NavLink>
@@ -53,7 +64,6 @@ function Header (): React.ReactElement {
       <div className='pb1 ma0 mr2 inline-flex items-center aqua'>
         <h1 className='e2e-header-title f3 fw2 ttu sans-serif'>Service Worker Gateway</h1>
         {errorPageLink}
-        {warningPageLink}
         <NavLink to='/' className={({ isActive }) => isActive ? 'white' : ''}>
           <FaDownload className='ml2 f3' />
         </NavLink>
@@ -81,7 +91,11 @@ function Header (): React.ReactElement {
  */
 function App (): React.ReactElement {
   if (globalThis.fetchError != null && globalThis.location.hash === '') {
-    window.location.hash = `/${HASH_FRAGMENTS.IPFS_SW_ERROR_UI}`
+    window.location.hash = `/${HASH_FRAGMENTS.IPFS_SW_FETCH_ERROR_UI}`
+  }
+
+  if (globalThis.serverError != null && globalThis.location.hash === '') {
+    window.location.hash = `/${HASH_FRAGMENTS.IPFS_SW_SERVER_ERROR_UI}`
   }
 
   if (globalThis.originIsolationWarning != null && globalThis.location.hash === '') {
@@ -96,7 +110,8 @@ function App (): React.ReactElement {
         <Route path={`/${HASH_FRAGMENTS.IPFS_SW_LOAD_UI}`} element={<HomePage />} />,
         <Route path={`/${HASH_FRAGMENTS.IPFS_SW_ABOUT_UI}`} element={<AboutPage />} />,
         <Route path={`/${HASH_FRAGMENTS.IPFS_SW_CONFIG_UI}`} element={<ConfigPage />} />,
-        <Route path={`/${HASH_FRAGMENTS.IPFS_SW_ERROR_UI}`} element={<FetchErrorPage />} />
+        <Route path={`/${HASH_FRAGMENTS.IPFS_SW_FETCH_ERROR_UI}`} element={<FetchErrorPage />} />
+        <Route path={`/${HASH_FRAGMENTS.IPFS_SW_SERVER_ERROR_UI}`} element={<ServerErrorPage />} />
         <Route path={`/${HASH_FRAGMENTS.IPFS_SW_ORIGIN_ISOLATION_WARNING}`} element={<OriginIsolationWarningPage />} />
       </Routes>
     </HashRouter>
@@ -128,9 +143,18 @@ async function renderUi (): Promise<void> {
 
   const root = ReactDOMClient.createRoot(container)
 
+  const config = new Config({
+    logger: uiLogger
+  })
+  const configDb = await config.get()
+
   root.render(
     <React.StrictMode>
-      <App />
+      <ConfigProvider config={config} configDb={configDb}>
+        <ServiceWorkerProvider>
+          <App />
+        </ServiceWorkerProvider>
+      </ConfigProvider>
     </React.StrictMode>
   )
 }

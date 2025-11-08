@@ -49,8 +49,8 @@ export default ({ resetKey, onChange, label, placeholder, validationFn, value, d
 
   return (
     <div {...props}>
-      <InputLabel label={label} />
-      <InputDescription description={description} />
+      <InputLabel>{label}</InputLabel>
+      <InputDescription>{description}</InputDescription>
       <textarea
         className='input-reset ba br2 b--light-silver code lh-copy black-80 bg-white pa2 w-100 mt2'
         id={label}

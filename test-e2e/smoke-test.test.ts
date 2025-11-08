@@ -1,4 +1,5 @@
 // see https://github.com/ipfs/service-worker-gateway/issues/502
+import { HASH_FRAGMENTS } from '../src/lib/constants.js'
 import { testSubdomainRouting as test, expect } from './fixtures/config-test-fixtures.js'
 import { setConfig } from './fixtures/set-sw-config.js'
 import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
@@ -70,8 +71,10 @@ test.describe('smoke test', () => {
 
   test('configurable timeout value is respected', async ({ page, protocol, rootDomain, swResponses }) => {
     await page.goto(`${protocol}//${rootDomain}`)
-    await waitForServiceWorker(page, `${protocol}//${rootDomain}`)
-    await setConfig({ page, config: { fetchTimeout: 5 } })
+    await waitForServiceWorker(page)
+    await setConfig(page, {
+      fetchTimeout: 5
+    })
 
     const response504 = page.waitForResponse(async (response) => {
       const url = new URL(response.url())
@@ -87,8 +90,10 @@ test.describe('smoke test', () => {
   })
 
   test('unregistering the service worker works', async ({ page, baseURL }) => {
-    await page.goto(baseURL, { waitUntil: 'networkidle' })
-    await waitForServiceWorker(page, baseURL)
+    await page.goto(`${baseURL}/#${HASH_FRAGMENTS.IPFS_SW_CONFIG_UI}`, {
+      waitUntil: 'networkidle'
+    })
+    await waitForServiceWorker(page)
 
     // unregister the service worker and make sure the config is empty
     await page.click('#unregister-sw')
@@ -101,14 +106,18 @@ test.describe('smoke test', () => {
     expect(noRegistration).toBe(true)
   })
 
-  test('service worker unregisters automatically when ttl expires', async ({ page, baseURL, protocol, rootDomain, swResponses }) => {
-    await page.goto(baseURL, { waitUntil: 'networkidle' })
-    await waitForServiceWorker(page, baseURL)
+  test('service worker un-registers automatically when ttl expires', async ({ page, baseURL, protocol, rootDomain, swResponses }) => {
+    await page.goto(baseURL, {
+      waitUntil: 'networkidle'
+    })
+    await waitForServiceWorker(page)
     // set the ttl in milliseconds
-    await setConfig({ page, config: { serviceWorkerRegistrationTTL: 1400 } })
+    await setConfig(page, {
+      serviceWorkerRegistrationTTL: 1400
+    })
 
     await page.goto(`${protocol}//bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui.ipfs.${rootDomain}/root2/root3/root4/`, { waitUntil: 'networkidle' })
-    await waitForServiceWorker(page, baseURL)
+    await waitForServiceWorker(page)
     expect(swResponses.length).toBe(1)
     const response = swResponses[swResponses.length - 1]
     expect(response?.status()).toBe(200)

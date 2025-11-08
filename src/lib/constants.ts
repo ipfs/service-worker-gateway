@@ -9,7 +9,7 @@ export const QUERY_PARAMS = {
    * The current page should redirect to this URL after initializing the default
    * config (if not already set) and installing the service worker.
    */
-  REDIRECT: 'helia-sw',
+  REDIRECT: 'helia-redirect',
 
   /**
    * Before performing a redirect, load the current config and append it to the
@@ -61,19 +61,12 @@ export const HASH_FRAGMENTS = {
   /**
    * Show the the UI error page
    */
-  IPFS_SW_ERROR_UI: 'ipfs-sw-error',
+  IPFS_SW_FETCH_ERROR_UI: 'ipfs-sw-fetch-error',
 
   /**
-   * The hash fragment that is used to send the config to the subdomain service
-   * worker.
+   * Show the the UI error page
    */
-  IPFS_SW_CFG: 'ipfs-sw-cfg',
-
-  /**
-   * The hash fragment that is used to request the config from the root domain
-   * service worker.
-   */
-  IPFS_SW_SUBDOMAIN_REQUEST: 'ipfs-sw-subdomain-request',
+  IPFS_SW_SERVER_ERROR_UI: 'ipfs-sw-server-error',
 
   /**
    * The hash fragment that is used to request the origin isolation warning

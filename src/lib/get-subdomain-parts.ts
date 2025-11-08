@@ -7,12 +7,14 @@ export interface UrlParts {
    * e.g. `bafyfoo` for `bafyfoo.ipfs.example.com`
    */
   id: string | null
+
   /**
    * The protocol of the subdomain.
    *
    * e.g. `ipfs` for `bafyfoo.ipfs.example.com` or `ipns` for `bafyfoo.ipns.example.com`
    */
   protocol: string | null
+
   /**
    * The parent domain of the subdomain.
    *

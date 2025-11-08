@@ -5,13 +5,13 @@
  * Note that this was only tested and confirmed working for subdomain pages.
  */
 import { QUERY_PARAMS } from '../../src/lib/constants.js'
-import { getConfigDebug, getConfigDnsJsonResolvers, getConfigEnableGatewayProviders, getConfigEnableRecursiveGateways, getConfigEnableWebTransport, getConfigEnableWss, getConfigFetchTimeout, getConfigGatewaysInput, getConfigPage, getConfigPageSaveButton, getConfigRoutersInput, getConfigServiceWorkerRegistrationTTL } from './locators.js'
+import { getConfigAcceptOriginIsolationWarning, getConfigDebug, getConfigDnsJsonResolvers, getConfigEnableGatewayProviders, getConfigEnableRecursiveGateways, getConfigEnableWebTransport, getConfigEnableWss, getConfigFetchTimeout, getConfigGatewaysInput, getConfigPage, getConfigPageSaveButton, getConfigRoutersInput, getConfigServiceWorkerRegistrationTTL } from './locators.js'
 import { waitForServiceWorker } from './wait-for-service-worker.js'
 import type { ConfigDb, ConfigDbWithoutPrivateFields } from '../../src/lib/config-db.js'
 import type { Page } from '@playwright/test'
 
-export async function setConfigViaUi ({ page, config, expectedSwScope }: { page: Page, config: Partial<ConfigDb>, expectedSwScope: string }): Promise<void> {
-  await waitForServiceWorker(page, expectedSwScope)
+export async function setConfigViaUi ({ page, config }: { page: Page, config: Partial<ConfigDb>, expectedSwScope: string }): Promise<void> {
+  await waitForServiceWorker(page)
 
   await getConfigPage(page).isVisible()
 
@@ -68,12 +68,13 @@ export async function setConfigViaUi ({ page, config, expectedSwScope }: { page:
       }
     })
   })
+
   await getConfigPageSaveButton(page).click()
   await savePromise
 }
 
-export async function getConfigUi ({ page, expectedSwScope }: { page: Page, expectedSwScope: string }): Promise<ConfigDbWithoutPrivateFields> {
-  await waitForServiceWorker(page, expectedSwScope)
+export async function getConfigUi ({ page }: { page: Page, expectedSwScope: string }): Promise<ConfigDbWithoutPrivateFields> {
+  await waitForServiceWorker(page)
 
   await getConfigPage(page).isVisible()
 
@@ -93,6 +94,7 @@ export async function getConfigUi ({ page, expectedSwScope }: { page: Page, expe
   })
   const debug = await getConfigDebug(page).locator('textarea').inputValue()
   const serviceWorkerRegistrationTTL = parseInt(await getConfigServiceWorkerRegistrationTTL(page).locator('input').inputValue(), 10) * 1000 * 60 * 60 // convert from hours to milliseconds
+  const acceptOriginIsolationWarning = await getConfigAcceptOriginIsolationWarning(page).locator('input').isChecked()
   return {
     enableGatewayProviders,
     enableWss,
@@ -103,11 +105,12 @@ export async function getConfigUi ({ page, expectedSwScope }: { page: Page, expe
     dnsJsonResolvers,
     debug,
     fetchTimeout,
-    serviceWorkerRegistrationTTL
+    serviceWorkerRegistrationTTL,
+    acceptOriginIsolationWarning
   }
 }
 
-export async function setConfig ({ page, config }: { page: Page, config: Partial<ConfigDb> }): Promise<void> {
+export async function setConfig (page: Page, config?: Partial<ConfigDb>): Promise<void> {
   // we can't pass through functions we already have defined, so many of these things are copied over from <root>/src/lib/generic-db.ts
   await page.evaluate(async ({ config, QUERY_PARAMS }) => {
     const dbName = 'helia-sw'
@@ -139,22 +142,24 @@ export async function setConfig ({ page, config }: { page: Page, config: Partial
 
     db.close()
 
-    const resp = await fetch(`?${QUERY_PARAMS.RELOAD_CONFIG}=true`)
+    // get the page to tell the service worker to reload it's config
+    const reloadConfigResponse = await fetch(`/?${QUERY_PARAMS.RELOAD_CONFIG}=true`)
 
-    if (!resp.ok) {
+    if (!reloadConfigResponse.ok) {
       throw new Error('Failed to reload config')
     }
   }, {
     config: {
-      gateways: [process.env.KUBO_GATEWAY],
-      routers: [process.env.KUBO_GATEWAY],
+      gateways: [process.env.KUBO_GATEWAY ?? ''],
+      routers: [process.env.KUBO_GATEWAY ?? ''],
+      t: Date.now(),
       ...config
     },
     QUERY_PARAMS
   })
 }
 
-export async function getConfig ({ page }: { page: Page }): Promise<ConfigDb> {
+export async function getConfig (page: Page): Promise<ConfigDb> {
   const config: ConfigDb = await page.evaluate(async () => {
     const dbName = 'helia-sw'
     const storeName = 'config'
@@ -187,9 +192,10 @@ export async function getConfig ({ page }: { page: Page }): Promise<ConfigDb> {
       enableRecursiveGateways: await get('enableRecursiveGateways'),
       enableGatewayProviders: await get('enableGatewayProviders'),
       debug: await get('debug'),
-      _supportsSubdomains: await get('_supportsSubdomains'),
       fetchTimeout: await get('fetchTimeout'),
-      serviceWorkerRegistrationTTL: await get('serviceWorkerRegistrationTTL')
+      serviceWorkerRegistrationTTL: await get('serviceWorkerRegistrationTTL'),
+      acceptOriginIsolationWarning: await get('acceptOriginIsolationWarning'),
+      _supportsSubdomains: await get('_supportsSubdomains')
     }
 
     db.close()

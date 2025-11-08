@@ -1,43 +1,6 @@
-import { checkSubdomainSupport } from './check-subdomain-support.js'
-import { Config } from './config-db.js'
-import { HASH_FRAGMENTS, QUERY_PARAMS } from './constants.js'
-import { getSubdomainParts } from './get-subdomain-parts.js'
-import { getHashFragment, hasHashFragment } from './hash-fragments.js'
-import { uiLogger } from './logger.js'
-import { isPathOrSubdomainRequest, isSubdomainGatewayRequest } from './path-or-subdomain.js'
-import type { UrlParts } from './get-subdomain-parts.js'
-
-interface NavigationState {
-  isIsolatedOrigin: boolean
-  urlHasSubdomainConfigRequest: boolean
-  url: URL
-  subdomainParts: UrlParts,
-  compressedConfig: string | null
-  supportsSubdomains: boolean
-
-  config: Config
-
-  /**
-   * If the user is requesting content addressed data (instead of service worker
-   * gateway UI), this will be true.
-   *
-   * e.g. NOT the sw-gateway landing page, ipfs-sw-config view,
-   * ipfs-sw-origin-isolation-warning view, etc.
-   */
-  requestForContentAddressedData: boolean
-
-  /**
-   * If the user is requesting content addressed data, the current URL is an
-   * isolated subdomain, and we already have the config, this will be true if
-   * navigator.serviceWorker.controller is null.
-   *
-   * In this case, we need to reload the page to ensure the service worker
-   * captures the request.
-   *
-   * @see https://www.w3.org/TR/service-workers/#dom-serviceworkercontainer-controller
-   */
-  isHardRefresh: boolean
-}
+import { QUERY_PARAMS } from './constants.js'
+import { isUIPageRequest } from './is-ui-page-request.js'
+import { isPathOrSubdomainRequest } from './path-or-subdomain.js'
 
 /**
  * Creates a URL with the ?helia-sw= parameter set to redirect to the desired
@@ -92,6 +55,32 @@ function getSearch (redirectUrl: URL, redirect: string): string {
     params[QUERY_PARAMS.REDIRECT] = redirect
   }
 
+  return formatSearch(params)
+}
+
+export interface CreateSearchOptions {
+  params?: Record<string, string>
+  filter?(key: string, value: string): boolean
+}
+
+export function createSearch (searchParams: URLSearchParams, options?: CreateSearchOptions): string {
+  const params: Record<string, string> = options?.params ?? {}
+
+  for (const [key, value] of searchParams) {
+    if (options?.filter?.(key, value) === false) {
+      continue
+    }
+
+    params[key] = value
+  }
+
+  return formatSearch(params)
+}
+
+/**
+ * Turns a record of key/value pairs into a URL-safe search params string
+ */
+export function formatSearch (params: Record<string, string>): string {
   const search = [...Object.entries(params)]
     .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`).join('&')
 
@@ -102,29 +91,9 @@ function getSearch (redirectUrl: URL, redirect: string): string {
   return `?${search}`
 }
 
-function isRequestForContentAddressedData (url: URL): boolean {
-  if (url.hash.includes(`/${HASH_FRAGMENTS.IPFS_SW_ORIGIN_ISOLATION_WARNING}`)) {
+export function isRequestForContentAddressedData (url: URL): boolean {
+  if (isUIPageRequest(url)) {
     // hash request for UI pages, not content addressed data
-    return false
-  }
-
-  if (url.hash.includes(`/${HASH_FRAGMENTS.IPFS_SW_LOAD_UI}`)) {
-    // hash request for UI pages, not content addressed data
-    return false
-  }
-
-  if (url.hash.includes(`/${HASH_FRAGMENTS.IPFS_SW_CONFIG_UI}`)) {
-    // is request for the config ui, not content addressed data
-    return false
-  }
-
-  if (url.hash.includes(`/${HASH_FRAGMENTS.IPFS_SW_ABOUT_UI}`)) {
-    // is request for the config ui, not content addressed data
-    return false
-  }
-
-  if (url.hash.includes(`/${HASH_FRAGMENTS.IPFS_SW_ERROR_UI}`)) {
-    // is request for the config ui, not content addressed data
     return false
   }
 
@@ -139,46 +108,4 @@ function isRequestForContentAddressedData (url: URL): boolean {
   }
 
   return false
-}
-
-/**
- * Determine the state of the navigation based on the URL and browser context.
- *
- * This is used to determine the next step in the navigation process on
- * first-hit in index.tsx
- */
-export async function getStateFromUrl (url: URL): Promise<NavigationState> {
-  const { parentDomain, id, protocol } = getSubdomainParts(url.href)
-  const isIsolatedOrigin = isSubdomainGatewayRequest(url)
-  const urlHasSubdomainConfigRequest = hasHashFragment(url, HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST) && url.searchParams.get(QUERY_PARAMS.REDIRECT) != null
-  let isHardRefresh = false
-  const config = new Config({
-    logger: uiLogger
-  }, {
-    url
-  })
-  await config.init()
-  const supportsSubdomains = await checkSubdomainSupport(url, config)
-
-  // Check service worker state
-  const registration = await navigator.serviceWorker.getRegistration()
-  const hasActiveWorker = registration?.active != null
-  const hasControllingWorker = navigator.serviceWorker.controller != null
-
-  if (hasActiveWorker && !hasControllingWorker) {
-    // this is a hard refresh
-    isHardRefresh = true
-  }
-
-  return {
-    config,
-    isIsolatedOrigin,
-    urlHasSubdomainConfigRequest,
-    url,
-    subdomainParts: { parentDomain, id, protocol },
-    compressedConfig: getHashFragment(url, HASH_FRAGMENTS.IPFS_SW_CFG),
-    supportsSubdomains,
-    requestForContentAddressedData: isRequestForContentAddressedData(url),
-    isHardRefresh
-  }
 }

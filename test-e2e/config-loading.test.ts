@@ -1,6 +1,5 @@
-import { defaultLogger } from '@libp2p/logger'
-import { Config } from '../src/lib/config-db.js'
-import { HASH_FRAGMENTS } from '../src/lib/constants.js'
+import { compressConfig } from '../src/lib/config-db.js'
+import { QUERY_PARAMS } from '../src/lib/constants.js'
 import { test, expect } from './fixtures/config-test-fixtures.js'
 import { getConfig, setConfig } from './fixtures/set-sw-config.js'
 import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
@@ -16,26 +15,29 @@ test.describe('ipfs-sw configuration', () => {
     },
     debug: 'testDebug',
     enableWss: false,
-    enableWebTransport: true,
-    enableRecursiveGateways: false,
-    enableGatewayProviders: false,
+    enableWebTransport: false,
+    enableRecursiveGateways: true,
+    enableGatewayProviders: true,
     fetchTimeout: 29 * 1000,
-    serviceWorkerRegistrationTTL: 24 * 60 * 60 * 1000
+    serviceWorkerRegistrationTTL: 24 * 60 * 60 * 1000,
+    acceptOriginIsolationWarning: false
   }
+
   test.beforeAll(async () => {
     if (process.env.KUBO_GATEWAY == null || process.env.KUBO_GATEWAY === '') {
       throw new Error('KUBO_GATEWAY not set')
     }
+
     testConfig.gateways.unshift(process.env.KUBO_GATEWAY)
     testConfig.routers.unshift(process.env.KUBO_GATEWAY)
   })
 
   test('setting the config actually works', async ({ page, baseURL }) => {
     await page.goto(baseURL, { waitUntil: 'networkidle' })
-    await waitForServiceWorker(page, baseURL)
+    await waitForServiceWorker(page)
 
-    await setConfig({ page, config: testConfig })
-    expect(await getConfig({ page })).toMatchObject(testConfig)
+    await setConfig(page, testConfig)
+    expect(await getConfig(page)).toMatchObject(testConfig)
   })
 
   test('root config is propagated to subdomain', async ({ page, baseURL, rootDomain, protocol }) => {
@@ -44,41 +46,33 @@ test.describe('ipfs-sw configuration', () => {
       test.skip()
       return
     }
-    await page.goto(baseURL, { waitUntil: 'networkidle' })
-    await waitForServiceWorker(page, baseURL)
-    // set the config on the root..
-    await setConfig({
-      page,
-      config: testConfig
+
+    await page.goto(baseURL, {
+      waitUntil: 'networkidle'
     })
-    const rootConfig = await getConfig({ page })
+    await waitForServiceWorker(page)
+
+    // set the config on the root..
+    await setConfig(page, testConfig)
+    const rootConfig = await getConfig(page)
 
     // now query a new subdomain and make sure that the config on this page is the same as the root after the page loads
-    await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/`)
-
-    // wait for config loading and final redirect to complete
-    await page.waitForLoadState('networkidle')
+    await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/`, {
+      waitUntil: 'networkidle'
+    })
 
     // wait for the service worker to be registered
-    await waitForServiceWorker(page, `${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}`)
+    await waitForServiceWorker(page)
 
     // now get the config from the subdomain
-    const subdomainConfig = await getConfig({ page })
+    const subdomainConfig = await getConfig(page)
 
     // ensure it equals the root config (except for _supportsSubdomains which only matters on the root and won't be set on subdomains)
     expect({ ...subdomainConfig, _supportsSubdomains: rootConfig._supportsSubdomains }).toEqual(rootConfig)
     expect(subdomainConfig).toMatchObject(testConfig)
-
-    // now we know the subdomain has the right config, but does the serviceworker?
-    const serviceWorkerConfigJson = await page.evaluate(async () => {
-      const response = await fetch('?ipfs-sw-config-get=true')
-      return response.json()
-    })
-
-    expect(serviceWorkerConfigJson).toMatchObject(testConfig)
   })
 
-  test('config can be injected from an untrusted source', async ({ page, baseURL, rootDomain, protocol }) => {
+  test('config can be injected from an untrusted source', async ({ page, rootDomain, protocol }) => {
     if (['webkit', 'safari'].includes(test.info().project.name)) {
       // @see https://github.com/ipfs/in-web-browsers/issues/206
       test.skip()
@@ -107,23 +101,23 @@ test.describe('ipfs-sw configuration', () => {
       enableGatewayProviders: !testConfig.enableGatewayProviders,
       serviceWorkerRegistrationTTL: 86_400_000
     }
-    const conf = new Config({
-      logger: defaultLogger()
-    })
 
-    const compressedConfig = conf.compressConfig(newConfig)
+    const compressedConfig = compressConfig(newConfig)
+
     const responses: PlaywrightResponse[] = []
     page.on('response', (response) => {
       responses.push(response)
     })
-    await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/#${HASH_FRAGMENTS.IPFS_SW_CFG}=${compressedConfig}`)
-    await page.waitForLoadState('networkidle')
-    await waitForServiceWorker(page, `${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}`)
+
+    await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/?${QUERY_PARAMS.CONFIG}=${compressedConfig}`, {
+      waitUntil: 'networkidle'
+    })
+    await waitForServiceWorker(page)
 
     // we injected the config and were never redirected to the root domain
     expect(responses.map(r => r.url())).not.toContain(`${protocol}//${rootDomain}/`)
 
-    const config = await getConfig({ page })
+    const config = await getConfig(page)
     // malicious urls should not exist in the config
     expect(config.gateways).not.toContain('https://malicious.com')
     expect(config.routers).not.toContain('https://malicious.com/routing/v1')

@@ -1,7 +1,3 @@
-/**
- * Page to display a user friendly message when `navigator.serviceWorker` is not available.
- */
-
 import React, { useState } from 'react'
 import { Button } from '../button.jsx'
 import ContentBox from '../components/content-box.jsx'

@@ -52,6 +52,11 @@ export const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' 
     .split('/')
     .filter(segment => segment !== '')
 
+  // remove cloudflare redirect
+  if (segments[0] === 'index.html') {
+    segments.shift()
+  }
+
   if (segments.length < 2) {
     throw new Error(`Invalid location ${location}`)
   }

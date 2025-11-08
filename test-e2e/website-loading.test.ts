@@ -1,14 +1,11 @@
+import { allowInsecureWebsiteAccess } from './allow-insecure-website-access.js'
 import { testPathRouting as test, expect } from './fixtures/config-test-fixtures.js'
+import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
 
 test.describe('website-loading', () => {
   test.beforeEach(async ({ page }) => {
-    // we need to send a request to the service worker to accept the origin isolation warning
-    await page.evaluate(async () => {
-      const response = await fetch('?ipfs-sw-accept-origin-isolation-warning=true')
-      if (!response.ok) {
-        throw new Error('Failed to accept origin isolation warning')
-      }
-    })
+    await waitForServiceWorker(page)
+    await allowInsecureWebsiteAccess(page)
   })
 
   test('ensure unixfs directory trailing slash is added', async ({ page }) => {

@@ -81,8 +81,6 @@ export const test = base.extend<TestOptions>({
       }
 
       if (isNotLocalQuery && !isBaseUrl) {
-        // eslint-disable-next-line no-console
-        console.log('preventing access to route', url)
         await route.abort()
       } else {
         await route.continue()
@@ -115,15 +113,12 @@ export const testPathRouting = test.extend<TestOptions>({
     }
 
     await page.goto('http://127.0.0.1:3333', { waitUntil: 'networkidle' })
-    await waitForServiceWorker(page, 'http://127.0.0.1:3333')
-    await setConfig({
-      page,
-      config: {
-        gateways: [process.env.KUBO_GATEWAY],
-        routers: [process.env.KUBO_GATEWAY],
-        dnsJsonResolvers: {
-          '.': 'https://delegated-ipfs.dev/dns-query'
-        }
+    await waitForServiceWorker(page)
+    await setConfig(page, {
+      gateways: [process.env.KUBO_GATEWAY],
+      routers: [process.env.KUBO_GATEWAY],
+      dnsJsonResolvers: {
+        '.': 'https://delegated-ipfs.dev/dns-query'
       }
     })
 
@@ -168,7 +163,7 @@ export const testSubdomainRouting = test.extend<TestOptions>({
     }
 
     await page.goto(baseURL, { waitUntil: 'networkidle' })
-    await waitForServiceWorker(page, baseURL)
+    await waitForServiceWorker(page)
 
     if (process.env.KUBO_GATEWAY == null || process.env.KUBO_GATEWAY === '') {
       throw new Error('KUBO_GATEWAY not set')
@@ -177,15 +172,12 @@ export const testSubdomainRouting = test.extend<TestOptions>({
     const kuboGateway = process.env.KUBO_GATEWAY
 
     // set config for the initial page
-    await setConfig({
-      page,
-      config: {
-        autoReload: true,
-        gateways: [kuboGateway],
-        routers: [kuboGateway],
-        dnsJsonResolvers: {
-          '.': 'https://delegated-ipfs.dev/dns-query'
-        }
+    await setConfig(page, {
+      autoReload: true,
+      gateways: [kuboGateway],
+      routers: [kuboGateway],
+      dnsJsonResolvers: {
+        '.': 'https://delegated-ipfs.dev/dns-query'
       }
     })
 

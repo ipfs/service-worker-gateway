@@ -9,7 +9,7 @@ test.afterEach(async ({ page }) => {
 test.describe('first-hit ipfs-hosted', () => {
   /**
    * "ipfs-hosted" tests verify that when the _redirects is hit and redirects to
-   * the <root>?helia-sw=<path> that navigation is handled correctly.
+   * the <root>?helia-redirect=<path> that navigation is handled correctly.
    */
   test.describe('path-routing', () => {
     test.beforeAll(async ({ rootDomain }) => {
@@ -18,7 +18,7 @@ test.describe('first-hit ipfs-hosted', () => {
       }
     })
 
-    test('redirects to ?helia-sw=<path> are handled', async ({ page }) => {
+    test('redirects to ?helia-redirect=<path> are handled', async ({ page }) => {
       const response = await page.goto('http://127.0.0.1:3334/ipfs/bafkqablimvwgy3y')
 
       // first loads the root page
@@ -26,7 +26,7 @@ test.describe('first-hit ipfs-hosted', () => {
       const headers = await response?.allHeaders()
 
       // we redirect to the root path with query param so sw can be registered at the root path
-      await expect(page).toHaveURL(`http://127.0.0.1:3334/?helia-sw=${encodeURIComponent('/ipfs/bafkqablimvwgy3y')}`)
+      await expect(page).toHaveURL('http://127.0.0.1:3334/ipfs/bafkqablimvwgy3y#/ipfs-sw-origin-isolation-warning')
 
       await handleOriginIsolationWarning(page)
 
@@ -195,8 +195,8 @@ test.describe('first-hit direct-hosted', () => {
 
     test('cloudflare-redirect works', async ({ page, rootDomain, protocol }) => {
       // when accessing https://inbrowser.dev/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq
-      // cloudflare will redirect to https://inbrowser.dev/ipfs-sw-first-hit.html/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq
-      const response = await page.goto(`${protocol}//${rootDomain}/ipfs-sw-first-hit.html/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq/1 - Barrel - Part 1 - alt.txt`, {
+      // cloudflare will redirect to https://inbrowser.dev/index.html/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq
+      const response = await page.goto(`${protocol}//${rootDomain}/index.html/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq/1 - Barrel - Part 1 - alt.txt`, {
         waitUntil: 'commit'
       })
 
