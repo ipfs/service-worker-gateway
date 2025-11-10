@@ -6,9 +6,12 @@ import { dnsLinkLabelDecoder, isInlinedDnsLink } from '../lib/dns-link-labels.js
 import { LOCAL_STORAGE_KEYS } from '../lib/local-storage.js'
 import './default-page-styles.css'
 import { pathRegex, subdomainRegex } from '../lib/regex.js'
+import { removeRootHashIfPresent } from '../lib/remove-root-hash.js'
 import type { ReactElement } from 'react'
 
 function LoadContent (): ReactElement {
+  removeRootHashIfPresent()
+
   let initialPath = localStorage.getItem(LOCAL_STORAGE_KEYS.forms.requestPath) ?? ''
 
   if (initialPath === '') {

@@ -28,12 +28,26 @@ function toAbsolutePath (path: string): string {
   return path
 }
 
+/**
+ * Do not redirect to `#/` if we are already on the bare domain, otherwise the
+ * hash can interfere with CTRL+R-style page reloads
+ */
+function doNothingIfClickedOnRoot (event: React.MouseEvent): boolean {
+  if (globalThis.location.hash === '') {
+    event.preventDefault()
+    event.stopPropagation()
+    return false
+  }
+
+  return true
+}
+
 function Header (): React.ReactElement {
   let errorPageLink: React.ReactElement | undefined
 
   if (globalThis.fetchError != null) {
     errorPageLink = (
-      <NavLink to={`/${HASH_FRAGMENTS.IPFS_SW_FETCH_ERROR_UI}`} className={({ isActive }) => isActive ? 'white' : ''}>
+      <NavLink to='/' className={({ isActive }) => (isActive ?? globalThis.location.hash === '') ? 'yellow-muted' : 'yellow'} onClickCapture={doNothingIfClickedOnRoot}>
         <FaExclamationCircle className='ml2 f3' />
       </NavLink>
     )
@@ -41,7 +55,7 @@ function Header (): React.ReactElement {
 
   if (globalThis.serverError != null) {
     errorPageLink = (
-      <NavLink to={`/${HASH_FRAGMENTS.IPFS_SW_SERVER_ERROR_UI}`} className={({ isActive }) => isActive ? 'white' : ''}>
+      <NavLink to='/' className={({ isActive }) => (isActive ?? globalThis.location.hash === '') ? 'red-muted' : 'red'} onClickCapture={doNothingIfClickedOnRoot}>
         <FaExclamationCircle className='ml2 f3' />
       </NavLink>
     )
@@ -49,7 +63,7 @@ function Header (): React.ReactElement {
 
   if (globalThis.originIsolationWarning != null) {
     errorPageLink = (
-      <NavLink to={`/${HASH_FRAGMENTS.IPFS_SW_ORIGIN_ISOLATION_WARNING}`} className={({ isActive }) => isActive ? 'white' : ''}>
+      <NavLink to='/' className={({ isActive }) => (isActive ?? globalThis.location.hash === '') ? 'yellow-muted' : 'yellow'} onClickCapture={doNothingIfClickedOnRoot}>
         <FaExclamationTriangle className='ml2 f3' />
       </NavLink>
     )
@@ -65,7 +79,7 @@ function Header (): React.ReactElement {
       <div className='pb1 ma0 mr2 inline-flex items-center aqua'>
         <h1 className='e2e-header-title f3 fw2 ttu sans-serif'>Service Worker Gateway</h1>
         {errorPageLink}
-        <NavLink to='/' className={({ isActive }) => isActive ? 'white' : ''}>
+        <NavLink to={`/${HASH_FRAGMENTS.IPFS_SW_LOAD_UI}`} className={({ isActive }) => (isActive || (errorPageLink == null && globalThis.location.hash === '')) ? 'white' : ''}>
           <FaDownload className='ml2 f3' />
         </NavLink>
         <NavLink to={`/${HASH_FRAGMENTS.IPFS_SW_ABOUT_UI}`} className={({ isActive }) => isActive ? 'white' : ''}>
@@ -83,6 +97,34 @@ function Header (): React.ReactElement {
 }
 
 /**
+ * Dynamically create an index route - if an error has occurred, show that on
+ * the landing page, otherwise show the "Enter a CID" UI page
+ */
+function getIndexRoute (): React.ReactElement {
+  if (globalThis.fetchError != null && globalThis.location.hash === '') {
+    return (
+      <Route element={<FetchErrorPage />} index />
+    )
+  }
+
+  if (globalThis.serverError != null && globalThis.location.hash === '') {
+    return (
+      <Route element={<ServerErrorPage />} index />
+    )
+  }
+
+  if (globalThis.originIsolationWarning != null && globalThis.location.hash === '') {
+    return (
+      <Route element={<OriginIsolationWarningPage />} index />
+    )
+  }
+
+  return (
+    <Route element={<HomePage />} index />
+  )
+}
+
+/**
  * This component is used when either:
  *
  * 1. the SW encountered an error fulfilling the request
@@ -91,23 +133,11 @@ function Header (): React.ReactElement {
  * 4. The user needs to accept the origin isolation warning
  */
 function App (): React.ReactElement {
-  if (globalThis.fetchError != null && globalThis.location.hash === '') {
-    window.location.hash = `/${HASH_FRAGMENTS.IPFS_SW_FETCH_ERROR_UI}`
-  }
-
-  if (globalThis.serverError != null && globalThis.location.hash === '') {
-    window.location.hash = `/${HASH_FRAGMENTS.IPFS_SW_SERVER_ERROR_UI}`
-  }
-
-  if (globalThis.originIsolationWarning != null && globalThis.location.hash === '') {
-    window.location.hash = `/${HASH_FRAGMENTS.IPFS_SW_ORIGIN_ISOLATION_WARNING}`
-  }
-
   return (
     <HashRouter>
       <Header />
       <Routes>
-        <Route index element={<HomePage />} />,
+        {getIndexRoute()}
         <Route path={`/${HASH_FRAGMENTS.IPFS_SW_LOAD_UI}`} element={<HomePage />} />,
         <Route path={`/${HASH_FRAGMENTS.IPFS_SW_ABOUT_UI}`} element={<AboutPage />} />,
         <Route path={`/${HASH_FRAGMENTS.IPFS_SW_CONFIG_UI}`} element={<ConfigPage />} />,

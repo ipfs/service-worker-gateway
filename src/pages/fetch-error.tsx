@@ -4,6 +4,7 @@ import ContentBox from '../components/content-box.jsx'
 import { Link } from '../components/link.jsx'
 import Terminal from '../components/terminal.jsx'
 import { HASH_FRAGMENTS } from '../lib/constants.js'
+import { removeRootHashIfPresent } from '../lib/remove-root-hash.js'
 import { toGatewayRoot } from '../lib/to-gateway-root.js'
 import type { ConfigDb } from '../lib/config-db.js'
 import type { RequestDetails, ResponseDetails } from '../sw/fetch-error-page.js'
@@ -166,6 +167,8 @@ export function FetchErrorPage ({ request, response, config, logs, providers }: 
       <></>
     )
   }
+
+  removeRootHashIfPresent()
 
   const defaultShowDebugInfo = response.status === 500
 

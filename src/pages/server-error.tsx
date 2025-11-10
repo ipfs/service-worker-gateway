@@ -3,6 +3,7 @@ import { Button } from '../button.jsx'
 import ContentBox from '../components/content-box.jsx'
 import { Link } from '../components/link.jsx'
 import Terminal from '../components/terminal.jsx'
+import { removeRootHashIfPresent } from '../lib/remove-root-hash.js'
 import { toGatewayRoot } from '../lib/to-gateway-root.js'
 import type { ReactElement } from 'react'
 
@@ -94,6 +95,8 @@ export function ServerErrorPage ({ url, error, title, logs }: ServerErrorPagePro
       <></>
     )
   }
+
+  removeRootHashIfPresent()
 
   function retry (): void {
     // remove any UI-added navigation info
