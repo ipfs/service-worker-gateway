@@ -30,4 +30,27 @@ test.describe('website-loading', () => {
     const bodyText = await response?.text()
     expect(bodyText).toBe('hello\n')
   })
+
+  test('ensure query string params are retained on reload', async ({ page }) => {
+    const response = await page.goto('http://127.0.0.1:3333/ipfs/bafkqablimvwgy3y', {
+      waitUntil: 'networkidle'
+    })
+    expect(response?.status()).toBe(200)
+    const headers = await response?.allHeaders()
+    expect(headers?.['content-type']).toContain('text/plain')
+
+    const responseWithFilename = await page.goto('http://127.0.0.1:3333/ipfs/bafkqablimvwgy3y?filename=index.html', {
+      waitUntil: 'networkidle'
+    })
+    expect(responseWithFilename?.status()).toBe(200)
+    const headersWithFilename = await responseWithFilename?.allHeaders()
+    expect(headersWithFilename?.['content-type']).toContain('text/html')
+
+    const responseAfterReloading = await page.reload({
+      waitUntil: 'networkidle'
+    })
+    expect(responseAfterReloading?.status()).toBe(200)
+    const headersAfterReloading = await responseAfterReloading?.allHeaders()
+    expect(headersAfterReloading?.['content-type']).toContain('text/html')
+  })
 })
