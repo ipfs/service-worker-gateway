@@ -21,8 +21,8 @@ if [[ "$TARGET_STRING" =~ ^v[0-9]+ ]]; then
     exit 1
   }
 else
-  echo "Interpreted '$TARGET_STRING' as a short SHA (or unknown tag). Using it as-is..."
-  SHORT_SHA="$TARGET_STRING"
+  echo "Interpreted '$TARGET_STRING' as a short SHA (or unknown tag). Taking first 7 characters..."
+  SHORT_SHA="${TARGET_STRING:0:7}"
 fi
 
 # Initial delay in seconds (60, then doubles each time)
