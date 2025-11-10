@@ -74,13 +74,13 @@ export const test = base.extend<TestOptions>({
       const url = new URL(route.request().url())
       const isNotLocalQuery = !url.host.includes('localhost') && !url.host.includes('127.0.0.1')
       let isBaseUrl = false
+
       if (process.env.BASE_URL != null) {
         const baseUrl = new URL(process.env.BASE_URL)
         isBaseUrl = url.host.includes(baseUrl.host)
       }
+
       if (isNotLocalQuery && !isBaseUrl) {
-        // eslint-disable-next-line no-console
-        console.log('preventing access to route', url)
         await route.abort()
       } else {
         await route.continue()
@@ -92,7 +92,8 @@ export const test = base.extend<TestOptions>({
 })
 
 /**
- * You should use this fixture instead of the `test` fixture from `@playwright/test` when testing path routing via the service worker.
+ * You should use this fixture instead of the `test` fixture from
+ * `@playwright/test` when testing path routing via the service worker.
  */
 export const testPathRouting = test.extend<TestOptions>({
   // eslint-disable-next-line no-empty-pattern
@@ -106,19 +107,18 @@ export const testPathRouting = test.extend<TestOptions>({
       testPathRouting.skip()
       return
     }
+
     if (process.env.KUBO_GATEWAY == null || process.env.KUBO_GATEWAY === '') {
       throw new Error('KUBO_GATEWAY not set')
     }
+
     await page.goto('http://127.0.0.1:3333', { waitUntil: 'networkidle' })
-    await waitForServiceWorker(page, 'http://127.0.0.1:3333')
-    await setConfig({
-      page,
-      config: {
-        gateways: [process.env.KUBO_GATEWAY],
-        routers: [process.env.KUBO_GATEWAY],
-        dnsJsonResolvers: {
-          '.': 'https://delegated-ipfs.dev/dns-query'
-        }
+    await waitForServiceWorker(page)
+    await setConfig(page, {
+      gateways: [process.env.KUBO_GATEWAY],
+      routers: [process.env.KUBO_GATEWAY],
+      dnsJsonResolvers: {
+        '.': 'https://delegated-ipfs.dev/dns-query'
       }
     })
 
@@ -127,8 +127,11 @@ export const testPathRouting = test.extend<TestOptions>({
 })
 
 /**
- * When testing subdomain routing via the service worker, using this fixture will automatically set the config for the subdomain.
- * This is useful for testing subdomain routing without having to manually set the config for each subdomain.
+ * When testing subdomain routing via the service worker, using this fixture
+ * will automatically set the config for the subdomain.
+ *
+ * This is useful for testing subdomain routing without having to manually set
+ * the config for each subdomain.
  *
  * @example
  *
@@ -137,14 +140,17 @@ export const testPathRouting = test.extend<TestOptions>({
  *
  * test.describe('subdomain-detection', () => {
  *   test('path requests are redirected to subdomains', async ({ page, rootDomain, protocol }) => {
- *     await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/`, { waitUntil: 'networkidle' })
+ *     await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/`, {
+ *       waitUntil: 'networkidle'
+ *     })
  *     const bodyTextLocator = page.locator('body')
  *     await expect(bodyTextLocator).toContainText('hello')
  *   })
  * })
  * ```
  *
- * TODO: do not set config on subdomains automatically.. this should be done by the application
+ * TODO: do not set config on subdomains automatically.. this should be done by
+ * the application
  */
 export const testSubdomainRouting = test.extend<TestOptions>({
   page: async ({ page, baseURL }, use) => {
@@ -158,24 +164,24 @@ export const testSubdomainRouting = test.extend<TestOptions>({
       return
     }
 
-    await page.goto(baseURL, { waitUntil: 'networkidle' })
-    await waitForServiceWorker(page, baseURL)
+    await page.goto(baseURL, {
+      waitUntil: 'networkidle'
+    })
+    await waitForServiceWorker(page)
 
     if (process.env.KUBO_GATEWAY == null || process.env.KUBO_GATEWAY === '') {
       throw new Error('KUBO_GATEWAY not set')
     }
+
     const kuboGateway = process.env.KUBO_GATEWAY
 
     // set config for the initial page
-    await setConfig({
-      page,
-      config: {
-        autoReload: true,
-        gateways: [kuboGateway],
-        routers: [kuboGateway],
-        dnsJsonResolvers: {
-          '.': 'https://delegated-ipfs.dev/dns-query'
-        }
+    await setConfig(page, {
+      autoReload: true,
+      gateways: [kuboGateway],
+      routers: [kuboGateway],
+      dnsJsonResolvers: {
+        '.': 'https://delegated-ipfs.dev/dns-query'
       }
     })
 
@@ -184,7 +190,8 @@ export const testSubdomainRouting = test.extend<TestOptions>({
 })
 
 /**
- * A fixture that skips tests that require the service worker. This is needed in order to test handling of requests where the service worker is not present.
+ * A fixture that skips tests that require the service worker. This is needed in
+ * order to test handling of requests where the service worker is not present.
  *
  * @see https://github.com/ipfs/service-worker-gateway/issues/272
  */

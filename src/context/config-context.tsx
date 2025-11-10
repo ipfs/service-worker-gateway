@@ -1,138 +1,46 @@
-import React, { createContext, useCallback, useEffect, useState } from 'react'
-import { defaultDebug, defaultDnsJsonResolvers, defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, defaultFetchTimeout, defaultGateways, defaultRouters, defaultServiceWorkerRegistrationTTL, defaultSupportsSubdomains, getConfig, resetConfig } from '../lib/config-db.js'
-import { getUiComponentLogger } from '../lib/logger.js'
-import type { ConfigDb } from '../lib/config-db.js'
-import type { Logger } from '@libp2p/interface'
-import type { ReactElement } from 'react'
+import React, { createContext, useState } from 'react'
+import { Config } from '../lib/config-db.js'
+import type { ConfigDb, ConfigDbWithoutPrivateFields } from '../lib/config-db.js'
+import type { PropsWithChildren } from 'react'
 
-type ConfigKey = keyof ConfigDb
-export interface ConfigContextType extends ConfigDb {
-  setConfig(key: ConfigKey, value: any): void
-  resetConfig(logger?: Logger): Promise<void>
-  isLoading: boolean
+export interface ConfigContextType {
+  saveConfig(db: Partial<ConfigDbWithoutPrivateFields>): Promise<void>
+  resetConfig(): Promise<void>
+  config: Config
+  configDb: ConfigDb
 }
 
 export const ConfigContext = createContext<ConfigContextType>({
-  setConfigExpanded: (value: boolean) => {},
-  setConfig: (key, value) => {},
   resetConfig: async () => Promise.resolve(),
-  gateways: defaultGateways,
-  routers: defaultRouters,
-  dnsJsonResolvers: defaultDnsJsonResolvers,
-  enableWss: defaultEnableWss,
-  enableWebTransport: defaultEnableWebTransport,
-  enableGatewayProviders: defaultEnableGatewayProviders,
-  enableRecursiveGateways: defaultEnableRecursiveGateways,
-  debug: defaultDebug(),
-  fetchTimeout: defaultFetchTimeout,
-  _supportsSubdomains: defaultSupportsSubdomains,
-  serviceWorkerRegistrationTTL: defaultServiceWorkerRegistrationTTL,
+  saveConfig: async (db: Partial<ConfigDbWithoutPrivateFields>) => Promise.resolve(),
+  // @ts-expect-error incomplete implementation
+  config: {},
   isLoading: true
 })
 
-export const ConfigProvider: React.FC<{ children: ReactElement[] | ReactElement, expanded?: boolean }> = ({ children }) => {
-  const [isLoading, setIsLoading] = useState(true)
-  const [gateways, setGateways] = useState<string[]>(defaultGateways)
-  const [routers, setRouters] = useState<string[]>(defaultRouters)
-  const [dnsJsonResolvers, setDnsJsonResolvers] = useState<Record<string, string>>(defaultDnsJsonResolvers)
-  const [enableWss, setEnableWss] = useState(defaultEnableWss)
-  const [enableWebTransport, setEnableWebTransport] = useState(defaultEnableWebTransport)
-  const [enableGatewayProviders, setEnableGatewayProviders] = useState(defaultEnableGatewayProviders)
-  const [enableRecursiveGateways, setEnableRecursiveGateways] = useState(defaultEnableRecursiveGateways)
-  const [debug, setDebug] = useState(defaultDebug())
-  const [fetchTimeout, setFetchTimeout] = useState(defaultFetchTimeout)
-  const [serviceWorkerRegistrationTTL, setServiceWorkerRegistrationTTL] = useState(defaultServiceWorkerRegistrationTTL)
-  const [_supportsSubdomains, setSupportsSubdomains] = useState(defaultSupportsSubdomains)
-  const log = getUiComponentLogger('config-provider')
+export interface ConfigProviderProps extends PropsWithChildren {
+  config: Config
+  configDb: ConfigDb
+}
 
-  async function loadConfig (): Promise<void> {
-    const config = await getConfig(log)
-    setGateways(config.gateways)
-    setRouters(config.routers)
-    setDnsJsonResolvers(config.dnsJsonResolvers)
-    setEnableWss(config.enableWss)
-    setEnableWebTransport(config.enableWebTransport)
-    setEnableGatewayProviders(config.enableGatewayProviders)
-    setEnableRecursiveGateways(config.enableRecursiveGateways)
-    setDebug(config.debug)
-    setFetchTimeout(config.fetchTimeout)
-    setServiceWorkerRegistrationTTL(config.serviceWorkerRegistrationTTL)
+export const ConfigProvider: React.FC<ConfigProviderProps> = ({ config, configDb: configDbInit, children }) => {
+  const [configDb, setConfigDb] = useState(configDbInit)
+
+  const resetConfigLocal: ConfigContextType['resetConfig'] = async (): Promise<void> => {
+    await config.reset()
+    setConfigDb(await config.get())
   }
-  /**
-   * We need to make sure that the configDb types are loaded with the values from IDB
-   */
-  useEffect(() => {
-    void loadConfig().catch((err) => {
-      log.error('Error loading config - %e', err)
-    }).finally(() => {
-      setIsLoading(false)
-    })
-  }, [])
 
-  /**
-   * Sets the config values for the context provider. To save to IDB, use the `setConfig` function from `lib/config-db.ts`.
-   */
-  const setConfigLocal = useCallback((key: ConfigKey, value: any) => {
-    switch (key) {
-      case 'gateways':
-        setGateways(value)
-        break
-      case 'routers':
-        setRouters(value)
-        break
-      case 'dnsJsonResolvers':
-        setDnsJsonResolvers(value)
-        break
-      case 'enableWss':
-        setEnableWss(value)
-        break
-      case 'enableWebTransport':
-        setEnableWebTransport(value)
-        break
-      case 'enableGatewayProviders':
-        setEnableGatewayProviders(value)
-        break
-      case 'enableRecursiveGateways':
-        setEnableRecursiveGateways(value)
-        break
-      case 'debug':
-        setDebug(value)
-        break
-      case 'fetchTimeout':
-        setFetchTimeout(value)
-        break
-      case 'serviceWorkerRegistrationTTL':
-        setServiceWorkerRegistrationTTL(value)
-        break
-      case '_supportsSubdomains':
-        setSupportsSubdomains(value)
-        break
-      default:
-        log.error('Unknown config key: %s', key)
-        throw new Error(`Unknown config key: ${key}`)
-    }
-  }, [])
-
-  const resetConfigLocal: ConfigContextType['resetConfig'] = async (givenLogger): Promise<void> => {
-    await resetConfig(givenLogger ?? log)
-    await loadConfig()
+  const saveConfigLocal: ConfigContextType['saveConfig'] = async (db: Partial<ConfigDbWithoutPrivateFields>): Promise<void> => {
+    await config.set(db)
+    setConfigDb(await config.get())
   }
 
   const finalConfigContext: ConfigContextType = {
-    setConfig: setConfigLocal,
     resetConfig: resetConfigLocal,
-    gateways,
-    routers,
-    dnsJsonResolvers,
-    enableWss,
-    enableWebTransport,
-    enableGatewayProviders,
-    enableRecursiveGateways,
-    fetchTimeout,
-    serviceWorkerRegistrationTTL,
-    debug,
-    _supportsSubdomains,
-    isLoading
+    saveConfig: saveConfigLocal,
+    config,
+    configDb
   }
 
   return (

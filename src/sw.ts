@@ -1,20 +1,20 @@
 import { AbortError, setMaxListeners } from '@libp2p/interface'
-import { getConfig } from './lib/config-db.js'
-import { HASH_FRAGMENTS, QUERY_PARAMS } from './lib/constants.js'
+import { Config } from './lib/config-db.js'
+import { QUERY_PARAMS } from './lib/constants.js'
 import { errorToObject } from './lib/error-to-object.js'
-import { getHeliaSwRedirectUrl } from './lib/first-hit-helpers.js'
+import { createSearch } from './lib/first-hit-helpers.js'
 import { GenericIDB } from './lib/generic-db.js'
 import { getSubdomainParts } from './lib/get-subdomain-parts.js'
 import { getVerifiedFetch, logEmitter } from './lib/get-verified-fetch.js'
-import { hasHashFragment } from './lib/hash-fragments.js'
-import { isConfigPage } from './lib/is-config-page.js'
 import { getSwLogger } from './lib/logger.js'
-import { findOriginIsolationRedirect, isPathGatewayRequest, isSubdomainGatewayRequest } from './lib/path-or-subdomain.js'
+import { isPathGatewayRequest, isSubdomainGatewayRequest, toSubdomainRequest } from './lib/path-or-subdomain.js'
 import { isBitswapProvider, isTrustlessGatewayProvider } from './lib/providers.js'
 import { isUnregisterRequest } from './lib/unregister-request.js'
-import { APP_VERSION, GIT_REVISION } from './version.js'
+import { fetchErrorPageResponse } from './sw/fetch-error-page.js'
+import { originIsolationWarningPageResponse } from './sw/origin-isolation-warning-page.js'
+import { serverErrorPageResponse } from './sw/server-error-page.js'
 import type { ConfigDb } from './lib/config-db.js'
-import type { Providers as ErrorPageProviders } from './pages/errors/fetch-error.jsx'
+import type { UrlParts } from './lib/get-subdomain-parts.js'
 import type { VerifiedFetch, VerifiedFetchInit } from '@helia/verified-fetch'
 
 /**
@@ -24,17 +24,14 @@ import type { VerifiedFetch, VerifiedFetchInit } from '@helia/verified-fetch'
  */
 
 interface FetchHandlerArg {
-  path: string
-  request: Request
   event: FetchEvent
   logs: string[]
-}
-
-interface StoreResponseInCacheOptions {
-  response: Response
+  subdomainGatewayRequest: boolean
+  pathGatewayRequest: boolean
+  url: URL
+  urlParts: UrlParts
   cacheKey: string
-  isMutable: boolean
-  event: FetchEvent
+  isMutable?: true
 }
 
 /**
@@ -45,28 +42,12 @@ interface StoreResponseInCacheOptions {
  */
 interface LocalSwConfig {
   installTimestamp: number
-  originIsolationWarningAccepted: boolean
-}
-
-/**
- * When returning a meaningful error page, we provide the following details about
- * the service worker
- */
-interface ServiceWorkerDetails {
-  config: ConfigDb
-  crossOriginIsolated: boolean
-  installTime: string
-  origin: string
-  scope: string
-  state: string
-  version: string
-  commit: string
 }
 
 /**
  * These are block/car providers that were used while downloading data
  */
-interface Providers {
+export interface Providers {
   total: number
   bitswap: Map<string, Set<string>>
   trustlessGateway: Set<string>
@@ -82,25 +63,28 @@ interface Providers {
  ******************************************************
  */
 declare let self: ServiceWorkerGlobalScope
-// const log = swLogger.forComponent('main')
 
 /**
  * This is one best practice that can be followed in general to keep track of
  * multiple caches used by a given service worker, and keep them all versioned.
- * It maps a shorthand identifier for a cache to a specific, versioned cache name.
+ * It maps a shorthand identifier for a cache to a specific, versioned cache
+ * name.
  *
- * Note that since global state is discarded in between service worker restarts, these
- * variables will be reinitialized each time the service worker handles an event, and you
- * should not attempt to change their values inside an event handler. (Treat them as constants.)
+ * Note that since global state is discarded in between service worker restarts,
+ * these variables will be reinitialized each time the service worker handles an
+ * event, and you should not attempt to change their values inside an event
+ * handler. (Treat them as constants.)
  *
- * If at any point you want to force pages that use this service worker to start using a fresh
- * cache, then increment the CACHE_VERSION value. It will kick off the service worker update
- * flow and the old cache(s) will be purged as part of the activate event handler when the
- * updated service worker is activated.
+ * If at any point you want to force pages that use this service worker to start
+ * using a fresh cache, then increment the CACHE_VERSION value. It will kick off
+ * the service worker update flow and the old cache(s) will be purged as part of
+ * the activate event handler when the updated service worker is activated.
  *
  * @see https://googlechrome.github.io/samples/service-worker/prefetch-video/
  */
-const CACHE_VERSION = 2 // see https://github.com/ipfs/service-worker-gateway/pull/853#issuecomment-3309246532
+
+// see https://github.com/ipfs/service-worker-gateway/pull/853#issuecomment-3309246532
+const CACHE_VERSION = 2
 const CURRENT_CACHES = Object.freeze({
   mutable: `mutable-cache-v${CACHE_VERSION}`,
   immutable: `immutable-cache-v${CACHE_VERSION}`,
@@ -108,11 +92,16 @@ const CURRENT_CACHES = Object.freeze({
 })
 let verifiedFetch: VerifiedFetch
 const ONE_HOUR_IN_SECONDS = 3600
-const urlInterceptRegex = [new RegExp(`${self.location.origin}/ip(n|f)s/`)]
 let config: ConfigDb
 
-const updateConfig = async (): Promise<void> => {
-  config = await getConfig(getSwLogger('update-config'))
+const updateConfig = async (url?: URL, referrer?: string | null): Promise<void> => {
+  const conf = new Config({
+    logger: getSwLogger()
+  }, {
+    url
+  })
+  await conf.init(referrer ?? undefined)
+  config = await conf.get()
 }
 
 async function updateVerifiedFetch (): Promise<void> {
@@ -158,9 +147,9 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim())
 
   // eslint-disable-next-line no-console
-  console.info('Service Worker Gateway: To manually unregister, append "?ipfs-sw-unregister=true" to the URL, or use the button on the config page.')
+  console.info(`Service Worker Gateway: To manually unregister, append "?${QUERY_PARAMS.UNREGISTER_SERVICE_WORKER}=true" to the URL, or use the button on the config page.`)
 
-  // Delete all caches that aren't named in CURRENT_CACHES.
+  // delete all caches that aren't named in CURRENT_CACHES.
   const expectedCacheNames = Object.keys(CURRENT_CACHES).map(function (key) {
     return CURRENT_CACHES[key as keyof typeof CURRENT_CACHES]
   })
@@ -191,229 +180,209 @@ self.addEventListener('fetch', (event) => {
   const urlString = request.url
   const url = new URL(urlString)
 
-  if (firstInstallTime == null) {
-    // if service worker is shut down, the firstInstallTime may be null
-    log('firstInstallTime is null, getting install timestamp')
-    event.waitUntil(getInstallTimestamp())
+  // collect logs from Helia/libp2p during the fetch operation
+  const logs: string[] = []
+
+  function onLog (event: CustomEvent<string>): void {
+    logs.push(event.detail)
   }
+
+  logEmitter.addEventListener('log', onLog)
 
   log.trace('incoming request url: %s:', event.request.url)
 
-  event.waitUntil(requestRouting(event, url).then(async (shouldHandle) => {
-    if (shouldHandle) {
-      log.trace('handling request for %s', url)
+  // `event.respondWith` must be called synchronously in the event handler
+  // https://stackoverflow.com/questions/76848928/failed-to-execute-respondwith-on-fetchevent-the-event-handler-is-already-f
+  event.respondWith(
+    handleFetch(url, event, logs)
+      .then(response => {
+        // uninstall service worker after request has finished
+        // TODO: remove this, it breaks offline installations after the TTL
+        if (!isServiceWorkerRegistrationTTLValid()) {
+          log('Service worker registration TTL expired, unregistering service worker')
+          const clonedResponse = response.clone()
+          event.waitUntil(
+            clonedResponse.blob().then(() => {
+              log('Service worker registration TTL expired, unregistering after response consumed')
+            }).finally(() => self.registration.unregister())
+          )
+        }
 
-      // collect logs from Helia/libp2p during the fetch operation
-      const logs: string[] = []
-
-      function onLog (event: CustomEvent<string>): void {
-        logs.push(event.detail)
-      }
-
-      logEmitter.addEventListener('log', onLog)
-
-      event.respondWith(getResponseFromCacheOrFetch(event, logs)
-        .then(async (response) => {
-          if (!isServiceWorkerRegistrationTTLValid()) {
-            log('Service worker registration TTL expired, unregistering service worker')
-            const clonedResponse = response.clone()
-            event.waitUntil(
-              clonedResponse.blob().then(() => {
-                log('Service worker registration TTL expired, unregistering after response consumed')
-              }).finally(() => self.registration.unregister())
-            )
-
-            return response
-          }
-
-          return response
-        })
-        .finally(() => {
-          logEmitter.removeEventListener('log', onLog)
-        }))
-    } else {
-      log.trace('not handling request for %s', url)
-    }
-  }))
+        return response
+      })
+      .catch(err => {
+        return serverErrorPageResponse(url, err, logs)
+      })
+      .finally(() => {
+        logEmitter.removeEventListener('log', onLog)
+      })
+  )
 })
 
-/**
- ******************************************************
- * Functions
- ******************************************************
- */
-async function requestRouting (event: FetchEvent, url: URL): Promise<boolean> {
-  const log = getSwLogger('request-routing')
+async function handleFetch (url: URL, event: FetchEvent, logs: string[]): Promise<Response> {
+  const log = getSwLogger('handle-fetch')
+
+  if (firstInstallTime == null) {
+    // if service worker is shut down, the firstInstallTime may be null
+    log('firstInstallTime is null, getting install timestamp')
+    await getInstallTimestamp()
+  }
+
+  const subdomainGatewayRequest = isSubdomainGatewayRequest(url)
+  const pathGatewayRequest = isPathGatewayRequest(url)
 
   if (isUnregisterRequest(event.request.url)) {
     event.waitUntil(self.registration.unregister())
-    event.respondWith(new Response('Service worker unregistered', {
+
+    return new Response('Service worker unregistered', {
       status: 200
-    }))
+    })
+  } else if (isConfigUpdateRequest(url)) {
+    // if there is compressed config in the request, apply it
+    log('request has inline config, applying it')
+    await updateConfig(url, event.request.referrer)
 
-    return false
-  } else if (isSubdomainConfigRequest(event)) {
-    log.trace('subdomain config request, ignoring and letting index.html handle it %s', event.request.url)
+    // remove config param from url and redirect
+    const search = createSearch(url.searchParams, {
+      filter: (key) => key !== QUERY_PARAMS.CONFIG
+    })
 
-    return false
-  } else if (isConfigPageRequest(url)) {
-    log.trace('config page request, ignoring %s', event.request.url)
-
-    return false
+    return new Response('Redirecting after config update', {
+      status: 307,
+      headers: {
+        'Content-Type': 'text/plain',
+        Location: new URL(`${url.protocol}//${url.host}${url.pathname}${search}${url.hash}`).toString()
+      }
+    })
   } else if (isSwConfigReloadRequest(event)) {
     log.trace('sw-config reload request, updating verifiedFetch')
 
     // Wait for the update to complete before sending response
-    event.respondWith(
-      updateVerifiedFetch()
-        .then(() => {
-          log.trace('sw-config reload request, verifiedFetch updated')
-          return new Response('sw-config reload request, verifiedFetch updated', {
-            status: 200
-          })
-        })
-        .catch((err) => {
-          log.error('sw-config reload request, error updating verifiedFetch - %e', err)
-          return new Response('Failed to update verifiedFetch: ' + err.message, {
-            status: 500
-          })
-        })
-    )
 
-    return false
-  } else if (isAcceptOriginIsolationWarningRequest(event)) {
-    event.waitUntil(setOriginIsolationWarningAccepted().then(() => {
-      log.trace('origin isolation warning accepted')
-    }).catch((err) => {
-      log.error('origin isolation warning accepted, error', err)
-    }))
+    await updateVerifiedFetch()
 
-    return false
-  } else if (isSwConfigGETRequest(event)) {
-    // TODO: remove? I don't think we need this anymore.
-    log.trace('sw-config GET request')
-    // event.waitUntil(new Promise<void>((resolve) => {
-    event.respondWith(new Promise<Response>((resolve) => {
-      resolve(new Response(JSON.stringify(config), {
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        }
-      }))
-    }))
-
-    return false
+    return new Response('Reloaded configuration', {
+      status: 200
+    })
   } else if (isSwAssetRequest(event)) {
     log.trace('sw-asset request, returning cached response ', event.request.url)
+
     /**
      * Return the asset from the cache if it exists, otherwise fetch it.
      */
-    event.respondWith(caches.open(CURRENT_CACHES.swAssets).then(async (cache) => {
-      try {
-        const cachedResponse = await cache.match(event.request)
+    const cache = await caches.open(CURRENT_CACHES.swAssets)
 
-        if (cachedResponse != null) {
-          return cachedResponse
+    try {
+      const cachedResponse = await cache.match(event.request)
+
+      if (cachedResponse != null) {
+        return cachedResponse
+      }
+    } catch (err) {
+      log.error('error matching cached response - %e', err)
+    }
+
+    const response = await fetch(event.request)
+
+    try {
+      await cache.put(event.request, response.clone())
+    } catch (err) {
+      log.error('error caching response - %e', err)
+    }
+
+    return response
+  } if (subdomainGatewayRequest || pathGatewayRequest) {
+    // request was for subdomain or path gateway
+
+    log('handling request for %s', url)
+
+    const urlParts = getSubdomainParts(event.request.url)
+
+    // `bafkqaaa` is an empty identity CID that is used to detect subdomain
+    // support so this response MUST be returned before we check for config on
+    // this subdomain, otherwise we go into an endless loop of redirects trying
+    // to load content
+    if (urlParts.id === 'bafkqaaa') {
+      return new Response('', {
+        status: 200
+      })
+    }
+
+    const conf = new Config({
+      logger: getSwLogger()
+    })
+
+    // if we don't have config in the database and we are on a
+    // subdomain, we have to redirect to the gateway root to skirt
+    // around origin isolation and load any custom config the user has
+    // set, then redirect back here
+    if ((await conf.hasConfig()) === false && subdomainGatewayRequest) {
+      log('subdomain request has no config set, redirecting to gateway root')
+      const location = new URL(`${url.protocol}//${urlParts.parentDomain}?${QUERY_PARAMS.REDIRECT}=${encodeURIComponent(event.request.url)}&${QUERY_PARAMS.GET_CONFIG}=true`)
+
+      return new Response('Redirecting for config', {
+        status: 307,
+        headers: {
+          'Content-Type': 'text/plain',
+          Location: location.toString()
         }
-      } catch (err) {
-        log.error('error matching cached response - %e', err)
-      }
+      })
+    }
 
-      let response: Response
+    // if the service worker has been unloaded, any globals will be null
+    if (config == null) {
+      await updateConfig()
+    }
 
-      try {
-        response = await fetch(event.request)
-      } catch (err) {
-        log.error('error fetching response - %e', err)
+    // if we need to apply a redirect, apply it now
+    const redirect = url.searchParams.get(QUERY_PARAMS.REDIRECT)
 
-        return new Response('No response', {
-          status: 500,
-          headers: {
-            'x-debug-request-uri': event.request.url
-          }
-        })
-      }
+    if (redirect != null) {
+      return new Response('Redirecting', {
+        status: 307,
+        headers: {
+          'Content-Type': 'text/plain',
+          Location: redirect
+        }
+      })
+    }
 
-      try {
-        await cache.put(event.request, response.clone())
-        return response
-      } catch (err) {
-        log.error('error caching response - %e', err)
-      }
-      return response
-    }))
+    const response = await getResponseFromCacheOrFetch({
+      event,
+      url,
+      urlParts,
+      subdomainGatewayRequest,
+      pathGatewayRequest,
+      logs,
+      cacheKey: getCacheKey(event)
+    })
 
-    return false
-  } else if (!isValidRequestForSW(event)) {
-    log.trace('not a valid request for helia-sw, ignoring ', event.request.url)
-    return false
-  } else if (url.href.includes('bafkqaaa.ipfs')) {
-    /**
-     * `bafkqaaa` is an empty inline CID, so this response *is* valid, and prevents additional network calls.
-     *
-     * @see https://github.com/ipfs-shipyard/helia-service-worker-gateway/pull/151#discussion_r1536562347
-     */
-    event.respondWith(new Response('', { status: 200 }))
-    return false
+    return response
   }
 
-  if (isRootRequestForContent(event) || isSubdomainRequest(event)) {
-    return true
-  }
-
-  return false
+  // do not intercept the request
+  return fetch(event.request)
 }
 
-function isRootRequestForContent (event: FetchEvent): boolean {
-  const urlIsPreviouslyIntercepted = urlInterceptRegex.some(regex => regex.test(event.request.url))
-  const isRootRequest = urlIsPreviouslyIntercepted
-  return isRootRequest // && getCidFromUrl(event.request.url) != null
-}
-
-function isSubdomainRequest (event: FetchEvent): boolean {
-  const log = getSwLogger('is-subdomain-request')
-
-  const { id, protocol } = getSubdomainParts(event.request.url)
-  log.trace('isSubdomainRequest.id: ', id)
-  log.trace('isSubdomainRequest.protocol: ', protocol)
-
-  return id != null && protocol != null
-}
-
-function isConfigPageRequest (url: URL): boolean {
-  return isConfigPage(url.hash)
-}
-
-function isSubdomainConfigRequest (event: FetchEvent): boolean {
-  const url = new URL(event.request.url)
-  return hasHashFragment(url, HASH_FRAGMENTS.IPFS_SW_SUBDOMAIN_REQUEST)
-}
-
-function isValidRequestForSW (event: FetchEvent): boolean {
-  return isSubdomainRequest(event) || isRootRequestForContent(event)
+function isConfigUpdateRequest (url: URL): boolean {
+  return url.searchParams.has(QUERY_PARAMS.CONFIG)
 }
 
 function isSwConfigReloadRequest (event: FetchEvent): boolean {
   const url = new URL(event.request.url)
-  return url.pathname.includes('/#/ipfs-sw-config-reload') || url.searchParams.get('ipfs-sw-config-reload') === 'true'
-}
-
-function isSwConfigGETRequest (event: FetchEvent): boolean {
-  const url = new URL(event.request.url)
-  return url.pathname.includes('/#/ipfs-sw-config-get') || url.searchParams.get('ipfs-sw-config-get') === 'true'
-}
-
-function isAcceptOriginIsolationWarningRequest (event: FetchEvent): boolean {
-  const url = new URL(event.request.url)
-  return url.pathname.includes('/#/ipfs-sw-accept-origin-isolation-warning') || url.searchParams.get('ipfs-sw-accept-origin-isolation-warning') === 'true'
+  return url.searchParams.get(QUERY_PARAMS.RELOAD_CONFIG) === 'true'
 }
 
 function isSwAssetRequest (event: FetchEvent): boolean {
   const isActualSwAsset = /^.+\/(?:ipfs-sw-).+$/.test(event.request.url)
-  // if path is not set, then it's a request for index.html which we should consider a sw asset
+
+  // if path is not set, then it's a request for index.html which we should
+  // consider a sw asset
   const url = new URL(event.request.url)
-  // but only if it's not a subdomain request (root index.html should not be returned for subdomains)
-  const isIndexHtmlRequest = url.pathname === '/' && !isSubdomainRequest(event)
+
+  // but only if it's not a subdomain request (root index.html should not be
+  // returned for subdomains)
+  const isIndexHtmlRequest = url.pathname === '/' && !isSubdomainGatewayRequest(url)
 
   return isActualSwAsset || isIndexHtmlRequest
 }
@@ -449,10 +418,10 @@ function getCacheKey (event: FetchEvent): string {
   return `${event.request.url}-${event.request.headers.get('Accept') ?? ''}`
 }
 
-async function fetchAndUpdateCache (event: FetchEvent, url: URL, cacheKey: string, logs: string[]): Promise<Response> {
+async function fetchAndUpdateCache (args: FetchHandlerArg): Promise<Response> {
   const log = getSwLogger('fetch-and-update-cache')
 
-  const response = await fetchHandler({ path: url.pathname, request: event.request, event, logs })
+  const response = await fetchHandler(args)
   log.trace('got response from fetchHandler')
 
   // log all of the headers:
@@ -463,44 +432,42 @@ async function fetchAndUpdateCache (event: FetchEvent, url: URL, cacheKey: strin
   log('response status: %s', response.status)
 
   try {
-    await storeResponseInCache({ response, isMutable: true, cacheKey, event })
-    log.trace('updated cache for %s', cacheKey)
+    await storeResponseInCache(response, true, args)
+    log.trace('updated cache for %s', args.cacheKey)
   } catch (err) {
-    log.error('failed updating response in cache for %s - %e', cacheKey, err)
+    log.error('failed updating response in cache for %s - %e', args.cacheKey, err)
   }
 
   return response
 }
 
-async function getResponseFromCacheOrFetch (event: FetchEvent, logs: string[]): Promise<Response> {
+async function getResponseFromCacheOrFetch (args: FetchHandlerArg): Promise<Response> {
   const log = getSwLogger('get-response-from-cache-or-fetch')
 
-  const { protocol } = getSubdomainParts(event.request.url)
-  const url = new URL(event.request.url)
-  const isMutable = protocol === 'ipns'
-  const cacheKey = getCacheKey(event)
-  log.trace('cache key: %s', cacheKey)
+  const isMutable = args.urlParts.protocol === 'ipns'
+
+  log.trace('cache key: %s', args.cacheKey)
   const cache = await caches.open(isMutable ? CURRENT_CACHES.mutable : CURRENT_CACHES.immutable)
-  const cachedResponse = await cache.match(cacheKey)
+  const cachedResponse = await cache.match(args.cacheKey)
   const validCacheHit = cachedResponse != null && !hasExpired(cachedResponse)
 
   if (validCacheHit) {
-    log('cached response HIT for %s (expires: %s) %o', cacheKey, cachedResponse.headers.get('sw-cache-expires'), cachedResponse)
+    log('cached response HIT for %s (expires: %s) %o', args.cacheKey, cachedResponse.headers.get('sw-cache-expires'), cachedResponse)
 
     if (isMutable) {
-      // If the response is mutable, update the cache in the background.
-      void fetchAndUpdateCache(event, url, cacheKey, logs)
+      // if the response is mutable, update the cache in the background
+      args.event.waitUntil(fetchAndUpdateCache(args))
     }
 
     return cachedResponse
   }
 
-  log('cached response MISS for %s', cacheKey)
+  log('cached response MISS for %s', args.cacheKey)
 
-  return fetchAndUpdateCache(event, url, cacheKey, logs)
+  return fetchAndUpdateCache(args)
 }
 
-function shouldCacheResponse ({ event, response }: { event: FetchEvent, response: Response }): boolean {
+function shouldCacheResponse (response: Response, args: FetchHandlerArg): boolean {
   const log = getSwLogger('should-cache-response')
 
   if (!response.ok) {
@@ -515,7 +482,7 @@ function shouldCacheResponse ({ event, response }: { event: FetchEvent, response
     return false
   }
 
-  if (event.request.headers.get('pragma') === 'no-cache' || event.request.headers.get('cache-control') === 'no-cache') {
+  if (args.event.request.headers.get('pragma') === 'no-cache' || args.event.request.headers.get('cache-control') === 'no-cache') {
     log.trace('request indicated no-cache, not caching')
     return false
   }
@@ -523,14 +490,14 @@ function shouldCacheResponse ({ event, response }: { event: FetchEvent, response
   return true
 }
 
-async function storeResponseInCache ({ response, isMutable, cacheKey, event }: StoreResponseInCacheOptions): Promise<void> {
+async function storeResponseInCache (response: Response, isMutable: boolean, args: FetchHandlerArg): Promise<void> {
   const log = getSwLogger('store-response-in-cache')
 
-  if (!shouldCacheResponse({ event, response })) {
+  if (!shouldCacheResponse(response, args)) {
     return
   }
 
-  log.trace('updating cache for %s in the background', cacheKey)
+  log.trace('updating cache for %s in the background', args.cacheKey)
 
   const cache = await caches.open(isMutable ? CURRENT_CACHES.mutable : CURRENT_CACHES.immutable)
 
@@ -538,18 +505,18 @@ async function storeResponseInCache ({ response, isMutable, cacheKey, event }: S
   const respToCache = response.clone()
 
   if (isMutable) {
-    log.trace('setting expires header on response key %s before storing in cache', cacheKey)
+    log.trace('setting expires header on response key %s before storing in cache', args.cacheKey)
     // 👇 Set expires header to an hour from now for mutable (ipns://) resources
     // Note that this technically breaks HTTP semantics, whereby the cache-control max-age takes precendence
     // Setting this header is only used by the service worker using a mechanism similar to stale-while-revalidate
     setExpiresHeader(respToCache, ONE_HOUR_IN_SECONDS)
   }
 
-  log('storing response for key %s in cache', cacheKey)
+  log('storing response for key %s in cache', args.cacheKey)
   // do not await this.. large responses will delay [TTFB](https://web.dev/articles/ttfb) and [TTI](https://web.dev/articles/tti)
 
   try {
-    void cache.put(cacheKey, respToCache).catch((err) => {
+    void cache.put(args.cacheKey, respToCache).catch((err) => {
       log.error('error storing response in cache - %e', err)
     })
   } catch (err) {
@@ -557,38 +524,45 @@ async function storeResponseInCache ({ response, isMutable, cacheKey, event }: S
   }
 }
 
-async function fetchHandler ({ request, event, logs }: FetchHandlerArg): Promise<Response> {
+async function fetchHandler ({ url, event, logs, subdomainGatewayRequest, pathGatewayRequest }: FetchHandlerArg): Promise<Response> {
   const log = getSwLogger('fetch-handler')
 
-  const originalUrl = new URL(request.url)
+  /**
+   * > Any global variables you set will be lost if the service worker shuts down.
+   *
+   * @see https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle
+   */
+  if (config == null) {
+    await updateConfig()
+  }
 
   // test and enforce origin isolation before anything else is executed
-  const originLocation = await findOriginIsolationRedirect(originalUrl, log)
+  if (!subdomainGatewayRequest && pathGatewayRequest) {
+    try {
+      const asSubdomainRequest = toSubdomainRequest(url)
 
-  if (originLocation !== null) {
-    log.trace('redirecting to subdomain')
-    return new Response('Gateway supports subdomain mode, redirecting to ensure Origin isolation..', {
-      status: 301,
-      headers: {
-        'Content-Type': 'text/plain',
-        Location: originLocation
+      if (config._supportsSubdomains) {
+        log.trace('redirecting to subdomain')
+        return new Response('Gateway supports subdomain mode, redirecting to ensure Origin isolation..', {
+          status: 301,
+          headers: {
+            'Content-Type': 'text/plain',
+            Location: asSubdomainRequest
+          }
+        })
       }
-    })
-  } else if (!isSubdomainGatewayRequest(originalUrl) && isPathGatewayRequest(originalUrl) && !(await getOriginIsolationWarningAccepted()) && !originalUrl.searchParams.has(QUERY_PARAMS.HELIA_SW)) {
-    log.trace('showing origin isolation warning')
-    const newUrl = new URL(originalUrl.href)
-    newUrl.pathname = '/'
-    newUrl.hash = '/ipfs-sw-origin-isolation-warning'
+    } catch {
+      // URL was invalid (may have been an IP address which can't be translated
+      // to a subdomain gateway URL)
+    }
 
-    const redirectUrl = getHeliaSwRedirectUrl(originalUrl, newUrl)
+    if (!config.acceptOriginIsolationWarning) {
+      log('showing origin isolation warning')
+      return originIsolationWarningPageResponse(event.request.url)
+    }
 
-    return new Response('Origin isolation is not supported, please accept the risk to continue.', {
-      status: 307,
-      headers: {
-        'Content-Type': 'text/plain',
-        Location: redirectUrl.href
-      }
-    })
+    // no subdomain support and the user has yolo'ed the warning so continue to
+    // loading the requested content
   }
 
   /**
@@ -623,7 +597,7 @@ async function fetchHandler ({ request, event, logs }: FetchHandlerArg): Promise
   const resource = new URL(event.request.url).href
   const init: VerifiedFetchInit = {
     signal,
-    headers: request.headers,
+    headers: event.request.headers,
     redirect: 'manual',
     onProgress: (evt) => {
       if (evt.type.endsWith(':found-provider')) {
@@ -669,7 +643,7 @@ async function fetchHandler ({ request, event, logs }: FetchHandlerArg): Promise
      * object, regardless of it's inner content
      */
     if (!response.ok) {
-      return errorPageResponse(resource, init, response, await response.text(), providers, logs)
+      return fetchErrorPageResponse(resource, init, response, await response.text(), providers, config, firstInstallTime, logs)
     }
 
     // Create a completely new response object with the same body, status,
@@ -684,13 +658,13 @@ async function fetchHandler ({ request, event, logs }: FetchHandlerArg): Promise
     })
   } catch (err: any) {
     if (timeoutSignal.aborted) {
-      return errorPageResponse(resource, init, new Response('', {
+      return fetchErrorPageResponse(resource, init, new Response('', {
         status: 504,
         statusText: 'Gateway Timeout',
         headers: {
           'Content-Type': 'application/json'
         }
-      }), JSON.stringify(errorToObject(new AbortError(`Timed out after ${Date.now() - start}ms`)), null, 2), providers, logs)
+      }), JSON.stringify(errorToObject(new AbortError(`Timed out after ${Date.now() - start}ms`)), null, 2), providers, config, firstInstallTime, logs)
     }
 
     if (event.request.signal.aborted) {
@@ -699,142 +673,13 @@ async function fetchHandler ({ request, event, logs }: FetchHandlerArg): Promise
 
     log.error('error during request - %e', err)
 
-    return errorPageResponse(resource, init, new Response('', {
+    return fetchErrorPageResponse(resource, init, new Response('', {
       status: 500,
       statusText: 'Internal Server Error',
       headers: {
         'Content-Type': 'application/json'
       }
-    }), JSON.stringify(errorToObject(err), null, 2), providers, logs)
-  }
-}
-
-/**
- * Shows an error page to the user
- */
-function errorPageResponse (resource: string, request: RequestInit, fetchResponse: Response, responseBody: string, providers: Providers, logs: string[]): Response {
-  const responseContentType = fetchResponse.headers.get('Content-Type')
-
-  if (responseContentType?.includes('text/html')) {
-    return fetchResponse
-  }
-
-  const responseDetails = getResponseDetails(fetchResponse, responseBody)
-  const mergedHeaders = new Headers(fetchResponse.headers)
-  mergedHeaders.set('Content-Type', 'text/html')
-  mergedHeaders.set('ipfs-sw', 'true')
-
-  const props = {
-    request: getRequestDetails(resource, request),
-    response: responseDetails,
-    config: getServiceWorkerDetails(),
-    providers: toErrorPageProviders(providers),
-    title: `${responseDetails.status} ${responseDetails.statusText}`,
-    logs
-  }
-
-  const page = `<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charSet='utf-8' />
-    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
-    <link rel='shortcut icon' href='data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlo89/56ZQ/8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACUjDu1lo89/6mhTP+zrVP/nplD/5+aRK8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHNiIS6Wjz3/ubFY/761W/+vp1D/urRZ/8vDZf/GvmH/nplD/1BNIm8AAAAAAAAAAAAAAAAAAAAAAAAAAJaPPf+knEj/vrVb/761W/++tVv/r6dQ/7q0Wf/Lw2X/y8Nl/8vDZf+tpk7/nplD/wAAAAAAAAAAAAAAAJaPPf+2rVX/vrVb/761W/++tVv/vrVb/6+nUP+6tFn/y8Nl/8vDZf/Lw2X/y8Nl/8G6Xv+emUP/AAAAAAAAAACWjz3/vrVb/761W/++tVv/vrVb/761W/+vp1D/urRZ/8vDZf/Lw2X/y8Nl/8vDZf/Lw2X/nplD/wAAAAAAAAAAlo89/761W/++tVv/vrVb/761W/++tVv/r6dQ/7q0Wf/Lw2X/y8Nl/8vDZf/Lw2X/y8Nl/56ZQ/8AAAAAAAAAAJaPPf++tVv/vrVb/761W/++tVv/vbRa/5aPPf+emUP/y8Nl/8vDZf/Lw2X/y8Nl/8vDZf+emUP/AAAAAAAAAACWjz3/vrVb/761W/++tVv/vrVb/5qTQP+inkb/op5G/6KdRv/Lw2X/y8Nl/8vDZf/Lw2X/nplD/wAAAAAAAAAAlo89/761W/++tVv/sqlS/56ZQ//LxWb/0Mlp/9DJaf/Kw2X/oJtE/7+3XP/Lw2X/y8Nl/56ZQ/8AAAAAAAAAAJaPPf+9tFr/mJE+/7GsUv/Rymr/0cpq/9HKav/Rymr/0cpq/9HKav+xrFL/nplD/8vDZf+emUP/AAAAAAAAAACWjz3/op5G/9HKav/Rymr/0cpq/9HKav/Rymr/0cpq/9HKav/Rymr/0cpq/9HKav+inkb/nplD/wAAAAAAAAAAAAAAAKKeRv+3slb/0cpq/9HKav/Rymr/0cpq/9HKav/Rymr/0cpq/9HKav+1sFX/op5G/wAAAAAAAAAAAAAAAAAAAAAAAAAAop5GUKKeRv/Nxmf/0cpq/9HKav/Rymr/0cpq/83GZ/+inkb/op5GSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAop5G16KeRv/LxWb/y8Vm/6KeRv+inkaPAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAop5G/6KeRtcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/n8AAPgfAADwDwAAwAMAAIABAACAAQAAgAEAAIABAACAAQAAgAEAAIABAACAAQAAwAMAAPAPAAD4HwAA/n8AAA==' />
-    <title>${props.title}</title>
-    <link rel="stylesheet" href="<%-- src/app.css --%>">
-    <script type="text/javascript">
-globalThis.props = ${JSON.stringify(props, null, 2)}
-    </script>
-  </head>
-  <body class="san-serif charcoal">
-    <div id="app"></div>
-    <script type="text/javascript" src="<%-- src/error.tsx --%>"></script>
-  </body>
-</html>
-`
-
-  return new Response(page, {
-    status: fetchResponse.status,
-    statusText: fetchResponse.statusText,
-    headers: mergedHeaders
-  })
-}
-
-/**
- * TODO: more service worker details
- */
-function getServiceWorkerDetails (): ServiceWorkerDetails {
-  const registration = self.registration
-  const state = registration.installing?.state ?? registration.waiting?.state ?? registration.active?.state ?? 'unknown'
-
-  return {
-    config,
-    // TODO: implement https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Opener-Policy
-    crossOriginIsolated: self.crossOriginIsolated,
-    installTime: (new Date(firstInstallTime)).toUTCString(),
-    origin: self.location.origin,
-    scope: registration.scope,
-    state,
-    version: APP_VERSION,
-    commit: GIT_REVISION
-  }
-}
-
-function toErrorPageProviders (providers: Providers): ErrorPageProviders {
-  const output: ErrorPageProviders = {
-    total: providers.total,
-    other: providers.other,
-    otherCount: providers.otherCount,
-    trustlessGateway: [...providers.trustlessGateway],
-    bitswap: {}
-  }
-
-  for (const [key, addresses] of providers.bitswap) {
-    output.bitswap[key] = [...addresses]
-  }
-
-  return output
-}
-
-export interface RequestDetails {
-  resource: string
-  method: string
-  headers: Record<string, string>
-}
-
-function getRequestDetails (resource: string, init: RequestInit): RequestDetails {
-  const requestHeaders = new Headers(init.headers)
-  const headers: Record<string, string> = {}
-  requestHeaders.forEach((value, key) => {
-    headers[key] = value
-  })
-
-  return {
-    resource,
-    method: init.method ?? 'GET',
-    headers
-  }
-}
-
-export interface ResponseDetails {
-  resource: string,
-  headers: Record<string, string>
-  status: number
-  statusText: string
-  body: string
-}
-
-function getResponseDetails (response: Response, body: string): ResponseDetails {
-  const headers: Record<string, string> = {}
-  response.headers.forEach((value, key) => {
-    headers[key] = value
-  })
-
-  return {
-    resource: response.url,
-    headers,
-    status: response.status,
-    statusText: response.statusText,
-    body
+    }), JSON.stringify(errorToObject(err), null, 2), providers, config, firstInstallTime, logs)
   }
 }
 
@@ -887,34 +732,6 @@ async function addInstallTimestampToConfig (): Promise<void> {
     swidb.close()
   } catch (err) {
     log.error('addInstallTimestampToConfig error - %e', err)
-  }
-}
-
-async function setOriginIsolationWarningAccepted (): Promise<void> {
-  const log = getSwLogger('set-origin-isolation-warning-accepted')
-
-  try {
-    const swidb = getSwConfig()
-    await swidb.open()
-    await swidb.put('originIsolationWarningAccepted', true)
-    swidb.close()
-  } catch (err) {
-    log.error('setOriginIsolationWarningAccepted error - %e', err)
-  }
-}
-
-async function getOriginIsolationWarningAccepted (): Promise<boolean> {
-  const log = getSwLogger('get-origin-isolation-warning-accepted')
-
-  try {
-    const swidb = getSwConfig()
-    await swidb.open()
-    const accepted = await swidb.get('originIsolationWarningAccepted')
-    swidb.close()
-    return accepted ?? false
-  } catch (err) {
-    log.error('getOriginIsolationWarningAccepted error - %e', err)
-    return false
   }
 }
 

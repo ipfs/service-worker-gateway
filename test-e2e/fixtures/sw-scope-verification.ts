@@ -1,9 +1,11 @@
 import type { Expect, Page } from '@playwright/test'
 
 /**
- * Verifies that the service worker is registered to the root scope of whatever page we're on.
+ * Verifies that the service worker is registered to the root scope of whatever
+ * page we're on.
  *
- * This is important for ensuring that the service worker is properly scoped and does not conflict with other service workers on the same domain.
+ * This is important for ensuring that the service worker is properly scoped and
+ * does not conflict with other service workers on the same domain.
  */
 export async function swScopeVerification (page: Page, expect: Expect): Promise<void> {
   // expect service worker that is registered to the root scope

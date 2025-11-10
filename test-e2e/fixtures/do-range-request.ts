@@ -17,7 +17,11 @@ export interface RangeRequestResult {
  */
 export async function doRangeRequest ({ page, range, path }: { range: string, page: Page, path: string }): Promise<RangeRequestResult> {
   return page.evaluate(async ({ path, range }) => {
-    const response = await fetch(path, { headers: { range } })
+    const response = await fetch(path, {
+      headers: {
+        range
+      }
+    })
     const clone = response.clone()
     const buffer = await response.arrayBuffer()
     const byteSize = buffer.byteLength

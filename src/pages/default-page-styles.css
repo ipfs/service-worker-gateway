@@ -46,5 +46,8 @@ body {
 
 .link:hover {
   text-decoration: underline;
-  color: var(--aqua-muted);
+}
+
+.white .link {
+  color: var(--gray-muted);
 }

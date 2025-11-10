@@ -1,2 +1,4 @@
-/ipns/* /ipfs-sw-first-hit.html/ipns/:splat 302
-/ipfs/* /ipfs-sw-first-hit.html/ipfs/:splat 302
+# https://specs.ipfs.tech/http-gateways/web-redirects-file/
+# https://developers.cloudflare.com/pages/configuration/redirects/
+/ipfs/* /index.html/:splat 302
+/ipns/* /index.html/:splat 302

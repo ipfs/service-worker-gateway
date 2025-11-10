@@ -5,11 +5,12 @@ import React, { useEffect, useMemo, useState } from 'react'
 import './input-toggle.css'
 import { InputDescription } from './input-description.js'
 import { InputLabel } from './input-label.js'
+import type { ReactElement } from 'react'
 
 interface LocalStorageToggleProps {
   label: string
   value: boolean
-  description?: string
+  description?: string | ReactElement
   className?: string
   onClick?: React.MouseEventHandler<HTMLDivElement>
   onChange(value: boolean): void
@@ -44,8 +45,8 @@ export const InputToggle: React.FC<LocalStorageToggleProps> = ({
 
   return (
     <div {...props} className={`${props.className}`}>
-      <InputLabel label={label} />
-      <InputDescription description={description} />
+      <InputLabel>{label}</InputLabel>
+      <InputDescription>{description}</InputDescription>
 
       <input
         type='checkbox'

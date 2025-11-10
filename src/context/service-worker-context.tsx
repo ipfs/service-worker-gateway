@@ -11,11 +11,13 @@
  * After the service worker is loaded. Usually any react code isn't loaded, but some edge cases are:
  * 1. The page being loaded using some /ip[fn]s/<path> url, but subdomain isolation is supported, so we need to redirect to the isolated origin
  */
-import React, { createContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect, useState } from 'react'
 import { uiLogger } from '../lib/logger.js'
 import { findOriginIsolationRedirect } from '../lib/path-or-subdomain.js'
 import { isUnregisterRequest } from '../lib/unregister-request.js'
 import { registerServiceWorker } from '../service-worker-utils.js'
+import { ConfigContext } from './config-context.jsx'
+import type { PropsWithChildren } from 'react'
 
 const log = uiLogger.forComponent('service-worker-context')
 
@@ -23,22 +25,24 @@ export const ServiceWorkerContext = createContext({
   isServiceWorkerRegistered: false
 })
 
-export const ServiceWorkerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const ServiceWorkerProvider: React.FC<PropsWithChildren> = ({ children }) => {
   const [isServiceWorkerRegistered, setIsServiceWorkerRegistered] = useState(false)
+  const context = useContext(ConfigContext)
 
   useEffect(() => {
     if (isServiceWorkerRegistered) {
-      void findOriginIsolationRedirect(window.location, log).then((originRedirect) => {
-        if (originRedirect !== null) {
-          window.location.replace(originRedirect)
-        }
-      })
+      const originRedirect = findOriginIsolationRedirect(window.location, log, context.configDb._supportsSubdomains)
+
+      if (originRedirect !== null) {
+        window.location.replace(originRedirect)
+      }
 
       /**
        * The service worker is registered, we don't need to do any more work
        */
       return
     }
+
     async function doWork (): Promise<void> {
       if (isUnregisterRequest(window.location.href)) {
         log.trace('unregistering service worker')
@@ -63,6 +67,7 @@ export const ServiceWorkerProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       }
     }
+
     void doWork()
   }, [isServiceWorkerRegistered])
 

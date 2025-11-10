@@ -55,7 +55,14 @@ export default defineConfig({
     {
       name: 'firefox',
       use: {
-        ...devices['Desktop Firefox']
+        ...devices['Desktop Firefox'],
+        launchOptions: {
+          firefoxUserPrefs: {
+            // if we redirect too quickly, too many times, Firefox deletes all
+            // site application data (e.g. the service worker)
+            'privacy.bounceTrackingProtection.mode': 0
+          }
+        }
       }
     },
     {
@@ -91,7 +98,8 @@ export default defineConfig({
         },
         launchOptions: {
           firefoxUserPrefs: {
-            'dom.serviceWorkers.enabled': false
+            'dom.serviceWorkers.enabled': false,
+            'privacy.bounceTrackingProtection.mode': 0
           }
         },
         /**
