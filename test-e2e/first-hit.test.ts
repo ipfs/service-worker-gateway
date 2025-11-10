@@ -18,7 +18,7 @@ test.describe('first-hit ipfs-hosted', () => {
       }
     })
 
-    test('redirects are handled', async ({ page }) => {
+    test('loads the index page from the root when an path is present', async ({ page }) => {
       const response = await page.goto('http://127.0.0.1:3334/ipfs/bafkqablimvwgy3y', {
         waitUntil: 'networkidle'
       })
@@ -27,9 +27,7 @@ test.describe('first-hit ipfs-hosted', () => {
       expect(response?.status()).toBe(200)
       const headers = await response?.allHeaders()
 
-      // we redirect to the root path with query param so sw can be registered at the root path
-      await expect(page).toHaveURL('http://127.0.0.1:3334/ipfs/bafkqablimvwgy3y#/ipfs-sw-origin-isolation-warning')
-
+      // accept the warning
       await handleOriginIsolationWarning(page)
 
       expect(headers?.['content-type']).toContain('text/html')

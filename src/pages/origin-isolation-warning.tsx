@@ -3,6 +3,7 @@ import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
 import { ConfigContext } from '../context/config-context.jsx'
 import { QUERY_PARAMS } from '../lib/constants.js'
 import './default-page-styles.css'
+import { removeRootHashIfPresent } from '../lib/remove-root-hash.js'
 import { toGatewayRoot } from '../lib/to-gateway-root.js'
 import type { ReactNode } from 'react'
 
@@ -54,6 +55,8 @@ export default function SubdomainWarningPage (): ReactNode {
       <></>
     )
   }
+
+  removeRootHashIfPresent()
 
   const [isSaving, setIsSaving] = useState(false)
   const configContext = useContext(ConfigContext)
