@@ -31,7 +31,7 @@ test.describe('video', () => {
     await setConfig(page, testConfig)
     await waitForServiceWorker(page)
     const response = await page.goto(`http://127.0.0.1:3333/ipfs/${cid}`, {
-      waitUntil: 'networkidle'
+      waitUntil: test.info().project.name === 'firefox' ? 'networkidle' : 'commit'
     })
     const start = performance.now()
 
