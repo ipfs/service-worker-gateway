@@ -24,6 +24,4 @@ jobs:
       - uses: actions/checkout@v5
       - name: Wait for deployment to complete
         run: |
-          # fetch the tag to ensure it's available
-          git fetch origin tag ${{ inputs.tag }} --no-tags
           ./.github/scripts/wait-for-deploy.sh https://inbrowser.dev ${{ inputs.tag }}
