@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag, branch or commit to deploy'
+        description: 'Tag or commit to deploy'
         required: true
         type: string
 
