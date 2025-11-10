@@ -3,7 +3,9 @@ import { handleOriginIsolationWarning } from './fixtures/handle-origin-isolation
 
 test.describe('path-routing', () => {
   test('can load identity CID via path', async ({ page, swResponses }) => {
-    await page.goto('/ipfs/bafkqablimvwgy3y')
+    await page.goto('/ipfs/bafkqablimvwgy3y', {
+      waitUntil: 'networkidle'
+    })
 
     await handleOriginIsolationWarning(page)
 
