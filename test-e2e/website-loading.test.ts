@@ -9,7 +9,9 @@ test.describe('website-loading', () => {
   })
 
   test('ensure unixfs directory trailing slash is added', async ({ page }) => {
-    const response = await page.goto('http://127.0.0.1:3333/ipfs/bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q')
+    const response = await page.goto('http://127.0.0.1:3333/ipfs/bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q', {
+      waitUntil: 'networkidle'
+    })
 
     // playwright follows redirects so we won't see the 301
     expect(response?.status()).toBe(200)
@@ -17,7 +19,9 @@ test.describe('website-loading', () => {
   })
 
   test('ensure that index.html is returned for the root path', async ({ page }) => {
-    const response = await page.goto('http://127.0.0.1:3333/ipfs/bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q/')
+    const response = await page.goto('http://127.0.0.1:3333/ipfs/bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q/', {
+      waitUntil: 'networkidle'
+    })
 
     expect(response?.status()).toBe(200)
     const headers = await response?.allHeaders()

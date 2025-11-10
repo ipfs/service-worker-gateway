@@ -112,7 +112,9 @@ export const testPathRouting = test.extend<TestOptions>({
       throw new Error('KUBO_GATEWAY not set')
     }
 
-    await page.goto('http://127.0.0.1:3333', { waitUntil: 'networkidle' })
+    await page.goto('http://127.0.0.1:3333', {
+      waitUntil: 'networkidle'
+    })
     await waitForServiceWorker(page)
     await setConfig(page, {
       gateways: [process.env.KUBO_GATEWAY],

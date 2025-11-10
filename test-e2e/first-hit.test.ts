@@ -18,7 +18,7 @@ test.describe('first-hit ipfs-hosted', () => {
       }
     })
 
-    test('loads the index page from the root when an path is present', async ({ page }) => {
+    test('loads the index page from the root when a path is present', async ({ page }) => {
       const response = await page.goto('http://127.0.0.1:3334/ipfs/bafkqablimvwgy3y', {
         waitUntil: 'networkidle'
       })
@@ -51,7 +51,9 @@ test.describe('first-hit ipfs-hosted', () => {
     })
 
     test('redirects to subdomain gateway', async ({ page, rootDomain, protocol }) => {
-      const response = await page.goto('http://localhost:3334/ipfs/bafkqablimvwgy3y')
+      const response = await page.goto('http://localhost:3334/ipfs/bafkqablimvwgy3y', {
+        waitUntil: 'networkidle'
+      })
 
       // first loads the root page
       expect(response?.status()).toBe(200)
@@ -72,7 +74,9 @@ test.describe('first-hit ipfs-hosted', () => {
     })
 
     test('redirects to subdomain gateway with extra query params', async ({ page }) => {
-      const response = await page.goto('http://localhost:3334/ipfs/bafkqablimvwgy3y?foo=bar')
+      const response = await page.goto('http://localhost:3334/ipfs/bafkqablimvwgy3y?foo=bar', {
+        waitUntil: 'networkidle'
+      })
 
       expect(response?.url()).toBe('http://localhost:3334/ipfs/bafkqablimvwgy3y?foo=bar')
 
