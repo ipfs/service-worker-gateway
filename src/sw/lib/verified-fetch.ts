@@ -9,9 +9,7 @@ import { dagCborHtmlPreviewPluginFactory, dirIndexHtmlPluginFactory } from '@hel
 import { generateKeyPair } from '@libp2p/crypto/keys'
 import { dcutr } from '@libp2p/dcutr'
 import { identify, identifyPush } from '@libp2p/identify'
-import { TypedEventEmitter } from '@libp2p/interface'
 import { keychain } from '@libp2p/keychain'
-import { logger } from '@libp2p/logger'
 import { ping } from '@libp2p/ping'
 import { webSockets } from '@libp2p/websockets'
 import { webTransport } from '@libp2p/webtransport'
@@ -21,46 +19,80 @@ import { dnsJsonOverHttps } from '@multiformats/dns/resolvers'
 import { createHelia } from 'helia'
 import { createLibp2p } from 'libp2p'
 import * as libp2pInfo from 'libp2p/version'
-import { format } from 'weald/format'
+import { collectingLogger } from '../../lib/collecting-logger.js'
+import { getSwLogger } from '../../lib/logger.js'
 import { blake3 } from './blake3.js'
-import type { ConfigDb } from './config-db.js'
+import { getConfig, updateConfig } from './config.js'
+import type { ConfigDb } from '../../lib/config-db.js'
 import type { DelegatedRoutingV1HttpApiClient } from '@helia/delegated-routing-v1-http-api-client'
 import type { BlockBroker } from '@helia/interface'
 import type { VerifiedFetch } from '@helia/verified-fetch'
-import type { Logger, TypedEventTarget, ComponentLogger } from '@libp2p/interface'
 import type { DNSResolvers } from '@multiformats/dns'
 import type { Helia, Routing } from 'helia'
 import type { Libp2pOptions } from 'libp2p'
 
-export interface LogEvents {
-  log: CustomEvent<string>
-}
+type Libp2pDefaultsOptions = Pick<ConfigDb, 'routers' | 'enableWss' | 'enableWebTransport' | 'enableGatewayProviders'>
 
-/**
- * Listen for 'log' events to collect logs for operations
- */
-export const logEmitter: TypedEventTarget<LogEvents> = new TypedEventEmitter<LogEvents>()
+async function libp2pDefaults (config: Libp2pDefaultsOptions): Promise<Libp2pOptions> {
+  const agentVersion = `@helia/verified-fetch ${libp2pInfo.name}/${libp2pInfo.version} UserAgent=${globalThis.navigator.userAgent}`
+  const privateKey = await generateKeyPair('Ed25519')
 
-/**
- * A log implementation that also emits all log lines as 'log' events on the
- * exported `logEmitter`.
- */
-export function collectingLogger (prefix?: string): ComponentLogger {
-  return {
-    forComponent (name: string) {
-      return logger(`${prefix == null ? '' : `${prefix}:`}${name}`, {
-        onLog (fmt: string, ...args: any[]): void {
-          logEmitter.safeDispatchEvent('log', {
-            detail: format(fmt.replaceAll('%c', ''), ...args.filter(arg => !`${arg}`.startsWith('color:')))
-          })
-        }
-      })
-    }
+  const filterAddrs = [] as string[]
+  const transports: Array<(components: any) => any> = []
+
+  if (config.enableWss) {
+    transports.push(webSockets())
+    filterAddrs.push('wss') // /dns4/sv15.bootstrap.libp2p.io/tcp/443/wss/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJ
+    filterAddrs.push('tls') // /ip4/A.B.C.D/tcp/4002/tls/sni/A-B-C-D.peerid.libp2p.direct/ws/p2p/peerid
   }
+  if (config.enableWebTransport) {
+    transports.push(webTransport())
+    filterAddrs.push('webtransport')
+  }
+  if (config.enableGatewayProviders) {
+    filterAddrs.push('https') // /dns/example.com/tcp/443/https
+    filterAddrs.push('tls') // /ip4/A.B.C.D/tcp/4002/tls/sni/example.com/http
+  }
+
+  interface Libp2pOptionsWithDelegatedRouting extends Libp2pOptions {
+    services: Libp2pOptions['services'] & Record<`delegatedRouter${number}`, () => DelegatedRoutingV1HttpApiClient>
+  }
+  const libp2pOptions: Libp2pOptionsWithDelegatedRouting = {
+    privateKey,
+    nodeInfo: {
+      userAgent: agentVersion
+    },
+    addresses: {}, // no need to listen on any addresses
+    transports,
+    connectionEncrypters: [noise()],
+    streamMuxers: [yamux()],
+    services: {
+      dcutr: dcutr(),
+      identify: identify(),
+      identifyPush: identifyPush(),
+      keychain: keychain(),
+      ping: ping()
+    }
+  } satisfies Libp2pOptionsWithDelegatedRouting
+
+  // Add delegated routing services for each passed delegated router endpoint
+  config.routers.forEach((router, i) => {
+    libp2pOptions.services[`delegatedRouter${i}`] = () => createDelegatedRoutingV1HttpApiClient(router, {
+      filterProtocols: ['unknown', 'transport-bitswap', 'transport-ipfs-gateway-http'],
+      filterAddrs
+    })
+  })
+
+  return libp2pOptions
 }
 
-export async function getVerifiedFetch (config: ConfigDb, logger: Logger): Promise<VerifiedFetch> {
-  const log = logger.newScope('get-verified-fetch')
+let verifiedFetch: VerifiedFetch
+
+export async function updateVerifiedFetch (): Promise<void> {
+  await updateConfig()
+  const config = await getConfig()
+
+  const log = getSwLogger('update-verified-fetch')
   log('got config for sw location %s %o', self.location.origin, config)
 
   // Start by adding the config routers as delegated routers
@@ -125,60 +157,19 @@ export async function getVerifiedFetch (config: ConfigDb, logger: Logger): Promi
     })
   }
 
-  return createVerifiedFetch(helia, { withServerTiming: true, plugins: [dirIndexHtmlPluginFactory, dagCborHtmlPreviewPluginFactory] })
+  verifiedFetch = await createVerifiedFetch(helia, {
+    withServerTiming: true,
+    plugins: [
+      dirIndexHtmlPluginFactory,
+      dagCborHtmlPreviewPluginFactory
+    ]
+  })
 }
 
-type Libp2pDefaultsOptions = Pick<ConfigDb, 'routers' | 'enableWss' | 'enableWebTransport' | 'enableGatewayProviders'>
-
-export async function libp2pDefaults (config: Libp2pDefaultsOptions): Promise<Libp2pOptions> {
-  const agentVersion = `@helia/verified-fetch ${libp2pInfo.name}/${libp2pInfo.version} UserAgent=${globalThis.navigator.userAgent}`
-  const privateKey = await generateKeyPair('Ed25519')
-
-  const filterAddrs = [] as string[]
-  const transports: Array<(components: any) => any> = []
-
-  if (config.enableWss) {
-    transports.push(webSockets())
-    filterAddrs.push('wss') // /dns4/sv15.bootstrap.libp2p.io/tcp/443/wss/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJ
-    filterAddrs.push('tls') // /ip4/A.B.C.D/tcp/4002/tls/sni/A-B-C-D.peerid.libp2p.direct/ws/p2p/peerid
-  }
-  if (config.enableWebTransport) {
-    transports.push(webTransport())
-    filterAddrs.push('webtransport')
-  }
-  if (config.enableGatewayProviders) {
-    filterAddrs.push('https') // /dns/example.com/tcp/443/https
-    filterAddrs.push('tls') // /ip4/A.B.C.D/tcp/4002/tls/sni/example.com/http
+export async function getVerifiedFetch (): Promise<VerifiedFetch> {
+  if (verifiedFetch == null) {
+    await updateVerifiedFetch()
   }
 
-  interface Libp2pOptionsWithDelegatedRouting extends Libp2pOptions {
-    services: Libp2pOptions['services'] & Record<`delegatedRouter${number}`, () => DelegatedRoutingV1HttpApiClient>
-  }
-  const libp2pOptions: Libp2pOptionsWithDelegatedRouting = {
-    privateKey,
-    nodeInfo: {
-      userAgent: agentVersion
-    },
-    addresses: {}, // no need to listen on any addresses
-    transports,
-    connectionEncrypters: [noise()],
-    streamMuxers: [yamux()],
-    services: {
-      dcutr: dcutr(),
-      identify: identify(),
-      identifyPush: identifyPush(),
-      keychain: keychain(),
-      ping: ping()
-    }
-  } satisfies Libp2pOptionsWithDelegatedRouting
-
-  // Add delegated routing services for each passed delegated router endpoint
-  config.routers.forEach((router, i) => {
-    libp2pOptions.services[`delegatedRouter${i}`] = () => createDelegatedRoutingV1HttpApiClient(router, {
-      filterProtocols: ['unknown', 'transport-bitswap', 'transport-ipfs-gateway-http'],
-      filterAddrs
-    })
-  })
-
-  return libp2pOptions
+  return verifiedFetch
 }

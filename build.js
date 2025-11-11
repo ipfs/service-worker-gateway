@@ -306,20 +306,27 @@ const modifyBuiltFiles = {
       // Modify the redirects file last
       await modifyRedirects()
 
-      // create a CSS config file we will use to get the proper CSS filename
-      const indexCssFile = Object.keys(metafile.outputs).find(file => file.endsWith('.css') && file.includes('app'))
-      if (indexCssFile) {
-        const cssConfigContent = `export const CSS_FILENAME = '${path.basename(indexCssFile)}'`
-        await fs.writeFile(path.resolve('dist/ipfs-sw-css-config.js'), cssConfigContent)
-        console.log(`Created dist/ipfs-sw-css-config.js with CSS filename: ${path.basename(indexCssFile)}`)
-      }
+      for (const [file, meta] of Object.entries(metafile.outputs)) {
+        if (meta.entryPoint != null) {
+          console.info(meta.entryPoint, '->', file)
+        }
 
-      // create an app chunk config file we will use to get the proper app chunk filename for importing all the UI dynamically
-      const appChunkFile = Object.keys(metafile.outputs).find(file => file.endsWith('.js') && file.includes('app'))
-      if (appChunkFile) {
-        const appConfigContent = `export const APP_FILENAME = '${path.basename(appChunkFile)}'`
-        await fs.writeFile(path.resolve('dist/ipfs-sw-app-config.js'), appConfigContent)
-        console.log(`Created dist/ipfs-sw-app-config.js with app chunk filename: ${path.basename(appChunkFile)}`)
+        // create an app chunk config file we will use to get the proper app
+        // chunk filename for importing all the UI dynamically
+        if (meta.entryPoint === 'src/ui/index.tsx') {
+          const appConfigContent = `export const APP_FILENAME = '${path.basename(file)}'`
+          await fs.writeFile(path.resolve('dist/ipfs-sw-app-config.js'), appConfigContent)
+          console.log(`Created dist/ipfs-sw-app-config.js with app chunk filename: ${path.basename(file)}`)
+        }
+
+        // create a CSS config file we will use to get the proper CSS filename
+        // TODO: this is too fragile, it only works because there is a only one
+        // css file in the output
+        if (file.endsWith('.css')) {
+          const cssConfigContent = `export const CSS_FILENAME = '${path.basename(file)}'`
+          await fs.writeFile(path.resolve('dist/ipfs-sw-css-config.js'), cssConfigContent)
+          console.log(`Created dist/ipfs-sw-css-config.js with CSS filename: ${path.basename(file)}`)
+        }
       }
     })
   }
@@ -369,7 +376,13 @@ export const buildOptions = {
   format: 'esm',
   entryNames: 'ipfs-sw-[name]-[hash]',
   assetNames: 'ipfs-sw-[name]-[hash]',
-  plugins: [replaceImports, renameSwPlugin, updateVersions, modifyBuiltFiles, excludeFilesPlugin(['.eot?#iefix', '.otf', '.woff', '.woff2'])]
+  plugins: [
+    replaceImports,
+    renameSwPlugin,
+    updateVersions,
+    modifyBuiltFiles,
+    excludeFilesPlugin(['.eot?#iefix', '.otf', '.woff', '.woff2'])
+  ]
 }
 
 const ctx = await esbuild.context(buildOptions)
