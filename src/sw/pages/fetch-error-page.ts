@@ -1,8 +1,8 @@
-import { APP_VERSION, GIT_REVISION } from '../version.js'
+import { APP_VERSION, GIT_REVISION } from '../../version.js'
 import { htmlPage } from './page.js'
-import type { ConfigDb } from '../lib/config-db.js'
-import type { Providers as ErrorPageProviders } from '../pages/fetch-error.jsx'
-import type { Providers } from '../sw.js'
+import type { ConfigDb } from '../../lib/config-db.js'
+import type { Providers as ErrorPageProviders } from '../../ui/pages/fetch-error.jsx'
+import type { Providers } from '../index.js'
 
 declare let self: ServiceWorkerGlobalScope
 

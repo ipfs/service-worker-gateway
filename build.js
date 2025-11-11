@@ -163,39 +163,45 @@ const modifyRedirects = async () => {
 const renameSwPlugin = {
   name: 'rename-sw-plugin',
   setup (build) {
-    build.onEnd(async () => {
+    build.onEnd(async (result) => {
+      const metafile = result.metafile
       const outdir = path.resolve('dist')
-      const files = await fs.readdir(outdir)
+      let foundSwEntry = false
 
-      await Promise.all(
-        files.map(async file => {
-          if (file.startsWith('ipfs-sw-sw-')) {
-            const extension = file.slice(file.indexOf('.'))
-            const oldPath = path.join(outdir, file)
-            const newPath = path.join(outdir, `ipfs-sw-sw${extension}`)
-            await fs.rename(oldPath, newPath)
-            console.log(`Renamed ${file} to ipfs-sw-sw${extension}`)
+      for (const [file, meta] of Object.entries(metafile.outputs)) {
+        if (meta.entryPoint !== 'src/sw/index.ts') {
+          continue
+        }
 
-            if (extension === '.js') {
-              const contents = await fs.readFile(newPath, 'utf8')
-              const newContents = contents.replace(/sourceMappingURL=.*\.js\.map/, 'sourceMappingURL=ipfs-sw-sw.js.map')
-              await fs.writeFile(newPath, newContents)
-            }
-          }
-        })
-      )
+        foundSwEntry = true
+        const newPath = path.join(outdir, 'ipfs-sw-sw.js')
+
+        await fs.cp(file, newPath)
+        console.log(`Renamed ${file} to ipfs-sw-sw.js`)
+
+        await fs.cp(`${file}.map`, path.join(outdir, 'ipfs-sw-sw.js.map'))
+        console.log(`Renamed ${file}.map to ipfs-sw-sw.js.map`)
+
+        const contents = await fs.readFile(newPath, 'utf8')
+        const newContents = contents.replace(/sourceMappingURL=.*\.js\.map/, 'sourceMappingURL=ipfs-sw-sw.js.map')
+        await fs.writeFile(newPath, newContents)
+      }
+
+      if (!foundSwEntry) {
+        throw new Error('Could not find service worker entry point in build result meta - did the entry point filename change?')
+      }
     })
   }
 }
 
 /**
- * Replaces strings with paths to built files, e.g. `'<%-- src/app.tsx --%>'`
+ * Replaces strings with paths to built files, e.g. `'<%-- src/ui/index.tsx --%>'`
  * becomes `'./path/to/app-HASH.js'`
  *
  * @type {esbuild.Plugin}
  */
 const replaceImports = {
-  name: 'modify-built-files',
+  name: 'replace-imports',
   setup (build) {
     build.onEnd(async (result) => {
       const metafile = result.metafile
@@ -225,6 +231,10 @@ const replaceImports = {
         let file = await fs.readFile(path.resolve(jsFile), 'utf-8')
 
         for (const [target, source] of file.matchAll(regex)) {
+          if (buildInfo[source] == null) {
+            throw new Error(`"${source}" was not a valid build file - you may have an invalid replacement in a file. Search for: "<%-- ${source} --%>"`)
+          }
+
           const bundledFile = buildInfo[source].replace('dist', '')
 
           console.info('Replace', target, 'with', bundledFile, 'in', jsFile)
@@ -341,10 +351,8 @@ export const buildOptions = {
   },
   entryPoints: [
     'src/index.tsx',
-    'src/sw.ts',
-    'src/app.tsx',
-    'src/ipfs-sw-*.ts',
-    'src/ipfs-sw-*.css'
+    'src/sw/index.ts',
+    'src/ui/index.tsx'
   ],
   bundle: true,
   outdir: 'dist',

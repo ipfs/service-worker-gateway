@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react'
+import { dnsLinkLabelDecoder, isInlinedDnsLink } from '../../lib/dns-link-labels.js'
+import { LOCAL_STORAGE_KEYS } from '../../lib/local-storage.js'
+import { pathRegex, subdomainRegex } from '../../lib/regex.js'
+import { removeRootHashIfPresent } from '../../lib/remove-root-hash.js'
 import Form from '../components/form.jsx'
 import CidRenderer from '../components/input-validator.jsx'
 import { ServiceWorkerProvider } from '../context/service-worker-context.jsx'
-import { dnsLinkLabelDecoder, isInlinedDnsLink } from '../lib/dns-link-labels.js'
-import { LOCAL_STORAGE_KEYS } from '../lib/local-storage.js'
 import './default-page-styles.css'
-import { pathRegex, subdomainRegex } from '../lib/regex.js'
-import { removeRootHashIfPresent } from '../lib/remove-root-hash.js'
 import type { ReactElement } from 'react'
 
 function LoadContent (): ReactElement {

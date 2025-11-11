@@ -1,20 +1,21 @@
 import { AbortError, setMaxListeners } from '@libp2p/interface'
-import { Config } from './lib/config-db.js'
-import { QUERY_PARAMS } from './lib/constants.js'
-import { errorToObject } from './lib/error-to-object.js'
-import { createSearch } from './lib/first-hit-helpers.js'
-import { GenericIDB } from './lib/generic-db.js'
-import { getSubdomainParts } from './lib/get-subdomain-parts.js'
-import { getVerifiedFetch, logEmitter } from './lib/get-verified-fetch.js'
-import { getSwLogger } from './lib/logger.js'
-import { isPathGatewayRequest, isSubdomainGatewayRequest, toSubdomainRequest } from './lib/path-or-subdomain.js'
-import { isBitswapProvider, isTrustlessGatewayProvider } from './lib/providers.js'
-import { isUnregisterRequest } from './lib/unregister-request.js'
-import { fetchErrorPageResponse } from './sw/fetch-error-page.js'
-import { originIsolationWarningPageResponse } from './sw/origin-isolation-warning-page.js'
-import { serverErrorPageResponse } from './sw/server-error-page.js'
-import type { ConfigDb } from './lib/config-db.js'
-import type { UrlParts } from './lib/get-subdomain-parts.js'
+import { CURRENT_CACHES } from '../constants.js'
+import { Config } from '../lib/config-db.js'
+import { QUERY_PARAMS } from '../lib/constants.js'
+import { errorToObject } from '../lib/error-to-object.js'
+import { createSearch } from '../lib/first-hit-helpers.js'
+import { GenericIDB } from '../lib/generic-db.js'
+import { getSubdomainParts } from '../lib/get-subdomain-parts.js'
+import { getVerifiedFetch, logEmitter } from '../lib/get-verified-fetch.js'
+import { getSwLogger } from '../lib/logger.js'
+import { isPathGatewayRequest, isSubdomainGatewayRequest, toSubdomainRequest } from '../lib/path-or-subdomain.js'
+import { isBitswapProvider, isTrustlessGatewayProvider } from '../lib/providers.js'
+import { isUnregisterRequest } from '../lib/unregister-request.js'
+import { fetchErrorPageResponse } from './pages/fetch-error-page.js'
+import { originIsolationWarningPageResponse } from './pages/origin-isolation-warning-page.js'
+import { serverErrorPageResponse } from './pages/server-error-page.js'
+import type { ConfigDb } from '../lib/config-db.js'
+import type { UrlParts } from '../lib/get-subdomain-parts.js'
 import type { VerifiedFetch, VerifiedFetchInit } from '@helia/verified-fetch'
 
 /**
@@ -64,32 +65,6 @@ export interface Providers {
  */
 declare let self: ServiceWorkerGlobalScope
 
-/**
- * This is one best practice that can be followed in general to keep track of
- * multiple caches used by a given service worker, and keep them all versioned.
- * It maps a shorthand identifier for a cache to a specific, versioned cache
- * name.
- *
- * Note that since global state is discarded in between service worker restarts,
- * these variables will be reinitialized each time the service worker handles an
- * event, and you should not attempt to change their values inside an event
- * handler. (Treat them as constants.)
- *
- * If at any point you want to force pages that use this service worker to start
- * using a fresh cache, then increment the CACHE_VERSION value. It will kick off
- * the service worker update flow and the old cache(s) will be purged as part of
- * the activate event handler when the updated service worker is activated.
- *
- * @see https://googlechrome.github.io/samples/service-worker/prefetch-video/
- */
-
-// see https://github.com/ipfs/service-worker-gateway/pull/853#issuecomment-3309246532
-const CACHE_VERSION = 2
-const CURRENT_CACHES = Object.freeze({
-  mutable: `mutable-cache-v${CACHE_VERSION}`,
-  immutable: `immutable-cache-v${CACHE_VERSION}`,
-  swAssets: `sw-assets-v${CACHE_VERSION}`
-})
 let verifiedFetch: VerifiedFetch
 const ONE_HOUR_IN_SECONDS = 3600
 let config: ConfigDb
@@ -208,6 +183,13 @@ self.addEventListener('fetch', (event) => {
           )
         }
 
+        if (url.toString().includes('k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam')) {
+          response.headers.set('was-mutable', 'maybe')
+          /* return new Response('urg', {
+            status: 409
+          }) */
+        }
+
         return response
       })
       .catch(err => {
@@ -222,8 +204,8 @@ self.addEventListener('fetch', (event) => {
 async function handleFetch (url: URL, event: FetchEvent, logs: string[]): Promise<Response> {
   const log = getSwLogger('handle-fetch')
 
+  // if service worker was shut down, the firstInstallTime may be null
   if (firstInstallTime == null) {
-    // if service worker is shut down, the firstInstallTime may be null
     log('firstInstallTime is null, getting install timestamp')
     await getInstallTimestamp()
   }
@@ -388,8 +370,8 @@ function isSwAssetRequest (event: FetchEvent): boolean {
 }
 
 /**
- * Set the expires header on a response object to a timestamp based on the passed ttl interval
- * Defaults to
+ * Set a custom expires header on a response object to a timestamp based on the
+ * passed ttl interval. Defaults to one hour.
  */
 function setExpiresHeader (response: Response, ttlSeconds: number = ONE_HOUR_IN_SECONDS): void {
   const expirationTime = new Date(Date.now() + ttlSeconds * 1000)
@@ -398,8 +380,7 @@ function setExpiresHeader (response: Response, ttlSeconds: number = ONE_HOUR_IN_
 }
 
 /**
- * Checks whether a cached response object has expired by looking at the expires header
- * Note that this ignores the Cache-Control header since the expires header is set by us
+ * Checks whether our custom expires header shows that this response has expired
  */
 function hasExpired (response: Response): boolean {
   const expiresHeader = response.headers.get('sw-cache-expires')
@@ -424,15 +405,10 @@ async function fetchAndUpdateCache (args: FetchHandlerArg): Promise<Response> {
   const response = await fetchHandler(args)
   log.trace('got response from fetchHandler')
 
-  // log all of the headers:
-  response.headers.forEach((value, key) => {
-    log.trace('response headers: %s: %s', key, value)
-  })
-
   log('response status: %s', response.status)
 
   try {
-    await storeResponseInCache(response, true, args)
+    await storeResponseInCache(response, args)
     log.trace('updated cache for %s', args.cacheKey)
   } catch (err) {
     log.error('failed updating response in cache for %s - %e', args.cacheKey, err)
@@ -453,12 +429,6 @@ async function getResponseFromCacheOrFetch (args: FetchHandlerArg): Promise<Resp
 
   if (validCacheHit) {
     log('cached response HIT for %s (expires: %s) %o', args.cacheKey, cachedResponse.headers.get('sw-cache-expires'), cachedResponse)
-
-    if (isMutable) {
-      // if the response is mutable, update the cache in the background
-      args.event.waitUntil(fetchAndUpdateCache(args))
-    }
-
     return cachedResponse
   }
 
@@ -490,35 +460,40 @@ function shouldCacheResponse (response: Response, args: FetchHandlerArg): boolea
   return true
 }
 
-async function storeResponseInCache (response: Response, isMutable: boolean, args: FetchHandlerArg): Promise<void> {
+async function storeResponseInCache (response: Response, args: FetchHandlerArg): Promise<void> {
   const log = getSwLogger('store-response-in-cache')
 
   if (!shouldCacheResponse(response, args)) {
     return
   }
 
-  log.trace('updating cache for %s in the background', args.cacheKey)
+  if (args.isMutable) {
+    log.trace('setting expires header on response key %s before storing in cache', args.cacheKey)
+    // 👇 Set expires header to an hour from now for mutable (ipns://) resources
+    // Note that this technically breaks HTTP semantics, whereby the
+    // cache-control max-age takes precedence Setting this header is only used
+    // by the service worker using a mechanism similar to stale-while-revalidate
+    setExpiresHeader(response, ONE_HOUR_IN_SECONDS)
+  }
 
-  const cache = await caches.open(isMutable ? CURRENT_CACHES.mutable : CURRENT_CACHES.immutable)
+  log.trace('updating cache for %s in the background', args.cacheKey)
+  const cache = await caches.open(args.isMutable ? CURRENT_CACHES.mutable : CURRENT_CACHES.immutable)
 
   // Clone the response since streams can only be consumed once.
   const respToCache = response.clone()
 
-  if (isMutable) {
-    log.trace('setting expires header on response key %s before storing in cache', args.cacheKey)
-    // 👇 Set expires header to an hour from now for mutable (ipns://) resources
-    // Note that this technically breaks HTTP semantics, whereby the cache-control max-age takes precendence
-    // Setting this header is only used by the service worker using a mechanism similar to stale-while-revalidate
-    setExpiresHeader(respToCache, ONE_HOUR_IN_SECONDS)
-  }
-
   log('storing response for key %s in cache', args.cacheKey)
-  // do not await this.. large responses will delay [TTFB](https://web.dev/articles/ttfb) and [TTI](https://web.dev/articles/tti)
+  // do not await this.. large responses will delay [TTFB](https://web.dev/articles/ttfb)
+  // and [TTI](https://web.dev/articles/tti)
 
   try {
-    void cache.put(args.cacheKey, respToCache).catch((err) => {
-      log.error('error storing response in cache - %e', err)
-    })
+    // make sure the event lives until async work has completed but do not delay
+    // the response
+    args.event.waitUntil(
+      cache.put(args.cacheKey, respToCache).catch((err) => {
+        log.error('error storing response in cache - %e', err)
+      })
+    )
   } catch (err) {
     log.error('error storing response in cache - %e', err)
   }

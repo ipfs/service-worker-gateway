@@ -12,10 +12,10 @@
  * 1. The page being loaded using some /ip[fn]s/<path> url, but subdomain isolation is supported, so we need to redirect to the isolated origin
  */
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { uiLogger } from '../lib/logger.js'
-import { findOriginIsolationRedirect } from '../lib/path-or-subdomain.js'
-import { isUnregisterRequest } from '../lib/unregister-request.js'
-import { registerServiceWorker } from '../service-worker-utils.js'
+import { uiLogger } from '../../lib/logger.js'
+import { findOriginIsolationRedirect } from '../../lib/path-or-subdomain.js'
+import { registerServiceWorker } from '../../lib/register-service-worker.js'
+import { isUnregisterRequest } from '../../lib/unregister-request.js'
 import { ConfigContext } from './config-context.jsx'
 import type { PropsWithChildren } from 'react'
 

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { InputDescription } from './input-description.js'
-import { InputLabel } from './input-label.js'
+import { InputDescription } from './input-description.jsx'
+import { InputLabel } from './input-label.jsx'
 import type { ReactElement } from 'react'
 
 export interface InputProps extends Omit<React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement>, 'onChange'> {

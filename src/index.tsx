@@ -3,7 +3,7 @@ import { Config } from './lib/config-db.js'
 import { QUERY_PARAMS } from './lib/constants.js'
 import { createSearch, isRequestForContentAddressedData } from './lib/first-hit-helpers.js'
 import { uiLogger } from './lib/logger.js'
-import { registerServiceWorker } from './service-worker-utils.js'
+import { registerServiceWorker } from './lib/register-service-worker.js'
 
 /**
  * Asynchronously loads and shows the UI - this is to make the number of bytes
@@ -41,7 +41,7 @@ async function renderUi (): Promise<void> {
  * An indirect load means we need to install the service worker and then
  * redirect.
  *
- * In both cases we need to write the config into IndexedDB if present.
+ * In both cases we need to write the config into IndexedDB if not present.
  *
  * If loaded directly or indirectly:
  *
@@ -136,6 +136,7 @@ async function main (): Promise<void> {
 
   let redirectTo = url.searchParams.get(QUERY_PARAMS.REDIRECT)
 
+  // perform redirect, if requested
   if (redirectTo != null) {
     const includeConfig = url.searchParams.get(QUERY_PARAMS.GET_CONFIG)
 
@@ -158,7 +159,7 @@ async function main (): Promise<void> {
     return
   }
 
-  // no redirect requested, no content requested, show UI
+  // no content requested, show UI
   if (!isRequestForContentAddressedData(url)) {
     await renderUi()
     return

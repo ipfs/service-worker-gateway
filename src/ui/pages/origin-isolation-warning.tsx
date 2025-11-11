@@ -1,10 +1,10 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react'
+import { QUERY_PARAMS } from '../../lib/constants.js'
+import { removeRootHashIfPresent } from '../../lib/remove-root-hash.js'
+import { toGatewayRoot } from '../../lib/to-gateway-root.js'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
 import { ConfigContext } from '../context/config-context.jsx'
-import { QUERY_PARAMS } from '../lib/constants.js'
 import './default-page-styles.css'
-import { removeRootHashIfPresent } from '../lib/remove-root-hash.js'
-import { toGatewayRoot } from '../lib/to-gateway-root.js'
 import type { ReactNode } from 'react'
 
 declare global {

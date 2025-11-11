@@ -1,9 +1,9 @@
 import { CID } from 'multiformats/cid'
 import React from 'react'
-import { nativeProtocolRegex, pathRegex, subdomainRegex } from '../lib/regex.js'
-import { getGatewayRoot } from '../lib/to-gateway-root.js'
+import { nativeProtocolRegex, pathRegex, subdomainRegex } from '../../lib/regex.js'
+import { getGatewayRoot } from '../../lib/to-gateway-root.js'
 import { Link } from './link.jsx'
-import type { IpfsUriParts } from '../lib/regex.js'
+import type { IpfsUriParts } from '../../lib/regex.js'
 import type { ReactElement } from 'react'
 
 function FormatHelp (): ReactElement {

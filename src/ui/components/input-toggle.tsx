@@ -3,8 +3,8 @@
  */
 import React, { useEffect, useMemo, useState } from 'react'
 import './input-toggle.css'
-import { InputDescription } from './input-description.js'
-import { InputLabel } from './input-label.js'
+import { InputDescription } from './input-description.jsx'
+import { InputLabel } from './input-label.jsx'
 import type { ReactElement } from 'react'
 
 interface LocalStorageToggleProps {

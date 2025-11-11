@@ -1,6 +1,6 @@
 import React, { createContext, useState } from 'react'
-import { Config } from '../lib/config-db.js'
-import type { ConfigDb, ConfigDbWithoutPrivateFields } from '../lib/config-db.js'
+import { Config } from '../../lib/config-db.js'
+import type { ConfigDb, ConfigDbWithoutPrivateFields } from '../../lib/config-db.js'
 import type { PropsWithChildren } from 'react'
 
 export interface ConfigContextType {
