@@ -63,7 +63,7 @@ function DebugInfo ({ url, error, logs }: { url: string, error: ErrorObject, log
 
   let logDisplay = <></>
 
-  if (logs != null) {
+  if (logs?.length > 0) {
     logDisplay = (
       <>
         <h4>Logs</h4>

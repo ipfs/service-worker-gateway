@@ -165,6 +165,31 @@ async function main (): Promise<void> {
     return
   }
 
+  const href = url.toString()
+
+  // if we accidentally install an invalid service worker we will get stuck in
+  // an endless loop of redirects, so count the number of times we have
+  // redirected to this page and halt the redirects if we do it too many times
+  const storageKey = `ipfs-sw-${href}-redirects`
+  const redirects = Number(localStorage.getItem(storageKey) ?? 0)
+
+  if (redirects > 5) {
+    globalThis.serverError = {
+      url: href,
+      title: '502 Too many redirects',
+      error: {
+        name: 'TooManyRedirects',
+        message: 'The current page redirected too many times'
+      },
+      logs: []
+    }
+
+    await renderUi()
+    return
+  }
+
+  localStorage.setItem(storageKey, `${redirects + 1}`)
+
   // service worker is now installed so redirect to path or subdomain for data
   // so it can intercept the request
   window.location.href = url.toString()
