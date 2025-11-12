@@ -1,3 +1,4 @@
+import { APP_NAME, APP_VERSION, GIT_REVISION } from '../../version.js'
 import { htmlPage } from './page.js'
 
 /**
@@ -13,7 +14,8 @@ export function originIsolationWarningPageResponse (location: string): Response 
     status: 307,
     statusText: 'Temporary Redirect',
     headers: {
-      'Content-Type': 'text/html'
+      'Content-Type': 'text/html',
+      Server: `${APP_NAME}/${APP_VERSION}#${GIT_REVISION}`
     }
   })
 }

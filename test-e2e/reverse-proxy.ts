@@ -5,7 +5,7 @@ import type { Server, ServerResponse, IncomingMessage, RequestOptions, OutgoingH
 
 const setCommonHeaders = (res: ServerResponse): void => {
   res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range, User-Agent, X-Requested-With')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range, User-Agent, X-Requested-With, Server')
   res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS')
 }
 

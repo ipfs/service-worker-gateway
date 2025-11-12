@@ -27,6 +27,7 @@ declare global {
     title: string
     error: ErrorObject
     logs: string[]
+    description?: string | string[]
   }
 }
 
@@ -36,6 +37,7 @@ export interface ServerErrorPageProps {
   title?: string
   error?: ErrorObject
   logs?: string[]
+  description?: string | string[]
 }
 
 function DebugInfo ({ url, error, logs }: { url: string, error: ErrorObject, logs: string[] }): ReactElement {
@@ -82,11 +84,12 @@ function DebugInfo ({ url, error, logs }: { url: string, error: ErrorObject, log
   )
 }
 
-export function ServerErrorPage ({ url, error, title, logs }: ServerErrorPageProps): ReactElement {
+export function ServerErrorPage ({ url, error, title, logs, description }: ServerErrorPageProps): ReactElement {
   url = url ?? globalThis.serverError?.url
   error = error ?? globalThis.serverError?.error
   title = title ?? globalThis.serverError?.title
   logs = logs ?? globalThis.serverError?.logs
+  description = description ?? globalThis.serverError?.description
 
   if (url == null || error == null || logs == null || title == null) {
     globalThis.location.href = toGatewayRoot('/')
@@ -110,12 +113,34 @@ export function ServerErrorPage ({ url, error, title, logs }: ServerErrorPagePro
     window.history.back()
   }
 
+  const messageDisplay: ReactElement[] = []
+
+  if (description != null) {
+    if (typeof description === 'string') {
+      description = [description]
+    }
+
+    if (Array.isArray(description)) {
+      description.forEach((line, index) => {
+        messageDisplay.push(
+          <p className='f5 ma0 pt3 fw4 db' key={`line-${index}`}>{line}</p>
+        )
+      })
+    }
+  }
+
+  if (messageDisplay.length === 0) {
+    messageDisplay.push(
+      <p className='f5 ma0 pt3 fw4 db lh-copy' key='line-0'>An error occurred in the service worker gateway.</p>
+    )
+  }
+
   return (
     <>
       <ContentBox title={`${title}`}>
         <>
-          <p className='f5 ma0 pt3 teal fw4 db'>An error occurred in the service worker gateway.</p>
-          <p className='f5 ma0 pt3 teal fw4 db'>Please <Link href='https://github.com/ipfs/service-worker-gateway/issues'>open an issue</Link> with the URL you tried to access and any debugging information displayed below.</p>
+          {messageDisplay}
+          <p className='f5 ma0 pt3 fw4 db lh-copy'>Please <Link href='https://github.com/ipfs/service-worker-gateway/issues'>open an issue</Link> with the URL you tried to access and any debugging information displayed below.</p>
           <p>
             <Button className='bg-teal' onClick={retry}>Retry</Button>
             <Button className='bg-navy-muted' onClick={goBack}>Go back</Button>

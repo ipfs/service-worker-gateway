@@ -5,7 +5,7 @@ import type { Handler } from './index.js'
 export const configReloadHandler: Handler = {
   name: 'config-reload-handler',
 
-  canHandle (url, event) {
+  canHandle (url) {
     return url.searchParams.has(QUERY_PARAMS.RELOAD_CONFIG)
   },
 

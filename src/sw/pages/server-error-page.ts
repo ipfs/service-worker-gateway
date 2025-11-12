@@ -1,3 +1,4 @@
+import { APP_NAME, APP_VERSION, GIT_REVISION } from '../../version.js'
 import { htmlPage } from './page.js'
 
 function isAggregateError (obj?: any): obj is AggregateError {
@@ -21,9 +22,9 @@ function toErrorObject (error: any): any {
  */
 export function serverErrorPageResponse (url: URL, error: Error, logs: string[]): Response {
   const headers = new Headers()
-  headers.set('Content-Type', 'text/html')
-  headers.set('ipfs-sw', 'true')
+  headers.set('content-type', 'text/html')
   headers.set('x-debug-request-uri', url.toString())
+  headers.set('server', `${APP_NAME}/${APP_VERSION}#${GIT_REVISION}`)
 
   const props = {
     url: url.toString(),

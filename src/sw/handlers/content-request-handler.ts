@@ -7,6 +7,7 @@ import { getSubdomainParts } from '../../lib/get-subdomain-parts.js'
 import { getSwLogger } from '../../lib/logger.js'
 import { isPathGatewayRequest, isSubdomainGatewayRequest, toSubdomainRequest } from '../../lib/path-or-subdomain.js'
 import { isBitswapProvider, isTrustlessGatewayProvider } from '../../lib/providers.js'
+import { APP_NAME, APP_VERSION, GIT_REVISION } from '../../version.js'
 import { getConfig } from '../lib/config.js'
 import { getInstallTime } from '../lib/install-time.js'
 import { getVerifiedFetch } from '../lib/verified-fetch.js'
@@ -25,7 +26,7 @@ interface FetchHandlerArg {
   url: URL
   urlParts: UrlParts
   cacheKey: string
-  isMutable?: true
+  isMutable: boolean
 }
 
 const ONE_HOUR_IN_SECONDS = 3600
@@ -37,10 +38,8 @@ function getCacheKey (event: FetchEvent): string {
 async function getResponseFromCacheOrFetch (args: FetchHandlerArg): Promise<Response> {
   const log = getSwLogger('get-response-from-cache-or-fetch')
 
-  const isMutable = args.urlParts.protocol === 'ipns'
-
   log.trace('cache key: %s', args.cacheKey)
-  const cache = await caches.open(isMutable ? CURRENT_CACHES.mutable : CURRENT_CACHES.immutable)
+  const cache = await caches.open(args.isMutable ? CURRENT_CACHES.mutable : CURRENT_CACHES.immutable)
   const cachedResponse = await cache.match(args.cacheKey)
   const validCacheHit = cachedResponse != null && !hasExpired(cachedResponse)
 
@@ -141,9 +140,10 @@ async function storeResponseInCache (response: Response, args: FetchHandlerArg):
     // make sure the event lives until async work has completed but do not delay
     // the response
     args.event.waitUntil(
-      cache.put(args.cacheKey, respToCache).catch((err) => {
-        log.error('error storing response in cache - %e', err)
-      })
+      cache.put(args.cacheKey, respToCache)
+        .catch((err) => {
+          log.error('error storing response in cache - %e', err)
+        })
     )
   } catch (err) {
     log.error('error storing response in cache - %e', err)
@@ -238,7 +238,7 @@ async function fetchHandler ({ url, event, logs, subdomainGatewayRequest, pathGa
 
   try {
     const response = await verifiedFetch(resource, init)
-    response.headers.set('ipfs-sw', 'true')
+    response.headers.set('server', `${APP_NAME}/${APP_VERSION}#${GIT_REVISION}`)
 
     log('GET %s %d', resource, response.status, response.statusText)
 
@@ -308,11 +308,11 @@ function setExpiresHeader (response: Response, ttlSeconds: number = ONE_HOUR_IN_
 export const contentRequestHandler: Handler = {
   name: 'content-request-handler',
 
-  canHandle (url, event) {
+  canHandle (url) {
     return isSubdomainGatewayRequest(url) || isPathGatewayRequest(url)
   },
 
-  async handle (url: URL, event: FetchEvent, logs) {
+  async handle (url, event, logs) {
     // request was for subdomain or path gateway
     const log = getSwLogger('fetch-handler')
 
@@ -373,7 +373,8 @@ export const contentRequestHandler: Handler = {
       subdomainGatewayRequest,
       pathGatewayRequest,
       logs,
-      cacheKey: getCacheKey(event)
+      cacheKey: getCacheKey(event),
+      isMutable: urlParts.protocol === 'ipns'
     })
 
     return response

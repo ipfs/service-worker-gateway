@@ -1,7 +1,7 @@
 import { noise } from '@chainsafe/libp2p-noise'
 import { yamux } from '@chainsafe/libp2p-yamux'
 import { trustlessGateway, bitswap } from '@helia/block-brokers'
-import { createDelegatedRoutingV1HttpApiClient } from '@helia/delegated-routing-v1-http-api-client'
+import { delegatedRoutingV1HttpApiClient } from '@helia/delegated-routing-v1-http-api-client'
 import { createHeliaHTTP } from '@helia/http'
 import { httpGatewayRouting, delegatedHTTPRouting, libp2pRouting } from '@helia/routers'
 import { createVerifiedFetch } from '@helia/verified-fetch'
@@ -55,7 +55,7 @@ async function libp2pDefaults (config: Libp2pDefaultsOptions): Promise<Libp2pOpt
   }
 
   interface Libp2pOptionsWithDelegatedRouting extends Libp2pOptions {
-    services: Libp2pOptions['services'] & Record<`delegatedRouter${number}`, () => DelegatedRoutingV1HttpApiClient>
+    services: Libp2pOptions['services'] & Record<`delegatedRouter${number}`, (components: any) => DelegatedRoutingV1HttpApiClient>
   }
   const libp2pOptions: Libp2pOptionsWithDelegatedRouting = {
     privateKey,
@@ -77,7 +77,8 @@ async function libp2pDefaults (config: Libp2pDefaultsOptions): Promise<Libp2pOpt
 
   // Add delegated routing services for each passed delegated router endpoint
   config.routers.forEach((router, i) => {
-    libp2pOptions.services[`delegatedRouter${i}`] = () => createDelegatedRoutingV1HttpApiClient(router, {
+    libp2pOptions.services[`delegatedRouter${i}`] = delegatedRoutingV1HttpApiClient({
+      url: router,
       filterProtocols: ['unknown', 'transport-bitswap', 'transport-ipfs-gateway-http'],
       filterAddrs
     })
@@ -96,7 +97,7 @@ export async function updateVerifiedFetch (): Promise<void> {
   log('got config for sw location %s %o', self.location.origin, config)
 
   // Start by adding the config routers as delegated routers
-  const routers: Array<Partial<Routing>> = []
+  const routers: Array<Partial<Routing> | ((components: any) => Partial<Routing>)> = []
 
   if (config.enableRecursiveGateways) {
     // Only add the gateways if the recursive gateways toggle is enabled
@@ -138,7 +139,8 @@ export async function updateVerifiedFetch (): Promise<void> {
     })
   } else {
     config.routers.forEach((router) => {
-      routers.push(delegatedHTTPRouting(router, {
+      routers.push(delegatedHTTPRouting({
+        url: router,
         // NOTE: in practice 'transport-ipfs-gateway-http' exists only in IPNI
         // results, we won't have any DHT results like this unless..
         // TODO: someguy starts doing active probing (https://github.com/ipfs/someguy/issues/53)

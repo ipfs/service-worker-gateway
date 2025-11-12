@@ -1,44 +1,60 @@
-// see https://github.com/ipfs/service-worker-gateway/issues/502
+import { CURRENT_CACHES } from '../src/constants.js'
 import { HASH_FRAGMENTS } from '../src/lib/constants.js'
 import { testSubdomainRouting as test, expect } from './fixtures/config-test-fixtures.js'
+import { hasCacheEntry } from './fixtures/has-cache-entry.js'
+import { loadWithServiceWorker } from './fixtures/load-with-service-worker.js'
 import { setConfig } from './fixtures/set-sw-config.js'
 import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
 
 test.describe('smoke test', () => {
-  test('loads a dag-json jpeg', async ({ page, protocol, swResponses, rootDomain }) => {
-    await page.goto(`${protocol}//${rootDomain}/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi`)
+  test('loads a dag-json jpeg', async ({ page, protocol, rootDomain }) => {
+    const cid = 'bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi'
 
-    await page.waitForURL(`http://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi.ipfs.${rootDomain}`)
-    await page.waitForLoadState('networkidle')
+    await loadWithServiceWorker(page, `${protocol}//${rootDomain}/`)
 
-    const response = swResponses[swResponses.length - 1]
+    // should not be cached
+    expect(await hasCacheEntry(page, CURRENT_CACHES.mutable, cid)).toBeFalsy()
+    expect(await hasCacheEntry(page, CURRENT_CACHES.immutable, cid)).toBeFalsy()
 
+    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}`, {
+      redirect: `${protocol}//${cid}.ipfs.${rootDomain}/`
+    })
     expect(response?.status()).toBe(200)
     expect(response?.headers()['content-type']).toBe('image/jpeg')
+    expect(response?.headers()['cache-control']).toBe('public, max-age=29030400, immutable')
+
+    // should be in the immutable cache
+    expect(await hasCacheEntry(page, CURRENT_CACHES.mutable, cid)).toBeFalsy()
+    expect(await hasCacheEntry(page, CURRENT_CACHES.immutable, cid)).toBeTruthy()
   })
 
-  test('request to /ipfs/dir-cid redirects to /ipfs/dir-cid/', async ({ page, protocol, swResponses, rootDomain }) => {
-    await page.goto(`${protocol}//${rootDomain}/ipfs/bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui/root2/root3/root4`)
-    await page.waitForURL(`${protocol}//bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui.ipfs.${rootDomain}/root2/root3/root4/`)
-    await page.waitForLoadState('networkidle')
-    const response = swResponses[swResponses.length - 1]
-    expect(response?.status()).toBe(200)
-    expect(response?.headers()['content-type']).toBe('text/html; charset=utf-8')
-    expect(await response?.text()).toContain('hello')
+  test('request to /ipfs/dir-cid redirects to /ipfs/dir-cid/', async ({ page, protocol, rootDomain }) => {
+    const cid = 'bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui'
+    const path = 'root2/root3/root4'
+    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}/${path}`, {
+      redirect: `${protocol}//${cid}.ipfs.${rootDomain}/${path}/`
+    })
+
+    // should have added trailing slash for directory
+    expect(response.url()).toBe(`${protocol}//${cid}.ipfs.${rootDomain}/${path}/`)
+    expect(response.status()).toBe(200)
+    expect(response.headers()['content-type']).toBe('text/html; charset=utf-8')
+    expect(await response.text()).toContain('hello')
   })
 
   /**
    * TODO: address issues mentioned in https://github.com/ipfs/helia-verified-fetch/issues/208
    */
-  test('request to /ipfs/dir-cid without index.html returns dir listing', async ({ page, protocol, swResponses, rootDomain }) => {
-    await page.goto(`${protocol}//${rootDomain}/ipfs/bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui/root2/root3`)
-    await page.waitForURL(`${protocol}//bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui.ipfs.${rootDomain}/root2/root3/`)
-    await page.waitForLoadState('networkidle')
-    const response = swResponses[swResponses.length - 1]
-    expect(response?.status()).toBe(200)
-    expect(response?.headers()['content-type']).toBe('text/html')
-    // there should be a dir listing that has the CID of the root3 node, and the name of the root4 node with a short name
+  test('request to /ipfs/dir-cid without index.html returns dir listing', async ({ page, protocol, rootDomain }) => {
+    const cid = 'bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui'
+    const path = 'root2/root3'
+    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}/${path}`, {
+      redirect: `${protocol}//${cid}.ipfs.${rootDomain}/${path}/`
+    })
+    expect(response.status()).toBe(200)
+    expect(response.headers()['content-type']).toBe('text/html')
 
+    // there should be a dir listing that has the CID of the root3 node, and the name of the root4 node with a short name
     const header = await page.waitForSelector('main header')
     expect(await header?.innerText()).toContain('Index of root3')
     const headerCid = await header.$('.ipfs-hash')
@@ -56,17 +72,22 @@ test.describe('smoke test', () => {
     expect(await shortHashLink?.getAttribute('href')).toContain(`http://${rootDomain}/ipfs/bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q?filename=root4`)
   })
 
-  /**
-   * @see https://github.com/ipfs/service-worker-gateway/issues/662
-   * TODO: re-enable when github CI is fixed..
-   */
   test('request to /ipns/<libp2p-key> returns expected content', async ({ page, protocol, rootDomain }) => {
-    await page.goto(`${protocol}//${rootDomain}/ipns/k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam`)
-    // then validate that the service worker gateway returns the same content
-    await page.waitForURL(`http://k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam.ipns.${rootDomain}`)
-    await page.waitForLoadState('networkidle')
+    const key = 'k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam'
 
-    await page.waitForFunction(async () => document.body.textContent?.includes('hello'), { timeout: 10000 })
+    // should not be cached
+    expect(await hasCacheEntry(page, CURRENT_CACHES.mutable, key)).toBeFalsy()
+    expect(await hasCacheEntry(page, CURRENT_CACHES.immutable, key)).toBeFalsy()
+
+    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipns/${key}`, {
+      redirect: `${protocol}//${key}.ipns.${rootDomain}/`
+    })
+    expect(response.status()).toBe(200)
+    expect(await response.text()).toContain('hello')
+
+    // should be in the mutable cache only
+    expect(await hasCacheEntry(page, CURRENT_CACHES.mutable, key)).toBeTruthy()
+    expect(await hasCacheEntry(page, CURRENT_CACHES.immutable, key)).toBeFalsy()
   })
 
   test('configurable timeout value is respected', async ({ page, protocol, rootDomain, swResponses }) => {
@@ -106,7 +127,7 @@ test.describe('smoke test', () => {
     expect(noRegistration).toBe(true)
   })
 
-  test('service worker un-registers automatically when ttl expires', async ({ page, baseURL, protocol, rootDomain, swResponses }) => {
+  test('service worker un-registers automatically when ttl expires', async ({ page, baseURL, protocol, rootDomain }) => {
     await page.goto(baseURL, {
       waitUntil: 'networkidle'
     })
@@ -117,12 +138,11 @@ test.describe('smoke test', () => {
       serviceWorkerRegistrationTTL: 1400
     })
 
-    await page.goto(`${protocol}//bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui.ipfs.${rootDomain}/root2/root3/root4/`, {
-      waitUntil: 'networkidle'
+    const cid = 'bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui'
+    const path = 'root2/root3/root4'
+    const response = await loadWithServiceWorker(page, `${protocol}//${cid}.ipfs.${rootDomain}/${path}/`, {
+      redirect: `${protocol}//${cid}.ipfs.${rootDomain}/${path}/`
     })
-    await waitForServiceWorker(page)
-    expect(swResponses.length).toBe(1)
-    const response = swResponses[swResponses.length - 1]
     expect(response?.status()).toBe(200)
     expect(response?.headers()['content-type']).toBe('text/html; charset=utf-8')
     expect(await response?.text()).toContain('hello')
@@ -133,7 +153,6 @@ test.describe('smoke test', () => {
     const response2 = await page.reload({
       waitUntil: 'networkidle'
     })
-    expect(swResponses.length).toBe(2)
     expect(response2?.status()).toBe(200)
     expect(response2?.headers()['content-type']).toBe('text/html; charset=utf-8')
     expect(await response2?.text()).toContain('hello')

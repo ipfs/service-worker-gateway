@@ -113,7 +113,7 @@ export async function createKuboNode (IPFS_NS_MAP?: string): Promise<KuboNode> {
         Gateway: {
           NoFetch: true,
           DeserializedResponses: true,
-          ExposeRoutingAPI: false,
+          ExposeRoutingAPI: true,
           HTTPHeaders: {
             'Access-Control-Allow-Origin': ['*'],
             'Access-Control-Allow-Methods': ['GET', 'POST', 'PUT', 'OPTIONS']

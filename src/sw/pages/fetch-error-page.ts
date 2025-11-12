@@ -1,4 +1,4 @@
-import { APP_VERSION, GIT_REVISION } from '../../version.js'
+import { APP_NAME, APP_VERSION, GIT_REVISION } from '../../version.js'
 import { htmlPage } from './page.js'
 import type { ConfigDb } from '../../lib/config-db.js'
 import type { Providers as ErrorPageProviders } from '../../ui/pages/fetch-error.jsx'
@@ -112,8 +112,8 @@ export function fetchErrorPageResponse (resource: string, request: RequestInit, 
 
   const responseDetails = getResponseDetails(fetchResponse, responseBody)
   const mergedHeaders = new Headers(fetchResponse.headers)
-  mergedHeaders.set('Content-Type', 'text/html')
-  mergedHeaders.set('ipfs-sw', 'true')
+  mergedHeaders.set('content-type', 'text/html')
+  mergedHeaders.set('server', `${APP_NAME}/${APP_VERSION}#${GIT_REVISION}`)
 
   const props = {
     request: getRequestDetails(resource, request),

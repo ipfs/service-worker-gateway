@@ -1,3 +1,4 @@
+import { peerIdFromString } from '@libp2p/peer-id'
 import { base32 } from 'multiformats/bases/base32'
 import { base36 } from 'multiformats/bases/base36'
 import { CID } from 'multiformats/cid'
@@ -41,9 +42,7 @@ export const findOriginIsolationRedirect = (location: Pick<Location, 'protocol' 
     }
   }
 
-  // TODO: if not a subdomain or path gateway request, should throw here?
-
-  log?.trace('no need to check for subdomain support - is path gateway request %s, is subdomain gateway request %s', isPathGatewayRequest(location), isSubdomainGatewayRequest(location))
+  // not path/subdomain request - we are showing UI
   return null
 }
 
@@ -70,15 +69,25 @@ export const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' 
   try {
     switch (ns) {
       case 'ipfs':
-        // Base32 is case-insensitive and allows CID with popular hashes like sha2-256 to fit in a single DNS label
+        // Base32 is case-insensitive and allows CID with popular hashes like
+        // sha2-256 to fit in a single DNS label
         id = CID.parse(id).toV1().toString(base32)
         break
       case 'ipns':
+        if (id.startsWith('Q') || id.startsWith('1')) {
+          // possibly a PeerId - non-standard but try converting to a CID
+          try {
+            const peerId = peerIdFromString(id)
+            id = peerId.toCID().toString()
+          } catch {}
+        }
+
         // IPNS Names are represented as Base36 CIDv1 with libp2p-key codec
         // https://specs.ipfs.tech/ipns/ipns-record/#ipns-name
         // eslint-disable-next-line no-case-declarations
         const ipnsName = CID.parse(id).toV1()
-        // /ipns/ namespace uses Base36 instead of 32 because ED25519 keys need to fit in DNS label of max length 63
+        // /ipns/ namespace uses Base36 instead of 32 because ED25519 keys need
+        // to fit in DNS label of max length 63
         id = ipnsName.toString(base36)
         break
       default:
