@@ -1,11 +1,14 @@
 import { peerIdFromString } from '@libp2p/peer-id'
+import { base16, base16upper } from 'multiformats/bases/base16'
 import { base32 } from 'multiformats/bases/base32'
 import { base36 } from 'multiformats/bases/base36'
+import { base58btc } from 'multiformats/bases/base58'
 import { CID } from 'multiformats/cid'
 import { dnsLinkLabelEncoder } from './dns-link-labels.js'
 import { getHeliaSwRedirectUrl } from './first-hit-helpers.js'
 import { pathRegex, subdomainRegex } from './regex.js'
 import type { Logger } from '@libp2p/interface'
+import type { MultibaseDecoder } from 'multiformats/cid'
 
 export const isPathOrSubdomainRequest = (location: Pick<Location, 'host' | 'pathname'>): boolean => {
   return isPathGatewayRequest(location) || isSubdomainGatewayRequest(location)
@@ -71,7 +74,7 @@ export const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' 
       case 'ipfs':
         // Base32 is case-insensitive and allows CID with popular hashes like
         // sha2-256 to fit in a single DNS label
-        id = CID.parse(id).toV1().toString(base32)
+        id = CID.parse(id, findMultibaseDecoder(id)).toV1().toString(base32)
         break
       case 'ipns':
         if (id.startsWith('Q') || id.startsWith('1')) {
@@ -85,7 +88,7 @@ export const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' 
         // IPNS Names are represented as Base36 CIDv1 with libp2p-key codec
         // https://specs.ipfs.tech/ipns/ipns-record/#ipns-name
         // eslint-disable-next-line no-case-declarations
-        const ipnsName = CID.parse(id).toV1()
+        const ipnsName = CID.parse(id, findMultibaseDecoder(id)).toV1()
         // /ipns/ namespace uses Base36 instead of 32 because ED25519 keys need
         // to fit in DNS label of max length 63
         id = ipnsName.toString(base36)
@@ -114,4 +117,21 @@ export const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' 
   })
 
   return getHeliaSwRedirectUrl(modifiedOriginalUrl, newLocation).href
+}
+
+function findMultibaseDecoder (str: string): MultibaseDecoder<string> | undefined {
+  const prefix = str.substring(0, 1)
+
+  switch (prefix) {
+    case 'b':
+      return base32
+    case 'f':
+      return base16
+    case 'F':
+      return base16upper
+    case 'z':
+      return base58btc
+    default:
+      // do nothing
+  }
 }
