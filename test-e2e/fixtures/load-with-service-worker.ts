@@ -46,7 +46,7 @@ export async function loadWithServiceWorker (page: Page, resource: string, optio
       }
 
       // ignore redirects by status
-      if (response.status() > 299 || response.status() < 200) {
+      if (response.status() > 299 && response.status() < 399) {
         return false
       }
 

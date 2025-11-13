@@ -177,7 +177,6 @@ test.describe('smoke test', () => {
     const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${asBase16}`, {
       redirect: `${protocol}//${cid}.ipfs.${rootDomain}/`
     })
-
     expect(response.status()).toBe(200)
     expect(await response.text()).toContain('hello')
   })
@@ -191,5 +190,13 @@ test.describe('smoke test', () => {
     })
     expect(response.status()).toBe(200)
     expect(await response.text()).toContain('hello')
+  })
+
+  test('errors on invalid CIDs', async ({ page, protocol, rootDomain }) => {
+    const cid = '!bafkqablimvwgy3y'
+
+    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}`)
+    expect(response.status()).toBe(400)
+    expect(await response.text()).toContain('Could not parse CID')
   })
 })

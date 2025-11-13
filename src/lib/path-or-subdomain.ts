@@ -1,3 +1,5 @@
+import { isIP } from '@chainsafe/is-ip'
+import { InvalidParametersError } from '@libp2p/interface'
 import { peerIdFromString } from '@libp2p/peer-id'
 import { base16, base16upper } from 'multiformats/bases/base16'
 import { base32 } from 'multiformats/bases/base32'
@@ -31,25 +33,40 @@ export const isPathGatewayRequest = (location: Pick<Location, 'host' | 'pathname
 export const findOriginIsolationRedirect = (location: Pick<Location, 'protocol' | 'host' | 'pathname' | 'search' | 'hash' | 'href' | 'origin'>, logger: Logger, supportsSubdomains: boolean | null): string | null => {
   const log = logger?.newScope('find-origin-isolation-redirect')
 
-  if (isSubdomainGatewayRequest(location)) {
-    // already on an isolated origin
-    return null
-  }
-
-  if (isPathGatewayRequest(location)) {
-    log?.trace('checking for subdomain support')
-
-    if (supportsSubdomains === true) {
-      log?.trace('subdomain support is enabled')
-      return toSubdomainRequest(location)
+  try {
+    if (isSubdomainGatewayRequest(location)) {
+      // already on an isolated origin
+      return null
     }
+
+    if (isPathGatewayRequest(location)) {
+      log?.trace('checking for subdomain support')
+
+      if (supportsSubdomains === true) {
+        log?.trace('subdomain support is enabled')
+        return toSubdomainRequest(location)
+      }
+    }
+  } catch (err) {
+    log.error('could not parse gateway request from URL - %e', err)
   }
 
   // not path/subdomain request - we are showing UI
   return null
 }
 
+/**
+ * Turns a path gateway url into a subdomain gateway url.
+ *
+ * Throws an `InvalidParametersError` if the user supplied a bad CID or path
+ * or `Error` if subdomains are unsupported because (for example) the gateway
+ * is accessed via an IP address instead of a domain.
+ */
 export const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' | 'pathname' | 'search' | 'hash' | 'href' | 'origin'>): string => {
+  if (isIP(location.host)) {
+    throw new Error('Host was an IP address so subdomains are unsupported')
+  }
+
   const segments = location.pathname
     .split('/')
     .filter(segment => segment !== '')
@@ -60,7 +77,7 @@ export const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' 
   }
 
   if (segments.length < 2) {
-    throw new Error(`Invalid location ${location}`)
+    throw new InvalidParametersError(`Invalid location ${location}`)
   }
 
   const ns = segments[0]
@@ -69,40 +86,38 @@ export const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' 
   // DNS labels are case-insensitive, and the length limit is 63.
   // We ensure base32 if CID, base36 if ipns,
   // or inlined according to https://specs.ipfs.tech/http-gateways/subdomain-gateway/#host-request-header if DNSLink name
-  try {
-    switch (ns) {
-      case 'ipfs':
-        // Base32 is case-insensitive and allows CID with popular hashes like
-        // sha2-256 to fit in a single DNS label
-        id = CID.parse(id, findMultibaseDecoder(id)).toV1().toString(base32)
-        break
-      case 'ipns':
-        if (id.startsWith('Q') || id.startsWith('1')) {
-          // possibly a PeerId - non-standard but try converting to a CID
-          try {
-            const peerId = peerIdFromString(id)
-            id = peerId.toCID().toString()
-          } catch {}
-        }
+  switch (ns) {
+    case 'ipfs':
+      // Base32 is case-insensitive and allows CID with popular hashes like
+      // sha2-256 to fit in a single DNS label
+      id = parseCid(id).toString(base32)
+      break
+    case 'ipns':
+      if (id.startsWith('Q') || id.startsWith('1')) {
+        // possibly a PeerId - non-standard but try converting to a CID
+        try {
+          const peerId = peerIdFromString(id)
+          id = peerId.toCID().toString()
+        } catch {}
+      }
 
+      try {
         // IPNS Names are represented as Base36 CIDv1 with libp2p-key codec
         // https://specs.ipfs.tech/ipns/ipns-record/#ipns-name
-        // eslint-disable-next-line no-case-declarations
-        const ipnsName = CID.parse(id, findMultibaseDecoder(id)).toV1()
+
         // /ipns/ namespace uses Base36 instead of 32 because ED25519 keys need
         // to fit in DNS label of max length 63
-        id = ipnsName.toString(base36)
-        break
-      default:
-        throw new Error('Unknown namespace: ' + ns)
-    }
-  } catch {
-    // not a CID, so we assume a DNSLink name and inline it according to
-    // https://specs.ipfs.tech/http-gateways/subdomain-gateway/#host-request-header
-    if (id?.includes('.') === true) {
-      id = dnsLinkLabelEncoder(id)
-    }
+        id = parseCid(id).toString(base36)
+      } catch {
+        // not a CID, so we assume a DNSLink name and inline it according to
+        // https://specs.ipfs.tech/http-gateways/subdomain-gateway/#host-request-header
+        id = dnsLinkLabelEncoder(id)
+      }
+      break
+    default:
+      throw new InvalidParametersError('Unknown namespace: "' + ns + '"')
   }
+
   const remainingPath = `/${segments.slice(2).join('/')}`
 
   // create new URL with the subdomain but without the path
@@ -111,12 +126,25 @@ export const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' 
   const modifiedOriginalUrl = new URL(location.href)
   modifiedOriginalUrl.pathname = remainingPath
   modifiedOriginalUrl.hash = location.hash
+
   const originalSearchParams = new URLSearchParams(location.search)
   originalSearchParams.forEach((value, key) => {
     modifiedOriginalUrl.searchParams.set(key, value)
   })
 
   return getHeliaSwRedirectUrl(modifiedOriginalUrl, newLocation).href
+}
+
+/**
+ * Parses the string as a CID and converts it to v1. Translates any thrown error
+ * to an `InvalidParametersError` so we can show a 400 screen to the user.
+ */
+function parseCid (str: string): CID<any, any, any, 1> {
+  try {
+    return CID.parse(str, findMultibaseDecoder(str)).toV1()
+  } catch (err: any) {
+    throw new InvalidParametersError(`Could not parse CID from string "${str}" - ${err.message}`)
+  }
 }
 
 function findMultibaseDecoder (str: string): MultibaseDecoder<string> | undefined {
