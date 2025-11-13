@@ -13,11 +13,8 @@ test.describe('video', () => {
   })
 
   const testConfig: Partial<ConfigDbWithoutPrivateFields> = {
-
     gateways: [process.env.KUBO_GATEWAY!],
-
     routers: [process.env.KUBO_GATEWAY!],
-    debug: '*,*:trace',
     enableWss: true,
     enableWebTransport: false,
     enableRecursiveGateways: true,

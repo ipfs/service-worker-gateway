@@ -22,9 +22,10 @@ export async function * captureAllSwResponses (page: Page, signal: AbortSignal):
 
   // Set up the response listener
   const onResponse = (response: Response): void => {
-    if (response.headers()['ipfs-sw'] !== 'true') {
+    if (response.headers()['server']?.includes('@helia/service-worker') !== true) {
       return
     }
+
     if (resolveNext != null) {
       resolveNext(response)
       resolveNext = null

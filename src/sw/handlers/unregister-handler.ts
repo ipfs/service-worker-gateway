@@ -10,7 +10,7 @@ export const unregisterHandler: Handler = {
     return isUnregisterRequest(event.request.url)
   },
 
-  handle (url: URL, event: FetchEvent) {
+  handle (url, event) {
     event.waitUntil(self.registration.unregister())
 
     return new Response('Service worker unregistered', {

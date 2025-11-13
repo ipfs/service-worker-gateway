@@ -1,3 +1,3 @@
-export const APP_NAME = 'app-name'
-export const APP_VERSION = 'app-version'
-export const GIT_REVISION = 'git-revision'
+export const APP_NAME = '@helia/service-worker'
+export const APP_VERSION = '1.0.0'
+export const GIT_REVISION = 'HEAD'

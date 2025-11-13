@@ -6,7 +6,7 @@ import type { Handler } from './index.js'
 export const configUpdateHandler: Handler = {
   name: 'config-update-handler',
 
-  canHandle (url, event) {
+  canHandle (url) {
     return url.searchParams.has(QUERY_PARAMS.CONFIG)
   },
 

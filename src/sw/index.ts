@@ -2,6 +2,7 @@ import { CURRENT_CACHES } from '../constants.js'
 import { logEmitter } from '../lib/collecting-logger.js'
 import { QUERY_PARAMS } from '../lib/constants.js'
 import { getSwLogger } from '../lib/logger.js'
+import { APP_NAME, APP_VERSION, GIT_REVISION } from '../version.js'
 import { handlers } from './handlers/index.js'
 import { getConfig } from './lib/config.js'
 import { getInstallTime, setInstallTime } from './lib/install-time.js'
@@ -104,7 +105,17 @@ self.addEventListener('fetch', (event) => {
           )
         }
 
-        return response
+        // add the server header to the response so we can be sure this response
+        // came from the service worker - sometimes these are read-only so we
+        // cannot just `response.headers.set('server', ...)`
+        const headers = new Headers(response.headers)
+        headers.set('server', `${APP_NAME}/${APP_VERSION}#${GIT_REVISION}`)
+
+        return new Response(response.body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers
+        })
       })
       .catch(err => {
         return serverErrorPageResponse(url, err, logs)

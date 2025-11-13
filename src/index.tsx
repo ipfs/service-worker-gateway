@@ -77,125 +77,178 @@ async function renderUi (): Promise<void> {
  * - - - If not accepted, show origin isolation warning UI
  * 2. Otherwise if the request is for a subdomain gateway
  * - Check `helia-config` param, if present, deserialize and write into IndexedDB
- *
- * -------
- *
- * Maybe we are done?
  */
 async function main (): Promise<void> {
-  if (!('serviceWorker' in navigator)) {
-    // no service worker support, render the UI which will tell the user service
-    // workers are not supported
-    await renderUi()
-    return
-  }
-
-  let url = new URL(window.location.href)
-
-  const config = new Config({
-    logger: uiLogger
-  }, {
-    url
-  })
-  await config.init()
-
-  // check for subdomain support if we have not already so service worker will
-  // know it can redirect path gateway requests to subdomains
-  if ((await config.areSubdomainsSupported() == null)) {
-    await checkSubdomainSupport(url, config)
-  }
-
-  if (url.searchParams.get(QUERY_PARAMS.CONFIG) && document.referrer === '') {
-    // someone has been linked to this page directly with config - if the
-    // timestamp field is present, delete it to cause the config to become
-    // untrusted which will reduce the number of fields allowed to be updated
-    try {
-      const uncompressed = JSON.parse(atob(url.searchParams.get(QUERY_PARAMS.CONFIG) ?? ''))
-      delete uncompressed.t
-      const compressed = btoa(JSON.stringify(uncompressed))
-
-      const search = createSearch(url.searchParams, {
-        filter: (key) => key !== QUERY_PARAMS.CONFIG,
-        params: {
-          [QUERY_PARAMS.CONFIG]: compressed
-        }
-      })
-
-      url = new URL(`${url.protocol}//${url.host}${url.pathname}${search}${url.hash}`)
-    } catch {}
-  }
-
-  const registration = await navigator.serviceWorker.getRegistration()
-  const hasActiveWorker = registration?.active != null
-
-  if (!hasActiveWorker) {
-    // install the service worker on the root path of this domain, either path
-    // or subdomain gateway
-    await registerServiceWorker()
-  }
-
-  let redirectTo = url.searchParams.get(QUERY_PARAMS.REDIRECT)
-
-  // perform redirect, if requested
-  if (redirectTo != null) {
-    const includeConfig = url.searchParams.get(QUERY_PARAMS.GET_CONFIG)
-
-    // append config to the redirect if requested
-    if (includeConfig === 'true') {
-      const redirectUrl = new URL(redirectTo)
-
-      // remove config request param from search
-      const search = createSearch(redirectUrl.searchParams, {
-        params: {
-          [QUERY_PARAMS.CONFIG]: await config.getCompressed()
-        },
-        filter: (key) => key !== QUERY_PARAMS.GET_CONFIG && key !== QUERY_PARAMS.REDIRECT
-      })
-
-      redirectTo = `${redirectUrl.protocol}//${redirectUrl.host}${redirectUrl.pathname}${search}${redirectUrl.hash}`
+  try {
+    if (!('serviceWorker' in navigator)) {
+      // no service worker support, render the UI which will tell the user service
+      // workers are not supported
+      await renderUi()
+      return
     }
 
-    window.location.href = redirectTo
-    return
-  }
+    let url = new URL(window.location.href)
 
-  // no content requested, show UI
-  if (!isRequestForContentAddressedData(url)) {
-    await renderUi()
-    return
-  }
+    const config = new Config({
+      logger: uiLogger
+    }, {
+      url
+    })
+    await config.init()
 
-  const href = url.toString()
+    // check for subdomain support if we have not already so service worker will
+    // know it can redirect path gateway requests to subdomains
+    if ((await config.areSubdomainsSupported() == null)) {
+      await checkSubdomainSupport(url, config)
+    }
 
-  // if we accidentally install an invalid service worker we will get stuck in
-  // an endless loop of redirects, so count the number of times we have
-  // redirected to this page and halt the redirects if we do it too many times
-  const storageKey = `ipfs-sw-${href}-redirects`
-  const redirects = Number(localStorage.getItem(storageKey) ?? 0)
+    if (url.searchParams.get(QUERY_PARAMS.CONFIG) && document.referrer === '') {
+      // someone has been linked to this page directly with config - if the
+      // timestamp field is present, delete it to cause the config to become
+      // untrusted which will reduce the number of fields allowed to be updated
+      try {
+        const uncompressed = JSON.parse(atob(url.searchParams.get(QUERY_PARAMS.CONFIG) ?? ''))
+        delete uncompressed.t
+        const compressed = btoa(JSON.stringify(uncompressed))
 
-  if (redirects > 5) {
+        const search = createSearch(url.searchParams, {
+          filter: (key) => key !== QUERY_PARAMS.CONFIG,
+          params: {
+            [QUERY_PARAMS.CONFIG]: compressed
+          }
+        })
+
+        url = new URL(`${url.protocol}//${url.host}${url.pathname}${search}${url.hash}`)
+      } catch {}
+    }
+
+    const registration = await navigator.serviceWorker.getRegistration()
+    const hasActiveWorker = registration?.active != null
+
+    if (!hasActiveWorker) {
+      // install the service worker on the root path of this domain, either path
+      // or subdomain gateway
+      await registerServiceWorker()
+    }
+
+    let redirectTo = url.searchParams.get(QUERY_PARAMS.REDIRECT)
+
+    // perform redirect, if requested
+    if (redirectTo != null) {
+      const includeConfig = url.searchParams.get(QUERY_PARAMS.GET_CONFIG)
+
+      // append config to the redirect if requested
+      if (includeConfig === 'true') {
+        const redirectUrl = new URL(redirectTo)
+
+        // remove config request param from search
+        const search = createSearch(redirectUrl.searchParams, {
+          params: {
+            [QUERY_PARAMS.CONFIG]: await config.getCompressed()
+          },
+          filter: (key) => key !== QUERY_PARAMS.GET_CONFIG && key !== QUERY_PARAMS.REDIRECT
+        })
+
+        redirectTo = `${redirectUrl.protocol}//${redirectUrl.host}${redirectUrl.pathname}${search}${redirectUrl.hash}`
+      }
+
+      window.location.href = redirectTo
+      return
+    }
+
+    // no content requested, show UI
+    if (!isRequestForContentAddressedData(url)) {
+      await renderUi()
+      return
+    }
+
+    const href = url.toString()
+
+    // make sure we don't redirect endlessly
+    if (tooManyRedirects(`ipfs-sw-${href}-redirects`)) {
+      globalThis.serverError = {
+        url: href,
+        title: '310 Too many redirects',
+        description: [
+          'The initialization page reloaded itself too many times.',
+          'This can mean the service worker failed to install, it was invalid or it cannot run.'
+        ],
+        error: {
+          name: 'TooManyRedirects',
+          message: 'The current page redirected too many times'
+        },
+        logs: []
+      }
+
+      await renderUi()
+      return
+    }
+
+    // service worker is now installed so redirect to path or subdomain for data
+    // so it can intercept the request
+    window.location.href = url.toString()
+  } catch (err: any) {
+    // error during initialization, show an error message
     globalThis.serverError = {
-      url: href,
-      title: '502 Too many redirects',
+      url: document.location.href,
+      title: '500 Server Error',
+      description: 'An error occurred while trying to install the service worker.',
       error: {
-        name: 'TooManyRedirects',
-        message: 'The current page redirected too many times'
+        name: err.name,
+        message: err.message,
+        stack: err.stack,
+        reason: err.reason,
+        code: err.code,
+        cause: err.cause,
+        errors: err.errors
       },
       logs: []
     }
 
     await renderUi()
-    return
   }
-
-  localStorage.setItem(storageKey, `${redirects + 1}`)
-
-  // service worker is now installed so redirect to path or subdomain for data
-  // so it can intercept the request
-  window.location.href = url.toString()
 }
 
 void main().catch((err) => {
   // eslint-disable-next-line no-console
   console.error('helia:sw-gateway:index: error rendering ui', err)
 })
+
+/**
+ * If we accidentally install an invalid service worker we will get stuck in an
+ * endless loop of redirects, so count the number of times we have redirected to
+ * this page and halt the redirects if we do it too many times.
+ */
+function tooManyRedirects (storageKey: string, maxRedirects = 5, period = 5_000): boolean {
+  // we are not redirecting if the user followed a link here
+  if (document.referrer !== document.location.href) {
+    return false
+  }
+
+  const str = localStorage.getItem(storageKey)
+  const redirects: number[] = []
+
+  if (str != null) {
+    try {
+      const stored = JSON.parse(str)
+
+      if (Array.isArray(stored)) {
+        stored.forEach(val => {
+          if (!isNaN(val)) {
+            redirects.push(val)
+          }
+        })
+      }
+    } catch {}
+  }
+
+  // ignore any redirects from before ${period}s
+  const cutOff = Date.now() - period
+  const recent = redirects.filter(val => val > cutOff)
+
+  // store the current redirect
+  recent.push(Date.now())
+  localStorage.setItem(storageKey, JSON.stringify(recent))
+
+  return recent.length > maxRedirects
+}

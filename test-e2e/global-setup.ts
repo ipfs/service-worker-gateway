@@ -1,9 +1,8 @@
 import { enable } from '@libp2p/logger'
 import { serve } from '../serve.js'
-import type { Config } from '@playwright/test'
 
-export default async function globalSetup (config: Config): Promise<void> {
-  enable('kubo-init*,kubo-init*:trace,ipfs-host.local*,ipfs-host.local*:trace,serve*,serve*:trace')
+export default async function globalSetup (): Promise<void> {
+  enable('*,*:trace,-pw:*,-reverse-proxy*,-ipfs-gateway*')
 
   process.env.PLAYWRIGHT = 'true'
 

@@ -121,7 +121,8 @@ export const testPathRouting = test.extend<TestOptions>({
       routers: [process.env.KUBO_GATEWAY],
       dnsJsonResolvers: {
         '.': 'https://delegated-ipfs.dev/dns-query'
-      }
+      },
+      debug: '*,*:trace'
     })
 
     await use(page)
