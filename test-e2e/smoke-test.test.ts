@@ -1,3 +1,6 @@
+import { peerIdFromString } from '@libp2p/peer-id'
+import { base16 } from 'multiformats/bases/base16'
+import { CID } from 'multiformats/cid'
 import { CURRENT_CACHES } from '../src/constants.js'
 import { HASH_FRAGMENTS } from '../src/lib/constants.js'
 import { testSubdomainRouting as test, expect } from './fixtures/config-test-fixtures.js'
@@ -165,5 +168,35 @@ test.describe('smoke test', () => {
     })
 
     expect(noServiceWorkerRegistration).toBe(true)
+  })
+
+  test('normalizes base16 CIDs to base32', async ({ page, protocol, rootDomain }) => {
+    const cid = 'bafkqablimvwgy3y'
+    const asBase16 = CID.parse(cid).toString(base16)
+
+    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${asBase16}`, {
+      redirect: `${protocol}//${cid}.ipfs.${rootDomain}/`
+    })
+    expect(response.status()).toBe(200)
+    expect(await response.text()).toContain('hello')
+  })
+
+  test('normalizes base16 IPNS names to base36', async ({ page, protocol, rootDomain }) => {
+    const key = 'k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam'
+    const asBase16 = peerIdFromString(key).toCID().toString(base16)
+
+    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipns/${asBase16}`, {
+      redirect: `${protocol}//${key}.ipns.${rootDomain}/`
+    })
+    expect(response.status()).toBe(200)
+    expect(await response.text()).toContain('hello')
+  })
+
+  test('errors on invalid CIDs', async ({ page, protocol, rootDomain }) => {
+    const cid = '!bafkqablimvwgy3y'
+
+    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}`)
+    expect(response.status()).toBe(400)
+    expect(await response.text()).toContain('Could not parse CID')
   })
 })

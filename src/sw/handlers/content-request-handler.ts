@@ -13,6 +13,7 @@ import { getInstallTime } from '../lib/install-time.js'
 import { getVerifiedFetch } from '../lib/verified-fetch.js'
 import { fetchErrorPageResponse } from '../pages/fetch-error-page.js'
 import { originIsolationWarningPageResponse } from '../pages/origin-isolation-warning-page.js'
+import { serverErrorPageResponse } from '../pages/server-error-page.js'
 import type { Handler } from './index.js'
 import type { UrlParts } from '../../lib/get-subdomain-parts.js'
 import type { Providers } from '../index.js'
@@ -169,7 +170,15 @@ async function fetchHandler ({ url, event, logs, subdomainGatewayRequest, pathGa
           }
         })
       }
-    } catch {
+    } catch (err: any) {
+      // the user supplied an unparseable/incorrect path or key
+      if (err.name === 'InvalidParametersError') {
+        return serverErrorPageResponse(url, err, logs, {
+          title: '400 Bad Request',
+          status: 400
+        })
+      }
+
       // URL was invalid (may have been an IP address which can't be translated
       // to a subdomain gateway URL)
     }

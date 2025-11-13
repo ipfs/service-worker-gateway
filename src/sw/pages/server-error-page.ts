@@ -17,10 +17,26 @@ function toErrorObject (error: any): any {
   }
 }
 
+export interface ServerErrorPageResponseOptions {
+  /**
+   * HTTP status code
+   *
+   * @default 500
+   */
+  status?: number
+
+  /**
+   * Error title to show on page
+   *
+   * @default '500 Internal Server Error'
+   */
+  title?: string
+}
+
 /**
  * Shows an error page to the user
  */
-export function serverErrorPageResponse (url: URL, error: Error, logs: string[]): Response {
+export function serverErrorPageResponse (url: URL, error: Error, logs: string[], opts?: ServerErrorPageResponseOptions): Response {
   const headers = new Headers()
   headers.set('content-type', 'text/html')
   headers.set('x-debug-request-uri', url.toString())
@@ -29,14 +45,14 @@ export function serverErrorPageResponse (url: URL, error: Error, logs: string[])
   const props = {
     url: url.toString(),
     error: toErrorObject(error),
-    title: '500 Internal Server Error',
+    title: opts?.title ?? '500 Internal Server Error',
     logs
   }
 
   const page = htmlPage(props.title, 'serverError', props)
 
   return new Response(page, {
-    status: 500,
+    status: opts?.status ?? 500,
     headers
   })
 }
