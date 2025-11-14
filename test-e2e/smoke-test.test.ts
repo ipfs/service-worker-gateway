@@ -199,4 +199,15 @@ test.describe('smoke test', () => {
     expect(response.status()).toBe(400)
     expect(await response.text()).toContain('Could not parse CID')
   })
+
+  test('supports truncated CID hashes', async ({ page, protocol, rootDomain }) => {
+    // this is sha2-512-half
+    const cid = CID.parse('bafkrgihhyivzstcz3hhswshfjgy6ertgmnqeleynhwt4dlfsthi4hn7zge')
+
+    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}`, {
+      redirect: `${protocol}//${cid}.ipfs.${rootDomain}/`
+    })
+    expect(response.status()).toBe(200)
+    expect(await response.text()).toContain('hello')
+  })
 })
