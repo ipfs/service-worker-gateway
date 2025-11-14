@@ -115,7 +115,7 @@ export const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' 
       }
       break
     default:
-      throw new InvalidParametersError('Unknown namespace: "' + ns + '"')
+      // ignore unknown namespaces
   }
 
   const remainingPath = `/${segments.slice(2).join('/')}`
