@@ -1,7 +1,7 @@
 import React from 'react'
 import ReactDOMClient from 'react-dom/client'
 import './index.css'
-import { FaInfoCircle, FaCog, FaGithub, FaDownload, FaExclamationTriangle, FaExclamationCircle } from 'react-icons/fa'
+import { FaInfoCircle, FaCog, FaGithub, FaExclamationTriangle, FaExclamationCircle, FaHome } from 'react-icons/fa'
 import { HashRouter, Route, Routes, NavLink } from 'react-router-dom'
 import { Config } from '../lib/config-db.js'
 import { HASH_FRAGMENTS } from '../lib/constants.js'
@@ -80,7 +80,7 @@ function Header (): React.ReactElement {
         <h1 className='e2e-header-title f3 fw2 ttu sans-serif'>Service Worker Gateway</h1>
         {errorPageLink}
         <NavLink to={`/${HASH_FRAGMENTS.IPFS_SW_LOAD_UI}`} className={({ isActive }) => (isActive || (errorPageLink == null && globalThis.location.hash === '')) ? 'white' : ''}>
-          <FaDownload className='ml2 f3' />
+          <FaHome className='ml2 f3' />
         </NavLink>
         <NavLink to={`/${HASH_FRAGMENTS.IPFS_SW_ABOUT_UI}`} className={({ isActive }) => isActive ? 'white' : ''}>
           <FaInfoCircle className='ml2 f3' />
