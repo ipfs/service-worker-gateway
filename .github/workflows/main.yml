@@ -38,6 +38,21 @@ jobs:
     - run: npm run --if-present dep-check
     - run: npm run --if-present doc-check
 
+  test-iso:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+      - uses: ipfs/aegir/actions/cache-node-modules@main
+      - run: npm run --if-present test:iso
+      - uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
+        with:
+          flags: iso
+          files: .coverage/*,packages/*/.coverage/*
+
   test-node:
     needs: build
     runs-on: ${{ matrix.os }}
@@ -232,7 +247,18 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     if: (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.ref == 'refs/heads/main'
-    needs: [ build, check ]
+    needs: [
+      check,
+      test-iso,
+      test-node,
+      test-chrome,
+      test-chrome-webworker,
+      test-firefox,
+      test-firefox-webworker,
+      test-electron-main,
+      test-electron-renderer,
+      test-local-binary
+    ]
     permissions:
       contents: write # to create release
       pull-requests: write # to create release PR
