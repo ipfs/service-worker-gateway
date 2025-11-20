@@ -39,6 +39,10 @@ body {
   background-color: var(--navy);
 }
 
+.button[disabled] {
+  background-color: var(--gray);
+}
+
 .terminal {
   background-color: var(--steel-gray);
   overflow: scroll;

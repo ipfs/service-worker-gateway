@@ -14,7 +14,7 @@ interface LocalStorageToggleProps {
   className?: string
   onClick?: React.MouseEventHandler<HTMLDivElement>
   onChange(value: boolean): void
-  resetKey: number
+  resetKey?: number
 }
 
 export const InputToggle: React.FC<LocalStorageToggleProps> = ({
@@ -44,7 +44,7 @@ export const InputToggle: React.FC<LocalStorageToggleProps> = ({
   }
 
   return (
-    <div {...props} className={`${props.className}`}>
+    <div {...props} className={`${props.className ?? ''}`}>
       <InputLabel>{label}</InputLabel>
       <InputDescription>{description}</InputDescription>
 
