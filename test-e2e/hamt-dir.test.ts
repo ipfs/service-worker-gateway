@@ -1,16 +1,13 @@
-import { allowInsecureWebsiteAccess } from './allow-insecure-website-access.js'
 import { testPathRouting as test, expect } from './fixtures/config-test-fixtures.js'
-import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
+import { loadWithServiceWorker } from './fixtures/load-with-service-worker.js'
 
 test.describe('hamt-dir', () => {
-  test.beforeEach(async ({ page, baseURL }) => {
-    await waitForServiceWorker(page)
-    await allowInsecureWebsiteAccess(page)
-  })
+  test('can open UnixFS file from HAMT-sharded directory', async ({ page, protocol, rootDomain, baseURL }) => {
+    const cid = 'bafybeidbclfqleg2uojchspzd4bob56dqetqjsj27gy2cq3klkkgxtpn4i'
+    const path = '685.txt'
 
-  test('can open UnixFS file from HAMT-sharded directory', async ({ page, baseURL }) => {
-    const response = await page.goto('http://127.0.0.1:3333/ipfs/bafybeidbclfqleg2uojchspzd4bob56dqetqjsj27gy2cq3klkkgxtpn4i/685.txt', {
-      waitUntil: 'networkidle'
+    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}/${path}`, {
+      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}/${path}` : undefined
     })
 
     expect(response?.status()).toBe(200)
