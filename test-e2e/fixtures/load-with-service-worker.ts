@@ -1,6 +1,9 @@
 import { QUERY_PARAMS } from '../../src/lib/constants.js'
 import type { Page, Response } from 'playwright'
 
+const ORIGIN_ISOLATION_WARNING = '.e2e-subdomain-warning'
+const ACCEPT_ORIGIN_ISOLATION_WARNING = '#accept-warning'
+
 export interface LoadWithServiceWorkerOptions {
   /**
    * Specify the final URL here, if different to `resource`
@@ -29,6 +32,17 @@ export interface LoadWithServiceWorkerOptions {
  */
 export async function loadWithServiceWorker (page: Page, resource: string, options?: LoadWithServiceWorkerOptions): Promise<Response> {
   const expected = options?.redirect ?? resource
+
+  // accept origin isolation warning if it appears
+  page.on('load', (page) => {
+    Promise.resolve()
+      .then(async () => {
+        if (await page.isVisible(ORIGIN_ISOLATION_WARNING)) {
+          await page.click(ACCEPT_ORIGIN_ISOLATION_WARNING)
+        }
+      })
+      .catch(() => {})
+  })
 
   const [
     response
