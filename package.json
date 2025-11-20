@@ -110,7 +110,7 @@
     "concurrently": "^9.1.2",
     "cross-env": "^10.1.0",
     "esbuild": "^0.27.0",
-    "glob": "^11.0.1",
+    "glob": "^13.0.0",
     "http-server": "^14.1.1",
     "ipfs-unixfs-importer": "^16.0.1",
     "ipns": "^10.1.3",

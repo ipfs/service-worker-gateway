@@ -1,6 +1,6 @@
 <h1 align="center">
   <br>
-  <img src="https://github.com/ipfs/service-worker-gateway/assets/157609/4931e739-a899-4b18-91f2-2a2bcafb5c33" alt="logo" title="logo" width="200"></a>
+  <img src="https://github.com/ipfs/service-worker-gateway/blob/ca0a5ad20e5f9aac7a50047cade51f0a2d7a31b0/public/ipfs-sw-icon-512-shadow.png" alt="logo" title="logo" width="200"></a>
   <br>
   Service Worker IPFS Gateway
   <br>
