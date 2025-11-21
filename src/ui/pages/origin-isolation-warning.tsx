@@ -125,7 +125,7 @@ export default function SubdomainWarningPage (): ReactNode {
       <RecommendationsElement currentHost={currentHost} />
 
       <div className='flex justify-center mt4'>
-        <ServiceWorkerReadyButton id='accept-warning' label={isSaving ? 'Accepting...' : 'I understand the risks - Continue anyway'} waitingLabel='Waiting for service worker registration...' onClick={() => { void handleAcceptRisk() }} />
+        <ServiceWorkerReadyButton id='accept-warning' label={isSaving ? 'Accepting...' : 'I understand the risks - Continue anyway'} waitingLabel='Waiting for service worker registration...' onClick={handleAcceptRisk} />
       </div>
     </main>
   )

@@ -1,16 +1,11 @@
-import { allowInsecureWebsiteAccess } from './allow-insecure-website-access.js'
 import { testPathRouting as test, expect } from './fixtures/config-test-fixtures.js'
-import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
+import { loadWithServiceWorker } from './fixtures/load-with-service-worker.js'
 
 test.describe('website-loading', () => {
-  test.beforeEach(async ({ page }) => {
-    await waitForServiceWorker(page)
-    await allowInsecureWebsiteAccess(page)
-  })
-
-  test('ensure unixfs directory trailing slash is added', async ({ page }) => {
-    const response = await page.goto('http://127.0.0.1:3333/ipfs/bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q', {
-      waitUntil: 'networkidle'
+  test('ensure unixfs directory trailing slash is added', async ({ page, protocol, rootDomain }) => {
+    const cid = 'bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q'
+    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}`, {
+      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}/` : `${protocol}//${rootDomain}/ipfs/${cid}/`
     })
 
     // playwright follows redirects so we won't see the 301
@@ -18,9 +13,10 @@ test.describe('website-loading', () => {
     await page.waitForURL(/http:\/\/127\.0\.0\.1:3333\/ipfs\/bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q/)
   })
 
-  test('ensure that index.html is returned for the root path', async ({ page }) => {
-    const response = await page.goto('http://127.0.0.1:3333/ipfs/bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q/', {
-      waitUntil: 'networkidle'
+  test('ensure that index.html is returned for the root path', async ({ page, protocol, rootDomain }) => {
+    const cid = 'bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q'
+    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}/`, {
+      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}/` : undefined
     })
 
     expect(response?.status()).toBe(200)
@@ -35,17 +31,20 @@ test.describe('website-loading', () => {
     expect(bodyText).toBe('hello\n')
   })
 
-  test('ensure query string params are retained on reload', async ({ page }) => {
-    const response = await page.goto('http://127.0.0.1:3333/ipfs/bafkqablimvwgy3y', {
-      waitUntil: 'networkidle'
+  test('ensure query string params are retained on reload', async ({ page, protocol, rootDomain }) => {
+    const cid = 'bafkqablimvwgy3y'
+    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}`, {
+      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}` : undefined
     })
+
     expect(response?.status()).toBe(200)
     const headers = await response?.allHeaders()
     expect(headers?.['content-type']).toContain('text/plain')
 
-    const responseWithFilename = await page.goto('http://127.0.0.1:3333/ipfs/bafkqablimvwgy3y?filename=index.html', {
-      waitUntil: 'networkidle'
+    const responseWithFilename = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}?filename=index.html`, {
+      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}?filename=index.html` : undefined
     })
+
     expect(responseWithFilename?.status()).toBe(200)
     const headersWithFilename = await responseWithFilename?.allHeaders()
     expect(headersWithFilename?.['content-type']).toContain('text/html')

@@ -10,7 +10,7 @@ import { setConfig } from './fixtures/set-sw-config.js'
 import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
 
 test.describe('smoke test', () => {
-  test('loads a dag-json jpeg', async ({ page, protocol, rootDomain }) => {
+  test('loads a jpeg', async ({ page, protocol, rootDomain }) => {
     const cid = 'bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi'
 
     await loadWithServiceWorker(page, `${protocol}//${rootDomain}/`)
@@ -131,11 +131,6 @@ test.describe('smoke test', () => {
   })
 
   test('service worker un-registers automatically when ttl expires', async ({ page, baseURL, protocol, rootDomain }) => {
-    await page.goto(baseURL, {
-      waitUntil: 'networkidle'
-    })
-    await waitForServiceWorker(page)
-
     // set the ttl in milliseconds
     await setConfig(page, {
       serviceWorkerRegistrationTTL: 1400

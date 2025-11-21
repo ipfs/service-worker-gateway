@@ -2,7 +2,7 @@ import { testPathRouting as test, expect } from './fixtures/config-test-fixtures
 import { loadWithServiceWorker } from './fixtures/load-with-service-worker.js'
 
 test.describe('hamt-dir', () => {
-  test('can open UnixFS file from HAMT-sharded directory', async ({ page, protocol, rootDomain, baseURL }) => {
+  test('can open UnixFS file from HAMT-sharded directory', async ({ page, protocol, rootDomain }) => {
     const cid = 'bafybeidbclfqleg2uojchspzd4bob56dqetqjsj27gy2cq3klkkgxtpn4i'
     const path = '685.txt'
 
