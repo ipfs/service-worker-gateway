@@ -125,6 +125,7 @@ export function fetchErrorPageResponse (resource: string, request: RequestInit, 
   }
 
   const page = htmlPage(props.title, 'fetchError', props)
+  mergedHeaders.set('content-length', `${page.length}`)
 
   return new Response(page, {
     status: fetchResponse.status,

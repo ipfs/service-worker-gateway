@@ -249,20 +249,18 @@ async function fetchHandler ({ url, event, logs, subdomainGatewayRequest, pathGa
     const response = await verifiedFetch(resource, init)
     response.headers.set('server', `${APP_NAME}/${APP_VERSION}#${GIT_REVISION}`)
 
-    log('GET %s %d', resource, response.status, response.statusText)
+    log('%s %s %d %s', init.method ?? 'GET', resource, response.status, response.statusText)
 
-    /**
-     * Now that we've got a response back from Helia, don't abort the promise
-     * since any additional networking calls that may performed by Helia would
-     * be dropped.
-     *
-     * If `event.request.signal` is aborted, that would cancel any underlying
-     * network requests.
-     *
-     * Note: we haven't awaited the arrayBuffer, blob, json, etc.
-     * `await verifiedFetch` only awaits the construction of the response
-     * object, regardless of it's inner content
-     */
+    // Now that we've got a response back from Helia, don't abort the promise
+    // since any additional networking calls that may performed by Helia would
+    // be dropped.
+    //
+    // If `event.request.signal` is aborted, that would cancel any underlying
+    // network requests.
+    //
+    // Note: we haven't awaited the arrayBuffer, blob, json, etc.
+    // `await verifiedFetch` only awaits the construction of the response
+    // object, regardless of it's inner content
     if (!response.ok) {
       return fetchErrorPageResponse(resource, init, response, await response.text(), providers, config, firstInstallTime, logs)
     }

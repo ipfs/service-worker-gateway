@@ -11,6 +11,14 @@ export interface LoadWithServiceWorkerOptions {
   redirect?: string
 
   /**
+   * The origin isolation warning will be accepted automatically, pass `false`
+   * here to do it manually
+   *
+   * @default true
+   */
+  acceptOriginIsolationWarning?: boolean
+
+  /**
    * See Playwright Page.goto args
    */
   referer?: string
@@ -33,23 +41,25 @@ export interface LoadWithServiceWorkerOptions {
 export async function loadWithServiceWorker (page: Page, resource: string, options?: LoadWithServiceWorkerOptions): Promise<Response> {
   const expected = options?.redirect ?? resource
 
-  // accept origin isolation warning if it appears
-  page.on('load', (page) => {
-    Promise.resolve()
-      .then(async () => {
-        if (await page.isVisible(ORIGIN_ISOLATION_WARNING)) {
-          await page.click(ACCEPT_ORIGIN_ISOLATION_WARNING)
-        }
-      })
-      .catch(() => {})
-  })
+  if (options?.acceptOriginIsolationWarning !== false) {
+    // accept origin isolation warning if it appears
+    page.on('load', (page) => {
+      Promise.resolve()
+        .then(async () => {
+          if (await page.isVisible(ORIGIN_ISOLATION_WARNING)) {
+            await page.click(ACCEPT_ORIGIN_ISOLATION_WARNING)
+          }
+        })
+        .catch(() => {})
+    })
+  }
 
   const [
     response
   ] = await Promise.all([
     page.waitForResponse((response) => {
       // ignore responses from the UI
-      // if (!response.fromServiceWorker()) {  <-- does not work in Firefox :(
+      // if (!response.fromServiceWorker()) { <-- does not work in Firefox :(
       if (response.headers()['server']?.includes('@helia/service-worker-gateway') !== true) {
         return false
       }
@@ -67,6 +77,14 @@ export async function loadWithServiceWorker (page: Page, resource: string, optio
       return response.url() === expected
     }, options),
     page.goto(resource, options)
+      .catch((err) => {
+        if (err.message.includes('is interrupted by another navigation to')) {
+          // accepting the origin isolation warning can interrupt the page load
+          return
+        }
+
+        throw err
+      })
   ])
 
   // not sure why this is necessary - the response has come from the service

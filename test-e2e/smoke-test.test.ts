@@ -131,11 +131,6 @@ test.describe('smoke test', () => {
   })
 
   test('service worker un-registers automatically when ttl expires', async ({ page, baseURL, protocol, rootDomain }) => {
-    await page.goto(baseURL, {
-      waitUntil: 'networkidle'
-    })
-    await waitForServiceWorker(page)
-
     // set the ttl in milliseconds
     await setConfig(page, {
       serviceWorkerRegistrationTTL: 1400

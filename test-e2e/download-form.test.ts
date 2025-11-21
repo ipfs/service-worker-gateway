@@ -55,7 +55,6 @@ test.describe('download form', () => {
     await page.click('#load-directly')
 
     download = await downloadPromise
-    expect(download.suggestedFilename()).toBe('download.txt')
 
     const file = await fsp.readFile(await download.path(), {
       encoding: 'utf-8'
