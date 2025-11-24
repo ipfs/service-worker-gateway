@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.1.0](https://github.com/ipfs/service-worker-gateway/compare/v2.0.0...v2.1.0) (2025-11-21)
+
+
+### Features
+
+* add download form ([#920](https://github.com/ipfs/service-worker-gateway/issues/920)) ([6f2ecc5](https://github.com/ipfs/service-worker-gateway/commit/6f2ecc5fcfc2033c6c7728eca9d9d8180e98baa8))
+* update error pages ([#902](https://github.com/ipfs/service-worker-gateway/issues/902)) ([5b649a8](https://github.com/ipfs/service-worker-gateway/commit/5b649a8dd318ce289ed7dcb80e846ba6be3141de)), closes [#875](https://github.com/ipfs/service-worker-gateway/issues/875) [#876](https://github.com/ipfs/service-worker-gateway/issues/876)
+
+
+### Bug Fixes
+
+* ensure IPNS results go in the mutable cache ([#912](https://github.com/ipfs/service-worker-gateway/issues/912)) ([e5b9812](https://github.com/ipfs/service-worker-gateway/commit/e5b9812510f578278eddf847ec5eb034f494da5e))
+* internal error page styling ([#893](https://github.com/ipfs/service-worker-gateway/issues/893)) ([16ec8c5](https://github.com/ipfs/service-worker-gateway/commit/16ec8c5cdec085c529d0f522bcfa147e247b1941)), closes [#875](https://github.com/ipfs/service-worker-gateway/issues/875)
+* prevent endless loops ([#911](https://github.com/ipfs/service-worker-gateway/issues/911)) ([19cdb7c](https://github.com/ipfs/service-worker-gateway/commit/19cdb7cb07f7943cae1a538978db31a410abe5b8))
+* strip root hash from URL on error page ([#907](https://github.com/ipfs/service-worker-gateway/issues/907)) ([1535f6f](https://github.com/ipfs/service-worker-gateway/commit/1535f6fbd3dafb1e2e1477a0da34373648907c0c))
+* structural overhaul ([#906](https://github.com/ipfs/service-worker-gateway/issues/906)) ([61eea77](https://github.com/ipfs/service-worker-gateway/commit/61eea77930f716244af895807d29aa9b4672d56c))
+* support base16 CIDs and IPNS names ([#913](https://github.com/ipfs/service-worker-gateway/issues/913)) ([d62632e](https://github.com/ipfs/service-worker-gateway/commit/d62632e5e138149b24dad1a2beac3bc5d5032d29)), closes [#745](https://github.com/ipfs/service-worker-gateway/issues/745)
+* update logo ([#921](https://github.com/ipfs/service-worker-gateway/issues/921)) ([ca0a5ad](https://github.com/ipfs/service-worker-gateway/commit/ca0a5ad20e5f9aac7a50047cade51f0a2d7a31b0))
+* use home icon instead of download ([#917](https://github.com/ipfs/service-worker-gateway/issues/917)) ([b39a55d](https://github.com/ipfs/service-worker-gateway/commit/b39a55d16c04d12d85992ec0391d9ccc3a06519a)), closes [#916](https://github.com/ipfs/service-worker-gateway/issues/916)
+
 ## [2.0.0](https://github.com/ipfs/service-worker-gateway/compare/v1.14.2...v2.0.0) (2025-10-20)
 
 
