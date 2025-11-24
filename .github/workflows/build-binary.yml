@@ -59,7 +59,7 @@ jobs:
           fi
 
       - name: Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           ref: ${{ steps.set_release_tag.outputs.release_tag }}
 
