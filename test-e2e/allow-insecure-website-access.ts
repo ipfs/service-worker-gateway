@@ -1,4 +1,4 @@
-import { handleOriginIsolationWarning } from './fixtures/handle-origin-isolation-warning'
+import { handleOriginIsolationWarning } from './fixtures/handle-origin-isolation-warning.js'
 import type { Page } from 'playwright'
 
 export async function allowInsecureWebsiteAccess (page: Page): Promise<void> {

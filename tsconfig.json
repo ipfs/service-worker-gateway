@@ -2,22 +2,18 @@
   "extends": "./node_modules/aegir/src/config/tsconfig.aegir.json",
   "compilerOptions": {
     "outDir": "dist-tsc",
-    "allowJs": true,
-    "noImplicitAny": true,
-    "module": "es2022",
-    "target": "es2022",
     "jsx": "preserve",
     "strictNullChecks": true,
-    "moduleResolution": "bundler",
     "ignoreDeprecations": "5.0" // needed due to deprecated usage in tsconfig.aegir.json
   },
   "include": [
     "src",
-    "types/svg.d.ts",
+    "types",
     "test",
+    "test-conformance",
+    "test-conformance/fixtures/*.json",
     "test-e2e",
     "playwright.config.js",
-    "serve.ts",
-    "dist/ipfs-sw-build-config.js"
+    "serve.ts"
   ]
 }

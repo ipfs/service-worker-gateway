@@ -1,10 +1,14 @@
 #!/usr/bin/env node
 
 /**
- * This script is used to start everything needed to run the service worker gateway like a complete IPFS gateway.
- * It will start a kubo node, an ipfs gateway, and a reverse proxy for the front-end assets.
+ * This script is used to start everything needed to run the service worker
+ * gateway like a complete IPFS gateway.
  *
- * This file expects that `build:tsc` was ran first, and this will be handled for you if ran via `npm run start`
+ * It will start a kubo node, an ipfs gateway, and a reverse proxy for the
+ * front-end assets.
+ *
+ * This file expects that `build:tsc` was ran first, and this will be handled
+ * for you if ran via `npm run start`.
  */
 import { pathToFileURL } from 'node:url'
 import { logger } from '@libp2p/logger'

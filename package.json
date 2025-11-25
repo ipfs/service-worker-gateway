@@ -38,6 +38,7 @@
     "test:inbrowser-dev": "cross-env BASE_URL='https://inbrowser.dev' playwright test -c playwright.config.js --project deployed",
     "test:inbrowser-prod": "cross-env BASE_URL='https://inbrowser.link' playwright test -c playwright.config.js --project deployed",
     "test:node": "aegir test -t node -f dist-tsc/test/node.js --cov",
+    "test:conformance": "playwright test -c ./test-conformance/playwright.config.js --project chromium",
     "postinstall": "patch-package",
     "generate-fixtures": "node --experimental-strip-types ./test-e2e/fixtures/data/generate.ts"
   },
