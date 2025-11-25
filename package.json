@@ -87,6 +87,7 @@
     "react-icons": "^5.5.0",
     "react-router-dom": "^7.9.5",
     "tachyons": "^4.12.0",
+    "uint8arrays": "^5.1.0",
     "weald": "^1.1.1"
   },
   "devDependencies": {
@@ -111,6 +112,7 @@
     "concurrently": "^9.1.2",
     "cross-env": "^10.1.0",
     "esbuild": "^0.27.0",
+    "fast-glob": "^3.3.3",
     "glob": "^13.0.0",
     "http-server": "^14.1.1",
     "ipfs-unixfs-importer": "^16.0.1",
