@@ -51,7 +51,10 @@ const expectedFailingTestsPath = join(process.cwd(), 'src', 'expected-failing-te
 const currentPassingTests: string[] = JSON.parse(await readFile(expectedPassingTestsPath, 'utf-8'))
 const currentFailingTests: string[] = JSON.parse(await readFile(expectedFailingTestsPath, 'utf-8'))
 
-const { passingTests, failingTests } = await getReportDetails('gwc-report-all.json')
+const details = await getReportDetails('gwc-report-all.json')
+const results = [...Object.entries(details)]
+const passingTests = results.filter(result => result[1].result === 'pass').map(([name]) => name)
+const failingTests = results.filter(result => result[1].result === 'fail').map(([name]) => name)
 
 // output the differences between the current passing and failing tests and the new passing and failing tests
 console.log('Differences between the current passing and failing tests and the new passing and failing tests:')
