@@ -45,7 +45,11 @@ test.describe('download form', () => {
   })
 
   test.afterEach(async () => {
-    await download?.delete()
+    try {
+      await download?.delete()
+    } catch {
+      // this can throw if the page has already closed
+    }
   })
 
   test('should download a block', async ({ page }) => {
