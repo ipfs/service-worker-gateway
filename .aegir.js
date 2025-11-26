@@ -7,6 +7,7 @@ export default {
       'src/**/*.[jt]sx',
       'test/**/*.[jt]s',
       'test/**/*.[jt]sx',
+      'test-conformance/**/*.[jt]s',
       'test-e2e/**/*.[jt]s',
       './*.[jt]s'
     ]
@@ -32,6 +33,7 @@ export default {
     productionIgnorePatterns: [
       'webpack.config.js',
       'playwright.config.js',
+      'test-conformance',
       'test-e2e',
       '.aegir.js',
       '/test',

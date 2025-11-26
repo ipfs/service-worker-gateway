@@ -38,6 +38,8 @@
     "test:inbrowser-dev": "cross-env BASE_URL='https://inbrowser.dev' playwright test -c playwright.config.js --project deployed",
     "test:inbrowser-prod": "cross-env BASE_URL='https://inbrowser.link' playwright test -c playwright.config.js --project deployed",
     "test:node": "aegir test -t node -f dist-tsc/test/node.js --cov",
+    "test:conformance": "NODE_OPTIONS='--no-warnings' playwright test -c ./test-conformance/playwright.config.js --project chromium",
+    "update-conformance": "node --experimental-strip-types ./test-conformance/fixtures/update-expected-tests.ts",
     "postinstall": "patch-package",
     "generate-fixtures": "node --experimental-strip-types ./test-e2e/fixtures/data/generate.ts"
   },
@@ -110,6 +112,7 @@
     "concurrently": "^9.1.2",
     "cross-env": "^10.1.0",
     "esbuild": "^0.27.0",
+    "fast-glob": "^3.3.3",
     "glob": "^13.0.0",
     "http-server": "^14.1.1",
     "ipfs-unixfs-importer": "^16.0.1",

@@ -15,3 +15,5 @@ service-worker-gateway
 test-results
 test-e2e/fixtures/data/gateway-conformance-fixtures
 bafkqaddimvwgy3zao5xxe3debi
+gwc-report*.json
+gateway-conformance-fixtures

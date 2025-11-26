@@ -1,7 +1,7 @@
 import { allowInsecureWebsiteAccess } from './allow-insecure-website-access.js'
 import { testPathRouting as test, expect } from './fixtures/config-test-fixtures.js'
 import { setConfig } from './fixtures/set-sw-config.js'
-import { waitForServiceWorker } from './fixtures/wait-for-service-worker'
+import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
 import type { ConfigDbWithoutPrivateFields } from '../src/lib/config-db.js'
 
 const cid = 'bafybeie4vcqkutumw7s26ob2bwqwqi44m6lrssjmiirlhrzhs2akdqmkw4' // big buck bunny webm trimmed to 15 seconds with `ffmpeg -i bigbuckbunny.webm -ss 00:00 -t 00:15 -c:a copy -c:v copy bigbuckbunny-mini.webm`
