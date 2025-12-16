@@ -61,7 +61,7 @@
     "@helia/http": "^3.0.8",
     "@helia/interface": "^6.0.2",
     "@helia/routers": "^4.0.3",
-    "@helia/verified-fetch": "^4.1.1",
+    "@helia/verified-fetch": "^5.0.0",
     "@libp2p/crypto": "^5.1.13",
     "@libp2p/dcutr": "^3.0.7",
     "@libp2p/identify": "^4.0.7",
