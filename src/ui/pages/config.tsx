@@ -1,5 +1,5 @@
 import React, { useCallback, useContext, useState } from 'react'
-import { defaultAcceptOriginIsolationWarning, defaultDebug, defaultDnsJsonResolvers, defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, defaultFetchTimeout, defaultGateways, defaultRouters, defaultServiceWorkerRegistrationTTL } from '../../lib/config-db.js'
+import { defaultAcceptOriginIsolationWarning, defaultDebug, defaultDnsJsonResolvers, defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, defaultFetchTimeout, defaultGateways, defaultRenderHTMLViews, defaultRouters, defaultServiceWorkerRegistrationTTL, defaultSupportDirectoryIndexes, defaultSupportWebRedirects } from '../../lib/config-db.js'
 import { QUERY_PARAMS } from '../../lib/constants.js'
 import { convertDnsResolverInputToObject, convertDnsResolverObjectToInput, convertUrlArrayToInput, convertUrlInputToArray } from '../../lib/input-helpers.js'
 import { uiLogger } from '../../lib/logger.js'
@@ -90,6 +90,9 @@ const ConfigPage: FunctionComponent = () => {
   const [fetchTimeout, setFetchTimeout] = useState(configContext.configDb?.fetchTimeout ?? defaultFetchTimeout)
   const [serviceWorkerRegistrationTTL, setServiceWorkerRegistrationTTL] = useState(configContext.configDb?.serviceWorkerRegistrationTTL ?? defaultServiceWorkerRegistrationTTL)
   const [acceptOriginIsolationWarning, setAcceptOriginIsolationWarning] = useState(configContext.configDb?.acceptOriginIsolationWarning ?? defaultAcceptOriginIsolationWarning)
+  const [supportDirectoryIndexes, setSupportDirectoryIndexes] = useState(configContext.configDb?.supportDirectoryIndexes ?? defaultSupportDirectoryIndexes)
+  const [supportWebRedirects, setSupportWebRedirects] = useState(configContext.configDb?.supportWebRedirects ?? defaultSupportWebRedirects)
+  const [renderHTMLViews, setRenderHTMLViews] = useState(configContext.configDb?.renderHTMLViews ?? defaultRenderHTMLViews)
 
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<Error | null>(null)
@@ -110,7 +113,10 @@ const ConfigPage: FunctionComponent = () => {
         enableWebTransport,
         fetchTimeout,
         serviceWorkerRegistrationTTL,
-        acceptOriginIsolationWarning
+        acceptOriginIsolationWarning,
+        supportDirectoryIndexes,
+        supportWebRedirects,
+        renderHTMLViews
       })
 
       log.trace('config-page: sending RELOAD_CONFIG to service worker')
@@ -135,7 +141,10 @@ const ConfigPage: FunctionComponent = () => {
     enableWebTransport,
     fetchTimeout,
     serviceWorkerRegistrationTTL,
-    acceptOriginIsolationWarning
+    acceptOriginIsolationWarning,
+    supportDirectoryIndexes,
+    supportWebRedirects,
+    renderHTMLViews
   ])
 
   const doResetConfig = useCallback(async () => {
@@ -159,6 +168,9 @@ const ConfigPage: FunctionComponent = () => {
       setFetchTimeout(configContext.configDb.fetchTimeout)
       setServiceWorkerRegistrationTTL(configContext.configDb.serviceWorkerRegistrationTTL)
       setAcceptOriginIsolationWarning(configContext.configDb.acceptOriginIsolationWarning)
+      setSupportDirectoryIndexes(configContext.configDb.supportDirectoryIndexes)
+      setSupportWebRedirects(configContext.configDb.supportWebRedirects)
+      setRenderHTMLViews(configContext.configDb.renderHTMLViews)
 
       // now reload all the inputs
       setResetKey((prev) => prev + 1)
@@ -179,7 +191,10 @@ const ConfigPage: FunctionComponent = () => {
     enableWebTransport,
     fetchTimeout,
     serviceWorkerRegistrationTTL,
-    acceptOriginIsolationWarning
+    acceptOriginIsolationWarning,
+    supportDirectoryIndexes,
+    supportWebRedirects,
+    renderHTMLViews
   ])
 
   return (
@@ -300,6 +315,30 @@ const ConfigPage: FunctionComponent = () => {
             }
             value={acceptOriginIsolationWarning}
             onChange={setAcceptOriginIsolationWarning}
+            resetKey={resetKey}
+          />
+          <InputToggle
+            className='e2e-config-page-input e2e-config-page-input-supportDirectoryIndexes'
+            label='Support directory indexes'
+            description='When a directory is loaded, render any index.html file present instead of a directory listing'
+            value={supportDirectoryIndexes}
+            onChange={setSupportDirectoryIndexes}
+            resetKey={resetKey}
+          />
+          <InputToggle
+            className='e2e-config-page-input e2e-config-page-input-supportWebRedirects'
+            label='Support web redirects'
+            description='When a _redirects file is present at the root of a DAG, use it to override paths within that DAG'
+            value={supportWebRedirects}
+            onChange={setSupportWebRedirects}
+            resetKey={resetKey}
+          />
+          <InputToggle
+            className='e2e-config-page-input e2e-config-page-input-renderHTMLViews'
+            label='Render HTML views'
+            description='For content such as JSON, DAG-CBOR or raw, show an HTML page that allows inspecting properties, traversing to other blocks, etc'
+            value={renderHTMLViews}
+            onChange={setRenderHTMLViews}
             resetKey={resetKey}
           />
           <TextInput

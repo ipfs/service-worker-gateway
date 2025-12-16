@@ -85,14 +85,15 @@ self.addEventListener('fetch', (event) => {
 
   logEmitter.addEventListener('log', onLog)
 
-  log.trace('incoming request url: %s:', event.request.url)
+  log.trace('incoming request url %s', event.request.url)
 
-  // `event.respondWith` must be called synchronously in the event handler
+  // `event.respondWith` must be called synchronously in the event handler, but
+  // we can pass it a promise
   // https://stackoverflow.com/questions/76848928/failed-to-execute-respondwith-on-fetchevent-the-event-handler-is-already-f
   event.respondWith(
     handleFetch(url, event, logs)
       .then(async response => {
-        // uninstall service worker after request has finished
+        // maybe uninstall service worker after request has finished
         // TODO: remove this, it breaks offline installations after the TTL
         // has expired
         if (!(await isServiceWorkerRegistrationTTLValid())) {
@@ -127,19 +128,24 @@ self.addEventListener('fetch', (event) => {
 })
 
 async function handleFetch (url: URL, event: FetchEvent, logs: string[]): Promise<Response> {
-  const log = getSwLogger('handle-fetch')
+  try {
+    const log = getSwLogger('handle-fetch')
 
-  // find a handler for the request
-  for (const handler of handlers) {
-    if (handler.canHandle(url, event, logs)) {
-      log('handler %s handling request', handler.name)
-      return handler.handle(url, event, logs)
+    // find a handler for the request
+    for (const handler of handlers) {
+      if (handler.canHandle(url, event, logs)) {
+        log('handler %s handling request', handler.name)
+        return await handler.handle(url, event, logs)
+      }
     }
-  }
 
-  // if unhandled, do not intercept the request
-  log('no handler found, falling back to global fetch')
-  return fetch(event.request)
+    // if unhandled, do not intercept the request
+    log('no handler found, falling back to global fetch')
+    return await fetch(event.request)
+  } catch (err) {
+    // ensure we only reject, never throw
+    return Promise.reject(err)
+  }
 }
 
 async function isServiceWorkerRegistrationTTLValid (): Promise<boolean> {

@@ -59,6 +59,7 @@ export default function SubdomainWarningPage (): ReactNode {
   removeRootHashIfPresent()
 
   const [isSaving, setIsSaving] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const configContext = useContext(ConfigContext)
 
   const originalUrl = new URL(window.location.href)
@@ -74,6 +75,8 @@ export default function SubdomainWarningPage (): ReactNode {
 
       // tell the service worker to reload the config
       await fetch(`/?${QUERY_PARAMS.RELOAD_CONFIG}=true`)
+
+      setIsLoading(true)
     } finally {
       setIsSaving(false)
     }
@@ -125,7 +128,12 @@ export default function SubdomainWarningPage (): ReactNode {
       <RecommendationsElement currentHost={currentHost} />
 
       <div className='flex justify-center mt4'>
-        <ServiceWorkerReadyButton id='accept-warning' label={isSaving ? 'Accepting...' : 'I understand the risks - Continue anyway'} waitingLabel='Waiting for service worker registration...' onClick={handleAcceptRisk} />
+        <ServiceWorkerReadyButton
+          id='accept-warning' label={isSaving ? 'Accepting...' : 'I understand the risks - Continue anyway'}
+          waitingLabel='Waiting for service worker registration...'
+          onClick={handleAcceptRisk}
+          disabled={isLoading}
+        />
       </div>
     </main>
   )

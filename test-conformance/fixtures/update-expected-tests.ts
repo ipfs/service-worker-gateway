@@ -12,9 +12,12 @@
  */
 
 import { readFile, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import readline from 'node:readline'
-import { getReportDetails } from './get-report-details.js'
+import { fileURLToPath } from 'node:url'
+import { getReportDetails } from './get-report-details.ts'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 /**
  * Prompt the user with a yes / no question.
@@ -45,13 +48,13 @@ async function confirm (question: string): Promise<boolean> {
 console.warn('WARNING: This will update the expected-passing-tests.json and expected-failing-tests.json files with the latest test results.')
 console.warn('WARNING: This should not be done blindly and that the updated passing and failing tests should be checked for correctness.')
 
-const expectedPassingTestsPath = join(process.cwd(), 'src', 'expected-passing-tests.json')
-const expectedFailingTestsPath = join(process.cwd(), 'src', 'expected-failing-tests.json')
+const expectedPassingTestsPath = join(__dirname, 'expected-passing-tests.json')
+const expectedFailingTestsPath = join(__dirname, 'expected-failing-tests.json')
 
 const currentPassingTests: string[] = JSON.parse(await readFile(expectedPassingTestsPath, 'utf-8'))
 const currentFailingTests: string[] = JSON.parse(await readFile(expectedFailingTestsPath, 'utf-8'))
 
-const details = await getReportDetails('gwc-report-all.json')
+const details = await getReportDetails(resolve(__dirname, '../gwc-report-all.json'))
 const results = [...Object.entries(details)]
 const passingTests = results.filter(result => result[1].result === 'pass').map(([name]) => name)
 const failingTests = results.filter(result => result[1].result === 'fail').map(([name]) => name)

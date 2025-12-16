@@ -46,7 +46,7 @@ function DebugInfo ({ url, error, logs }: { url: string, error: ErrorObject, log
   if (url != null) {
     urlDisplay = (
       <>
-        <h4>URL</h4>
+        <h4 className='ma3'>URL</h4>
         <Terminal>{url}</Terminal>
       </>
     )
@@ -57,7 +57,7 @@ function DebugInfo ({ url, error, logs }: { url: string, error: ErrorObject, log
   if (error != null) {
     errorDisplay = (
       <>
-        <h4>Error</h4>
+        <h4 className='ma3'>Error</h4>
         <Terminal>{JSON.stringify(error, null, 2)}</Terminal>
       </>
     )
@@ -68,7 +68,7 @@ function DebugInfo ({ url, error, logs }: { url: string, error: ErrorObject, log
   if (logs?.length > 0) {
     logDisplay = (
       <>
-        <h4>Logs</h4>
+        <h4 className='ma3'>Logs</h4>
         <Terminal>{logs.join('\n')}</Terminal>
       </>
     )
@@ -76,7 +76,7 @@ function DebugInfo ({ url, error, logs }: { url: string, error: ErrorObject, log
 
   return (
     <>
-      <h3>Debug</h3>
+      <h3 className='ma3'>Debug</h3>
       {urlDisplay}
       {errorDisplay}
       {logDisplay}
@@ -123,7 +123,7 @@ export function ServerErrorPage ({ url, error, title, logs, description }: Serve
     if (Array.isArray(description)) {
       description.forEach((line, index) => {
         messageDisplay.push(
-          <p className='f5 ma0 pt3 fw4 db' key={`line-${index}`}>{line}</p>
+          <p className='f5 ma3 fw4 db' key={`line-${index}`}>{line}</p>
         )
       })
     }
@@ -131,7 +131,7 @@ export function ServerErrorPage ({ url, error, title, logs, description }: Serve
 
   if (messageDisplay.length === 0) {
     messageDisplay.push(
-      <p className='f5 ma0 pt3 fw4 db lh-copy' key='line-0'>An error occurred in the service worker gateway.</p>
+      <p className='f5 ma3 fw4 db' key='line-0'>An error occurred in the service worker gateway.</p>
     )
   }
 
@@ -140,8 +140,8 @@ export function ServerErrorPage ({ url, error, title, logs, description }: Serve
       <ContentBox title={`${title}`}>
         <>
           {messageDisplay}
-          <p className='f5 ma0 pt3 fw4 db lh-copy'>Please <Link href='https://github.com/ipfs/service-worker-gateway/issues'>open an issue</Link> with the URL you tried to access and any debugging information displayed below.</p>
-          <p>
+          <p className='f5 ma3 fw4 db'>Please <Link href='https://github.com/ipfs/service-worker-gateway/issues'>open an issue</Link> with the URL you tried to access and any debugging information displayed below.</p>
+          <p className='f5 ma3 fw4 db'>
             <Button className='bg-teal' onClick={retry}>Retry</Button>
             <Button className='bg-navy-muted' onClick={goBack}>Go back</Button>
           </p>

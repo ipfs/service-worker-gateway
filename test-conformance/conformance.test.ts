@@ -1,15 +1,19 @@
 /* eslint-env mocha */
-/* eslint-disable max-nested-callbacks */
+/* eslint-disable max-nested-callbacks,no-console */
 
-import { createReadStream, existsSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import { access, constants } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import { homedir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { prefixLogger } from '@libp2p/logger'
+import { peerIdFromString } from '@libp2p/peer-id'
 import { test, expect } from '@playwright/test'
 import { execa } from 'execa'
+import { base36 } from 'multiformats/bases/base36'
+import { CID } from 'multiformats/cid'
+import { formatSearch, parseQuery } from '../src/lib/query-helpers.ts'
 import { loadWithServiceWorker } from '../test-e2e/fixtures/load-with-service-worker.js'
 import { setConfig } from '../test-e2e/fixtures/set-sw-config.ts'
 import { waitForServiceWorker } from '../test-e2e/fixtures/wait-for-service-worker.js'
@@ -19,6 +23,7 @@ import expectedPassingTests from './fixtures/expected-passing-tests.json' with {
 import { getReportDetails } from './fixtures/get-report-details.js'
 import { getTestsToRun } from './fixtures/get-tests-to-run.js'
 import { getTestsToSkip } from './fixtures/get-tests-to-skip.js'
+import type { BrowserContext } from '@playwright/test'
 import type { Server } from 'node:http'
 
 test.describe.configure({ mode: 'serial' })
@@ -37,7 +42,6 @@ const PROXY_PORT = 3334
 const SUCCESS_RATE = process.env.SUCCESS_RATE ?? 69.52
 
 const logger = prefixLogger('gateway-conformance')
-const log = logger.forComponent('output:all')
 
 function getGatewayConformanceBinaryPath (): string {
   if (process.env.GATEWAY_CONFORMANCE_BINARY != null) {
@@ -57,7 +61,9 @@ async function installBinary (binaryPath: string): Promise<void> {
   }
 
   const gwcVersion = GWC_IMAGE.split(':').pop()
-  const { stdout, stderr } = await execa('go', ['install', `github.com/ipfs/gateway-conformance/cmd/gateway-conformance@${gwcVersion}`], { reject: true })
+  const { stdout, stderr } = await execa('go', ['install', `github.com/ipfs/gateway-conformance/cmd/gateway-conformance@${gwcVersion}`], {
+    reject: true
+  })
   log(stdout)
   log.error(stderr)
 }
@@ -76,12 +82,7 @@ function getConformanceTestArgs (name: string = 'all', gwcArgs: string[] = [], g
   ]
 }
 
-const DOWNLOAD_CONTENT_TYPES = [
-  'application/vnd.ipld.dag-json',
-  'application/vnd.ipld.dag-cbor',
-  'application/vnd.ipld.car',
-  'application/octet-stream'
-]
+let requestId = 0
 
 test.describe('@helia/service-worker-gateway - gateway conformance', () => {
   let server: Server
@@ -91,80 +92,112 @@ test.describe('@helia/service-worker-gateway - gateway conformance', () => {
       // set up proxy server
       await new Promise<void>(resolve => {
         server = createServer((req, res) => {
-          Promise.resolve().then(async () => {
-            const context = await browser.newContext()
-            const page = await context.newPage()
-            const downloadPromise = page.waitForEvent('download')
-              .catch(() => {})
+          const id = requestId++
+          let context: BrowserContext | undefined
 
-            await page.goto(baseURL ?? '', {
-              waitUntil: 'networkidle'
-            })
-            await waitForServiceWorker(page)
+          Promise.resolve()
+            .then(async () => {
+              const url = new URL(`http://${req.headers.host}${req.url}`)
 
-            await setConfig(page, {
-              gateways: [
-                `${process.env.KUBO_GATEWAY}`
-              ],
-              routers: [
-                `${process.env.KUBO_GATEWAY}/routing/v1`
-              ],
-              dnsJsonResolvers: {
-                '.': `${process.env.DNS_JSON_RESOLVER}`
-              },
-              debug: 'testDebug',
-              enableWss: false,
-              enableWebTransport: false,
-              enableRecursiveGateways: true,
-              enableGatewayProviders: true,
-              fetchTimeout: 29 * 1_000,
-              serviceWorkerRegistrationTTL: 24 * 60 * 60 * 1000,
-              acceptOriginIsolationWarning: true
-            })
+              console.info('incoming', `http://${req.headers.host}${req.url}`)
+              console.info('headers', req.headers)
 
-            const url = new URL(`http://${req.headers.host}${req.url}`)
-
-            // replace proxy port with static asset port
-            if (url.port === `${PROXY_PORT}`) {
-              url.port = `${3000}`
-            }
-
-            const response = await loadWithServiceWorker(page, url.toString())
-
-            res.statusCode = response.status()
-            res.statusMessage = response.statusText()
-
-            for (const [key, value] of Object.entries(response.headers())) {
-              res.setHeader(key, value)
-            }
-
-            const contentType = await response.headerValue('content-type')
-
-            // if the browser downloaded the file, stream the download back to
-            // the conformance test client, otherwise just send the response
-            // body
-            if (contentType != null && DOWNLOAD_CONTENT_TYPES.includes(contentType)) {
-              const download = await downloadPromise
-
-              if (download == null) {
-                throw new Error('Download was null after awaiting')
+              // replace proxy port with static asset port
+              if (url.port === `${PROXY_PORT}`) {
+                url.port = `${3000}`
               }
 
-              for await (const buf of createReadStream(await download.path())) {
-                res.write(buf)
+              // translate headers used by tests into non-standard query params
+              const HEADERS = [
+                'accept',
+                'range',
+                'if-none-match'
+              ]
+
+              const overrides: Record<string, string> = {}
+
+              for (const header of HEADERS) {
+                if (req.headers[header] != null) {
+                  let value = req.headers[header]
+
+                  if (Array.isArray(value)) {
+                    value = value.join(', ')
+                  }
+
+                  overrides[header] = value
+                }
               }
 
-              res.end()
-            } else {
-              res.end(await response.body())
-            }
-          })
-            .catch(err => {
-              // eslint-disable-next-line no-console
-              console.error('could not process request', err)
+              url.search = formatSearch({
+                ...parseQuery(url),
+                ...overrides
+              })
+
+              context = await browser.newContext()
+              const page = await context.newPage()
+
+              // baseURL is localhost but request can be for loopback so ensure
+              // we set the config on the correct domain
+              const home = new URL(`${url.protocol}//${url.host}`)
+
+              await page.goto(home.toString(), {
+                waitUntil: 'networkidle'
+              })
+              await waitForServiceWorker(page)
+              await setConfig(page, {
+                gateways: [
+                  `${process.env.KUBO_GATEWAY}`
+                ],
+                routers: [
+                  `${process.env.KUBO_GATEWAY}`
+                ],
+                dnsJsonResolvers: {
+                  '.': `${process.env.DNS_JSON_RESOLVER}`
+                },
+                acceptOriginIsolationWarning: true,
+                renderHTMLViews: false
+              })
+
+              console.info('REQUEST', id, req.method, url.toString(), req.headers)
+
+              const response = await loadWithServiceWorker(page, url.toString(), {
+                redirect: maybeAsSubdomainUrlRedirect(url),
+
+                // all data should be local so no need to wait for long timeout
+                timeout: 10_000
+              })
+
+              res.statusCode = response.status()
+              res.statusMessage = response.statusText()
+
+              console.info('RESPONSE', id, req.method, url.toString(), response.status(), await response.allHeaders())
+              const body = await response.body()
+
+              if (response.status() === 500) {
+                console.info('RESPONSE', id, new TextDecoder().decode(body))
+              }
+
+              for (const [key, value] of Object.entries(await response.allHeaders())) {
+                res.setHeader(key, value)
+              }
+
+              // res.end(await response.body())
+              res.end(body)
+
+              await context.close()
+            })
+            .catch(async err => {
+              console.error('ERROR', id, '- could not process request')
+              console.error(req.method, req.url, req.headers)
+              console.error(err)
 
               res.statusCode = 500
               res.end(err.toString())
+
+              context?.close({
+                reason: err.message
+              })
+                .catch(() => {})
             })
         })
         server.listen(PROXY_PORT, () => {
@@ -193,7 +226,7 @@ test.describe('@helia/service-worker-gateway - gateway conformance', () => {
       const reportPath = join(__dirname, 'gwc-report-all.json')
       const cancelSignal = AbortSignal.timeout(640_000_000)
 
-      const { stderr, stdout } = await execa(binaryPath, getConformanceTestArgs('all', [], testArgs), {
+      await execa(binaryPath, getConformanceTestArgs('all', [], testArgs), {
         reject: false,
         cancelSignal
       })
@@ -201,9 +234,6 @@ test.describe('@helia/service-worker-gateway - gateway conformance', () => {
       if (cancelSignal.aborted) {
         throw new Error('Conformance tests timed out')
       }
-
-      log(stdout)
-      log.error(stderr)
 
       // verify report was generated
       await access(reportPath, constants.R_OK)
@@ -236,11 +266,16 @@ test.describe('@helia/service-worker-gateway - gateway conformance', () => {
       const details = await getReportDetails(join(__dirname, 'gwc-report-all.json'))
 
       for (const name of expectedPassingTests) {
-        expect.soft(details[name], `${name} should have passed but it did not run - run \`npm run update-conformance\` to update the list of expected passing/failing tests`).toBeTruthy()
-        expect.soft(details[name]?.result, `${name} should have passed but it failed`).toEqual('pass')
+        if (details[name] == null) {
+          // if the test was not run it means a previous test run caused the
+          // test run to panic, e.g. https://github.com/ipfs/gateway-conformance/issues/251
+          continue
+        }
 
-        if (details[name]?.result === 'fail') {
-          expect.soft(details[name]?.output).toEqual('')
+        expect.soft(details[name].result, `${name} should have passed but it failed`).toEqual('pass')
+
+        if (details[name].result === 'fail') {
+          expect.soft(details[name].output).toEqual('')
         }
       }
     })
@@ -249,11 +284,16 @@ test.describe('@helia/service-worker-gateway - gateway conformance', () => {
       const details = await getReportDetails(join(__dirname, 'gwc-report-all.json'))
 
       for (const name of expectedFailingTests) {
-        expect.soft(details[name], `${name} should have failed but it did not run - run \`npm run update-conformance\` to update the list of expected passing/failing tests`).toBeTruthy()
-        expect.soft(details[name]?.result, `${name} should have failed but it passed - run \`npm run update-conformance\` to update the list of expected passing/failing tests`).toEqual('fail')
+        if (details[name] == null) {
+          // if the test was not run it means a previous test run caused the
+          // test run to panic, e.g. https://github.com/ipfs/gateway-conformance/issues/251
+          continue
+        }
 
-        if (details[name]?.result === 'fail') {
-          expect.soft(details[name]?.output).toEqual('')
+        expect.soft(details[name].result, `${name} should have failed but it passed - run \`npm run update-conformance\` to update the list of expected passing/failing tests`).toEqual('fail')
+
+        if (details[name].result === 'fail') {
+          expect.soft(details[name].output).toEqual('')
         }
       }
     })
@@ -270,3 +310,46 @@ test.describe('@helia/service-worker-gateway - gateway conformance', () => {
     })
   })
 })
+
+function maybeAsSubdomainUrlRedirect (url: URL): string | undefined {
+  // a path gateway request
+  if (url.hostname === '127.0.0.1') {
+    return
+  }
+
+  // already a subdomain request
+  if (url.hostname.includes('.ipfs.') || url.hostname.includes('.ipns.')) {
+    return
+  }
+
+  let [
+    ,
+    protocol,
+    name,
+    ...rest
+  ] = url.pathname.split('/')
+
+  if (protocol === 'ipfs') {
+    name = CID.parse(name).toV1().toString()
+  } else if (protocol === 'ipns') {
+    try {
+      name = peerIdFromString(name).toCID().toString(base36)
+    } catch {
+      // treat as dnslink
+      name = encodeDNSLinkLabel(name)
+    }
+  } else {
+    // don't know what this protocol is
+    return
+  }
+
+  console.info('url', url.toString())
+  console.info('as subdomain')
+  console.info('   ', `http://${name}.${protocol}.${url.host}${rest.length > 0 ? '/' : ''}${rest.join('/')}`)
+
+  return `http://${name}.${protocol}.${url.host}${rest.length > 0 ? '/' : ''}${rest.join('/')}`
+}
+
+function encodeDNSLinkLabel (name: string): string {
+  return name.replace(/-/g, '--').replace(/\./g, '-')
+}

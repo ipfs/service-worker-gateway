@@ -5,7 +5,6 @@ import { delegatedRoutingV1HttpApiClient } from '@helia/delegated-routing-v1-htt
 import { createHeliaHTTP } from '@helia/http'
 import { httpGatewayRouting, delegatedHTTPRouting, libp2pRouting } from '@helia/routers'
 import { createVerifiedFetch } from '@helia/verified-fetch'
-import { dagCborHtmlPreviewPluginFactory, dirIndexHtmlPluginFactory } from '@helia/verified-fetch/plugins'
 import { generateKeyPair } from '@libp2p/crypto/keys'
 import { dcutr } from '@libp2p/dcutr'
 import { identify, identifyPush } from '@libp2p/identify'
@@ -19,6 +18,7 @@ import { dnsJsonOverHttps } from '@multiformats/dns/resolvers'
 import { createHelia } from 'helia'
 import { createLibp2p } from 'libp2p'
 import * as libp2pInfo from 'libp2p/version'
+import { sha1 } from 'multiformats/hashes/sha1'
 import { collectingLogger } from '../../lib/collecting-logger.js'
 import { getSwLogger } from '../../lib/logger.js'
 import { blake3 } from './blake3.js'
@@ -117,7 +117,7 @@ export async function updateVerifiedFetch (): Promise<void> {
     blockBrokers.push(trustlessGateway({ allowLocal: true }))
   }
 
-  const hashers = [blake3, blake2b256]
+  const hashers = [blake3, blake2b256, sha1]
 
   let helia: Helia
   if (config.enableWss || config.enableWebTransport) {
@@ -160,11 +160,7 @@ export async function updateVerifiedFetch (): Promise<void> {
   }
 
   verifiedFetch = await createVerifiedFetch(helia, {
-    withServerTiming: true,
-    plugins: [
-      dirIndexHtmlPluginFactory,
-      dagCborHtmlPreviewPluginFactory
-    ]
+    withServerTiming: true
   })
 }
 

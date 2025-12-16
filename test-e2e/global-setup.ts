@@ -17,4 +17,5 @@ export default async function globalSetup (): Promise<void> {
 
   process.env.KUBO_PID = `${info.pid}`
   process.env.KUBO_GATEWAY = info.gateway
+  process.env.KUBO_RPC = info.api
 }

@@ -6,16 +6,6 @@ import { CID } from 'multiformats/cid'
 import { QUERY_PARAMS } from '../src/lib/constants.js'
 import { isPathOrSubdomainRequest, toSubdomainRequest } from '../src/lib/path-or-subdomain.js'
 
-interface Loc {
-  protocol: string
-  host: string
-  pathname: string
-  search: string
-  hash: string
-  href: string
-  origin: string
-}
-
 describe('path-or-subdomain', () => {
   describe('isPathOrSubdomainRequest', () => {
     it('returns true for path-based request', () => {
@@ -64,104 +54,68 @@ describe('path-or-subdomain', () => {
   })
 
   describe('toSubdomainRequest', () => {
-    const makeLoc = (overrides: Partial<Loc>): Loc => {
-      const defaults: Loc = {
-        protocol: 'http:',
-        host: 'example.com',
-        pathname: '/',
-        search: '',
-        hash: '',
-        href: 'http://example.com/',
-        origin: 'http://example.com'
-      }
-      return { ...defaults, ...overrides }
-    }
-
     it('round-trips an /ipfs/<cid>/… request into a DNS-subdomain + helia-sw redirect', () => {
       // Use CIDv0 for this test
       const cid = 'QmbQDovX7wRe9ek7u6QXe9zgCXkTzoUSsTFJEkrYV1HrVR'
       const cidV1 = CID.parse(cid).toV1().toString(base32)
-      const loc = makeLoc({
-        pathname: `/ipfs/${cid}/foo/bar.txt`,
-        href: `http://example.com/ipfs/${cid}/foo/bar.txt`
-      })
+      const loc = new URL(`http://example.com/ipfs/${cid}/foo/bar.txt`)
 
       const out = toSubdomainRequest(loc)
       const exp = new URL(`http://${cidV1}.ipfs.example.com/`)
       exp.searchParams.set(QUERY_PARAMS.REDIRECT, '/foo/bar.txt')
 
-      expect(out).to.equal(exp.href)
+      expect(out.href).to.equal(exp.href)
     })
 
     it('encodes ?search=params and #hash', () => {
       const cid = 'QmbQDovX7wRe9ek7u6QXe9zgCXkTzoUSsTFJEkrYV1HrVR'
       const cidV1 = CID.parse(cid).toV1().toString(base32)
-      const loc = makeLoc({
-        pathname: `/ipfs/${cid}/path/to/file`,
-        search: '?foo=bar&baz=qux',
-        hash: '#section2',
-        href: `https://example.com/ipfs/${cid}/path/to/file?foo=bar&baz=qux#section2`,
-        protocol: 'https:'
-      })
+      const loc = new URL(`https://example.com/ipfs/${cid}/path/to/file?foo=bar&baz=qux#section2`)
 
       const out = toSubdomainRequest(loc)
       const exp = new URL(`https://${cidV1}.ipfs.example.com/`)
       exp.searchParams.set(QUERY_PARAMS.REDIRECT, '/path/to/file?foo=bar&baz=qux#section2')
 
-      expect(out).to.equal(exp.href)
+      expect(out.href).to.equal(exp.href)
     })
 
-    it('drops helia-sw when there is no “extra” path (i.e. only /ipfs/<cid>)', () => {
+    it(`drops ${QUERY_PARAMS.REDIRECT} when there is no “extra” path (i.e. only /ipfs/<cid>)`, () => {
       const cid = 'QmbQDovX7wRe9ek7u6QXe9zgCXkTzoUSsTFJEkrYV1HrVR'
       const cidV1 = CID.parse(cid).toV1().toString(base32)
-      const loc = makeLoc({
-        pathname: `/ipfs/${cid}`,
-        href: `http://example.com/ipfs/${cid}`
-      })
+      const loc = new URL(`http://example.com/ipfs/${cid}`)
 
       const out = toSubdomainRequest(loc)
-      expect(out).to.equal(`http://${cidV1}.ipfs.example.com/`)
+      expect(out.href).to.equal(`http://${cidV1}.ipfs.example.com/`)
     })
 
     it('handles /ipns/<libp2p-key>/… by converting to Base36 and preserving rest', () => {
       // Use a valid libp2p-key CIDv1 in base36 for testing
       const key = 'k51qzi5uqu5dh9ihj4p2v5sl3hxvv27ryx2w0xrsv6jmmqi91t9xp8p9kaipc2'
       const keyV1 = CID.parse(key).toV1().toString(base36)
-      const loc = makeLoc({
-        protocol: 'https:',
-        host: 'gateway.local',
-        pathname: `/ipns/${key}/blog/post`,
-        href: `https://gateway.local/ipns/${key}/blog/post`
-      })
+      const loc = new URL(`https://gateway.local/ipns/${key}/blog/post`)
 
       const out = toSubdomainRequest(loc)
       const exp = new URL(`https://${keyV1}.ipns.gateway.local/`)
       exp.searchParams.set(QUERY_PARAMS.REDIRECT, '/blog/post')
-      expect(out).to.equal(exp.href)
+      expect(out.href).to.equal(exp.href)
     })
 
     it('falls back to dnsLink-encoding when the second segment is not a CID but contains dots', () => {
       const hostname = 'mysite.local'
-      const loc = makeLoc({
-        host: hostname,
-        pathname: '/ipns/foo.bar/baz',
-        href: `http://${hostname}/ipns/foo.bar/baz`
-      })
+      const loc = new URL(`http://${hostname}/ipns/foo.bar/baz`)
 
       const out = toSubdomainRequest(loc)
-      const url = new URL(out)
-      expect(url.origin).to.equal(`http://foo-bar.ipns.${hostname}`)
-      expect(url.pathname).to.equal('/')
-      expect(url.searchParams.get(QUERY_PARAMS.REDIRECT)).to.equal('/baz')
+      expect(out.origin).to.equal(`http://foo-bar.ipns.${hostname}`)
+      expect(out.pathname).to.equal('/')
+      expect(out.searchParams.get(QUERY_PARAMS.REDIRECT)).to.equal('/baz')
     })
 
     it('ignores invalid namespaces', () => {
       // TODO: This test was added without modifying the code, and i'm not sure we want this functionality.
-      const loc = makeLoc({ pathname: '/potato/QmWhatever/foo', href: 'http://example.com/potato/QmWhatever/foo' })
+      const loc = new URL('http://example.com/potato/QmWhatever/foo')
       const out = toSubdomainRequest(loc)
-      const url = new URL(out)
-      expect(url.origin).to.equal('http://qmwhatever.potato.example.com')
-      expect(url.searchParams.get(QUERY_PARAMS.REDIRECT)).to.equal('/foo')
+      expect(out.origin).to.equal('http://qmwhatever.potato.example.com')
+      expect(out.searchParams.get(QUERY_PARAMS.REDIRECT)).to.equal('/foo')
     })
 
     it('redirects cloudflare-style CIDv0 requests to a subdomain', () => {
@@ -174,7 +128,7 @@ describe('path-or-subdomain', () => {
       const exp = new URL(`http://${cidV1}.ipfs.example.com/`)
       exp.searchParams.set(QUERY_PARAMS.REDIRECT, '/foo/bar.txt')
 
-      expect(out).to.equal(exp.href)
+      expect(out.href).to.equal(exp.href)
     })
 
     it('redirects cloudflare-style CIDv1 requests to a subdomain', () => {
@@ -187,7 +141,15 @@ describe('path-or-subdomain', () => {
       const exp = new URL(`http://${cidV1}.ipfs.example.com/`)
       exp.searchParams.set(QUERY_PARAMS.REDIRECT, '/foo/bar.txt')
 
-      expect(out).to.equal(exp.href)
+      expect(out.href).to.equal(exp.href)
+    })
+
+    it('should handle paths with spaces', () => {
+      const input = new URL('http://localhost:3333/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq/1 - Barrel - Part 1 - alt.txt')
+
+      expect(toSubdomainRequest(input).href).to.equal(
+        new URL(`http://bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq.ipfs.localhost:3333/?${QUERY_PARAMS.REDIRECT}=${encodeURIComponent('/1%20-%20Barrel%20-%20Part%201%20-%20alt.txt')}`).href
+      )
     })
   })
 })

@@ -8,7 +8,7 @@
  */
 
 import { readFile } from 'node:fs/promises'
-import { dirname, relative, posix } from 'node:path'
+import { dirname, relative, posix, basename } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { logger } from '@libp2p/logger'
 import { $ } from 'execa'
@@ -54,6 +54,7 @@ async function downloadFixtures (force = false): Promise<void> {
   }
 
   log('Downloading fixtures')
+
   try {
     await $`docker run --name gateway-conformance-fixture-loader -v ${process.cwd()}:/workspace -w /workspace ${GWC_IMAGE} extract-fixtures --directory ${relative('.', GWC_FIXTURES_PATH)} --merged false`
   } catch (e) {
@@ -68,13 +69,13 @@ async function downloadFixtures (force = false): Promise<void> {
 export async function loadFixtures (kuboRepoDir: string): Promise<string> {
   const execaOptions = getExecaOptions({ kuboRepoDir })
 
-  const carPath = `${GWC_FIXTURES_PATH}/**/*.car`
-  log('Loading fixtures from %s', carPath)
+  log('Loading fixtures from %s', GWC_FIXTURES_PATH)
 
+  const carPath = `${GWC_FIXTURES_PATH}/**/*.car`
   let loadedSomeCarFiles = false
 
   for (const carFile of await fg.glob(carPath)) {
-    log('Loading *.car fixture %s', carFile)
+    log('Loading car fixture %s', carFile)
     const { stdout } = await $(execaOptions)`${kuboBinary} dag import --pin-roots=false --offline ${carFile}`
     stdout.split('\n').forEach(log)
     loadedSomeCarFiles = true
@@ -83,6 +84,23 @@ export async function loadFixtures (kuboRepoDir: string): Promise<string> {
   if (!loadedSomeCarFiles) {
     log.error('No *.car fixtures found')
     throw new Error('No *.car fixtures found')
+  }
+
+  let loadedSomeIPNSRecords = false
+
+  // load IPNS records
+  const recordPath = `${GWC_FIXTURES_PATH}/**/*.ipns-record`
+  for (const recordFile of await fg.glob(recordPath)) {
+    log('Loading IPNS record fixture %s', recordFile)
+    const key = basename(recordFile).split('_')[0]
+    const { stdout } = await $(execaOptions)`${kuboBinary} routing put --allow-offline /ipns/${key} ${recordFile}`
+    stdout.split('\n').forEach(log)
+    loadedSomeIPNSRecords = true
+  }
+
+  if (!loadedSomeIPNSRecords) {
+    log.error('No IPNS fixtures found')
+    throw new Error('No IPNS fixtures found')
   }
 
   const ipfsNsMap = await readFile(`${GWC_FIXTURES_PATH}/dnslinks.IPFS_NS_MAP`, 'utf-8')

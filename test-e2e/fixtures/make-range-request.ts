@@ -3,7 +3,8 @@ import type { Page } from '@playwright/test'
 export interface RangeRequestResult {
   byteSize: number
   /**
-   * playwright doesn't provide a way to get the raw bytes, so we have to convert the ArrayBuffer to an array of numbers
+   * playwright doesn't provide a way to get the raw bytes, so we have to
+   * convert the ArrayBuffer to an array of numbers
    */
   bytes: number[]
   headers: Record<string, string>
@@ -12,16 +13,20 @@ export interface RangeRequestResult {
 }
 
 /**
+ * Make an in-page fetch request which should get intercepted by the service
+ * worker - this allows us to send headers that we can't otherwise send.
+ *
  * Normally, you could use request.get in playwright to query a server, but this
- * does not go to the service worker
+ * does not go to the service worker.
  */
-export async function doRangeRequest ({ page, range, path }: { range: string, page: Page, path: string }): Promise<RangeRequestResult> {
+export async function makeRangeRequest ({ page, range, path }: { range: string, page: Page, path: string }): Promise<RangeRequestResult> {
   return page.evaluate(async ({ path, range }) => {
     const response = await fetch(path, {
       headers: {
         range
       }
     })
+
     const clone = response.clone()
     const buffer = await response.arrayBuffer()
     const byteSize = buffer.byteLength

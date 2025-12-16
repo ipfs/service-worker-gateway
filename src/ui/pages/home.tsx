@@ -37,7 +37,7 @@ function LoadContent (): ReactElement {
   }
 
   const [requestPath, setRequestPath] = useState(initialPath)
-  const [download, setDownload] = useState(false)
+  const [download, setDownload] = useState('')
   const [format, setFormat] = useState('')
   const [filename, setFilename] = useState('')
   const [dagScope, setDagScope] = useState('')
@@ -52,10 +52,11 @@ function LoadContent (): ReactElement {
   }, [requestPath])
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
+    e.stopPropagation()
     e.preventDefault()
 
     const params: Record<string, string> = {
-      download: download ? 'true' : '',
+      download,
       format,
       filename,
       'dag-scope': dagScope,
@@ -90,14 +91,20 @@ function LoadContent (): ReactElement {
       })
       .join('&')
 
-    window.location.href = getGatewayRoot() + requestPath + (search === '' ? '' : `?${search}`)
+    let request = requestPath
+
+    if (!request.startsWith('/ipfs/') && !request.startsWith('/ipns/')) {
+      request = `/ipfs/${request}`
+    }
+
+    window.location.href = getGatewayRoot() + request + (search === '' ? '' : `?${search}`)
   }
 
   return (
     <>
       <main className='e2e-helper-ui pa4-l bg-snow mw7 mv4-l center pa4 br2'>
         <h1 className='pa0 f3 ma0 mb4 teal tc'>Fetch & Verify IPFS Content in Browser</h1>
-        <p className='charcoal f6 fw1 db pt1 lh-copy mb2'>Enter a CID, IPFS Path, or URL to download data in a safe and verified way.</p>
+        <p className='db pt1 lh-copy mb2'>Enter a CID, IPFS Path, or URL to download data in a safe and verified way.</p>
         <DownloadForm
           handleSubmit={handleSubmit}
           requestPath={requestPath}

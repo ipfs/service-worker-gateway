@@ -1,0 +1,23 @@
+.striped--entity-props:nth-child(even) {
+  background-color: #f7f8fa;
+  border-top: 1px solid #d9dbe2;
+}
+.striped--entity-props:nth-child(odd) {
+  background-color: #fff;
+  border-top: 1px solid #d9dbe2;
+}
+.striped--entity-props:first-child {
+  border-top: none;
+}
+
+.striped--entity-props table {
+  border: 1px solid #d9dbe2;
+}
+
+tr.striped--entity-props-hover:hover td {
+  background-color: #eff0f3;
+}
+
+tr.striped--entity-props-hover:hover td button {
+  background-color: var(--snow-muted);
+}

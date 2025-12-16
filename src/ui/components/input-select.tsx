@@ -11,6 +11,7 @@ interface LocalStorageToggleProps extends PropsWithChildren {
   onClick?: React.MouseEventHandler<HTMLDivElement>
   onChange(value: string): void
   resetKey?: number
+  disabled?: boolean
 }
 
 export const InputSelect: React.FC<LocalStorageToggleProps> = ({
@@ -51,6 +52,7 @@ export const InputSelect: React.FC<LocalStorageToggleProps> = ({
         value={internalValue}
         onChange={handleChange}
         className='pa2 mt2 mb2'
+        disabled={props.disabled}
       >
         {children}
       </select>
