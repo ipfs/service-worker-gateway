@@ -80,14 +80,13 @@ export default defineConfig({
       name: 'deployed',
       use: {
         ...devices['Desktop Chrome'],
-        ...devices['Desktop Firefox'],
+        // ...devices['Desktop Firefox'],
         baseURL: process.env.BASE_URL
       }
     },
     {
       /**
-       * Test the site with service workers disabled. You need to `import {testNoServiceWorker as test, expect} from './fixtures/config-test-fixtures.js'` to use this project.
-       * Anything needing a service worker will be skipped when this project is ran.
+       * Test the site with service workers disabled
        */
       name: 'no-service-worker',
       testMatch: /test-e2e\/no-service-worker\.test\.ts/,
@@ -98,8 +97,7 @@ export default defineConfig({
         },
         launchOptions: {
           firefoxUserPrefs: {
-            'dom.serviceWorkers.enabled': false,
-            'privacy.bounceTrackingProtection.mode': 0
+            'dom.serviceWorkers.enabled': false
           }
         },
         /**
