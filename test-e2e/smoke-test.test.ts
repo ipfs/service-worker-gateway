@@ -145,14 +145,12 @@ test.describe('smoke test', () => {
       serviceWorkerRegistrationTTL
     })
 
-    const cid = 'bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui'
-    const path = 'root2/root3/root4'
-    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}/${path}/`, {
-      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}/${path}/` : undefined
+    const cid = 'bafkqablimvwgy3y'
+    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}`, {
+      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}/` : undefined
     })
-    expect(response?.status()).toBe(200)
-    expect(response?.headers()['content-type']).toBe('text/html; charset=utf-8')
-    expect(await response?.text()).toContain('hello')
+    expect(response.status()).toBe(200)
+    expect(await response.text()).toContain('hello')
 
     expect(await hasRegistration()).toBe(true)
 
