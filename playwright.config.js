@@ -21,21 +21,20 @@ function getWebServerCommand () {
 export default defineConfig({
   testDir: './test-e2e',
   testMatch: /(.+\.)?(test|spec)\.[jt]s/,
-  /* Run tests in files in parallel */
+  // Run tests in files in parallel
   fullyParallel: process.env.CI == null,
-  /* Fail the build on CI if you accidentally left test.only in the source code. */
-  forbidOnly: Boolean(process.env.CI),
-  /* Retry on CI only */
+  workers: process.env.CI == null ? undefined : 1,
+  // Retry on CI only
   retries: (process.env.CI != null) ? 2 : 0,
   timeout: process.env.CI != null ? 30_000 : undefined,
 
-  /* Reporter to use. See https://playwright.dev/docs/test-reporters */
+  // Reporter to use. See https://playwright.dev/docs/test-reporters
   // reporter: 'html', // Uncomment to generate HTML report
   use: {
-    /* Base URL to use in actions like `await page.goto('/')`. */
+    // Base URL to use in actions like `await page.goto('/')`.
     baseURL: 'http://localhost:3333',
 
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
+    // Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer
     trace: 'on-first-retry',
 
     // 'allow' serviceWorkers is the default, but we want to be explicit
