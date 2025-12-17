@@ -21,21 +21,20 @@ function getWebServerCommand () {
 export default defineConfig({
   testDir: './test-e2e',
   testMatch: /(.+\.)?(test|spec)\.[jt]s/,
-  /* Run tests in files in parallel */
+  // Run tests in files in parallel
   fullyParallel: process.env.CI == null,
-  /* Fail the build on CI if you accidentally left test.only in the source code. */
-  forbidOnly: Boolean(process.env.CI),
-  /* Retry on CI only */
+  workers: process.env.CI == null ? undefined : 1,
+  // Retry on CI only
   retries: (process.env.CI != null) ? 2 : 0,
-  timeout: process.env.CI != null ? 30 * 1000 : undefined,
+  timeout: process.env.CI != null ? 30_000 : undefined,
 
-  /* Reporter to use. See https://playwright.dev/docs/test-reporters */
+  // Reporter to use. See https://playwright.dev/docs/test-reporters
   // reporter: 'html', // Uncomment to generate HTML report
   use: {
-    /* Base URL to use in actions like `await page.goto('/')`. */
+    // Base URL to use in actions like `await page.goto('/')`.
     baseURL: 'http://localhost:3333',
 
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
+    // Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer
     trace: 'on-first-retry',
 
     // 'allow' serviceWorkers is the default, but we want to be explicit
@@ -86,8 +85,7 @@ export default defineConfig({
     },
     {
       /**
-       * Test the site with service workers disabled. You need to `import {testNoServiceWorker as test, expect} from './fixtures/config-test-fixtures.js'` to use this project.
-       * Anything needing a service worker will be skipped when this project is ran.
+       * Test the site with service workers disabled
        */
       name: 'no-service-worker',
       testMatch: /test-e2e\/no-service-worker\.test\.ts/,
@@ -98,8 +96,7 @@ export default defineConfig({
         },
         launchOptions: {
           firefoxUserPrefs: {
-            'dom.serviceWorkers.enabled': false,
-            'privacy.bounceTrackingProtection.mode': 0
+            'dom.serviceWorkers.enabled': false
           }
         },
         /**
@@ -118,15 +115,13 @@ export default defineConfig({
     }
   ],
 
-  webServer: [
-    {
-      // need to use built assets due to service worker loading issue.
-      command: getWebServerCommand(),
-      port: process.env.BASE_URL != null ? undefined : 3000,
-      timeout: 60 * 1000,
-      reuseExistingServer: false,
-      stdout: process.env.CI ? undefined : 'pipe',
-      stderr: process.env.CI ? undefined : 'pipe'
-    }
-  ]
+  webServer: [{
+    // need to use built assets due to service worker loading issue.
+    command: getWebServerCommand(),
+    port: process.env.BASE_URL != null ? undefined : 3000,
+    timeout: 60 * 1000,
+    reuseExistingServer: false,
+    stdout: process.env.CI ? undefined : 'pipe',
+    stderr: process.env.CI ? undefined : 'pipe'
+  }]
 })

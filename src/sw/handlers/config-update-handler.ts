@@ -1,5 +1,5 @@
 import { QUERY_PARAMS } from '../../lib/constants.js'
-import { createSearch } from '../../lib/first-hit-helpers.js'
+import { createSearch } from '../../lib/query-helpers.js'
 import { updateConfig } from '../lib/config.js'
 import type { Handler } from './index.js'
 

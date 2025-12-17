@@ -38,7 +38,7 @@ export function createReverseProxy ({
       options.headers = {}
     }
     options.headers.Host = targetHost
-    const clientIp = req.connection.remoteAddress
+    const clientIp = req.socket.remoteAddress
     options.headers['X-Forwarded-For'] = clientIp
 
     // override path to include prefixPath if set

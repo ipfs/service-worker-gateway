@@ -25,7 +25,11 @@ declare let self: ServiceWorkerGlobalScope
 
 self.addEventListener('install', (event) => {
   // 👇 When a new version of the SW is installed, activate immediately
-  void self.skipWaiting()
+  self.skipWaiting()
+    .catch(err => {
+      const log = getSwLogger('fetch')
+      log.error('error skipping waiting - %e', err)
+    })
   event.waitUntil(setInstallTime())
   event.waitUntil(clearSwAssetCache())
 })
@@ -40,7 +44,13 @@ self.addEventListener('activate', (event) => {
    * loading the content prior the user reloading or clicking the "load content"
    * button.
    */
-  event.waitUntil(self.clients.claim())
+  event.waitUntil(
+    self.clients.claim()
+      .catch(err => {
+        const log = getSwLogger('fetch')
+        log.error('error claiming clients - %e', err)
+      })
+  )
 
   // eslint-disable-next-line no-console
   console.info(`Service Worker Gateway: To manually unregister, append "?${QUERY_PARAMS.UNREGISTER_SERVICE_WORKER}=true" to the URL, or use the button on the config page.`)
@@ -85,14 +95,15 @@ self.addEventListener('fetch', (event) => {
 
   logEmitter.addEventListener('log', onLog)
 
-  log.trace('incoming request url: %s:', event.request.url)
+  log.trace('incoming request url %s', event.request.url)
 
-  // `event.respondWith` must be called synchronously in the event handler
+  // `event.respondWith` must be called synchronously in the event handler, but
+  // we can pass it a promise
   // https://stackoverflow.com/questions/76848928/failed-to-execute-respondwith-on-fetchevent-the-event-handler-is-already-f
   event.respondWith(
     handleFetch(url, event, logs)
       .then(async response => {
-        // uninstall service worker after request has finished
+        // maybe uninstall service worker after request has finished
         // TODO: remove this, it breaks offline installations after the TTL
         // has expired
         if (!(await isServiceWorkerRegistrationTTLValid())) {
@@ -127,29 +138,38 @@ self.addEventListener('fetch', (event) => {
 })
 
 async function handleFetch (url: URL, event: FetchEvent, logs: string[]): Promise<Response> {
-  const log = getSwLogger('handle-fetch')
+  try {
+    const log = getSwLogger('handle-fetch')
 
-  // find a handler for the request
-  for (const handler of handlers) {
-    if (handler.canHandle(url, event, logs)) {
-      log('handler %s handling request', handler.name)
-      return handler.handle(url, event, logs)
+    // find a handler for the request
+    for (const handler of handlers) {
+      if (handler.canHandle(url, event, logs)) {
+        log('handler %s handling request', handler.name)
+        return await handler.handle(url, event, logs)
+      }
     }
-  }
 
-  // if unhandled, do not intercept the request
-  log('no handler found, falling back to global fetch')
-  return fetch(event.request)
+    // if unhandled, do not intercept the request
+    log('no handler found, falling back to global fetch')
+    return await fetch(event.request)
+  } catch (err) {
+    // ensure we only reject, never throw
+    return Promise.reject(err)
+  }
 }
 
 async function isServiceWorkerRegistrationTTLValid (): Promise<boolean> {
   if (!navigator.onLine) {
     /**
-     * When we unregister the service worker, the a new one will be installed on the next page load.
+     * When we unregister the service worker, the a new one will be installed on
+     * the next page load.
      *
-     * Note: returning true here means if the user is not online, we will not unregister the service worker.
-     * However, browsers will have `navigator.onLine === true` if connected to a LAN that is not internet-connected,
-     * so we may want to be smarter about this in the future.
+     * Note: returning true here means if the user is not online, we will not
+     * unregister the service worker.
+     *
+     * However, browsers will have `navigator.onLine === true` if connected to a
+     * LAN that is not internet-connected, so we may want to be smarter about
+     * this in the future.
      *
      * @see https://github.com/ipfs/service-worker-gateway/issues/724
      */

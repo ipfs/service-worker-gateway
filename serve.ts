@@ -1,10 +1,14 @@
 #!/usr/bin/env node
 
 /**
- * This script is used to start everything needed to run the service worker gateway like a complete IPFS gateway.
- * It will start a kubo node, an ipfs gateway, and a reverse proxy for the front-end assets.
+ * This script is used to start everything needed to run the service worker
+ * gateway like a complete IPFS gateway.
  *
- * This file expects that `build:tsc` was ran first, and this will be handled for you if ran via `npm run start`
+ * It will start a kubo node, an ipfs gateway, and a reverse proxy for the
+ * front-end assets.
+ *
+ * This file expects that `build:tsc` was ran first, and this will be handled
+ * for you if ran via `npm run start`.
  */
 import { pathToFileURL } from 'node:url'
 import { logger } from '@libp2p/logger'
@@ -31,16 +35,8 @@ async function loadFixtures (): Promise<{
   await controller.start()
 
   await loadCarFixtures()
-  // eslint-disable-next-line no-console
-  console.log('loading ipns records')
-  try {
-    await loadIpnsRecords(controller, log)
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('error loading ipns records', err)
-  }
-  // eslint-disable-next-line no-console
-  console.log('loaded ipns records')
+  await loadIpnsRecords(controller, log)
+
   return {
     controller
   }
@@ -88,9 +84,9 @@ export async function serve ({ shouldLoadFixtures = false, shouldStartFrontend =
   }
 
   // when the process exits, stop the reverse proxy
-  void frontend?.on('exit', () => { void cleanup() })
-  void process.on('SIGINT', () => { void cleanup() })
-  void process.on('SIGTERM', () => { void cleanup() })
+  frontend?.on('exit', () => { void cleanup() })
+  process.on('SIGINT', () => { void cleanup() })
+  process.on('SIGTERM', () => { void cleanup() })
 
   return {
     controller

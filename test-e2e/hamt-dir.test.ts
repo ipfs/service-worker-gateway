@@ -10,9 +10,9 @@ test.describe('hamt-dir', () => {
       redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}/${path}` : undefined
     })
 
-    expect(response?.status()).toBe(200)
-    const headers = await response?.allHeaders()
+    expect(response.status()).toBe(200)
 
+    const headers = await response.allHeaders()
     expect(headers?.['content-type']).toContain('text/plain')
     expect(headers?.['cache-control']).toBe('public, max-age=29030400, immutable')
 

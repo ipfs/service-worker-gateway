@@ -41,6 +41,35 @@ export interface ConfigDbWithoutPrivateFields extends BaseDbConfig {
    * This will be true if the user has accepted this risk.
    */
   acceptOriginIsolationWarning: boolean
+
+  /**
+   * By default if a UnixFS directory is requested, we will check to see if an
+   * `index.html` is present. If so the `index.html` file will be rendered
+   * instead of a directory listing.
+   *
+   * Pass false here to disable this.
+   *
+   * @default true
+   */
+  supportDirectoryIndexes: boolean
+
+  /**
+   * By default if the root of a DAG contains a `_redirects` file, it will be
+   * used to allow overriding paths within that DAG.
+   *
+   * Pass false here to disable this.
+   *
+   * @see https://specs.ipfs.tech/http-gateways/web-redirects-file/
+   * @default true
+   */
+  supportWebRedirects: boolean
+
+  /**
+   * For non-HTML content, render a user-friendly HTML version of the object
+   * model that allows clicking through to other blocks, converting between
+   * different formats, etc.
+   */
+  renderHTMLViews: boolean
 }
 
 /**
@@ -67,6 +96,9 @@ export const defaultEnableGatewayProviders = true
 export const defaultSupportsSubdomains: null | boolean = null
 export const defaultServiceWorkerRegistrationTTL = 86_400_000 // 24 hours
 export const defaultAcceptOriginIsolationWarning = false
+export const defaultSupportDirectoryIndexes = true
+export const defaultSupportWebRedirects = true
+export const defaultRenderHTMLViews = true
 
 /**
  * The default fetch timeout for the gateway, in seconds.
@@ -217,6 +249,9 @@ export class Config {
       let serviceWorkerRegistrationTTL = defaultServiceWorkerRegistrationTTL
       let _supportsSubdomains = defaultSupportsSubdomains
       let acceptOriginIsolationWarning = defaultAcceptOriginIsolationWarning
+      let supportDirectoryIndexes = defaultSupportDirectoryIndexes
+      let supportWebRedirects = defaultSupportWebRedirects
+      let renderHTMLViews = defaultRenderHTMLViews
 
       let config: ConfigDb
 
@@ -241,6 +276,9 @@ export class Config {
         fetchTimeout = config.fetchTimeout
         serviceWorkerRegistrationTTL = config.serviceWorkerRegistrationTTL
         acceptOriginIsolationWarning = config.acceptOriginIsolationWarning
+        supportDirectoryIndexes = config.supportDirectoryIndexes
+        supportWebRedirects = config.supportWebRedirects
+        renderHTMLViews = config.renderHTMLViews
         _supportsSubdomains = config._supportsSubdomains
       } catch (err) {
         this.log.error('error loading config from db - %e', err)
@@ -272,6 +310,9 @@ export class Config {
         fetchTimeout: fetchTimeout ?? defaultFetchTimeout * 1000,
         serviceWorkerRegistrationTTL: serviceWorkerRegistrationTTL ?? defaultServiceWorkerRegistrationTTL,
         acceptOriginIsolationWarning: acceptOriginIsolationWarning ?? defaultAcceptOriginIsolationWarning,
+        supportDirectoryIndexes: supportDirectoryIndexes ?? defaultSupportDirectoryIndexes,
+        supportWebRedirects: supportWebRedirects ?? defaultSupportWebRedirects,
+        renderHTMLViews: renderHTMLViews ?? defaultRenderHTMLViews,
         _supportsSubdomains: _supportsSubdomains ?? defaultSupportsSubdomains
       } satisfies ConfigDb
     })().finally(() => {

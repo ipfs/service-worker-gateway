@@ -20,7 +20,10 @@ test.describe('ipfs-sw configuration', () => {
     enableGatewayProviders: true,
     fetchTimeout: 29 * 1000,
     serviceWorkerRegistrationTTL: 24 * 60 * 60 * 1000,
-    acceptOriginIsolationWarning: false
+    acceptOriginIsolationWarning: false,
+    supportDirectoryIndexes: true,
+    supportWebRedirects: true,
+    renderHTMLViews: true
   }
 
   test.beforeAll(async () => {
@@ -123,7 +126,7 @@ test.describe('ipfs-sw configuration', () => {
     // malicious urls should not exist in the config
     expect(config.gateways).not.toContain('https://malicious.com')
     expect(config.routers).not.toContain('https://malicious.com/routing/v1')
-    expect(config.dnsJsonResolvers).not.toContain('https://malicious.com/dns-query')
+    expect([...Object.values(config.dnsJsonResolvers)]).not.toContain('https://malicious.com/dns-query')
 
     // things we allow to be overridden are overridden
     expect(config.fetchTimeout).toBe(newConfig.fetchTimeout)

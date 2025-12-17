@@ -45,13 +45,19 @@ test.describe('download form', () => {
   })
 
   test.afterEach(async () => {
-    await download?.delete()
+    try {
+      await download?.delete()
+    } catch {
+      // this can throw if the page has already closed
+    }
   })
 
   test('should download a block', async ({ page }) => {
     const downloadPromise = page.waitForEvent('download')
+
     await page.fill('#inputContent', '/ipfs/bafkqaddimvwgy3zao5xxe3debi')
-    await page.click('label[for=download]')
+    await page.click('#show-advanced')
+    await page.selectOption('#download', 'true')
     await page.click('#load-directly')
 
     download = await downloadPromise
@@ -66,8 +72,10 @@ test.describe('download form', () => {
   test('should download a block and override the file name', async ({ page }) => {
     const filename = 'custom-filename.txt'
     const downloadPromise = page.waitForEvent('download')
+
     await page.fill('#inputContent', '/ipfs/bafkqaddimvwgy3zao5xxe3debi')
-    await page.click('label[for=download]')
+    await page.click('#show-advanced')
+    await page.selectOption('#download', 'true')
     await page.fill('#filename', filename)
     await page.click('#load-directly')
 
@@ -82,13 +90,15 @@ test.describe('download form', () => {
 
   test('should download a block and specify raw format', async ({ page }) => {
     const downloadPromise = page.waitForEvent('download')
+
     await page.fill('#inputContent', '/ipfs/bafkqaddimvwgy3zao5xxe3debi')
-    await page.click('label[for=download]')
+    await page.click('#show-advanced')
+    await page.selectOption('#download', 'true')
     await page.selectOption('#format', 'raw')
     await page.click('#load-directly')
 
     download = await downloadPromise
-    expect(download.suggestedFilename()).toBe('bafkqaddimvwgy3zao5xxe3debi.bin')
+    expect(download.suggestedFilename()).toBe('bafkqaddimvwgy3zao5xxe3debi.raw')
 
     const file = await fsp.readFile(await download.path(), {
       encoding: 'utf-8'
@@ -98,8 +108,10 @@ test.describe('download form', () => {
 
   test('should download a block and specify car format', async ({ page }) => {
     const downloadPromise = page.waitForEvent('download')
+
     await page.fill('#inputContent', '/ipfs/bafkqaddimvwgy3zao5xxe3debi')
-    await page.click('label[for=download]')
+    await page.click('#show-advanced')
+    await page.selectOption('#download', 'true')
     await page.selectOption('#format', 'car')
     await page.click('#load-directly')
 
@@ -121,7 +133,8 @@ test.describe('download form', () => {
       const downloadPromise = page.waitForEvent('download')
 
       await page.fill('#inputContent', `/ipfs/${cid}`)
-      await page.click('label[for=download]')
+      await page.click('#show-advanced')
+      await page.selectOption('#download', 'true')
       await page.selectOption('#format', 'car')
       await page.selectOption('#car-version', '1')
       await page.click('#load-directly')
@@ -147,7 +160,8 @@ test.describe('download form', () => {
       const cid = 'bafkqaddimvwgy3zao5xxe3debi'
 
       await page.fill('#inputContent', `/ipfs/${cid}`)
-      await page.click('label[for=download]')
+      await page.click('#show-advanced')
+      await page.selectOption('#download', 'true')
       await page.selectOption('#format', 'car')
       await page.selectOption('#car-version', '2')
       await page.click('#load-directly')
@@ -163,7 +177,8 @@ test.describe('download form', () => {
       const downloadPromise = page.waitForEvent('download')
 
       await page.fill('#inputContent', `/ipfs/${cid}`)
-      await page.click('label[for=download]')
+      await page.click('#show-advanced')
+      await page.selectOption('#download', 'true')
       await page.selectOption('#format', 'car')
       await page.selectOption('#block-traversal-order', 'dfs')
       await page.click('#load-directly')
@@ -197,7 +212,8 @@ test.describe('download form', () => {
       const downloadPromise = page.waitForEvent('download')
 
       await page.fill('#inputContent', `/ipfs/${cid}`)
-      await page.click('label[for=download]')
+      await page.click('#show-advanced')
+      await page.selectOption('#download', 'true')
       await page.selectOption('#format', 'car')
       await page.selectOption('#block-traversal-order', 'unk')
       await page.click('#load-directly')
@@ -231,7 +247,8 @@ test.describe('download form', () => {
       const downloadPromise = page.waitForEvent('download')
 
       await page.fill('#inputContent', `/ipfs/${cid}`)
-      await page.click('label[for=download]')
+      await page.click('#show-advanced')
+      await page.selectOption('#download', 'true')
       await page.selectOption('#format', 'car')
       await page.selectOption('#allow-duplicate-blocks', 'y')
       await page.click('#load-directly')
@@ -264,7 +281,8 @@ test.describe('download form', () => {
       const downloadPromise = page.waitForEvent('download')
 
       await page.fill('#inputContent', `/ipfs/${cid}`)
-      await page.click('label[for=download]')
+      await page.click('#show-advanced')
+      await page.selectOption('#download', 'true')
       await page.selectOption('#format', 'car')
       await page.selectOption('#allow-duplicate-blocks', 'n')
       await page.click('#load-directly')
@@ -296,7 +314,8 @@ test.describe('download form', () => {
       const downloadPromise = page.waitForEvent('download')
 
       await page.fill('#inputContent', `/ipfs/${cid}`)
-      await page.click('label[for=download]')
+      await page.click('#show-advanced')
+      await page.selectOption('#download', 'true')
       await page.selectOption('#format', 'car')
       await page.selectOption('#dag-scope', 'block')
       await page.click('#load-directly')
@@ -327,7 +346,8 @@ test.describe('download form', () => {
       const downloadPromise = page.waitForEvent('download')
 
       await page.fill('#inputContent', `/ipfs/${cid}`)
-      await page.click('label[for=download]')
+      await page.click('#show-advanced')
+      await page.selectOption('#download', 'true')
       await page.selectOption('#format', 'car')
       await page.selectOption('#dag-scope', 'entity')
       await page.click('#load-directly')
@@ -360,7 +380,8 @@ test.describe('download form', () => {
       const downloadPromise = page.waitForEvent('download')
 
       await page.fill('#inputContent', `/ipfs/${cid}`)
-      await page.click('label[for=download]')
+      await page.click('#show-advanced')
+      await page.selectOption('#download', 'true')
       await page.selectOption('#format', 'car')
       await page.selectOption('#dag-scope', 'all')
       await page.click('#load-directly')
@@ -394,7 +415,8 @@ test.describe('download form', () => {
       const downloadPromise = page.waitForEvent('download')
 
       await page.fill('#inputContent', `/ipfs/${cid}`)
-      await page.click('label[for=download]')
+      await page.click('#show-advanced')
+      await page.selectOption('#download', 'true')
       await page.selectOption('#format', 'car')
       await page.fill('#entity-bytes-from', '0')
       await page.fill('#entity-bytes-to', '*')
@@ -429,7 +451,8 @@ test.describe('download form', () => {
       const downloadPromise = page.waitForEvent('download')
 
       await page.fill('#inputContent', `/ipfs/${cid}`)
-      await page.click('label[for=download]')
+      await page.click('#show-advanced')
+      await page.selectOption('#download', 'true')
       await page.selectOption('#format', 'car')
       await page.fill('#entity-bytes-from', '0')
       await page.fill('#entity-bytes-to', '1')
@@ -464,7 +487,8 @@ test.describe('download form', () => {
       const downloadPromise = page.waitForEvent('download')
 
       await page.fill('#inputContent', `/ipfs/${cid}`)
-      await page.click('label[for=download]')
+      await page.click('#show-advanced')
+      await page.selectOption('#download', 'true')
       await page.selectOption('#format', 'car')
       await page.fill('#entity-bytes-from', '2')
       await page.fill('#entity-bytes-to', '3')
@@ -499,7 +523,8 @@ test.describe('download form', () => {
       const downloadPromise = page.waitForEvent('download')
 
       await page.fill('#inputContent', `/ipfs/${cid}`)
-      await page.click('label[for=download]')
+      await page.click('#show-advanced')
+      await page.selectOption('#download', 'true')
       await page.selectOption('#format', 'car')
       await page.fill('#entity-bytes-from', '4')
       await page.fill('#entity-bytes-to', '*')
@@ -532,7 +557,8 @@ test.describe('download form', () => {
   test('should download a tar file', async ({ page }) => {
     const downloadPromise = page.waitForEvent('download')
     await page.fill('#inputContent', '/ipfs/bafkqaddimvwgy3zao5xxe3debi')
-    await page.click('label[for=download]')
+    await page.click('#show-advanced')
+    await page.selectOption('#download', 'true')
     await page.selectOption('#format', 'tar')
     await page.click('#load-directly')
 
@@ -559,7 +585,8 @@ test.describe('download form', () => {
 
     const downloadPromise = page.waitForEvent('download')
     await page.fill('#inputContent', '/ipfs/baguqeerasfd64cjvzypw23uldj56sxclylkk264h2t76cks4vl7g5ilca3aq')
-    await page.click('label[for=download]')
+    await page.click('#show-advanced')
+    await page.selectOption('#download', 'true')
     await page.selectOption('#format', 'dag-json')
     await page.click('#load-directly')
 
@@ -577,7 +604,8 @@ test.describe('download form', () => {
 
     const downloadPromise = page.waitForEvent('download')
     await page.fill('#inputContent', '/ipfs/bafyreicqloxaaoq4f5ykqits4iktnmvab62i7nqanv4uce55ep4f6omnvm')
-    await page.click('label[for=download]')
+    await page.click('#show-advanced')
+    await page.selectOption('#download', 'true')
     await page.selectOption('#format', 'dag-cbor')
     await page.click('#load-directly')
 
@@ -597,7 +625,8 @@ test.describe('download form', () => {
 
     const downloadPromise = page.waitForEvent('download')
     await page.fill('#inputContent', '/ipfs/baguqeerasfd64cjvzypw23uldj56sxclylkk264h2t76cks4vl7g5ilca3aq')
-    await page.click('label[for=download]')
+    await page.click('#show-advanced')
+    await page.selectOption('#download', 'true')
     await page.selectOption('#format', 'json')
     await page.click('#load-directly')
 
@@ -615,7 +644,8 @@ test.describe('download form', () => {
 
     const downloadPromise = page.waitForEvent('download')
     await page.fill('#inputContent', '/ipfs/bafireidykglsfhoixmivffc5uwhcgshx4j465xwqntbmu43nb2dzqwfvae')
-    await page.click('label[for=download]')
+    await page.click('#show-advanced')
+    await page.selectOption('#download', 'true')
     await page.selectOption('#format', 'cbor')
     await page.click('#load-directly')
 
@@ -629,7 +659,8 @@ test.describe('download form', () => {
   test('should download a block and specify IPNS Record format', async ({ page }) => {
     const downloadPromise = page.waitForEvent('download')
     await page.fill('#inputContent', '/ipns/k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam')
-    await page.click('label[for=download]')
+    await page.click('#show-advanced')
+    await page.selectOption('#download', 'true')
     await page.selectOption('#format', 'ipns-record')
     await page.click('#load-directly')
 

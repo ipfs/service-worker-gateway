@@ -37,11 +37,14 @@ form {
   cursor: not-allowed;
 }
 
-header a {
+header.e2e-header a {
   text-decoration: none;
-  color: var(--aqua);
 }
 
-header a:hover {
+header.e2e-header a:hover {
   color: #EEE;
+}
+
+header.bg-snow button {
+  background-color: var(--snow-muted);
 }

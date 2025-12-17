@@ -1,11 +1,11 @@
-import React, { useCallback, useContext, useEffect, useState } from 'react'
+import React, { useContext, useState } from 'react'
 import { QUERY_PARAMS } from '../../lib/constants.js'
 import { removeRootHashIfPresent } from '../../lib/remove-root-hash.js'
 import { toGatewayRoot } from '../../lib/to-gateway-root.js'
 import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
 import { ConfigContext } from '../context/config-context.jsx'
 import './default-page-styles.css'
-import type { ReactNode } from 'react'
+import type { MouseEvent, ReactNode } from 'react'
 
 declare global {
   var originIsolationWarning: {
@@ -17,8 +17,8 @@ function IpAddressRecommendations ({ currentHost }: { currentHost: string }): Re
   return (
     <div>
       <span>Current Host: {currentHost}</span>
-      <p>Ip addresses do not support origin isolation.</p>
-      <p>If you are the website administrator, please ensure your domain has proper DNS configuration</p>
+      <p>IP addresses do not support origin isolation, please only access this page via a domain name.</p>
+      <p>If you are the website administrator, please ensure your domain has proper DNS configuration.</p>
     </div>
   )
 }
@@ -45,7 +45,7 @@ function DefaultRecommendations ({ currentHost }: { currentHost: string }): Reac
  * The UI is similar to browser security warnings and informs users about
  * missing features
  */
-export default function SubdomainWarningPage (): ReactNode {
+export default function OriginIsolationWarningPage (): ReactNode {
   const location = globalThis.originIsolationWarning?.location
 
   if (location == null) {
@@ -59,11 +59,13 @@ export default function SubdomainWarningPage (): ReactNode {
   removeRootHashIfPresent()
 
   const [isSaving, setIsSaving] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const configContext = useContext(ConfigContext)
 
-  const originalUrl = new URL(window.location.href)
+  const handleAcceptRisk = async (event: MouseEvent): Promise<void> => {
+    event.stopPropagation()
+    event.preventDefault()
 
-  const handleAcceptRisk = useCallback(async () => {
     setIsSaving(true)
 
     try {
@@ -74,23 +76,21 @@ export default function SubdomainWarningPage (): ReactNode {
 
       // tell the service worker to reload the config
       await fetch(`/?${QUERY_PARAMS.RELOAD_CONFIG}=true`)
-    } finally {
-      setIsSaving(false)
-    }
-  }, [])
 
-  useEffect(() => {
-    if (configContext.configDb.acceptOriginIsolationWarning) {
-      // remove any UI-added navigation info
+      setIsLoading(true)
+
+      // remove the origin isolation warning page from the browser history
       history.pushState('', document.title, window.location.pathname + window.location.search)
 
       // @ts-expect-error boolean `forceGet` argument is firefox-only
       window.location.reload(true)
+    } catch {
+    } finally {
+      setIsSaving(false)
     }
-  }, [originalUrl, configContext])
+  }
 
   const currentHost = window.location.host
-
   const isCurrentHostAnIpAddress = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/.test(currentHost)
 
   let RecommendationsElement: (props: { currentHost: string }) => ReactNode = DefaultRecommendations
@@ -125,7 +125,12 @@ export default function SubdomainWarningPage (): ReactNode {
       <RecommendationsElement currentHost={currentHost} />
 
       <div className='flex justify-center mt4'>
-        <ServiceWorkerReadyButton id='accept-warning' label={isSaving ? 'Accepting...' : 'I understand the risks - Continue anyway'} waitingLabel='Waiting for service worker registration...' onClick={handleAcceptRisk} />
+        <ServiceWorkerReadyButton
+          id='accept-warning' label={isSaving ? 'Accepting...' : 'I understand the risks - Continue anyway'}
+          waitingLabel='Waiting for service worker registration...'
+          onClick={handleAcceptRisk}
+          disabled={isLoading}
+        />
       </div>
     </main>
   )

@@ -6,8 +6,8 @@ import { base32 } from 'multiformats/bases/base32'
 import { base36 } from 'multiformats/bases/base36'
 import { base58btc } from 'multiformats/bases/base58'
 import { CID } from 'multiformats/cid'
+import { QUERY_PARAMS } from './constants.ts'
 import { dnsLinkLabelEncoder } from './dns-link-labels.js'
-import { getHeliaSwRedirectUrl } from './first-hit-helpers.js'
 import { pathRegex, subdomainRegex } from './regex.js'
 import type { Logger } from '@libp2p/interface'
 import type { MultibaseDecoder } from 'multiformats/cid'
@@ -30,7 +30,7 @@ export const isPathGatewayRequest = (location: Pick<Location, 'host' | 'pathname
  * Origin isolation check and enforcement
  * https://github.com/ipfs-shipyard/helia-service-worker-gateway/issues/30
  */
-export const findOriginIsolationRedirect = (location: Pick<Location, 'protocol' | 'host' | 'pathname' | 'search' | 'hash' | 'href' | 'origin'>, logger: Logger, supportsSubdomains: boolean | null): string | null => {
+export const findOriginIsolationRedirect = (location: Pick<Location, 'protocol' | 'host' | 'pathname' | 'search' | 'hash' | 'href' | 'origin'>, logger: Logger, supportsSubdomains: boolean | null): URL | null => {
   const log = logger?.newScope('find-origin-isolation-redirect')
 
   try {
@@ -44,7 +44,7 @@ export const findOriginIsolationRedirect = (location: Pick<Location, 'protocol' 
 
       if (supportsSubdomains === true) {
         log?.trace('subdomain support is enabled')
-        return toSubdomainRequest(location)
+        return toSubdomainRequest(new URL(location.href))
       }
     }
   } catch (err) {
@@ -56,15 +56,21 @@ export const findOriginIsolationRedirect = (location: Pick<Location, 'protocol' 
 }
 
 /**
- * Turns a path gateway url into a subdomain gateway url.
+ * Turns a path gateway url into a subdomain gateway url, possibly with a
+ * redirect param if a path into the CID was present.
  *
  * Throws an `InvalidParametersError` if the user supplied a bad CID or path
  * or `Error` if subdomains are unsupported because (for example) the gateway
  * is accessed via an IP address instead of a domain.
  */
-export const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' | 'pathname' | 'search' | 'hash' | 'href' | 'origin'>): string => {
+export const toSubdomainRequest = (location: URL): URL => {
   if (isIP(location.host)) {
     throw new Error('Host was an IP address so subdomains are unsupported')
+  }
+
+  // do not need to convert this
+  if (isSubdomainGatewayRequest(location)) {
+    return location
   }
 
   const segments = location.pathname
@@ -84,13 +90,13 @@ export const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' 
   let id = segments[1]
 
   // DNS labels are case-insensitive, and the length limit is 63.
-  // We ensure base32 if CID, base36 if ipns,
-  // or inlined according to https://specs.ipfs.tech/http-gateways/subdomain-gateway/#host-request-header if DNSLink name
+  // We ensure base32 if CID, base36 if ipns, or inlined if DNSLink name
+  // https://specs.ipfs.tech/http-gateways/subdomain-gateway/#host-request-header
   switch (ns) {
     case 'ipfs':
       // Base32 is case-insensitive and allows CID with popular hashes like
       // sha2-256 to fit in a single DNS label
-      id = parseCid(id).toString(base32)
+      id = parseCID(id).toString(base32)
       break
     case 'ipns':
       if (id.startsWith('Q') || id.startsWith('1')) {
@@ -107,10 +113,9 @@ export const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' 
 
         // /ipns/ namespace uses Base36 instead of 32 because ED25519 keys need
         // to fit in DNS label of max length 63
-        id = parseCid(id).toString(base36)
+        id = parseCID(id).toString(base36)
       } catch {
-        // not a CID, so we assume a DNSLink name and inline it according to
-        // https://specs.ipfs.tech/http-gateways/subdomain-gateway/#host-request-header
+        // not a CID, so we assume a DNSLink name and inline it
         id = dnsLinkLabelEncoder(id)
       }
       break
@@ -118,28 +123,38 @@ export const toSubdomainRequest = (location: Pick<Location, 'protocol' | 'host' 
       // ignore unknown namespaces
   }
 
-  const remainingPath = `/${segments.slice(2).join('/')}`
+  const remainingPath = segments.slice(2).join('/')
 
   // create new URL with the subdomain but without the path
-  const newLocation = new URL(`${location.protocol}//${id}.${ns}.${location.host}/`)
+  let subdomain = `${location.protocol}//${id}.${ns}.${location.host}`
 
-  const modifiedOriginalUrl = new URL(location.href)
-  modifiedOriginalUrl.pathname = remainingPath
-  modifiedOriginalUrl.hash = location.hash
+  // append the
+  let redirect = ''
 
-  const originalSearchParams = new URLSearchParams(location.search)
-  originalSearchParams.forEach((value, key) => {
-    modifiedOriginalUrl.searchParams.set(key, value)
-  })
+  if (remainingPath !== '') {
+    redirect += `/${remainingPath}`
+  }
 
-  return getHeliaSwRedirectUrl(modifiedOriginalUrl, newLocation).href
+  if (location.search !== '') {
+    redirect += location.search
+  }
+
+  if (location.hash !== '') {
+    redirect += location.hash
+  }
+
+  if (redirect !== '') {
+    subdomain += `?${QUERY_PARAMS.REDIRECT}=${encodeURIComponent(redirect)}`
+  }
+
+  return new URL(subdomain)
 }
 
 /**
  * Parses the string as a CID and converts it to v1. Translates any thrown error
  * to an `InvalidParametersError` so we can show a 400 screen to the user.
  */
-function parseCid (str: string): CID<any, any, any, 1> {
+function parseCID (str: string): CID<any, any, any, 1> {
   try {
     return CID.parse(str, findMultibaseDecoder(str)).toV1()
   } catch (err: any) {

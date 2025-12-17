@@ -6,7 +6,6 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
-	"net/url"
 	"path"
 	"strings"
 )
@@ -53,28 +52,22 @@ func fileExists(p string) bool {
 	return false
 }
 
-// redirectToHelia sends `302 /?helia-sw=<escaped original URI>`
-func redirectToHelia(w http.ResponseWriter, r *http.Request) {
-	target := "/?helia-sw=" + url.QueryEscape(r.URL.RequestURI())
-	http.Redirect(w, r, target, http.StatusFound)
-}
-
 // -----------------------------------------------------------------------------
 // Custom handler for /ipfs/* and /ipns/*
 // -----------------------------------------------------------------------------
 
 func ipfsLikeHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Access-Control-Allow-Origin", "*")
+	w.Header().Add("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS")
+
 	if fileExists(r.URL.Path) {
-		// Serve the embedded file
+		// Serve the asset
 		distHandler.ServeHTTP(w, r)
 		return
 	}
 
 	// Otherwise serve the index file
 	http.ServeFile(w, r, "dist/index.html")
-
-	// Otherwise hand off to the SW via redirect
-	// redirectToHelia(w, r)
 }
 
 // -----------------------------------------------------------------------------
@@ -94,6 +87,7 @@ func main() {
 	addr := ":3000"
 	log.Printf("Service Worker Gateway listening on %s", addr)
 	log.Printf("Open http://gateway.localhost%s in your browser", addr)
+
 	if err := http.ListenAndServe(addr, mux); err != nil {
 		log.Fatalf("server error: %v", err)
 	}

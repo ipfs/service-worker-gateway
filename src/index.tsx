@@ -1,30 +1,11 @@
 import { checkSubdomainSupport } from './lib/check-subdomain-support.js'
 import { Config } from './lib/config-db.js'
 import { QUERY_PARAMS } from './lib/constants.js'
-import { createSearch, isRequestForContentAddressedData } from './lib/first-hit-helpers.js'
+import { isUIPageRequest } from './lib/is-ui-page-request.ts'
 import { uiLogger } from './lib/logger.js'
+import { isPathOrSubdomainRequest } from './lib/path-or-subdomain.ts'
+import { createSearch } from './lib/query-helpers.ts'
 import { registerServiceWorker } from './lib/register-service-worker.js'
-
-/**
- * Asynchronously loads and shows the UI - this is to make the number of bytes
- * downloaded before the service worker is installed smaller
- */
-async function renderUi (): Promise<void> {
-  // dynamically load the app chunk using the correct filename
-  try {
-    // @ts-expect-error - App config is generated at build time
-    // eslint-disable-next-line import-x/no-absolute-path
-    const { APP_FILENAME } = await import('/ipfs-sw-app-config.js')
-    const script = document.createElement('script')
-    script.type = 'module'
-    script.src = `/${APP_FILENAME}`
-    document.body.appendChild(script)
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('Failed to load app chunk config:', err)
-    throw err
-  }
-}
 
 /**
  * The `index.html` page is loaded either directly (e.g. `http://localhost:1234`
@@ -209,10 +190,26 @@ async function main (): Promise<void> {
   }
 }
 
-void main().catch((err) => {
-  // eslint-disable-next-line no-console
-  console.error('helia:sw-gateway:index: error rendering ui', err)
-})
+/**
+ * Asynchronously loads and shows the UI - this is to make the number of bytes
+ * downloaded before the service worker is installed smaller
+ */
+async function renderUi (): Promise<void> {
+  // dynamically load the app chunk using the correct filename
+  try {
+    // @ts-expect-error - App config is generated at build time
+    // eslint-disable-next-line import-x/no-absolute-path
+    const { APP_FILENAME } = await import('/ipfs-sw-app-config.js')
+    const script = document.createElement('script')
+    script.type = 'module'
+    script.src = `/${APP_FILENAME}`
+    document.body.appendChild(script)
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Failed to load app chunk config:', err)
+    throw err
+  }
+}
 
 /**
  * If we accidentally install an invalid service worker we will get stuck in an
@@ -252,3 +249,28 @@ function tooManyRedirects (storageKey: string, maxRedirects = 5, period = 5_000)
 
   return recent.length > maxRedirects
 }
+
+export function isRequestForContentAddressedData (url: URL): boolean {
+  if (isUIPageRequest(url)) {
+    // hash request for UI pages, not content addressed data
+    return false
+  }
+
+  if (isPathOrSubdomainRequest(url)) {
+    // subdomain request
+    return true
+  }
+
+  if (url.searchParams.has(QUERY_PARAMS.REDIRECT)) {
+    // query param request
+    return true
+  }
+
+  return false
+}
+
+main()
+  .catch((err) => {
+    // eslint-disable-next-line no-console
+    console.error('helia:sw-gateway:index: error rendering ui', err)
+  })

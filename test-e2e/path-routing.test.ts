@@ -1,17 +1,14 @@
 import { testPathRouting as test, expect } from './fixtures/config-test-fixtures.js'
-import { handleOriginIsolationWarning } from './fixtures/handle-origin-isolation-warning.js'
+import { loadWithServiceWorker } from './fixtures/load-with-service-worker.ts'
 
 test.describe('path-routing', () => {
-  test('can load identity CID via path', async ({ page, swResponses }) => {
-    await page.goto('/ipfs/bafkqablimvwgy3y', {
-      waitUntil: 'networkidle'
+  test('can load identity CID via path', async ({ page, rootDomain, protocol }) => {
+    const cid = 'bafkqablimvwgy3y'
+    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}`, {
+      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}/` : undefined
     })
 
-    await handleOriginIsolationWarning(page)
-
-    const lastResponse = swResponses[swResponses.length - 1]
-    const headers = await lastResponse?.allHeaders()
-
+    const headers = await response?.allHeaders()
     expect(headers?.['content-type']).toBe('text/plain; charset=utf-8')
     expect(headers?.['cache-control']).toBe('public, max-age=29030400, immutable')
 

@@ -11,15 +11,15 @@ export async function loadIpnsRecords (node: KuboNode, log?: Logger): Promise<vo
   let loadedIpnsRecords = 0
   for (const ipnsRecord of await glob([`${process.cwd()}/test-e2e/fixtures/data/**/*.ipns-record`])) {
     loadedIpnsRecords++
-    log?.('Loading *.ipns-record fixture fullpath: %s', ipnsRecord)
+    log?.('loading *.ipns-record fixture fullpath: %s', ipnsRecord)
     // eslint-disable-next-line no-console
-    console.log('Loading *.ipns-record fixture fullpath: %s', ipnsRecord)
+    console.log('loading *.ipns-record fixture fullpath: %s', ipnsRecord)
     // read the ipns record
     const record: Uint8Array = await readFile(ipnsRecord)
     const key = basename(ipnsRecord, '.ipns-record').split('_')[0]
     await itAll(node.api.routing.put(`/ipns/${key}`, record, { allowOffline: true }))
   }
-  log?.('Loaded %d ipns records', loadedIpnsRecords)
+  log?.('loaded %d ipns records', loadedIpnsRecords)
   // eslint-disable-next-line no-console
   console.log('loaded %d ipns records', loadedIpnsRecords)
 }

@@ -1,12 +1,13 @@
 import React from 'react'
 import ReactDOMClient from 'react-dom/client'
 import './index.css'
-import { FaInfoCircle, FaCog, FaGithub, FaExclamationTriangle, FaExclamationCircle, FaHome } from 'react-icons/fa'
+import { FaInfoCircle, FaCog, FaGithub, FaExclamationTriangle, FaExclamationCircle, FaHome, FaListAlt } from 'react-icons/fa'
 import { HashRouter, Route, Routes, NavLink } from 'react-router-dom'
 import { Config } from '../lib/config-db.js'
 import { HASH_FRAGMENTS } from '../lib/constants.js'
 import { injectCSS } from '../lib/css-injector.js'
 import { uiLogger } from '../lib/logger.js'
+import { ErrorBoundary } from './components/error-boundary.tsx'
 import { ConfigProvider } from './context/config-context.jsx'
 import { ServiceWorkerProvider } from './context/service-worker-context.jsx'
 import ipfsLogo from './ipfs-logo.svg'
@@ -16,6 +17,7 @@ import { FetchErrorPage } from './pages/fetch-error.jsx'
 import HomePage from './pages/home.jsx'
 import NoServiceWorkerErrorPage from './pages/no-service-worker.jsx'
 import OriginIsolationWarningPage from './pages/origin-isolation-warning.jsx'
+import { RenderEntityPage } from './pages/render-entity.jsx'
 import { ServerErrorPage } from './pages/server-error.jsx'
 
 // SW did not trigger for this request
@@ -47,7 +49,7 @@ function Header (): React.ReactElement {
 
   if (globalThis.fetchError != null) {
     errorPageLink = (
-      <NavLink to='/' className={({ isActive }) => (isActive ?? globalThis.location.hash === '') ? 'yellow-muted' : 'yellow'} onClickCapture={doNothingIfClickedOnRoot}>
+      <NavLink to='/' className={({ isActive }) => (isActive || globalThis.location.hash === '') ? 'yellow-muted' : 'yellow'} onClickCapture={doNothingIfClickedOnRoot}>
         <FaExclamationCircle className='ml2 f3' />
       </NavLink>
     )
@@ -55,7 +57,7 @@ function Header (): React.ReactElement {
 
   if (globalThis.serverError != null) {
     errorPageLink = (
-      <NavLink to='/' className={({ isActive }) => (isActive ?? globalThis.location.hash === '') ? 'red-muted' : 'red'} onClickCapture={doNothingIfClickedOnRoot}>
+      <NavLink to='/' className={({ isActive }) => (isActive || globalThis.location.hash === '') ? 'red-muted' : 'red'} onClickCapture={doNothingIfClickedOnRoot}>
         <FaExclamationCircle className='ml2 f3' />
       </NavLink>
     )
@@ -63,8 +65,16 @@ function Header (): React.ReactElement {
 
   if (globalThis.originIsolationWarning != null) {
     errorPageLink = (
-      <NavLink to='/' className={({ isActive }) => (isActive ?? globalThis.location.hash === '') ? 'yellow-muted' : 'yellow'} onClickCapture={doNothingIfClickedOnRoot}>
+      <NavLink to='/' className={({ isActive }) => (isActive || globalThis.location.hash === '') ? 'yellow-muted' : 'yellow'} onClickCapture={doNothingIfClickedOnRoot}>
         <FaExclamationTriangle className='ml2 f3' />
+      </NavLink>
+    )
+  }
+
+  if (globalThis.renderEntity != null) {
+    errorPageLink = (
+      <NavLink to='/' className={({ isActive }) => (isActive || globalThis.location.hash === '') ? 'white' : 'aqua'} onClickCapture={doNothingIfClickedOnRoot}>
+        <FaListAlt className='ml2 f3' />
       </NavLink>
     )
   }
@@ -79,16 +89,16 @@ function Header (): React.ReactElement {
       <div className='pb1 ma0 mr2 inline-flex items-center aqua'>
         <h1 className='e2e-header-title f3 fw2 ttu sans-serif'>Service Worker Gateway</h1>
         {errorPageLink}
-        <NavLink to={`/${HASH_FRAGMENTS.IPFS_SW_LOAD_UI}`} className={({ isActive }) => (isActive || (errorPageLink == null && globalThis.location.hash === '')) ? 'white' : ''}>
+        <NavLink to={`/${HASH_FRAGMENTS.IPFS_SW_LOAD_UI}`} className={({ isActive }) => (isActive || (errorPageLink == null && globalThis.location.hash === '')) ? 'white' : 'aqua'}>
           <FaHome className='ml2 f3' />
         </NavLink>
-        <NavLink to={`/${HASH_FRAGMENTS.IPFS_SW_ABOUT_UI}`} className={({ isActive }) => isActive ? 'white' : ''}>
+        <NavLink to={`/${HASH_FRAGMENTS.IPFS_SW_ABOUT_UI}`} className={({ isActive }) => isActive ? 'white' : 'aqua'}>
           <FaInfoCircle className='ml2 f3' />
         </NavLink>
-        <NavLink to={`/${HASH_FRAGMENTS.IPFS_SW_CONFIG_UI}`} className={({ isActive }) => isActive ? 'white' : ''}>
+        <NavLink to={`/${HASH_FRAGMENTS.IPFS_SW_CONFIG_UI}`} className={({ isActive }) => isActive ? 'white' : 'aqua'}>
           <FaCog className='ml2 f3' />
         </NavLink>
-        <a href='https://github.com/ipfs/service-worker-gateway' title='IPFS Service Worker Gateway on GitHub' target='_blank' rel='noopener noreferrer' aria-label='Visit the GitHub repository for the IPFS Service Worker Gateway'>
+        <a href='https://github.com/ipfs/service-worker-gateway' className='aqua' title='IPFS Service Worker Gateway on GitHub' target='_blank' rel='noopener noreferrer' aria-label='Visit the GitHub repository for the IPFS Service Worker Gateway'>
           <FaGithub className='ml2 f3' />
         </a>
       </div>
@@ -119,6 +129,12 @@ function getIndexRoute (): React.ReactElement {
     )
   }
 
+  if (globalThis.renderEntity != null && globalThis.location.hash === '') {
+    return (
+      <Route element={<RenderEntityPage />} index />
+    )
+  }
+
   return (
     <Route element={<HomePage />} index />
   )
@@ -136,15 +152,17 @@ function App (): React.ReactElement {
   return (
     <HashRouter>
       <Header />
-      <Routes>
-        {getIndexRoute()}
-        <Route path={`/${HASH_FRAGMENTS.IPFS_SW_LOAD_UI}`} element={<HomePage />} />,
-        <Route path={`/${HASH_FRAGMENTS.IPFS_SW_ABOUT_UI}`} element={<AboutPage />} />,
-        <Route path={`/${HASH_FRAGMENTS.IPFS_SW_CONFIG_UI}`} element={<ConfigPage />} />,
-        <Route path={`/${HASH_FRAGMENTS.IPFS_SW_FETCH_ERROR_UI}`} element={<FetchErrorPage />} />
-        <Route path={`/${HASH_FRAGMENTS.IPFS_SW_SERVER_ERROR_UI}`} element={<ServerErrorPage />} />
-        <Route path={`/${HASH_FRAGMENTS.IPFS_SW_ORIGIN_ISOLATION_WARNING}`} element={<OriginIsolationWarningPage />} />
-      </Routes>
+      <ErrorBoundary>
+        <Routes>
+          {getIndexRoute()}
+          <Route path={`/${HASH_FRAGMENTS.IPFS_SW_LOAD_UI}`} element={<HomePage />} />,
+          <Route path={`/${HASH_FRAGMENTS.IPFS_SW_ABOUT_UI}`} element={<AboutPage />} />,
+          <Route path={`/${HASH_FRAGMENTS.IPFS_SW_CONFIG_UI}`} element={<ConfigPage />} />,
+          <Route path={`/${HASH_FRAGMENTS.IPFS_SW_FETCH_ERROR_UI}`} element={<FetchErrorPage />} />
+          <Route path={`/${HASH_FRAGMENTS.IPFS_SW_SERVER_ERROR_UI}`} element={<ServerErrorPage />} />
+          <Route path={`/${HASH_FRAGMENTS.IPFS_SW_ORIGIN_ISOLATION_WARNING}`} element={<OriginIsolationWarningPage />} />
+        </Routes>
+      </ErrorBoundary>
     </HashRouter>
   )
 }

@@ -1,11 +1,13 @@
 import React, { useState } from 'react'
 import { HASH_FRAGMENTS } from '../../lib/constants.js'
+import { isPathGatewayRequest, isSubdomainGatewayRequest } from '../../lib/path-or-subdomain.ts'
 import { removeRootHashIfPresent } from '../../lib/remove-root-hash.js'
 import { toGatewayRoot } from '../../lib/to-gateway-root.js'
 import { Button } from '../components/button.jsx'
 import ContentBox from '../components/content-box.jsx'
 import { Link } from '../components/link.jsx'
 import Terminal from '../components/terminal.jsx'
+import { createLink } from '../utils/links.ts'
 import type { ConfigDb } from '../../lib/config-db.js'
 import type { RequestDetails, ResponseDetails } from '../../sw/pages/fetch-error-page.js'
 import type { ReactElement } from 'react'
@@ -41,7 +43,7 @@ ${
 }`
 }
 
-function toResponse (response: any): string {
+function toResponse (response: ResponseDetails): string {
   let body = response.body
 
   // try to make JSON body legible
@@ -56,23 +58,25 @@ ${
   [...Object.entries(response.headers)].map(([key, value]) => `${capitalizeHeader(key)}: ${value}`).join('\n')
 }
 
-${body}`
+${body}`.trim()
 }
 
-function findCid (request: any): string | void {
+function findCid (request: RequestDetails): string | void {
   try {
     const url = new URL(request.resource)
 
-    const [cid] = url.hostname.split('.ipfs.')
+    if (isSubdomainGatewayRequest(url) && url.hostname.includes('.ipfs.')) {
+      const [cid] = url.hostname.split('.ipfs.')
 
-    if (cid != null) {
-      return cid
-    }
+      if (cid != null) {
+        return cid
+      }
+    } else if (isPathGatewayRequest(url) && url.pathname.startsWith('/ipfs/')) {
+      const path = url.pathname.split('/')
 
-    const path = url.pathname.split('/')
-
-    if (path.length > 2 && path[1] === 'ipfs') {
-      return path[2]
+      if (path.length > 2 && path[1] === 'ipfs') {
+        return path[2]
+      }
     }
   } catch {}
 }
@@ -101,7 +105,7 @@ function DebugInfo ({ request, response, config, logs }: FetchErrorPageProps): R
   if (request != null) {
     requestDisplay = (
       <>
-        <h4>Request</h4>
+        <h4 className='ma3'>Request</h4>
         <Terminal>{toRequest(request)}</Terminal>
       </>
     )
@@ -112,7 +116,7 @@ function DebugInfo ({ request, response, config, logs }: FetchErrorPageProps): R
   if (response != null) {
     responseDisplay = (
       <>
-        <h4>Response</h4>
+        <h4 className='ma3'>Response</h4>
         <Terminal>{toResponse(response)}</Terminal>
       </>
     )
@@ -123,7 +127,7 @@ function DebugInfo ({ request, response, config, logs }: FetchErrorPageProps): R
   if (config != null) {
     configDisplay = (
       <>
-        <h4>Configuration</h4>
+        <h4 className='ma3'>Configuration</h4>
         <Terminal>{JSON.stringify(config, null, 2)}</Terminal>
       </>
     )
@@ -134,7 +138,7 @@ function DebugInfo ({ request, response, config, logs }: FetchErrorPageProps): R
   if (logs != null) {
     logDisplay = (
       <>
-        <h4>Logs</h4>
+        <h4 className='ma3'>Logs</h4>
         <Terminal>{logs.join('\n')}</Terminal>
       </>
     )
@@ -142,9 +146,9 @@ function DebugInfo ({ request, response, config, logs }: FetchErrorPageProps): R
 
   return (
     <>
-      <h3>Debug</h3>
+      <h3 className='ma3'>Debug</h3>
       {/* this message is already displayed if it's a 500 */}
-      {response?.status === 500 ? '' : <p>If you open a <Link href='https://github.com/ipfs/service-worker-gateway/issues?q=sort%3Aupdated-desc+is%3Aissue+is%3Aopen'>bug report</Link> please include all of the information below.</p>}
+      {response?.status === 500 ? '' : <p className='ma3'>If you open a <Link href='https://github.com/ipfs/service-worker-gateway/issues?q=sort%3Aupdated-desc+is%3Aissue+is%3Aopen'>bug report</Link> please include all of the information below.</p>}
       {requestDisplay}
       {responseDisplay}
       {configDisplay}
@@ -203,79 +207,96 @@ export function FetchErrorPage ({ request, response, config, logs, providers }: 
   }
 
   const cid = findCid(request)
+  let showCheckAvailability = Boolean(cid)
 
   const openIssueLink = (
     <>
-      <p className='f5 ma0 pt3 teal fw4 db'>Please <Link href='https://github.com/ipfs/service-worker-gateway/issues'>open an issue</Link> with the URL you tried to access and any debugging information displayed below.</p>
+      <p className='f5 ma3 fw4 db'>Please <Link href='https://github.com/ipfs/service-worker-gateway/issues'>open an issue</Link> with the URL you tried to access and any debugging information displayed below.</p>
+    </>
+  )
+
+  let providersMessage = <></>
+
+  if (providers.total === 0) {
+    providersMessage = (
+      <>
+        <Terminal>No providers were found</Terminal>
+      </>
+    )
+  } else {
+    const bitswapProviders: Array<{ PeerID: string, Multiaddrs: string[] }> = []
+    const trustlessGatewayProviders: string[] = providers.trustlessGateway
+    const unknownProviders: any[] = providers.other
+
+    Object.entries(providers.bitswap).forEach(([PeerID, Multiaddrs]) => {
+      bitswapProviders.push({
+        PeerID,
+        Multiaddrs
+      })
+    })
+
+    providersMessage = (
+      <>
+        <Terminal>
+          These providers were found but did not return the requested data within the timeout:
+          {bitswapProviders.length > 0 ? '\n\nBitswap:\n\n' + JSON.stringify(bitswapProviders, null, 2) : ''}
+          {trustlessGatewayProviders.length > 0 ? '\n\nTrustless Gateways:\n\n' + JSON.stringify(trustlessGatewayProviders, null, 2) : ''}
+          {unknownProviders.length > 0 ? `\n\nUnknown Routing(s) (${providers.other.length}/${providers.otherCount}):\n\n` + JSON.stringify(unknownProviders, null, 2) : ''}
+        </Terminal>
+      </>
+    )
+  }
+
+  const whatNextMessage = (
+    <>
+      <p className='f5 ma3 fw4 db'>How you can proceed:</p>
+      <ul className='db pt1 lh-copy ma3'>
+        <li>Verify the URL and try again.</li>
+        <li>Self-host and run an <Link href='https://docs.ipfs.tech/concepts/ipfs-implementations/'>IPFS client</Link> that verifies your data.</li>
+        <li>Try diagnosing your request with the <Link href='https://docs.ipfs.tech/reference/diagnostic-tools/'>IPFS diagnostic tools</Link>.</li>
+        <li>Inspect the <Link href={`https://cid.ipfs.tech/${cid ? `#${cid}` : ''}`}>CID</Link> or <Link href={`https://explore.ipld.io/${cid ? `#/explore/${cid}` : ''}`}>DAG</Link>.</li>
+        <li>Increase the timeout in the <a href={createLink({ hash: `#/${HASH_FRAGMENTS.IPFS_SW_CONFIG_UI}` })} className='link'>config page</a> for this Service Worker Gateway instance.</li>
+        <li>Install the <Link href='https://docs.ipfs.tech/install/ipfs-companion'>IPFS companion browser extension </Link> to run a local IPFS node.</li>
+      </ul>
     </>
   )
 
   let message = (
     <>
-      <p className='f5 ma0 pt3 teal fw4 db'>An error occurred in the service worker gateway.</p>
+      <p className='f5 ma3 fw4 db'>An error occurred in the service worker gateway.</p>
       {openIssueLink}
     </>
   )
 
-  if (response.status === 501) {
+  if (response.body.includes('UnknownHashAlgorithmError')) {
     message = (
       <>
-        <p className='f5 ma0 pt3 teal fw4 db'>This gateway encountered content it did not know how to handle.</p>
+        <p className='f5 ma3 fw4 db'>The requested CID contains a hash algorithm for which no implementation has been configured so it is not possible to verify the received block.</p>
+        <p className='f5 ma3 fw4 db'>It is not currently possible to configure arbitrary hashing algorithms though this could be a feature added in the future.</p>
+        {openIssueLink}
+      </>
+    )
+  } else if (response.status === 501) {
+    message = (
+      <>
+        <p className='f5 ma3 fw4 db'>This gateway encountered content it did not know how to handle.</p>
         {openIssueLink}
       </>
     )
   } else if (response.status === 502) {
     message = (
       <>
-        <p className='f5 ma0 pt3 teal fw4 db'>'This gateway failed to load the requested content.'</p>
+        <p className='f5 ma3 fw4 db'>Failed to load the requested content.</p>
+        {providersMessage}
+        {whatNextMessage}
       </>
     )
   } else if (response.status === 504) {
-    let providersMessage = <></>
-
-    if (providers.total === 0) {
-      providersMessage = (
-        <>
-          <Terminal>No providers were found</Terminal>
-        </>
-      )
-    } else {
-      const bitswapProviders: Array<{ PeerID: string, Multiaddrs: string[] }> = []
-      const trustlessGatewayProviders: string[] = providers.trustlessGateway
-      const unknownProviders: any[] = providers.other
-
-      Object.entries(providers.bitswap).forEach(([PeerID, Multiaddrs]) => {
-        bitswapProviders.push({
-          PeerID,
-          Multiaddrs
-        })
-      })
-
-      providersMessage = (
-        <>
-          <Terminal>
-            These providers were found but did not return the requested data within the timeout:
-            {bitswapProviders.length > 0 ? '\n\nBitswap:\n\n' + JSON.stringify(bitswapProviders, null, 2) : ''}
-            {trustlessGatewayProviders.length > 0 ? '\n\nTrustless Gateways:\n\n' + JSON.stringify(trustlessGatewayProviders, null, 2) : ''}
-            {unknownProviders.length > 0 ? `\n\nUnknown Routing(s) (${providers.other.length}/${providers.otherCount}):\n\n` + JSON.stringify(unknownProviders, null, 2) : ''}
-          </Terminal>
-        </>
-      )
-    }
-
     message = (
       <>
-        <p className='charcoal f6 fw1 db pt1 lh-copy mb2'>The <Link href='https://docs.ipfs.tech/concepts/glossary/#gateway'>gateway</Link> is taking too long to fetch your content from the <Link href='https://docs.ipfs.tech/concepts/glossary/#mainnet'>public IPFS network</Link>.</p>
+        <p className='db pt1 lh-copy ma3'>The service worker <Link href='https://docs.ipfs.tech/concepts/glossary/#gateway'>gateway</Link> is taking too long to fetch your content from the <Link href='https://docs.ipfs.tech/concepts/glossary/#mainnet'>public IPFS network</Link>.</p>
         {providersMessage}
-        <p className='f5 ma0 pt3 teal fw4 db'>How you can proceed:</p>
-        <ul className='charcoal f6 fw1 db pt1 lh-copy mb2'>
-          <li>Verify the URL and try again.</li>
-          <li>Self-host and run an <Link href='https://docs.ipfs.tech/concepts/ipfs-implementations/'>IPFS client</Link> that verifies your data.</li>
-          <li>Try diagnosing your request with the <Link href='https://docs.ipfs.tech/reference/diagnostic-tools/'>IPFS diagnostic tools</Link>.</li>
-          <li>Inspect the <Link href={`https://cid.ipfs.tech/${cid ? `#${cid}` : ''}`}>CID</Link> or <Link href={`https://explore.ipld.io/${cid ? `#/explore/${cid}` : ''}`}>DAG</Link>.</li>
-          <li>Increase the timeout in the <Link href={`/#/${HASH_FRAGMENTS.IPFS_SW_CONFIG_UI}`}>config page</Link> for this Service Worker Gateway instance.</li>
-          <li>Install the <Link href='https://docs.ipfs.tech/install/ipfs-companion'>IPFS companion browser extension </Link> to run a local IPFS node.</li>
-        </ul>
+        {whatNextMessage}
       </>
     )
   } else if (response.status === 404) {
@@ -283,23 +304,54 @@ export function FetchErrorPage ({ request, response, config, logs, providers }: 
 
     message = (
       <>
-        <p className='f5 ma0 pt3 teal fw4 db'>The path {url.pathname} was not found under the CID {url.hostname.split('.ipfs')[0]}</p>
+        <p className='f5 ma3 fw4 db'>The path {url.pathname} was not found under the CID {url.hostname.split('.ipfs')[0]}</p>
+      </>
+    )
+  } else if (response.status === 406) {
+    showCheckAvailability = false
+
+    message = (
+      <>
+        <p className='f5 ma3 fw4 db'>The requested content cannot be represented in the requested format.</p>
       </>
     )
   } else if (response.status >= 400 && response.status < 500) {
     message = (
       <>
-        <p className='f5 ma0 pt3 teal fw4 db'>The request was invalid</p>
+        <p className='f5 ma3 fw4 db'>The request was invalid</p>
       </>
     )
   }
 
   let checkAvailabilityButton = <></>
 
-  if (cid != null) {
+  if (showCheckAvailability && cid != null) {
     checkAvailabilityButton = (
       <>
         <Button className='bg-navy-muted' onClick={() => checkAvailability(cid)}>Check CID availability</Button>
+      </>
+    )
+  }
+
+  let viewRawBlockButton = <></>
+
+  if (viewRawBlockButton && cid != null) {
+    viewRawBlockButton = (
+      <>
+        <Button
+          className='bg-navy-muted' onClick={(evt: MouseEvent) => {
+            evt.preventDefault()
+            evt.stopPropagation()
+
+            window.location.href = createLink({
+              params: {
+                format: 'raw',
+                download: 'false'
+              }
+            })
+          }}
+        >View raw block
+        </Button>
       </>
     )
   }
@@ -309,11 +361,12 @@ export function FetchErrorPage ({ request, response, config, logs, providers }: 
       <ContentBox title={`${response.status} ${response.statusText}`}>
         <>
           {message}
-          <p>
+          <p className='ma3'>
             <Button className='bg-teal' onClick={retry}>Retry</Button>
             <Button className='bg-navy-muted' onClick={goBack}>Go back</Button>
             <Button className='bg-navy-muted' onClick={toggleDebugInfo}>{showDebugInfo ? 'Hide' : 'Show'} debug info</Button>
             {checkAvailabilityButton}
+            {viewRawBlockButton}
           </p>
           {showDebugInfo && <DebugInfo request={request} response={response} config={config} logs={logs} />}
         </>

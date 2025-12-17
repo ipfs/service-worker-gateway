@@ -1,4 +1,6 @@
+import { MEDIA_TYPE_DAG_PB } from '@helia/verified-fetch'
 import { AbortError, setMaxListeners } from '@libp2p/interface'
+import { anySignal } from 'any-signal'
 import { CURRENT_CACHES } from '../../constants.js'
 import { Config } from '../../lib/config-db.js'
 import { QUERY_PARAMS } from '../../lib/constants.js'
@@ -13,11 +15,23 @@ import { getInstallTime } from '../lib/install-time.js'
 import { getVerifiedFetch } from '../lib/verified-fetch.js'
 import { fetchErrorPageResponse } from '../pages/fetch-error-page.js'
 import { originIsolationWarningPageResponse } from '../pages/origin-isolation-warning-page.js'
+import { renderEntityPageResponse } from '../pages/render-entity.js'
 import { serverErrorPageResponse } from '../pages/server-error-page.js'
 import type { Handler } from './index.js'
-import type { UrlParts } from '../../lib/get-subdomain-parts.js'
+import type { ConfigDb } from '../../lib/config-db.js'
 import type { Providers } from '../index.js'
 import type { VerifiedFetchInit } from '@helia/verified-fetch'
+
+const FORMAT_TO_MEDIA_TYPE: Record<string, string> = {
+  raw: 'application/vnd.ipld.raw',
+  car: 'application/vnd.ipld.car',
+  tar: 'application/x-tar',
+  'dag-json': 'application/vnd.ipld.dag-json',
+  'dag-cbor': 'application/vnd.ipld.dag-cbor',
+  json: 'application/json',
+  cbor: 'application/cbor',
+  'ipns-record': 'application/vnd.ipfs.ipns-record'
+}
 
 interface FetchHandlerArg {
   event: FetchEvent
@@ -25,15 +39,16 @@ interface FetchHandlerArg {
   subdomainGatewayRequest: boolean
   pathGatewayRequest: boolean
   url: URL
-  urlParts: UrlParts
+  headers: Headers
+  renderPreview: boolean
   cacheKey: string
   isMutable: boolean
 }
 
 const ONE_HOUR_IN_SECONDS = 3600
 
-function getCacheKey (event: FetchEvent): string {
-  return `${event.request.url}-${event.request.headers.get('Accept') ?? ''}`
+function getCacheKey (event: FetchEvent, renderPreview: boolean): string {
+  return `${event.request.url}-${event.request.headers.get('accept') ?? ''}-preview-${renderPreview}`
 }
 
 async function getResponseFromCacheOrFetch (args: FetchHandlerArg): Promise<Response> {
@@ -151,7 +166,7 @@ async function storeResponseInCache (response: Response, args: FetchHandlerArg):
   }
 }
 
-async function fetchHandler ({ url, event, logs, subdomainGatewayRequest, pathGatewayRequest }: FetchHandlerArg): Promise<Response> {
+async function fetchHandler ({ url, headers, renderPreview, event, logs, subdomainGatewayRequest, pathGatewayRequest }: FetchHandlerArg): Promise<Response> {
   const log = getSwLogger('fetch-handler')
   const config = await getConfig()
 
@@ -161,12 +176,14 @@ async function fetchHandler ({ url, event, logs, subdomainGatewayRequest, pathGa
       const asSubdomainRequest = toSubdomainRequest(url)
 
       if (config._supportsSubdomains) {
-        log.trace('redirecting to subdomain')
+        log.trace('url was %s', url.toString())
+        log.trace('redirecting to subdomain - %s', asSubdomainRequest)
+
         return new Response('Gateway supports subdomain mode, redirecting to ensure Origin isolation..', {
           status: 301,
           headers: {
             'Content-Type': 'text/plain',
-            Location: asSubdomainRequest
+            Location: asSubdomainRequest.toString()
           }
         })
       }
@@ -192,18 +209,6 @@ async function fetchHandler ({ url, event, logs, subdomainGatewayRequest, pathGa
     // loading the requested content
   }
 
-  /**
-   * Note that there are existing bugs regarding service worker signal handling:
-   * https://bugs.chromium.org/p/chromium/issues/detail?id=823697
-   * https://bugzilla.mozilla.org/show_bug.cgi?id=1394102
-   */
-  const timeoutSignal = AbortSignal.timeout(config.fetchTimeout)
-  const signal = AbortSignal.any([
-    event.request.signal,
-    timeoutSignal
-  ])
-  setMaxListeners(Infinity, signal)
-
   const providers: Providers = {
     total: 0,
     bitswap: new Map(),
@@ -212,10 +217,26 @@ async function fetchHandler ({ url, event, logs, subdomainGatewayRequest, pathGa
     otherCount: 0
   }
 
-  const resource = new URL(event.request.url).href
+  const resource = url.href
+
+  const firstInstallTime = await getInstallTime()
+  const start = Date.now()
+
+  /**
+   * Note that there are existing bugs regarding service worker signal handling:
+   * https://bugs.chromium.org/p/chromium/issues/detail?id=823697
+   * https://bugzilla.mozilla.org/show_bug.cgi?id=1394102
+   */
+  const timeoutSignal = AbortSignal.timeout(config.fetchTimeout)
+  const signal = anySignal([
+    event.request.signal,
+    timeoutSignal
+  ])
+  setMaxListeners(Infinity, signal)
+
   const init: VerifiedFetchInit = {
     signal,
-    headers: event.request.headers,
+    headers,
     redirect: 'manual',
     onProgress: (evt) => {
       if (evt.type.endsWith(':found-provider')) {
@@ -238,31 +259,70 @@ async function fetchHandler ({ url, event, logs, subdomainGatewayRequest, pathGa
           }
         }
       }
-    }
+    },
+    supportDirectoryIndexes: config.supportDirectoryIndexes,
+    supportWebRedirects: config.supportWebRedirects
   }
 
-  const firstInstallTime = await getInstallTime()
-  const verifiedFetch = await getVerifiedFetch()
-  const start = Date.now()
-
   try {
+    const verifiedFetch = await getVerifiedFetch()
+
+    log('request')
+    log('%s %s HTTP/1.1', init.method ?? 'GET', resource)
+
+    for (const [key, value] of headers.entries()) {
+      log('%s: %s', key, value)
+    }
+
     const response = await verifiedFetch(resource, init)
     response.headers.set('server', `${APP_NAME}/${APP_VERSION}#${GIT_REVISION}`)
 
-    log('%s %s %d %s', init.method ?? 'GET', resource, response.status, response.statusText)
+    log('response')
+    log('HTTP/1.1 %d %s', response.status, response.statusText)
 
-    // Now that we've got a response back from Helia, don't abort the promise
-    // since any additional networking calls that may performed by Helia would
-    // be dropped.
-    //
-    // If `event.request.signal` is aborted, that would cancel any underlying
-    // network requests.
-    //
-    // Note: we haven't awaited the arrayBuffer, blob, json, etc.
-    // `await verifiedFetch` only awaits the construction of the response
-    // object, regardless of it's inner content
+    for (const [key, value] of response.headers.entries()) {
+      log('%s: %s', key, value)
+    }
+
     if (!response.ok) {
       return fetchErrorPageResponse(resource, init, response, await response.text(), providers, config, firstInstallTime, logs)
+    }
+
+    if (response.headers.get('content-type') === MEDIA_TYPE_DAG_PB) {
+      renderPreview = shouldRenderDirectory(url, headers, config)
+    }
+
+    if (renderPreview) {
+      try {
+        return renderEntityPageResponse(url, headers, response, await response.arrayBuffer())
+      } catch (err: any) {
+        log.error('error while loading body to render - %e', err)
+
+        // if the response content involves loading more than one block and
+        // loading a subsequent block fails, the `.arrayBuffer()` promise will
+        // reject with an opaque 'TypeError: Failed to fetch' so show a 502 Bad
+        // Gateway with debugging information
+        return fetchErrorPageResponse(resource, init, new Response('', {
+          status: 502,
+          statusText: 'Bad Gateway',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }), JSON.stringify(errorToObject(err), null, 2), providers, config, firstInstallTime, logs)
+      }
+    }
+
+    if (url.searchParams.get('download') === 'true') {
+      // override inline attachments if present
+      let contentDisposition = response.headers.get('content-disposition')
+
+      if (contentDisposition == null || contentDisposition === '') {
+        contentDisposition = 'attachment'
+      } else if (contentDisposition.startsWith('inline')) {
+        contentDisposition = contentDisposition.replace('inline', 'attachment')
+      }
+
+      response.headers.set('content-disposition', contentDisposition)
     }
 
     // Create a completely new response object with the same body, status,
@@ -286,8 +346,19 @@ async function fetchHandler ({ url, event, logs, subdomainGatewayRequest, pathGa
       }), JSON.stringify(errorToObject(new AbortError(`Timed out after ${Date.now() - start}ms`)), null, 2), providers, config, firstInstallTime, logs)
     }
 
+    if (err.name === 'LoadBlockFailedError') {
+      return fetchErrorPageResponse(resource, init, new Response('', {
+        status: 502,
+        statusText: 'Bad Gateway',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }), JSON.stringify(errorToObject(err), null, 2), providers, config, firstInstallTime, logs)
+    }
+
     if (event.request.signal.aborted) {
       // the request was cancelled?
+      log.error('the request signal was aborted')
     }
 
     log.error('error during request - %e', err)
@@ -299,6 +370,8 @@ async function fetchHandler ({ url, event, logs, subdomainGatewayRequest, pathGa
         'Content-Type': 'application/json'
       }
     }), JSON.stringify(errorToObject(err), null, 2), providers, config, firstInstallTime, logs)
+  } finally {
+    signal.clear()
   }
 }
 
@@ -310,6 +383,56 @@ function setExpiresHeader (response: Response, ttlSeconds: number = ONE_HOUR_IN_
   const expirationTime = new Date(Date.now() + ttlSeconds * 1000)
 
   response.headers.set('sw-cache-expires', expirationTime.toUTCString())
+}
+
+/**
+ * Returns `true` if the request should be rendered using an HTML view
+ */
+function shouldRenderResponse (url: URL, requestHeaders: Headers, config: ConfigDb): boolean {
+  if (url.searchParams.get('download') === 'true') {
+    // user explicitly wants to download the content
+    return false
+  } else if (url.searchParams.get('download') === 'false') {
+    // user explicitly wants to view the content
+    return true
+  } else {
+    // download param is '' or not set, perform the default action for the
+    // content unless overridden in some other way
+  }
+
+  // the user has disabled html views
+  if (config.renderHTMLViews === false) {
+    return false
+  }
+
+  // the user doesn't care what we send. this is a hack to work around the fact
+  // that browsers always send an accept header that includes text/html so if
+  // we only rely on that we'll always show a preview and never inline content
+  // which then breaks things like showing inline text/plain content
+  if (requestHeaders.get('accept')?.includes('*/*') === true) {
+    return false
+  }
+
+  // the user has explicitly requested HTML
+  if (requestHeaders.get('accept')?.includes('text/html') === true) {
+    return true
+  }
+
+  // do whatever the default for the CID is
+  return false
+}
+
+function shouldRenderDirectory (url: URL, requestHeaders: Headers, config: ConfigDb): boolean {
+  if (url.searchParams.get('download') === 'true') {
+    return false
+  }
+
+  // the user has disabled html views
+  if (config.renderHTMLViews === false) {
+    return false
+  }
+
+  return requestHeaders.get('accept')?.includes('text/html') === true
 }
 
 export const contentRequestHandler: Handler = {
@@ -351,11 +474,10 @@ export const contentRequestHandler: Handler = {
       log('subdomain request has no config set, redirecting to gateway root')
       const location = new URL(`${url.protocol}//${urlParts.parentDomain}?${QUERY_PARAMS.REDIRECT}=${encodeURIComponent(event.request.url)}&${QUERY_PARAMS.GET_CONFIG}=true`)
 
-      return new Response('Redirecting for config', {
+      return new Response('', {
         status: 307,
         headers: {
-          'Content-Type': 'text/plain',
-          Location: location.toString()
+          location: location.toString()
         }
       })
     }
@@ -364,26 +486,66 @@ export const contentRequestHandler: Handler = {
     const redirect = url.searchParams.get(QUERY_PARAMS.REDIRECT)
 
     if (redirect != null) {
-      return new Response('Redirecting', {
+      return new Response('', {
         status: 307,
         headers: {
-          'Content-Type': 'text/plain',
-          Location: redirect
+          location: redirect
         }
       })
     }
 
+    const config = await conf.get()
+    const headers = createHeaders(event)
+    const renderPreview = shouldRenderResponse(url, headers, config)
+
     const response = await getResponseFromCacheOrFetch({
       event,
       url,
-      urlParts,
+      headers,
       subdomainGatewayRequest,
       pathGatewayRequest,
       logs,
-      cacheKey: getCacheKey(event),
-      isMutable: urlParts.protocol === 'ipns'
+      cacheKey: getCacheKey(event, renderPreview),
+      isMutable: urlParts.protocol === 'ipns',
+      renderPreview
     })
 
     return response
   }
+}
+
+function createHeaders (event: FetchEvent): Headers {
+  const headers = new Headers(event.request.headers)
+  const url = new URL(event.request.url)
+
+  // the default browser accept header is too broad so remove it
+  // headers.delete('accept')
+
+  // conformance tests may set these headers via search params
+  const HEADERS = [
+    'accept',
+    'range',
+    'if-none-match'
+  ]
+
+  HEADERS.forEach(header => {
+    const value = url.searchParams.get(header)
+
+    if (value != null) {
+      headers.set(header, value)
+    }
+  })
+
+  // override the Accept header if the format param is present
+  // https://specs.ipfs.tech/http-gateways/path-gateway/#format-request-query-parameter
+  const format = url.searchParams.get('format')
+  if (format != null) {
+    const accept = FORMAT_TO_MEDIA_TYPE[format]
+
+    if (accept != null) {
+      headers.set('accept', accept)
+    }
+  }
+
+  return headers
 }

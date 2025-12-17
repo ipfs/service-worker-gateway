@@ -5,7 +5,7 @@
  * Note that this was only tested and confirmed working for subdomain pages.
  */
 import { QUERY_PARAMS } from '../../src/lib/constants.js'
-import { getConfigAcceptOriginIsolationWarning, getConfigDebug, getConfigDnsJsonResolvers, getConfigEnableGatewayProviders, getConfigEnableRecursiveGateways, getConfigEnableWebTransport, getConfigEnableWss, getConfigFetchTimeout, getConfigGatewaysInput, getConfigPage, getConfigPageSaveButton, getConfigRoutersInput, getConfigServiceWorkerRegistrationTTL } from './locators.js'
+import { getConfigAcceptOriginIsolationWarning, getConfigDebug, getConfigDnsJsonResolvers, getConfigEnableGatewayProviders, getConfigEnableRecursiveGateways, getConfigEnableWebTransport, getConfigEnableWss, getConfigFetchTimeout, getConfigGatewaysInput, getConfigPage, getConfigPageSaveButton, getConfigRoutersInput, getConfigServiceWorkerRegistrationTTL, getRenderHTMLViews, getSupportDirectoryIndexes, getSupportWebRedirects } from './locators.js'
 import { waitForServiceWorker } from './wait-for-service-worker.js'
 import type { ConfigDb, ConfigDbWithoutPrivateFields } from '../../src/lib/config-db.js'
 import type { Page } from '@playwright/test'
@@ -95,6 +95,10 @@ export async function getConfigUi ({ page }: { page: Page, expectedSwScope: stri
   const debug = await getConfigDebug(page).locator('textarea').inputValue()
   const serviceWorkerRegistrationTTL = parseInt(await getConfigServiceWorkerRegistrationTTL(page).locator('input').inputValue(), 10) * 1000 * 60 * 60 // convert from hours to milliseconds
   const acceptOriginIsolationWarning = await getConfigAcceptOriginIsolationWarning(page).locator('input').isChecked()
+  const supportDirectoryIndexes = await getSupportDirectoryIndexes(page).locator('input').isChecked()
+  const supportWebRedirects = await getSupportWebRedirects(page).locator('input').isChecked()
+  const renderHTMLViews = await getRenderHTMLViews(page).locator('input').isChecked()
+
   return {
     enableGatewayProviders,
     enableWss,
@@ -106,7 +110,10 @@ export async function getConfigUi ({ page }: { page: Page, expectedSwScope: stri
     debug,
     fetchTimeout,
     serviceWorkerRegistrationTTL,
-    acceptOriginIsolationWarning
+    acceptOriginIsolationWarning,
+    supportDirectoryIndexes,
+    supportWebRedirects,
+    renderHTMLViews
   }
 }
 
@@ -195,6 +202,9 @@ export async function getConfig (page: Page): Promise<ConfigDb> {
       fetchTimeout: await get('fetchTimeout'),
       serviceWorkerRegistrationTTL: await get('serviceWorkerRegistrationTTL'),
       acceptOriginIsolationWarning: await get('acceptOriginIsolationWarning'),
+      supportDirectoryIndexes: await get('supportDirectoryIndexes'),
+      supportWebRedirects: await get('supportWebRedirects'),
+      renderHTMLViews: await get('renderHTMLViews'),
       _supportsSubdomains: await get('_supportsSubdomains')
     }
 

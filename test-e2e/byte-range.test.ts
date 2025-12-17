@@ -1,18 +1,19 @@
 import { testPathRouting as test, expect } from './fixtures/config-test-fixtures.js'
-import { doRangeRequest } from './fixtures/do-range-request.js'
+import { makeRangeRequest } from './fixtures/make-range-request.js'
 import { setConfig } from './fixtures/set-sw-config.js'
 import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
 
 test.describe('byte-ranges', () => {
-  test.beforeEach(async ({ page, baseURL }) => {
+  test.beforeEach(async ({ page }) => {
     await waitForServiceWorker(page)
     await setConfig(page, {
-      acceptOriginIsolationWarning: true
+      acceptOriginIsolationWarning: true,
+      renderHTMLViews: false
     })
   })
 
   test('should be able to get a single character', async ({ page }) => {
-    const { text, byteSize, statusCode } = await doRangeRequest({
+    const { text, byteSize, statusCode } = await makeRangeRequest({
       page,
       range: 'bytes=1-2',
       path: '/ipfs/bafkqaddimvwgy3zao5xxe3debi'
@@ -24,7 +25,7 @@ test.describe('byte-ranges', () => {
   })
 
   test('can get 0-0 byte range from car with missing data', async ({ page }) => {
-    const result = await doRangeRequest({
+    const result = await makeRangeRequest({
       page,
       range: 'bytes=0-0',
       path: '/ipfs/QmYhmPjhFjYFyaoiuNzYv8WGavpSRDwdHWe5B4M5du5Rtk'
@@ -37,7 +38,7 @@ test.describe('byte-ranges', () => {
   })
 
   test('can get trailing byte range from car with missing data', async ({ page }) => {
-    const { bytes, byteSize, statusCode } = await doRangeRequest({
+    const { bytes, byteSize, statusCode } = await makeRangeRequest({
       page,
       range: 'bytes=2200-',
       path: '/ipfs/QmYhmPjhFjYFyaoiuNzYv8WGavpSRDwdHWe5B4M5du5Rtk'
@@ -51,7 +52,7 @@ test.describe('byte-ranges', () => {
   })
 
   test('video file first set of bytes match kubo gateway', async ({ page }) => {
-    const { bytes, byteSize, statusCode } = await doRangeRequest({
+    const { bytes, byteSize, statusCode } = await makeRangeRequest({
       page,
       range: 'bytes=0-100',
       path: '/ipfs/bafybeie4vcqkutumw7s26ob2bwqwqi44m6lrssjmiirlhrzhs2akdqmkw4'

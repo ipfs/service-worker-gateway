@@ -1,5 +1,6 @@
 import { test, expect } from './fixtures/config-test-fixtures.js'
 import { handleOriginIsolationWarning } from './fixtures/handle-origin-isolation-warning.js'
+import { loadWithServiceWorker } from './fixtures/load-with-service-worker.ts'
 import { swScopeVerification } from './fixtures/sw-scope-verification.js'
 
 test.afterEach(async ({ page }) => {
@@ -25,11 +26,11 @@ test.describe('first-hit ipfs-hosted', () => {
 
       // first loads the root page
       expect(response?.status()).toBe(200)
-      const headers = await response?.allHeaders()
 
       // accept the warning
       await handleOriginIsolationWarning(page)
 
+      const headers = await response?.allHeaders()
       expect(headers?.['content-type']).toContain('text/html')
 
       // wait for loading page to finish '.loading-page' to be removed
@@ -57,8 +58,8 @@ test.describe('first-hit ipfs-hosted', () => {
 
       // first loads the root page
       expect(response?.status()).toBe(200)
-      const headers = await response?.allHeaders()
 
+      const headers = await response?.allHeaders()
       expect(headers?.['content-type']).toContain('text/html')
       await page.waitForURL('http://bafkqablimvwgy3y.ipfs.localhost:3334', {
         timeout: 10_000
@@ -142,8 +143,8 @@ test.describe('first-hit direct-hosted', () => {
 
       // first loads the root page
       expect(response?.status()).toBe(200)
-      const headers = await response?.allHeaders()
 
+      const headers = await response?.allHeaders()
       expect(headers?.['content-type']).toContain('text/html')
 
       // then we should be redirected to the IPFS path
@@ -180,24 +181,21 @@ test.describe('first-hit direct-hosted', () => {
     })
 
     test('subdomain with url encoded path and params is redirected to root', async ({ page, rootDomain, protocol }) => {
-      // a hard refresh results in path/params being url encoded
-      const response = await page.goto(`${protocol}//${rootDomain}/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq/1%20-%20Barrel%20-%20Part%201%20-%20alt.txt%3Ffilename=foo.html`, {
-        waitUntil: 'commit'
+      const cid = 'bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq'
+      const path = '/1%20-%20Barrel%20-%20Part%201%20-%20alt.txt'
+
+      const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}${path}`, {
+        redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}${path}` : undefined
       })
 
       // first loads the root page
       expect(response?.status()).toBe(200)
 
-      // wait for loading page to finish '.loading-page' to be removed
-      await page.waitForSelector('.loading-page', {
-        state: 'detached'
-      })
-
       // and we verify the content was returned
       await page.waitForSelector('text=Don\'t we all.')
     })
 
-    test('cloudflare-redirect works', async ({ page, rootDomain, protocol }) => {
+    test('cloudflare-style redirect works', async ({ page, rootDomain, protocol }) => {
       // when accessing https://inbrowser.dev/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq
       // cloudflare will redirect to https://inbrowser.dev/index.html/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq
       const response = await page.goto(`${protocol}//${rootDomain}/index.html/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq/1 - Barrel - Part 1 - alt.txt`, {

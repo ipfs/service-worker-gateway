@@ -43,6 +43,11 @@ body {
   background-color: var(--gray);
 }
 
+.button.icon:hover {
+  background-color: var(--charcoal);
+  color: #FFF;
+}
+
 .terminal {
   background-color: var(--steel-gray);
   overflow: scroll;

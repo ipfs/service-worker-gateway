@@ -1,19 +1,19 @@
 import React, { useState } from 'react'
+import { FaAngleDown, FaAngleRight } from 'react-icons/fa'
 import { CIDInput } from './cid-input.jsx'
 import { EntityBytesInput } from './entity-bytes-input.jsx'
 import { InputLabel } from './input-label.jsx'
 import { InputSection } from './input-section.js'
 import { InputSelect } from './input-select.jsx'
-import { InputToggle } from './input-toggle.js'
-import type { ReactElement } from 'react'
+import type { ReactElement, MouseEvent } from 'react'
 
 export interface DownloadFormProps {
   handleSubmit(e: React.FormEvent): void
   requestPath: string
   setRequestPath(path: string): void
 
-  download: boolean
-  setDownload(download: boolean): void
+  download: string
+  setDownload(download: string): void
   filename: string
   setFilename(filename: string): void
   format: string
@@ -57,6 +57,7 @@ export default function DownloadForm ({
   setCarDups
 }: DownloadFormProps): ReactElement {
   const [invalid, setInvalid] = useState<Record<string, boolean>>({})
+  const [showAdvanced, setShowAdvanced] = useState(false)
 
   let carOptions = <></>
 
@@ -125,7 +126,7 @@ export default function DownloadForm ({
 
   let downloadForm = <></>
 
-  if (download) {
+  if (download === 'true') {
     downloadForm = (
       <>
         <label htmlFor='filename' className='f5 pb2 teal fw4 db mt3'>Filename</label>
@@ -140,10 +141,29 @@ export default function DownloadForm ({
           onChange={(e) => setFilename(e.target.value)}
         />
 
+        {carOptions}
+      </>
+    )
+  }
+
+  function setFormatAndDownload (format: string): void {
+    setFormat(format)
+
+    if (format === 'car' || format === 'tar' || format === 'ipns-record') {
+      setDownload('true')
+    }
+  }
+
+  let advanced = <></>
+
+  if (showAdvanced) {
+    advanced = (
+      <>
         <InputSelect
           label='Format'
+          description='Convert the data to a different type or download in a CAR or TAR archive'
           value={format}
-          onChange={setFormat}
+          onChange={setFormatAndDownload}
         >
           <option />
           <option value='raw'>Raw</option>
@@ -156,9 +176,28 @@ export default function DownloadForm ({
           <option value='ipns-record'>IPNS Record</option>
         </InputSelect>
 
-        {carOptions}
+        <InputSelect
+          className='e2e-download-page-input e2e-download-page-input-download'
+          label='Download'
+          description='Choose true to force a download or false to render a preview'
+          value={download}
+          onChange={setDownload}
+          disabled={format === 'car' || format === 'tar'}
+        >
+          <option />
+          <option value='true'>true</option>
+          <option value='false'>false</option>
+        </InputSelect>
+        {downloadForm}
       </>
     )
+  }
+
+  function toggleAdvanced (event: MouseEvent): void {
+    event.preventDefault()
+    event.stopPropagation()
+
+    setShowAdvanced(!showAdvanced)
   }
 
   return (
@@ -175,14 +214,14 @@ export default function DownloadForm ({
           }}
         />
 
-        <InputToggle
-          className='e2e-download-page-input e2e-download-page-input-download'
-          label='Download'
-          description='By default content will be rendered by your browser, alternatively download content as a file'
-          value={download}
-          onChange={setDownload}
-        />
-        {downloadForm}
+        <h3
+          id='show-advanced'
+          className='f5 fw4 db mt3 pointer'
+          onClick={toggleAdvanced}
+        >
+          Advanced {showAdvanced ? <FaAngleDown style={{ marginBottom: -2 }} /> : <FaAngleRight style={{ marginBottom: -2 }} />}
+        </h3>
+        {advanced}
 
         <div className='bg-snow mw7 center w-100 mt4'>
           <button
