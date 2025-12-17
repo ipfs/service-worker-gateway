@@ -20,7 +20,7 @@ jobs:
         node-version: lts/*
     - uses: ipfs/aegir/actions/cache-node-modules@main
     - name: Save ./dist output for later
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: dist_${{ github.sha }}
         path: dist
@@ -99,7 +99,7 @@ jobs:
           files: .coverage/*,packages/*/.coverage/*
       - name: Upload Playwright artifacts
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-debug-chrome
           path: test-results
@@ -185,7 +185,7 @@ jobs:
           files: .coverage/*,packages/*/.coverage/*
       - name: Upload Playwright artifacts
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-debug-webkit
           path: test-results
