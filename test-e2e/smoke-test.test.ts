@@ -1,6 +1,7 @@
 import { peerIdFromString } from '@libp2p/peer-id'
 import { base16 } from 'multiformats/bases/base16'
 import { CID } from 'multiformats/cid'
+import * as json from 'multiformats/codecs/json'
 import { identity } from 'multiformats/hashes/identity'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { CURRENT_CACHES } from '../src/constants.js'
@@ -58,7 +59,7 @@ test.describe('smoke test', () => {
       redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}/${path}/` : `${protocol}//${rootDomain}/ipfs/${cid}/${path}/`
     })
     expect(response.status()).toBe(200)
-    expect(response.headers()['content-type']).toBe('text/html')
+    expect(response.headers()['content-type']).toContain('text/html')
 
     // there should be a dir listing that has the CID of the root3 node, and the
     // name of the root4 node with a short name
@@ -218,5 +219,28 @@ test.describe('smoke test', () => {
     })
     expect(response.status()).toBe(200)
     expect(await response.text()).toContain('hello')
+  })
+
+  test('converts the same block to different formats', async ({ page, protocol, rootDomain }) => {
+    const obj = {
+      hello: 'world'
+    }
+    const buf = json.encode(obj)
+    const cid = CID.createV1(CODE_RAW, identity.digest(buf))
+
+    const rawResponse = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}?format=raw`, {
+      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}/?format=raw` : undefined
+    })
+    expect(rawResponse.status()).toBe(200)
+    expect(await rawResponse.headerValue('content-type')).toBe('application/vnd.ipld.raw')
+    expect(new Uint8Array(await rawResponse.body())).toStrictEqual(buf)
+
+    // sending a different format should cause a response cache miss
+    const jsonResponse = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}?format=json`, {
+      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}/?format=json` : undefined
+    })
+    expect(jsonResponse.status()).toBe(200)
+    expect(await jsonResponse.headerValue('content-type')).toBe('application/json')
+    expect(await jsonResponse.json()).toStrictEqual(obj)
   })
 })

@@ -19,7 +19,7 @@ export function renderEntityPageResponse (url: URL, headers: Headers, response: 
   const mergedHeaders = new Headers(response.headers)
   const contentType = mergedHeaders.get('content-type')
 
-  mergedHeaders.set('content-type', 'text/html')
+  mergedHeaders.set('content-type', 'text/html; charset=utf-8')
   mergedHeaders.set('server', `${APP_NAME}/${APP_VERSION}#${GIT_REVISION}`)
   mergedHeaders.delete('content-disposition')
 

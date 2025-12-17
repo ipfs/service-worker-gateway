@@ -38,7 +38,7 @@ export interface ServerErrorPageResponseOptions {
  */
 export function serverErrorPageResponse (url: URL, error: Error, logs: string[], opts?: ServerErrorPageResponseOptions): Response {
   const headers = new Headers()
-  headers.set('content-type', 'text/html')
+  headers.set('content-type', 'text/html; charset=utf-8')
   headers.set('x-debug-request-uri', url.toString())
   headers.set('server', `${APP_NAME}/${APP_VERSION}#${GIT_REVISION}`)
 
