@@ -290,4 +290,4 @@ jobs:
           release-type: node
           # Use a token for creating the release-pr and git tags so that the `deploy` workflow can be triggered by them
           # see https://github.com/peter-evans/create-pull-request/blob/main/docs/concepts-guidelines.md#triggering-further-workflow-runs and https://github.com/orgs/community/discussions/27028 for more information
-          token: ${{ secrets.UCI_GITHUB_TOKEN }}
+          token: ${{ secrets.UCI_GITHUB_TOKEN || github.token }}
