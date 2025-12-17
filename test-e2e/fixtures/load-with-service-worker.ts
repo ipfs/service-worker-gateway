@@ -1,7 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { QUERY_PARAMS } from '../../src/lib/constants.js'
 import type { Page, Response } from 'playwright'
-import delay from 'delay'
 
 const ORIGIN_ISOLATION_WARNING = '.e2e-subdomain-warning'
 const ACCEPT_ORIGIN_ISOLATION_WARNING = '#accept-warning'
@@ -91,15 +90,10 @@ export async function loadWithServiceWorker (page: Page, resource: string, optio
     page.on('load', (page) => {
       Promise.resolve()
         .then(async () => {
-          // isVisible returns immediately so try a few times in case we are
-          // slow and the page hasn't rendered yet
-          for (let i = 0; i < 5; i++) {
-            if (await page.isVisible(ORIGIN_ISOLATION_WARNING)) {
-              await page.click(ACCEPT_ORIGIN_ISOLATION_WARNING)
-            }
-
-            await delay(1_000)
-          }
+          await page.waitForSelector(ORIGIN_ISOLATION_WARNING, {
+            timeout: 5_000
+          })
+          await page.click(ACCEPT_ORIGIN_ISOLATION_WARNING)
         })
         .catch(() => {})
     })
