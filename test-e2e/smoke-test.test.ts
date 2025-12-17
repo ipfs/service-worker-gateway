@@ -20,7 +20,7 @@ test.describe('smoke test', () => {
     expect(await hasCacheEntry(page, CURRENT_CACHES.immutable, cid)).toBeFalsy()
 
     const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}`, {
-      redirect: `${protocol}//${cid}.ipfs.${rootDomain}/`
+      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}/` : undefined
     })
     expect(response?.status()).toBe(200)
     expect(response?.headers()['content-type']).toBe('image/jpeg')
@@ -35,7 +35,7 @@ test.describe('smoke test', () => {
     const cid = 'bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui'
     const path = 'root2/root3/root4'
     const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}/${path}`, {
-      redirect: `${protocol}//${cid}.ipfs.${rootDomain}/${path}/`
+      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}/${path}/` : `${protocol}//${rootDomain}/ipfs/${cid}/${path}/`
     })
 
     // should have added trailing slash for directory
@@ -52,7 +52,7 @@ test.describe('smoke test', () => {
     const cid = 'bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui'
     const path = 'root2/root3'
     const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}/${path}`, {
-      redirect: `${protocol}//${cid}.ipfs.${rootDomain}/${path}/`
+      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}/${path}/` : `${protocol}//${rootDomain}/ipfs/${cid}/${path}/`
     })
     expect(response.status()).toBe(200)
     expect(response.headers()['content-type']).toBe('text/html')
@@ -84,7 +84,7 @@ test.describe('smoke test', () => {
     expect(await hasCacheEntry(page, CURRENT_CACHES.immutable, name)).toBeFalsy()
 
     const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipns/${name}`, {
-      redirect: `${protocol}//${name}.ipns.${rootDomain}/`
+      redirect: rootDomain.includes('localhost') ? `${protocol}//${name}.ipns.${rootDomain}/` : `${protocol}//${rootDomain}/ipns/${name}/`
     })
     expect(response.status()).toBe(200)
     expect(await response.text()).toContain('hello')
@@ -139,8 +139,8 @@ test.describe('smoke test', () => {
 
     const cid = 'bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui'
     const path = 'root2/root3/root4'
-    const response = await loadWithServiceWorker(page, `${protocol}//${cid}.ipfs.${rootDomain}/${path}/`, {
-      redirect: `${protocol}//${cid}.ipfs.${rootDomain}/${path}/`
+    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}/${path}/`, {
+      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}/${path}/` : undefined
     })
     expect(response?.status()).toBe(200)
     expect(response?.headers()['content-type']).toBe('text/html; charset=utf-8')
@@ -171,18 +171,18 @@ test.describe('smoke test', () => {
     const asBase16 = CID.parse(cid).toString(base16)
 
     const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${asBase16}`, {
-      redirect: `${protocol}//${cid}.ipfs.${rootDomain}/`
+      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}/` : undefined
     })
     expect(response.status()).toBe(200)
     expect(await response.text()).toContain('hello')
   })
 
   test('normalizes base16 IPNS names to base36', async ({ page, protocol, rootDomain }) => {
-    const key = 'k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam'
-    const asBase16 = peerIdFromString(key).toCID().toString(base16)
+    const name = 'k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam'
+    const asBase16 = peerIdFromString(name).toCID().toString(base16)
 
     const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipns/${asBase16}`, {
-      redirect: `${protocol}//${key}.ipns.${rootDomain}/`
+      redirect: rootDomain.includes('localhost') ? `${protocol}//${name}.ipns.${rootDomain}/` : undefined
     })
     expect(response.status()).toBe(200)
     expect(await response.text()).toContain('hello')
@@ -201,7 +201,7 @@ test.describe('smoke test', () => {
     const cid = CID.parse('bafkrgihhyivzstcz3hhswshfjgy6ertgmnqeleynhwt4dlfsthi4hn7zge')
 
     const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}`, {
-      redirect: `${protocol}//${cid}.ipfs.${rootDomain}/`
+      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}/` : undefined
     })
     expect(response.status()).toBe(200)
     expect(await response.text()).toContain('hello')
