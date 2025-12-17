@@ -1,5 +1,4 @@
 import { createServer } from 'node:http'
-import { enable } from '@libp2p/logger'
 import { createKuboNode } from './create-kubo.ts'
 import { loadKuboFixtures } from './kubo-mgmt.ts'
 
@@ -7,8 +6,6 @@ const KUBO_PORT = 8088
 const DNS_JSON_PORT = 3335
 
 export default async function globalSetup (): Promise<void> {
-  enable('*,*:trace,-pw:*,-reverse-proxy*,-ipfs-gateway*')
-
   process.env.PLAYWRIGHT = 'true'
 
   // set up kubo server

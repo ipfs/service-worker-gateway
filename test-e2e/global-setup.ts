@@ -1,9 +1,6 @@
-import { enable } from '@libp2p/logger'
 import { serve } from '../serve.js'
 
 export default async function globalSetup (): Promise<void> {
-  enable('*,*:trace,-pw:*,-reverse-proxy*,-ipfs-gateway*')
-
   process.env.PLAYWRIGHT = 'true'
 
   const {

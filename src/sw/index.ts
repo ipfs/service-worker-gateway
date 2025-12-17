@@ -25,7 +25,11 @@ declare let self: ServiceWorkerGlobalScope
 
 self.addEventListener('install', (event) => {
   // 👇 When a new version of the SW is installed, activate immediately
-  void self.skipWaiting()
+  self.skipWaiting()
+    .catch(err => {
+      const log = getSwLogger('fetch')
+      log.error('error skipping waiting - %e', err)
+    })
   event.waitUntil(setInstallTime())
   event.waitUntil(clearSwAssetCache())
 })
@@ -40,7 +44,13 @@ self.addEventListener('activate', (event) => {
    * loading the content prior the user reloading or clicking the "load content"
    * button.
    */
-  event.waitUntil(self.clients.claim())
+  event.waitUntil(
+    self.clients.claim()
+      .catch(err => {
+        const log = getSwLogger('fetch')
+        log.error('error claiming clients - %e', err)
+      })
+  )
 
   // eslint-disable-next-line no-console
   console.info(`Service Worker Gateway: To manually unregister, append "?${QUERY_PARAMS.UNREGISTER_SERVICE_WORKER}=true" to the URL, or use the button on the config page.`)

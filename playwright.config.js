@@ -27,7 +27,7 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   /* Retry on CI only */
   retries: (process.env.CI != null) ? 2 : 0,
-  timeout: process.env.CI != null ? 30 * 1000 : undefined,
+  timeout: process.env.CI != null ? 30_000 : undefined,
 
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   // reporter: 'html', // Uncomment to generate HTML report
@@ -80,7 +80,7 @@ export default defineConfig({
       name: 'deployed',
       use: {
         ...devices['Desktop Chrome'],
-        // ...devices['Desktop Firefox'],
+        ...devices['Desktop Firefox'],
         baseURL: process.env.BASE_URL
       }
     },
@@ -116,15 +116,13 @@ export default defineConfig({
     }
   ],
 
-  webServer: [
-    {
-      // need to use built assets due to service worker loading issue.
-      command: getWebServerCommand(),
-      port: process.env.BASE_URL != null ? undefined : 3000,
-      timeout: 60 * 1000,
-      reuseExistingServer: false,
-      stdout: process.env.CI ? undefined : 'pipe',
-      stderr: process.env.CI ? undefined : 'pipe'
-    }
-  ]
+  webServer: [{
+    // need to use built assets due to service worker loading issue.
+    command: getWebServerCommand(),
+    port: process.env.BASE_URL != null ? undefined : 3000,
+    timeout: 60 * 1000,
+    reuseExistingServer: false,
+    stdout: process.env.CI ? undefined : 'pipe',
+    stderr: process.env.CI ? undefined : 'pipe'
+  }]
 })

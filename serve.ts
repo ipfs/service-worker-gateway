@@ -84,9 +84,9 @@ export async function serve ({ shouldLoadFixtures = false, shouldStartFrontend =
   }
 
   // when the process exits, stop the reverse proxy
-  void frontend?.on('exit', () => { void cleanup() })
-  void process.on('SIGINT', () => { void cleanup() })
-  void process.on('SIGTERM', () => { void cleanup() })
+  frontend?.on('exit', () => { void cleanup() })
+  process.on('SIGINT', () => { void cleanup() })
+  process.on('SIGTERM', () => { void cleanup() })
 
   return {
     controller

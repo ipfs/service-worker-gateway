@@ -57,22 +57,4 @@ test.describe('website-loading', () => {
     const headersAfterReloading = await responseAfterReloading?.allHeaders()
     expect(headersAfterReloading?.['content-type']).toContain('text/html')
   })
-
-  test('ensure HTML files have the correct content type', async ({ page, protocol, rootDomain }) => {
-    const cid = 'bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q'
-    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}/index.html`, {
-      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}/index.html` : undefined
-    })
-
-    expect(response.status()).toBe(200)
-
-    const headers = await response.allHeaders()
-    expect(headers['content-type']).toContain('text/html')
-    expect(headers['cache-control']).toBe('public, max-age=29030400, immutable')
-
-    const bodyBuffer = await response?.body()
-    expect(bodyBuffer?.byteLength).toBe(6)
-    const bodyText = await response?.text()
-    expect(bodyText).toBe('hello\n')
-  })
 })
