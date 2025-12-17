@@ -265,9 +265,7 @@ export class Config {
         enable(debug)
 
         gateways = config.gateways
-
         routers = config.routers
-
         dnsJsonResolvers = config.dnsJsonResolvers
         enableRecursiveGateways = config.enableRecursiveGateways
         enableWss = config.enableWss

@@ -112,7 +112,7 @@ export function fetchErrorPageResponse (resource: string, request: RequestInit, 
 
   const responseDetails = getResponseDetails(fetchResponse, responseBody)
   const mergedHeaders = new Headers(fetchResponse.headers)
-  mergedHeaders.set('content-type', 'text/html')
+  mergedHeaders.set('content-type', 'text/html; charset=utf-8')
   mergedHeaders.set('server', `${APP_NAME}/${APP_VERSION}#${GIT_REVISION}`)
 
   const props = {

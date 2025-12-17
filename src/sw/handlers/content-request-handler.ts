@@ -47,8 +47,8 @@ interface FetchHandlerArg {
 
 const ONE_HOUR_IN_SECONDS = 3600
 
-function getCacheKey (event: FetchEvent, renderPreview: boolean): string {
-  return `${event.request.url}-${event.request.headers.get('accept') ?? ''}-preview-${renderPreview}`
+function getCacheKey (url: URL, headers: Headers, renderPreview: boolean, config: ConfigDb): string {
+  return `${url}-${headers.get('accept') ?? ''}-preview-${renderPreview}-indexes-${config.supportDirectoryIndexes}-redirects-${config.supportWebRedirects}`
 }
 
 async function getResponseFromCacheOrFetch (args: FetchHandlerArg): Promise<Response> {
@@ -505,7 +505,7 @@ export const contentRequestHandler: Handler = {
       subdomainGatewayRequest,
       pathGatewayRequest,
       logs,
-      cacheKey: getCacheKey(event, renderPreview),
+      cacheKey: getCacheKey(url, headers, renderPreview, config),
       isMutable: urlParts.protocol === 'ipns',
       renderPreview
     })
