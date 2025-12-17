@@ -133,7 +133,7 @@ test.describe('smoke test', () => {
 
   test('service worker un-registers automatically when ttl expires', async ({ page, protocol, rootDomain }) => {
     async function hasRegistration (): Promise<boolean> {
-      return await page.evaluate(async () => {
+      return page.evaluate(async () => {
         return await window.navigator.serviceWorker.getRegistration() != null
       })
     }
