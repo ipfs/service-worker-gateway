@@ -161,11 +161,15 @@ async function handleFetch (url: URL, event: FetchEvent, logs: string[]): Promis
 async function isServiceWorkerRegistrationTTLValid (): Promise<boolean> {
   if (!navigator.onLine) {
     /**
-     * When we unregister the service worker, the a new one will be installed on the next page load.
+     * When we unregister the service worker, the a new one will be installed on
+     * the next page load.
      *
-     * Note: returning true here means if the user is not online, we will not unregister the service worker.
-     * However, browsers will have `navigator.onLine === true` if connected to a LAN that is not internet-connected,
-     * so we may want to be smarter about this in the future.
+     * Note: returning true here means if the user is not online, we will not
+     * unregister the service worker.
+     *
+     * However, browsers will have `navigator.onLine === true` if connected to a
+     * LAN that is not internet-connected, so we may want to be smarter about
+     * this in the future.
      *
      * @see https://github.com/ipfs/service-worker-gateway/issues/724
      */

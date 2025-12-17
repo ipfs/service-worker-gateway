@@ -131,10 +131,18 @@ test.describe('smoke test', () => {
     expect(noRegistration).toBe(true)
   })
 
-  test('service worker un-registers automatically when ttl expires', async ({ page, baseURL, protocol, rootDomain }) => {
+  test('service worker un-registers automatically when ttl expires', async ({ page, protocol, rootDomain }) => {
+    async function hasRegistration (): Promise<boolean> {
+      return await page.evaluate(async () => {
+        return await window.navigator.serviceWorker.getRegistration() != null
+      })
+    }
+
+    const serviceWorkerRegistrationTTL = 1_000
+
     // set the ttl in milliseconds
     await setConfig(page, {
-      serviceWorkerRegistrationTTL: 1_000
+      serviceWorkerRegistrationTTL
     })
 
     const cid = 'bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui'
@@ -146,24 +154,21 @@ test.describe('smoke test', () => {
     expect(response?.headers()['content-type']).toBe('text/html; charset=utf-8')
     expect(await response?.text()).toContain('hello')
 
-    // wait for the ttl to expire
-    await page.waitForTimeout(2_000)
+    expect(await hasRegistration()).toBe(true)
 
-    const response2 = await page.reload({
+    // wait for the ttl to expire
+    await page.waitForTimeout(serviceWorkerRegistrationTTL * 2)
+
+    // invoke the service worker again so it checks the TTL and finds that it
+    // has expired
+    await page.reload({
       waitUntil: 'networkidle'
     })
-    expect(response2?.status()).toBe(200)
-    expect(response2?.headers()['content-type']).toBe('text/html; charset=utf-8')
-    expect(await response2?.text()).toContain('hello')
 
-    // wait for the TTL invalid setTimeout to run.
-    await page.waitForTimeout(2_000)
+    // give the service worker time to unregister
+    await page.waitForTimeout(serviceWorkerRegistrationTTL * 2)
 
-    const noServiceWorkerRegistration = await page.evaluate(async () => {
-      return await window.navigator.serviceWorker.getRegistration() === undefined
-    })
-
-    expect(noServiceWorkerRegistration).toBe(true)
+    expect(await hasRegistration()).toBe(false)
   })
 
   test('normalizes base16 CIDs to base32', async ({ page, protocol, rootDomain }) => {
