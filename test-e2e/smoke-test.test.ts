@@ -1,8 +1,11 @@
 import { peerIdFromString } from '@libp2p/peer-id'
 import { base16 } from 'multiformats/bases/base16'
 import { CID } from 'multiformats/cid'
+import { identity } from 'multiformats/hashes/identity'
+import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { CURRENT_CACHES } from '../src/constants.js'
 import { HASH_FRAGMENTS } from '../src/lib/constants.js'
+import { CODE_RAW } from '../src/ui/pages/multicodec-table.ts'
 import { testSubdomainRouting as test, expect } from './fixtures/config-test-fixtures.js'
 import { hasCacheEntry } from './fixtures/has-cache-entry.js'
 import { loadWithServiceWorker } from './fixtures/load-with-service-worker.js'
@@ -145,12 +148,13 @@ test.describe('smoke test', () => {
       serviceWorkerRegistrationTTL
     })
 
-    const cid = 'bafkqablimvwgy3y'
+    const content = 'unregister after ttl expiry test'
+    const cid = CID.createV1(CODE_RAW, identity.digest(uint8ArrayFromString(content)))
     const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}`, {
       redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}/` : undefined
     })
     expect(response.status()).toBe(200)
-    expect(await response.text()).toContain('hello')
+    expect(await response.text()).toContain(content)
 
     expect(await hasRegistration()).toBe(true)
 
