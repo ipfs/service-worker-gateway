@@ -115,6 +115,7 @@
     "cborg": "^4.3.0",
     "concurrently": "^9.1.2",
     "cross-env": "^10.1.0",
+    "delay": "^7.0.0",
     "esbuild": "^0.27.0",
     "fast-glob": "^3.3.3",
     "glob": "^13.0.0",
