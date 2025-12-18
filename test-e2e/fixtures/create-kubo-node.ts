@@ -49,7 +49,14 @@ export async function getKuboDistCid (): Promise<string> {
   await mkdir(kuboDistPath, { recursive: true })
   await cp(join(cwd(), './dist'), kuboDistPath, { recursive: true })
 
-  const kuboRedirects = await readFile(join(kuboDistPath, '_kubo_redirects'), 'utf-8')
+  let kuboRedirects = await readFile(join(kuboDistPath, '_redirects'), 'utf-8')
+
+  // strip comments and any entries where the 'from' part doesn't end with a
+  // wildcard since Kubo can't read them
+  kuboRedirects = kuboRedirects.split('\n')
+    .filter(line => !line.trim().startsWith('#'))
+    .filter(line => line.split(' ')[0].endsWith('*'))
+    .join('\n')
 
   await writeFile(join(kuboDistPath, '_redirects'), kuboRedirects)
   await mkdir(IPFS_PATH, { recursive: true })

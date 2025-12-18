@@ -1,6 +1,0 @@
-# https://specs.ipfs.tech/http-gateways/web-redirects-file/
-# Used in the e2e test suite - different to _redirects because kubo handles 302s
-# and the :splat differently to cloudflare
-/ipns/* /index.html 200
-/ipfs/* /index.html 200
-/* /index.html 200
