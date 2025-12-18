@@ -21,7 +21,7 @@ jobs:
   wait-for-deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Wait for deployment to complete
         run: |
           # fetch the tag to ensure it's available
