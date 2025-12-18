@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.1.1](https://github.com/ipfs/service-worker-gateway/compare/v2.1.0...v2.1.1) (2025-12-18)
+
+
+### Bug Fixes
+
+* include dir index config in cache key ([#932](https://github.com/ipfs/service-worker-gateway/issues/932)) ([72a57a1](https://github.com/ipfs/service-worker-gateway/commit/72a57a104fdf9a3b94a0f2cbc55b659413bae629))
+* proxy all requests to root ([#935](https://github.com/ipfs/service-worker-gateway/issues/935)) ([258ad5c](https://github.com/ipfs/service-worker-gateway/commit/258ad5c625cd62eff46f14e494e899d070384181))
+
 ## [2.1.0](https://github.com/ipfs/service-worker-gateway/compare/v2.0.0...v2.1.0) (2025-11-21)
 
 
