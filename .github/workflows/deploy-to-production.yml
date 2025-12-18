@@ -17,7 +17,7 @@ jobs:
       tag: ${{ inputs.tag }}
       environment: production
     secrets:
-      DEPLOYMENT_GITHUB_TOKEN: ${{ secrets.UCI_GITHUB_TOKEN }}
+      DEPLOYMENT_GITHUB_TOKEN: ${{ secrets.UCI_GITHUB_TOKEN || github.token }}
   wait-for-deploy:
     runs-on: ubuntu-latest
     steps:
