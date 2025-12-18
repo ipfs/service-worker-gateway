@@ -170,7 +170,16 @@ test.describe('@helia/service-worker-gateway - gateway conformance', () => {
               res.statusCode = response.status()
               res.statusMessage = response.statusText()
 
-              console.info('RESPONSE', id, req.method, url.toString(), response.status(), await response.allHeaders())
+              // 206s make Chrome error with "File wasn't available on site" and
+              // playwright fail to read download paths so they are overridden
+              // to uncached 200s by the service worker, so translate it back to
+              // 206 as the conformance tests expect
+              if (await response.headerValue('content-range') != null) {
+                res.statusCode = 206
+                res.statusMessage = 'Partial Content'
+              }
+
+              console.info('RESPONSE', id, req.method, url.toString(), res.statusCode, await response.allHeaders())
               const body = await response.body()
 
               if (response.status() === 500) {
