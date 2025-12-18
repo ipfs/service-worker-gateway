@@ -19,7 +19,8 @@ on:
           workflows: write (required; to be able to modify .github/workflows)
         required: true
 
-permissions: {}
+permissions:
+  contents: write
 
 jobs:
   deploy:
