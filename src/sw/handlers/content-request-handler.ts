@@ -518,24 +518,6 @@ function createHeaders (event: FetchEvent): Headers {
   const headers = new Headers(event.request.headers)
   const url = new URL(event.request.url)
 
-  // the default browser accept header is too broad so remove it
-  // headers.delete('accept')
-
-  // conformance tests may set these headers via search params
-  const HEADERS = [
-    'accept',
-    'range',
-    'if-none-match'
-  ]
-
-  HEADERS.forEach(header => {
-    const value = url.searchParams.get(header)
-
-    if (value != null) {
-      headers.set(header, value)
-    }
-  })
-
   // override the Accept header if the format param is present
   // https://specs.ipfs.tech/http-gateways/path-gateway/#format-request-query-parameter
   const format = url.searchParams.get('format')

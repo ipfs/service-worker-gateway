@@ -13,7 +13,6 @@ import { test, expect } from '@playwright/test'
 import { execa } from 'execa'
 import { base36 } from 'multiformats/bases/base36'
 import { CID } from 'multiformats/cid'
-import { formatSearch, parseQuery } from '../src/lib/query-helpers.ts'
 import { loadWithServiceWorker } from '../test-e2e/fixtures/load-with-service-worker.js'
 import { makeFetchRequest } from '../test-e2e/fixtures/make-range-request.ts'
 import { setConfig } from '../test-e2e/fixtures/set-sw-config.ts'
@@ -108,32 +107,6 @@ test.describe('@helia/service-worker-gateway - gateway conformance', () => {
                 url.port = `${3000}`
               }
 
-              // translate headers used by tests into non-standard query params
-              const HEADERS = [
-                'accept',
-                'range',
-                'if-none-match'
-              ]
-
-              const overrides: Record<string, string> = {}
-
-              for (const header of HEADERS) {
-                if (req.headers[header] != null) {
-                  let value = req.headers[header]
-
-                  if (Array.isArray(value)) {
-                    value = value.join(', ')
-                  }
-
-                  overrides[header] = value
-                }
-              }
-
-              url.search = formatSearch({
-                ...parseQuery(url),
-                ...overrides
-              })
-
               context = await browser.newContext()
               const page = await context.newPage()
 
@@ -163,10 +136,16 @@ test.describe('@helia/service-worker-gateway - gateway conformance', () => {
 
               let response: Response
 
-              if (req.headers.range != null) {
-                // downloading partial files in chrome is broken, instead we can
-                // make a fetch request on a blank page.
-                // @see https://issues.chromium.org/issues/469788775
+              // if headers used by tests are sent, make an in-page window.fetch
+              // request instead of loading a URL as this is the only way
+              // specific headers can be sent
+              const HEADERS = [
+                'accept',
+                'range',
+                'if-none-match'
+              ]
+
+              if ([...Object.keys(req.headers)].some(key => HEADERS.includes(key))) {
                 response = await makeFetchRequest(page, url, {
                   headers: new Headers(incomingHeadersToObject(req.headers))
                 })
