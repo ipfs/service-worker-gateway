@@ -1,4 +1,4 @@
-# https://specs.ipfs.tech/http-gateways/web-redirects-file/
+# Cloudflare redirects file
+# - Proxy all requests to index file to install service worker
 # https://developers.cloudflare.com/pages/configuration/redirects/
-/ipfs/* /index.html/:splat 302
-/ipns/* /index.html/:splat 302
+/* /index.html 200

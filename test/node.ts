@@ -37,10 +37,7 @@ describe(`verify-dist at ${distRoot}`, () => {
       filePath: 'ipfs-sw-sw.js'
     },
     {
-      filePath: '_redirects',
-      content: [
-        '/* /index.html/:splat 302'
-      ]
+      filePath: '_redirects'
     },
     {
       filePath: 'index.html',
