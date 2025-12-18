@@ -28,7 +28,7 @@ jobs:
     environment: ${{ inputs.environment }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           token: ${{ secrets.UCI_GITHUB_TOKEN || github.token }}
