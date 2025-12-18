@@ -20,6 +20,7 @@ jobs:
       DEPLOYMENT_GITHUB_TOKEN: ${{ secrets.UCI_GITHUB_TOKEN || github.token }}
   wait-for-deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
       - name: Wait for deployment to complete
