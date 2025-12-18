@@ -141,17 +141,20 @@ const injectHtmlPages = async (metafile, revision) => {
 
 /**
  * Asynchronously modify the _redirects file by appending entries for all files
- * in the dist folder except for index.html, _redirects, and _kubo_redirects.
+ * in the dist folder except for index.html and _redirects.
  */
 const modifyRedirects = async () => {
   const redirectsFilePath = path.resolve('dist/_redirects')
   const redirectsContent = await fs.readFile(redirectsFilePath, 'utf8')
   const distFiles = await fs.readdir(path.resolve('dist'))
-  const files = distFiles.filter(file => !['_redirects', 'index.html', '_kubo_redirects'].includes(file))
+  const files = distFiles.filter(file => !['_redirects', 'index.html'].includes(file))
   const lines = redirectsContent.split('\n')
+    .filter(line => line.trim() !== '')
+
   files.forEach(file => {
     lines.push(`/*/${file} /${file}`)
   })
+
   await fs.writeFile(redirectsFilePath, lines.join('\n'))
 }
 
