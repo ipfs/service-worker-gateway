@@ -1,11 +1,5 @@
 export function getWontFixTests (): string[] {
   return [
-    // we cannot send a range header from the address bar, and there is no way
-    // to override it using a search param
-    // https://github.com/ipfs/specs/issues/525
-    'TestGatewayUnixFSFileRanges',
-    'TestTrustlessRawRanges',
-
     // these tests make HTTP requests to hosts that are not supported by the
     // service worker gateway
     'TestDNSLinkGatewayUnixFSDirectoryListing',
