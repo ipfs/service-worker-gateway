@@ -77,29 +77,6 @@ async function fetchAndUpdateCache (args: FetchHandlerArg): Promise<Response> {
 
   log('response status: %s', response.status)
 
-  // 206s make Chrome abort downloads with "File wasn't available on site" so
-  // if we returning partial content, override to 200 instead and do not store
-  // in the response cache
-  if (response.status === 206) {
-    log('overriding response status from 206 to 200')
-
-    Object.defineProperties(response, {
-      status: {
-        value: 200,
-        enumerable: true,
-        configurable: true
-      },
-      statusText: {
-        value: 'Ok',
-        enumerable: true,
-        configurable: true
-      }
-    })
-
-    // do not store partial response in cache
-    return response
-  }
-
   try {
     await storeResponseInCache(response, args)
     log.trace('updated cache for %s', args.cacheKey)
