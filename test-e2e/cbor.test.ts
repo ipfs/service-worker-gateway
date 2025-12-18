@@ -6,6 +6,7 @@ import { IPLD_CONVERSIONS } from './fixtures/ipld-conversions.ts'
 import { loadWithServiceWorker } from './fixtures/load-with-service-worker.js'
 import type { KuboRPCClient } from 'kubo-rpc-client'
 import type { CID } from 'multiformats/cid'
+import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 
 const object = {
   hello: 'world'
@@ -57,6 +58,22 @@ test.describe('cbor', () => {
     expect(headers['content-disposition']).toContain('attachment')
 
     expect(cbor.decode(await response?.body())).toStrictEqual(object)
+  })
+
+  test.skip('should return range of cbor block', async ({ page, protocol, rootDomain }) => {
+    const cid = 'bafireif3aymeikgfbofx533yf5vlx4kimzq6zmzmpra2mnzfsfnmv4hchm'
+
+    console.info(`${protocol}//${rootDomain}/ipfs/${cid}?range=${encodeURIComponent('bytes=7-9')}`)
+    test.setTimeout(640_000_000)
+    await new Promise<void>(() => {})
+
+    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}?range=${encodeURIComponent('bytes=7-9')}`, {
+      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}?range=${encodeURIComponent('bytes=7-9')}` : undefined
+    })
+    expect(response.status()).toBe(206)
+    expect(await response.headerValue('content-disposition')).toContain('attachment')
+    expect(await response.headerValue('content-range')).toContain('bytes 7-9/17')
+    expect(new Uint8Array(await response.body())).toStrictEqual(uint8ArrayFromString('pla'))
   })
 
   for (const conversion of IPLD_CONVERSIONS) {
