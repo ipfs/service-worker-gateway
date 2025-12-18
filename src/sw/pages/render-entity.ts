@@ -1,16 +1,7 @@
 import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
+import { headersToObject } from '../../lib/headers-to-object.ts'
 import { APP_NAME, APP_VERSION, GIT_REVISION } from '../../version.js'
 import { htmlPage } from './page.js'
-
-function headersToObject (headers: Headers): Record<string, string> {
-  const output: Record<string, string> = {}
-
-  for (const [key, value] of headers.entries()) {
-    output[key] = value
-  }
-
-  return output
-}
 
 /**
  * Shows an error page to the user
