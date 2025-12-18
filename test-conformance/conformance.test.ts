@@ -13,8 +13,8 @@ import { test, expect } from '@playwright/test'
 import { execa } from 'execa'
 import { base36 } from 'multiformats/bases/base36'
 import { CID } from 'multiformats/cid'
-import { formatSearch, parseQuery } from '../src/lib/query-helpers.ts'
 import { loadWithServiceWorker } from '../test-e2e/fixtures/load-with-service-worker.js'
+import { makeFetchRequest } from '../test-e2e/fixtures/make-range-request.ts'
 import { setConfig } from '../test-e2e/fixtures/set-sw-config.ts'
 import { waitForServiceWorker } from '../test-e2e/fixtures/wait-for-service-worker.js'
 import { GWC_IMAGE } from './fixtures/constants.js'
@@ -23,8 +23,8 @@ import expectedPassingTests from './fixtures/expected-passing-tests.json' with {
 import { getReportDetails } from './fixtures/get-report-details.js'
 import { getTestsToRun } from './fixtures/get-tests-to-run.js'
 import { getTestsToSkip } from './fixtures/get-tests-to-skip.js'
-import type { BrowserContext } from '@playwright/test'
-import type { Server } from 'node:http'
+import type { BrowserContext, Response } from '@playwright/test'
+import type { IncomingHttpHeaders, Server } from 'node:http'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -107,32 +107,6 @@ test.describe('@helia/service-worker-gateway - gateway conformance', () => {
                 url.port = `${3000}`
               }
 
-              // translate headers used by tests into non-standard query params
-              const HEADERS = [
-                'accept',
-                'range',
-                'if-none-match'
-              ]
-
-              const overrides: Record<string, string> = {}
-
-              for (const header of HEADERS) {
-                if (req.headers[header] != null) {
-                  let value = req.headers[header]
-
-                  if (Array.isArray(value)) {
-                    value = value.join(', ')
-                  }
-
-                  overrides[header] = value
-                }
-              }
-
-              url.search = formatSearch({
-                ...parseQuery(url),
-                ...overrides
-              })
-
               context = await browser.newContext()
               const page = await context.newPage()
 
@@ -160,17 +134,34 @@ test.describe('@helia/service-worker-gateway - gateway conformance', () => {
 
               console.info('REQUEST', id, req.method, url.toString(), req.headers)
 
-              const response = await loadWithServiceWorker(page, url.toString(), {
-                redirect: maybeAsSubdomainUrlRedirect(url),
+              let response: Response
 
-                // all data should be local so no need to wait for long timeout
-                timeout: 10_000
-              })
+              // if headers used by tests are sent, make an in-page window.fetch
+              // request instead of loading a URL as this is the only way
+              // specific headers can be sent
+              const HEADERS = [
+                'accept',
+                'range',
+                'if-none-match'
+              ]
+
+              if ([...Object.keys(req.headers)].some(key => HEADERS.includes(key))) {
+                response = await makeFetchRequest(page, url, {
+                  headers: new Headers(incomingHeadersToObject(req.headers))
+                })
+              } else {
+                response = await loadWithServiceWorker(page, url.toString(), {
+                  redirect: maybeAsSubdomainUrlRedirect(url),
+
+                  // all data should be local so no need to wait for long timeout
+                  timeout: 10_000
+                })
+              }
 
               res.statusCode = response.status()
               res.statusMessage = response.statusText()
 
-              console.info('RESPONSE', id, req.method, url.toString(), response.status(), await response.allHeaders())
+              console.info('RESPONSE', id, req.method, url.toString(), res.statusCode, await response.allHeaders())
               const body = await response.body()
 
               if (response.status() === 500) {
@@ -352,4 +343,22 @@ function maybeAsSubdomainUrlRedirect (url: URL): string | undefined {
 
 function encodeDNSLinkLabel (name: string): string {
   return name.replace(/-/g, '--').replace(/\./g, '-')
+}
+
+function incomingHeadersToObject (headers: IncomingHttpHeaders): Record<string, string> {
+  const output: Record<string, string> = {}
+
+  for (let [key, value] of Object.entries(headers)) {
+    if (value == null) {
+      continue
+    }
+
+    if (Array.isArray(value)) {
+      value = value.join(',')
+    }
+
+    output[key] = value
+  }
+
+  return output
 }

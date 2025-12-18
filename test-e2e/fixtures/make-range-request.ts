@@ -1,16 +1,7 @@
-import type { Page } from '@playwright/test'
-
-export interface RangeRequestResult {
-  byteSize: number
-  /**
-   * playwright doesn't provide a way to get the raw bytes, so we have to
-   * convert the ArrayBuffer to an array of numbers
-   */
-  bytes: number[]
-  headers: Record<string, string>
-  statusCode: number
-  text: string
-}
+import { Buffer } from 'node:buffer'
+import { NotImplementedError } from '@libp2p/interface'
+import { headersToObject } from '../../src/lib/headers-to-object.ts'
+import type { Page, Response } from '@playwright/test'
 
 /**
  * Make an in-page fetch request which should get intercepted by the service
@@ -19,31 +10,114 @@ export interface RangeRequestResult {
  * Normally, you could use request.get in playwright to query a server, but this
  * does not go to the service worker.
  */
-export async function makeRangeRequest ({ page, range, path }: { range: string, page: Page, path: string }): Promise<RangeRequestResult> {
-  return page.evaluate(async ({ path, range }) => {
-    const response = await fetch(path, {
-      headers: {
-        range
+export async function makeFetchRequest (page: Page, url: URL | string, init?: RequestInit): Promise<Response> {
+  const result = await page.evaluate(async ({ url, headers }) => {
+    function headersToObject (headers: Headers): Record<string, string> {
+      const output: Record<string, string> = {}
+
+      for (const [key, value] of headers.entries()) {
+        output[key] = value
       }
+
+      return output
+    }
+
+    // TODO: replace with Uint8Array.toBase64() when it is widely available
+    async function bufferToBase64 (buffer: ArrayBuffer): Promise<string> {
+      const base64url = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          if (typeof reader.result === 'string') {
+            resolve(reader.result)
+          }
+
+          reject(new Error('Result was incorrect type'))
+        }
+        reader.readAsDataURL(new Blob([buffer]))
+      })
+
+      return base64url.slice(base64url.indexOf(',') + 1)
+    }
+
+    const response = await fetch(url, {
+      headers
     })
 
-    const clone = response.clone()
-    const buffer = await response.arrayBuffer()
-    const byteSize = buffer.byteLength
-    const bytes = Array.from(new Uint8Array(buffer))
-    const text = await clone.text()
-    const statusCode = response.status
-    const headers: Record<string, string> = {}
-    response.headers.forEach((value, key) => {
-      headers[key] = value
-    })
+    let body: string | undefined
+
+    if (response.body != null) {
+      body = await bufferToBase64(await response.arrayBuffer())
+    }
 
     return {
-      byteSize,
-      bytes,
-      headers,
-      statusCode,
-      text
+      status: response.status,
+      statusText: response.statusText,
+      url: response.url,
+      headers: headersToObject(response.headers),
+      body
     }
-  }, { path, range })
+  }, { url: url.toString(), headers: headersToObject(new Headers(init?.headers)) })
+
+  const response: Response = {
+    async allHeaders () {
+      return result.headers
+    },
+    async body () {
+      if (result.body == null) {
+        return Buffer.alloc(0)
+      }
+
+      return Buffer.from(result.body, 'base64')
+    },
+    async finished () {
+      return null
+    },
+    frame () {
+      throw new NotImplementedError('.frame() is not implemented')
+    },
+    fromServiceWorker () {
+      return true
+    },
+    headers () {
+      return result.headers
+    },
+    async headersArray () {
+      return [...Object.entries(result.headers)].map(([name, value]) => ({ name, value }))
+    },
+    async headerValue (name) {
+      return result.headers[name] ?? null
+    },
+    async headerValues (name) {
+      return result.headers[name]?.split(',') ?? []
+    },
+    async json () {
+      return JSON.parse(await this.text())
+    },
+    ok () {
+      return this.status() > 199 && this.status() < 300
+    },
+    request () {
+      throw new NotImplementedError('.request() is not implemented')
+    },
+    securityDetails () {
+      throw new NotImplementedError('.securityDetails() is not implemented')
+    },
+    serverAddr () {
+      throw new NotImplementedError('.serverAddr() is not implemented')
+    },
+    status () {
+      return result.status
+    },
+    statusText () {
+      return result.statusText
+    },
+    async text () {
+      return new TextDecoder().decode(await this.body())
+    },
+    url () {
+      return result.url
+    }
+  }
+
+  return response
 }

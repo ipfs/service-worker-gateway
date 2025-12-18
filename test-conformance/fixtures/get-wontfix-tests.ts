@@ -1,38 +1,5 @@
 export function getWontFixTests (): string[] {
   return [
-    // we cannot send a range header from the address bar, and there is no way
-    // to override it using a search param
-    // https://github.com/ipfs/specs/issues/525
-    'TestNativeDag/Convert_application%2Fvnd.ipld.dag-cbor_to_application%2Fvnd.ipld.dag-json_with_range_request_includes_correct_bytes_-_multi_range',
-    'TestPlainCodec/GET_plain_JSON_codec_with_Accept_has_expected_json_Content-Type_and_body_as-is%2C_with_single_range_request_-_multi_range',
-    'TestPlainCodec/GET_plain_JSON_codec_with_Accept_has_expected_json_Content-Type_and_body_as-is%2C_with_single_range_request_-_single_range',
-    'TestPlainCodec/GET_plain_JSON_codec_without_Accept_or_format=_has_expected_%22json%22_Content-Type_and_body_as-is_-_multi_range',
-    'TestPlainCodec/GET_plain_JSON_codec_without_Accept_or_format=_has_expected_%22json%22_Content-Type_and_body_as-is_-_single_range',
-    'TestPlainCodec/GET_plain_CBOR_codec_without_Accept_or_format=_has_expected_%22cbor%22_Content-Type_and_body_as-is_-_full_request',
-    'TestPlainCodec/GET_plain_CBOR_codec_without_Accept_or_format=_has_expected_%22cbor%22_Content-Type_and_body_as-is_-_full_request',
-    'TestPlainCodec/GET_plain_CBOR_codec_without_Accept_or_format=_has_expected_%22cbor%22_Content-Type_and_body_as-is_-_multi_range',
-    'TestPlainCodec/GET_plain_CBOR_codec_without_Accept_or_format=_has_expected_%22cbor%22_Content-Type_and_body_as-is_-_single_range',
-    'TestPlainCodec/GET_plain_JSON_codec_with_Accept_has_expected_json_Content-Type_and_body_as-is%2C_with_single_range_request_-_full_request',
-    'TestPlainCodec/GET_plain_JSON_codec_with_%3Fformat=_has_expected_json_Content-Type_and_body_as-is_-_multi_range',
-    'TestPlainCodec/GET_plain_JSON_codec_with_%3Fformat=_has_expected_json_Content-Type_and_body_as-is_-_single_range',
-    'TestPlainCodec/GET_plain_JSON_codec_with_%3Fformat=_has_expected_json_Content-Type_and_body_as-is_-_full_request',
-    'TestPlainCodec/GET_plain_JSON_codec_without_Accept_or_format=_has_expected_%22json%22_Content-Type_and_body_as-is_-_full_request',
-    'TestPlainCodec/GET_plain_CBOR_codec_with_Accept_has_expected_cbor_Content-Type_and_body_as-is%2C_with_single_range_request_-_multi_range',
-    'TestPlainCodec/GET_plain_CBOR_codec_with_%3Fformat=_has_expected_cbor_Content-Type_and_body_as-is_-_multi_range',
-    'TestPlainCodec/GET_plain_CBOR_codec_with_%3Fformat=_has_expected_cbor_Content-Type_and_body_as-is_-_single_range',
-    'TestPlainCodec/GET_plain_CBOR_codec_with_%3Fformat=_has_expected_cbor_Content-Type_and_body_as-is_-_full_request',
-    'TestPlainCodec/GET_plain_CBOR_codec_with_Accept_has_expected_cbor_Content-Type_and_body_as-is%2C_with_single_range_request_-_single_range',
-    'TestPlainCodec/GET_plain_CBOR_codec_with_Accept_has_expected_cbor_Content-Type_and_body_as-is%2C_with_single_range_request_-_full_request',
-    'TestPlainCodec/GET_plain_CBOR_codec_with_format=dag-cbor_interprets_cbor_as_dag-%2A_variant_and_produces_expected_Content-Type_and_body%2C_with_single_range_request_-_multi_range',
-    'TestPlainCodec/GET_plain_CBOR_codec_with_format=dag-cbor_interprets_cbor_as_dag-%2A_variant_and_produces_expected_Content-Type_and_body%2C_with_single_range_request_-_single_range',
-    'TestPlainCodec/GET_plain_JSON_codec_with_format=dag-json_interprets_json_as_dag-%2A_variant_and_produces_expected_Content-Type_and_body%2C_with_single_range_request_-_multi_range',
-    'TestPlainCodec/GET_plain_JSON_codec_with_format=dag-json_interprets_json_as_dag-%2A_variant_and_produces_expected_Content-Type_and_body%2C_with_single_range_request_-_single_range',
-    'TestNativeDag/Convert_application%2Fvnd.ipld.dag-cbor_to_application%2Fvnd.ipld.dag-json_with_range_request_includes_correct_bytes_-_single_range',
-    'TestNativeDag/Convert_application%2Fvnd.ipld.dag-cbor_to_application%2Fvnd.ipld.dag-json_with_range_request_includes_correct_bytes_-_multi_range',
-    'TestGatewayBlock/GET_with_application%2Fvnd.ipld.raw_with_single_range_request_includes_correct_bytes',
-    'TestGatewayUnixFSFileRanges',
-    'TestTrustlessRawRanges',
-
     // these tests make HTTP requests to hosts that are not supported by the
     // service worker gateway
     'TestDNSLinkGatewayUnixFSDirectoryListing',
