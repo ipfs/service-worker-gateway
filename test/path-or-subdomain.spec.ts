@@ -142,7 +142,7 @@ describe('path-or-subdomain', () => {
       const input = new URL(`http://localhost:3333/ipfs/${cid}/${fileName}`)
 
       expect(toSubdomainRequest(input).href).to.equal(
-        new URL(`http://${cid}.ipfs.localhost:3333/?${QUERY_PARAMS.REDIRECT}=${encodeURIComponent(`${encodeURIComponent(fileName)}`)}`).href
+        new URL(`http://${cid}.ipfs.localhost:3333/?${QUERY_PARAMS.REDIRECT}=${encodeURIComponent(`/${encodeURIComponent(fileName)}`)}`).href
       )
     })
   })
