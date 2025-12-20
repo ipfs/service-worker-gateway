@@ -152,6 +152,7 @@ export async function updateVerifiedFetch (): Promise<void> {
     })
 
     helia = await createHeliaHTTP({
+      logger: collectingLogger(),
       routers,
       blockBrokers,
       hashers,

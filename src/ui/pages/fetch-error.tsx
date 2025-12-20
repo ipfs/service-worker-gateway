@@ -238,7 +238,7 @@ export function FetchErrorPage ({ request, response, config, logs, providers }: 
     providersMessage = (
       <>
         <Terminal>
-          These providers were found but did not return the requested data within the timeout:
+          These providers were found but did not return the requested data:
           {bitswapProviders.length > 0 ? '\n\nBitswap:\n\n' + JSON.stringify(bitswapProviders, null, 2) : ''}
           {trustlessGatewayProviders.length > 0 ? '\n\nTrustless Gateways:\n\n' + JSON.stringify(trustlessGatewayProviders, null, 2) : ''}
           {unknownProviders.length > 0 ? `\n\nUnknown Routing(s) (${providers.other.length}/${providers.otherCount}):\n\n` + JSON.stringify(unknownProviders, null, 2) : ''}
@@ -286,15 +286,16 @@ export function FetchErrorPage ({ request, response, config, logs, providers }: 
   } else if (response.status === 502) {
     message = (
       <>
-        <p className='f5 ma3 fw4 db'>Failed to load the requested content.</p>
-        {providersMessage}
+        <p className='f5 ma3 fw4 db'>The content was loaded but could not be processed.</p>
+        <Terminal>{response.body}</Terminal>
         {whatNextMessage}
       </>
     )
   } else if (response.status === 504) {
     message = (
       <>
-        <p className='db pt1 lh-copy ma3'>The service worker <Link href='https://docs.ipfs.tech/concepts/glossary/#gateway'>gateway</Link> is taking too long to fetch your content from the <Link href='https://docs.ipfs.tech/concepts/glossary/#mainnet'>public IPFS network</Link>.</p>
+        <p className='db pt1 lh-copy ma3'>Fetching your content from the <Link href='https://docs.ipfs.tech/concepts/glossary/#mainnet'>public IPFS network</Link> failed.</p>
+        <Terminal>{response.body}</Terminal>
         {providersMessage}
         {whatNextMessage}
       </>

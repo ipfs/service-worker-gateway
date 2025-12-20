@@ -429,8 +429,7 @@ if (watchRequested) {
 if (serveRequested) {
   const { port } = await ctx.serve({
     servedir: 'dist',
-    port: 8345,
-    host: 'localhost'
+    port: 8345
   })
   console.info(`Listening on http://localhost:${port}`)
 }

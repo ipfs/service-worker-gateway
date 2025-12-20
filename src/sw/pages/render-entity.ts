@@ -4,7 +4,7 @@ import { APP_NAME, APP_VERSION, GIT_REVISION } from '../../version.js'
 import { htmlPage } from './page.js'
 
 /**
- * Shows an error page to the user
+ * Renders the properties of the object deserialized from the block
  */
 export function renderEntityPageResponse (url: URL, headers: Headers, response: Response, entity: ArrayBuffer): Response {
   const mergedHeaders = new Headers(response.headers)
@@ -13,6 +13,7 @@ export function renderEntityPageResponse (url: URL, headers: Headers, response: 
   mergedHeaders.set('content-type', 'text/html; charset=utf-8')
   mergedHeaders.set('server', `${APP_NAME}/${APP_VERSION}#${GIT_REVISION}`)
   mergedHeaders.delete('content-disposition')
+  mergedHeaders.set('cache-control', 'public, max-age=604800, stale-while-revalidate=2678400')
 
   const props = {
     cid: mergedHeaders.get('x-ipfs-roots')?.split(',').pop() ?? '',
@@ -31,6 +32,8 @@ export function renderEntityPageResponse (url: URL, headers: Headers, response: 
 
   const page = htmlPage(props.cid ?? '', 'renderEntity', props)
   mergedHeaders.set('content-length', `${page.length}`)
+
+  mergedHeaders.set('etag', `"DagIndex-${props.cid}.html"`)
 
   return new Response(page, {
     status: response.status,

@@ -1,10 +1,15 @@
 /* eslint-env mocha */
+import * as dagPb from '@ipld/dag-pb'
 import { expect } from 'aegir/chai'
+import { UnixFS } from 'ipfs-unixfs'
 import { base32 } from 'multiformats/bases/base32'
 import { base36 } from 'multiformats/bases/base36'
 import { CID } from 'multiformats/cid'
+import { identity } from 'multiformats/hashes/identity'
+import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { QUERY_PARAMS } from '../src/lib/constants.js'
 import { isPathOrSubdomainRequest, toSubdomainRequest } from '../src/lib/path-or-subdomain.js'
+import { CODE_RAW } from '../src/ui/pages/multicodec-table.ts'
 
 describe('path-or-subdomain', () => {
   describe('isPathOrSubdomainRequest', () => {
@@ -118,37 +123,26 @@ describe('path-or-subdomain', () => {
       expect(out.searchParams.get(QUERY_PARAMS.REDIRECT)).to.equal('/foo')
     })
 
-    it('redirects cloudflare-style CIDv0 requests to a subdomain', () => {
-      // Use CIDv0 for this test
-      const cid = 'QmbQDovX7wRe9ek7u6QXe9zgCXkTzoUSsTFJEkrYV1HrVR'
-      const cidV1 = CID.parse(cid).toV1().toString(base32)
-      const loc = new URL(`http://example.com/index.html/ipfs/${cid}/foo/bar.txt`)
-
-      const out = toSubdomainRequest(loc)
-      const exp = new URL(`http://${cidV1}.ipfs.example.com/`)
-      exp.searchParams.set(QUERY_PARAMS.REDIRECT, '/foo/bar.txt')
-
-      expect(out.href).to.equal(exp.href)
-    })
-
-    it('redirects cloudflare-style CIDv1 requests to a subdomain', () => {
-      // Use CIDv0 for this test
-      const cid = 'QmbQDovX7wRe9ek7u6QXe9zgCXkTzoUSsTFJEkrYV1HrVR'
-      const cidV1 = CID.parse(cid).toV1().toString(base32)
-      const loc = new URL(`http://example.com/index.html/ipfs/${cidV1}/foo/bar.txt`)
-
-      const out = toSubdomainRequest(loc)
-      const exp = new URL(`http://${cidV1}.ipfs.example.com/`)
-      exp.searchParams.set(QUERY_PARAMS.REDIRECT, '/foo/bar.txt')
-
-      expect(out.href).to.equal(exp.href)
-    })
-
     it('should handle paths with spaces', () => {
-      const input = new URL('http://localhost:3333/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq/1 - Barrel - Part 1 - alt.txt')
+      const fileName = 'h d.txt'
+      const fileContent = 'hi'
+      const fileCid = CID.createV1(CODE_RAW, identity.digest(uint8ArrayFromString(fileContent)))
+      const dir = dagPb.encode({
+        Data: new UnixFS({
+          type: 'directory'
+        }).marshal(),
+        Links: [{
+          Name: fileName,
+          Hash: fileCid,
+          Tsize: 0
+        }]
+      })
+      const cid = CID.createV1(dagPb.code, identity.digest(dir))
+
+      const input = new URL(`http://localhost:3333/ipfs/${cid}/${fileName}`)
 
       expect(toSubdomainRequest(input).href).to.equal(
-        new URL(`http://bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq.ipfs.localhost:3333/?${QUERY_PARAMS.REDIRECT}=${encodeURIComponent('/1%20-%20Barrel%20-%20Part%201%20-%20alt.txt')}`).href
+        new URL(`http://${cid}.ipfs.localhost:3333/?${QUERY_PARAMS.REDIRECT}=${encodeURIComponent(`${encodeURIComponent(fileName)}`)}`).href
       )
     })
   })

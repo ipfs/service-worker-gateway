@@ -1,4 +1,4 @@
-import { MEDIA_TYPE_DAG_PB } from '@helia/verified-fetch'
+import { MEDIA_TYPE_CAR, MEDIA_TYPE_CBOR, MEDIA_TYPE_DAG_CBOR, MEDIA_TYPE_DAG_JSON, MEDIA_TYPE_DAG_PB, MEDIA_TYPE_IPNS_RECORD, MEDIA_TYPE_JSON, MEDIA_TYPE_RAW, MEDIA_TYPE_TAR } from '@helia/verified-fetch'
 import { AbortError, setMaxListeners } from '@libp2p/interface'
 import { anySignal } from 'any-signal'
 import { CURRENT_CACHES } from '../../constants.js'
@@ -43,6 +43,7 @@ interface FetchHandlerArg {
   renderPreview: boolean
   cacheKey: string
   isMutable: boolean
+  accept: string | null
 }
 
 const ONE_HOUR_IN_SECONDS = 3600
@@ -166,7 +167,7 @@ async function storeResponseInCache (response: Response, args: FetchHandlerArg):
   }
 }
 
-async function fetchHandler ({ url, headers, renderPreview, event, logs, subdomainGatewayRequest, pathGatewayRequest }: FetchHandlerArg): Promise<Response> {
+async function fetchHandler ({ url, headers, renderPreview, event, logs, subdomainGatewayRequest, pathGatewayRequest, accept }: FetchHandlerArg): Promise<Response> {
   const log = getSwLogger('fetch-handler')
   const config = await getConfig()
 
@@ -284,12 +285,13 @@ async function fetchHandler ({ url, headers, renderPreview, event, logs, subdoma
       log('%s: %s', key, value)
     }
 
-    if (!response.ok) {
-      return fetchErrorPageResponse(resource, init, response, await response.text(), providers, config, firstInstallTime, logs)
+    // render previews for UnixFS directories
+    if (response.headers.get('content-type') === MEDIA_TYPE_DAG_PB) {
+      renderPreview = shouldRenderDirectory(url, config, accept)
     }
 
-    if (response.headers.get('content-type') === MEDIA_TYPE_DAG_PB) {
-      renderPreview = shouldRenderDirectory(url, headers, config)
+    if (!response.ok) {
+      return fetchErrorPageResponse(resource, init, response, await response.text(), providers, config, firstInstallTime, logs)
     }
 
     if (renderPreview) {
@@ -341,24 +343,9 @@ async function fetchHandler ({ url, headers, renderPreview, event, logs, subdoma
         status: 504,
         statusText: 'Gateway Timeout',
         headers: {
-          'Content-Type': 'application/json'
+          'content-type': 'application/json'
         }
       }), JSON.stringify(errorToObject(new AbortError(`Timed out after ${Date.now() - start}ms`)), null, 2), providers, config, firstInstallTime, logs)
-    }
-
-    if (err.name === 'LoadBlockFailedError') {
-      return fetchErrorPageResponse(resource, init, new Response('', {
-        status: 502,
-        statusText: 'Bad Gateway',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }), JSON.stringify(errorToObject(err), null, 2), providers, config, firstInstallTime, logs)
-    }
-
-    if (event.request.signal.aborted) {
-      // the request was cancelled?
-      log.error('the request signal was aborted')
     }
 
     log.error('error during request - %e', err)
@@ -367,7 +354,7 @@ async function fetchHandler ({ url, headers, renderPreview, event, logs, subdoma
       status: 500,
       statusText: 'Internal Server Error',
       headers: {
-        'Content-Type': 'application/json'
+        'content-type': 'application/json'
       }
     }), JSON.stringify(errorToObject(err), null, 2), providers, config, firstInstallTime, logs)
   } finally {
@@ -385,54 +372,18 @@ function setExpiresHeader (response: Response, ttlSeconds: number = ONE_HOUR_IN_
   response.headers.set('sw-cache-expires', expirationTime.toUTCString())
 }
 
-/**
- * Returns `true` if the request should be rendered using an HTML view
- */
-function shouldRenderResponse (url: URL, requestHeaders: Headers, config: ConfigDb): boolean {
+function shouldRenderDirectory (url: URL, config: ConfigDb, accept?: string | null): boolean {
   if (url.searchParams.get('download') === 'true') {
-    // user explicitly wants to download the content
     return false
   } else if (url.searchParams.get('download') === 'false') {
-    // user explicitly wants to view the content
     return true
-  } else {
-    // download param is '' or not set, perform the default action for the
-    // content unless overridden in some other way
   }
 
-  // the user has disabled html views
   if (config.renderHTMLViews === false) {
     return false
   }
 
-  // the user doesn't care what we send. this is a hack to work around the fact
-  // that browsers always send an accept header that includes text/html so if
-  // we only rely on that we'll always show a preview and never inline content
-  // which then breaks things like showing inline text/plain content
-  if (requestHeaders.get('accept')?.includes('*/*') === true) {
-    return false
-  }
-
-  // the user has explicitly requested HTML
-  if (requestHeaders.get('accept')?.includes('text/html') === true) {
-    return true
-  }
-
-  // do whatever the default for the CID is
-  return false
-}
-
-function shouldRenderDirectory (url: URL, requestHeaders: Headers, config: ConfigDb): boolean {
-  if (url.searchParams.get('download') === 'true') {
-    return false
-  }
-
-  // the user has disabled html views
-  if (config.renderHTMLViews === false) {
-    return false
-  }
-
-  return requestHeaders.get('accept')?.includes('text/html') === true
+  return accept?.includes('text/html') === true
 }
 
 export const contentRequestHandler: Handler = {
@@ -496,7 +447,28 @@ export const contentRequestHandler: Handler = {
 
     const config = await conf.get()
     const headers = createHeaders(event)
-    const renderPreview = shouldRenderResponse(url, headers, config)
+    let renderPreview = false
+
+    const accept = headers.get('accept')
+
+    if (accept != null) {
+      if (acceptsIPLD(accept)) {
+        // honour an Accept header that verified-fetch supports - this will not
+        // 406
+      } else if (acceptsAnything(accept)) {
+        // this is a workaround for the fact that browsers always send an accept
+        // header that includes text/html so we'd never send file content
+        headers.delete('accept')
+      } else if (acceptsHTML(accept)) {
+        // verified-fetch will 406 but we can render an HTML view of the result so
+        // remove the accept header and accept whatever verified-fetch gives us
+        headers.delete('accept')
+
+        if (url.searchParams.get('download') !== 'true') {
+          renderPreview = true
+        }
+      }
+    }
 
     const response = await getResponseFromCacheOrFetch({
       event,
@@ -507,7 +479,8 @@ export const contentRequestHandler: Handler = {
       logs,
       cacheKey: getCacheKey(url, headers, renderPreview, config),
       isMutable: urlParts.protocol === 'ipns',
-      renderPreview
+      renderPreview,
+      accept
     })
 
     return response
@@ -521,7 +494,17 @@ function createHeaders (event: FetchEvent): Headers {
   // override the Accept header if the format param is present
   // https://specs.ipfs.tech/http-gateways/path-gateway/#format-request-query-parameter
   const format = url.searchParams.get('format')
-  if (format != null) {
+  if (isCarRequest(url)) {
+    const accept = `application/vnd.ipld.car; version=${
+      url.searchParams.get('car-version') ?? '1'
+    }; order=${
+      url.searchParams.get('car-order') ?? 'unk'
+    }; dups=${
+      url.searchParams.get('car-dups') ?? 'y'
+    }`
+
+    headers.set('accept', accept)
+  } else if (format != null) {
     const accept = FORMAT_TO_MEDIA_TYPE[format]
 
     if (accept != null) {
@@ -529,5 +512,54 @@ function createHeaders (event: FetchEvent): Headers {
     }
   }
 
+  // if the user has specified CAR options but no Accept header, default to
+  // the car content type with the passed options
   return headers
+}
+
+/**
+ * Returns `true` if the user has requested a specific IPLD format
+ */
+function acceptsIPLD (accept: string): boolean {
+  return [
+    MEDIA_TYPE_DAG_CBOR,
+    MEDIA_TYPE_CBOR,
+    MEDIA_TYPE_DAG_JSON,
+    MEDIA_TYPE_JSON,
+    MEDIA_TYPE_RAW,
+    MEDIA_TYPE_IPNS_RECORD,
+    MEDIA_TYPE_DAG_PB,
+    MEDIA_TYPE_CAR,
+    MEDIA_TYPE_TAR
+  ].some(val => accept.includes(val))
+}
+
+/**
+ * Returns `true` if the user accepts HTML
+ */
+function acceptsHTML (accept: string): boolean {
+  return [
+    'text/html'
+  ].some(val => accept.includes(val))
+}
+
+/**
+ * Returns `true` if the user accepts HTML
+ */
+function acceptsAnything (accept: string): boolean {
+  return [
+    '*/*'
+  ].some(val => accept.includes(val))
+}
+
+/**
+ * Returns `true` if the user requested a CAR file via search params
+ */
+function isCarRequest (url: URL): boolean {
+  return url.searchParams.get('format') === 'car' ||
+    url.searchParams.has('entity-bytes') ||
+    url.searchParams.has('dag-scope') ||
+    url.searchParams.has('car-order') ||
+    url.searchParams.has('car-dups') ||
+    url.searchParams.has('car-version')
 }

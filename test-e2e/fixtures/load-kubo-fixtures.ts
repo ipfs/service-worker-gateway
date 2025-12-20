@@ -1,3 +1,5 @@
+/* eslint-disable no-console */
+
 /**
  * This is required to update gateway-conformance fixtures
  *
@@ -8,6 +10,7 @@
  * - `npx`
  */
 
+import { createReadStream } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, relative, resolve } from 'node:path'
@@ -15,6 +18,8 @@ import { fileURLToPath } from 'node:url'
 import { logger } from '@libp2p/logger'
 import { $ } from 'execa'
 import { glob } from 'glob'
+import drain from 'it-drain'
+import type { KuboNode } from 'ipfsd-ctl'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -23,16 +28,6 @@ const log = logger('kubo-init')
 // This needs to match the `repo` property provided to `ipfsd-ctl` in `createKuboNode` so our kubo instance in tests use the same repo
 export const kuboRepoDir = `${tmpdir()}/.ipfs/${Date.now()}`
 export const GWC_FIXTURES_PATH = resolve(__dirname, 'data/gateway-conformance-fixtures')
-
-function getExecaOptions ({ cwd, ipfsNsMap }: { cwd?: string, ipfsNsMap?: string } = {}): { cwd: string, env: Record<string, string | undefined> } {
-  return {
-    cwd: cwd ?? __dirname,
-    env: {
-      IPFS_PATH: kuboRepoDir,
-      IPFS_NS_MAP: ipfsNsMap
-    }
-  }
-}
 
 export async function downloadFixtures (force = false): Promise<void> {
   if (!force) {
@@ -61,12 +56,18 @@ export async function getIpfsNsMap (): Promise<string> {
   return ipfsNsMap
 }
 
-export async function loadCarFixtures (): Promise<void> {
-  const execaOptions = getExecaOptions()
+export async function loadCarFixtures (node: KuboNode): Promise<void> {
+  // const execaOptions = getExecaOptions()
+  let loadedCarFiles = 0
 
-  for (const carFile of await glob([`${resolve(__dirname, 'data')}/**/*.car`])) {
-    log('Loading *.car fixture %s', carFile)
-    const { stdout } = await $(execaOptions)`npx -y kubo dag import --pin-roots=false --offline ${carFile}`
-    stdout.split('\n').forEach(log)
+  for (const carFile of await glob([`${process.cwd()}/test-e2e/fixtures/data/**/*.car`])) {
+    loadedCarFiles++
+    console.info('Loading *.car fixture %s', carFile)
+
+    await drain(node.api.dag.import([createReadStream(carFile)], {
+      pinRoots: false
+    }))
   }
+
+  console.info('Loaded', loadedCarFiles, 'car files')
 }

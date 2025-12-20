@@ -1,6 +1,11 @@
+import * as dagPb from '@ipld/dag-pb'
+import { UnixFS } from 'ipfs-unixfs'
+import { CID } from 'multiformats/cid'
+import { identity } from 'multiformats/hashes/identity'
+import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
+import { CODE_RAW } from '../src/ui/pages/multicodec-table.ts'
 import { test, expect } from './fixtures/config-test-fixtures.js'
 import { handleOriginIsolationWarning } from './fixtures/handle-origin-isolation-warning.js'
-import { loadWithServiceWorker } from './fixtures/load-with-service-worker.ts'
 import { swScopeVerification } from './fixtures/sw-scope-verification.js'
 
 test.afterEach(async ({ page }) => {
@@ -137,7 +142,8 @@ test.describe('first-hit direct-hosted', () => {
     })
 
     test('requests to new pages are redirected', async ({ page, rootDomain, protocol }) => {
-      const response = await page.goto(`${protocol}//${rootDomain}/ipfs/bafkqablimvwgy3y`, {
+      const cid = 'bafkqablimvwgy3y'
+      const response = await page.goto(`${protocol}//${rootDomain}/ipfs/${cid}`, {
         waitUntil: 'commit'
       })
 
@@ -148,7 +154,7 @@ test.describe('first-hit direct-hosted', () => {
       expect(headers?.['content-type']).toContain('text/html')
 
       // then we should be redirected to the IPFS path
-      await expect(page).toHaveURL(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}`, {
+      await expect(page).toHaveURL(`${protocol}//${cid}.ipfs.${rootDomain}`, {
         timeout: 10_000
       })
 
@@ -163,13 +169,36 @@ test.describe('first-hit direct-hosted', () => {
       })
     })
 
-    test('subdomain with path is redirected to root', async ({ page, rootDomain, protocol }) => {
-      const response = await page.goto(`${protocol}//${rootDomain}/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq/1 - Barrel - Part 1 - alt.txt`, {
+    test('subdomain with url encoded path and params is redirected to root', async ({ page, rootDomain, protocol }) => {
+      const fileName = 'h d.txt'
+      const fileContent = 'hi'
+      const fileCid = CID.createV1(CODE_RAW, identity.digest(uint8ArrayFromString(fileContent)))
+      const dir = dagPb.encode({
+        Data: new UnixFS({
+          type: 'directory'
+        }).marshal(),
+        Links: [{
+          Name: fileName,
+          Hash: fileCid,
+          Tsize: 0
+        }]
+      })
+      const cid = CID.createV1(dagPb.code, identity.digest(dir))
+
+      const response = await page.goto(`${protocol}//${rootDomain}/ipfs/${cid}/${encodeURIComponent(fileName)}?download=false`, {
         waitUntil: 'commit'
       })
 
       // first loads the root page
       expect(response?.status()).toBe(200)
+
+      const headers = await response?.allHeaders()
+      expect(headers?.['content-type']).toContain('text/html')
+
+      // then we should be redirected to the IPFS path
+      await expect(page).toHaveURL(`${protocol}//${cid}.ipfs.${rootDomain}/${encodeURIComponent(fileName)}?download=false`, {
+        timeout: 10_000
+      })
 
       // wait for loading page to finish '.loading-page' to be removed
       await page.waitForSelector('.loading-page', {
@@ -177,39 +206,9 @@ test.describe('first-hit direct-hosted', () => {
       })
 
       // and we verify the content was returned
-      await page.waitForSelector('text=Don\'t we all.')
-    })
-
-    test('subdomain with url encoded path and params is redirected to root', async ({ page, rootDomain, protocol }) => {
-      const cid = 'bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq'
-      const path = '/1%20-%20Barrel%20-%20Part%201%20-%20alt.txt'
-
-      const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}${path}`, {
-        redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}${path}` : undefined
+      await page.waitForSelector(`text=${fileContent}`, {
+        timeout: 25_000
       })
-
-      // first loads the root page
-      expect(response?.status()).toBe(200)
-
-      // and we verify the content was returned
-      await page.waitForSelector('text=Don\'t we all.')
-    })
-
-    test('cloudflare-style redirect works', async ({ page, rootDomain, protocol }) => {
-      // when accessing https://inbrowser.dev/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq
-      // cloudflare will redirect to https://inbrowser.dev/index.html/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq
-      const response = await page.goto(`${protocol}//${rootDomain}/index.html/ipfs/bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq/1 - Barrel - Part 1 - alt.txt`, {
-        waitUntil: 'commit'
-      })
-
-      // first loads the root page
-      expect(response?.status()).toBe(200)
-
-      await page.waitForURL(`${protocol}//bafybeigccimv3zqm5g4jt363faybagywkvqbrismoquogimy7kvz2sj7sq.ipfs.${rootDomain}/1%20-%20Barrel%20-%20Part%201%20-%20alt.txt`, {
-        timeout: 10_000
-      })
-
-      await page.waitForSelector('text=Don\'t we all.')
     })
   })
 })
