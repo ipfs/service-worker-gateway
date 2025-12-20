@@ -128,6 +128,6 @@ test.describe('json', () => {
 
     const headers = await response.allHeaders()
     expect(headers['content-type']).toContain('text/html')
-    expect(headers['cache-control']).toBe('public, max-age=29030400, immutable')
+    expect(headers['cache-control']).toBe('public, max-age=604800, stale-while-revalidate=2678400')
   })
 })
