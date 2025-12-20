@@ -24,7 +24,7 @@ const setCommonHeaders = (res: ServerResponse): void => {
  * @returns {import('node:http').Server} The HTTP server instance
  */
 export function createReverseProxy ({
-  targetHost = process.env.TARGET_HOST ?? 'localhost',
+  targetHost = process.env.TARGET_HOST,
   backendPort = Number(process.env.BACKEND_PORT ?? 3000),
   proxyPort = Number(process.env.PROXY_PORT ?? 3333),
   subdomain = process.env.SUBDOMAIN,

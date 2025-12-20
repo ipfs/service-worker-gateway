@@ -5,6 +5,9 @@ import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { testPathRouting as test, expect } from './fixtures/config-test-fixtures.js'
 import { IPLD_CONVERSIONS } from './fixtures/ipld-conversions.ts'
 import { loadWithServiceWorker } from './fixtures/load-with-service-worker.js'
+import { makeFetchRequest } from './fixtures/make-range-request.ts'
+import { setConfig } from './fixtures/set-sw-config.ts'
+import { waitForServiceWorker } from './fixtures/wait-for-service-worker.ts'
 import type { KuboRPCClient } from 'kubo-rpc-client'
 import type { CID } from 'multiformats/cid'
 
@@ -97,5 +100,34 @@ test.describe('json', () => {
     expect(headers['cache-control']).toBe('public, max-age=29030400, immutable')
 
     expect(await response.text()).toStrictEqual(body)
+  })
+
+  test('should load json file as HTML via accept header', async ({ page, protocol, rootDomain }) => {
+    const body = '{ "test": "i am a plain json file" }\n'
+    const cid = await kubo.block.put(uint8ArrayFromString(body), {
+      format: 'raw'
+    })
+
+    expect(cid.toString()).toContain('bafkreibrppizs3g7axs2jdlnjua6vgpmltv7k72l7v7sa6mmht6mne3qqe')
+
+    await page.goto(`${protocol}://${rootDomain}`, {
+      waitUntil: 'networkidle'
+    })
+    await waitForServiceWorker(page)
+    await setConfig(page, {
+      acceptOriginIsolationWarning: true,
+      renderHTMLViews: false
+    })
+    const response = await makeFetchRequest(page, `/ipfs/${cid}`, {
+      headers: {
+        accept: 'text/html'
+      }
+    })
+
+    expect(response.status()).toBe(200)
+
+    const headers = await response.allHeaders()
+    expect(headers['content-type']).toContain('text/html')
+    expect(headers['cache-control']).toBe('public, max-age=604800, stale-while-revalidate=2678400')
   })
 })

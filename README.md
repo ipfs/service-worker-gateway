@@ -19,9 +19,8 @@
 
 ## About
 
-This project demonstrates
-the use of [Helia](https://github.com/ipfs/helia) (IPFS implementation in JS)
-and the [`verified-fetch` library](https://github.com/ipfs/helia-verified-fetch)
+This project demonstrates the use of [Helia](https://github.com/ipfs/helia)
+(IPFS implementation in JS) and the [`verified-fetch` library](https://github.com/ipfs/helia-verified-fetch)
 ([Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) for IPFS)
 within a [Service Worker](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API)
 to facilitate direct verified retrieval of content-addressed data.
@@ -40,7 +39,6 @@ tasks.
 <a href="http://ipshipyard.com/"><img align="right" src="https://github.com/user-attachments/assets/39ed3504-bb71-47f6-9bf8-cb9a1698f272" /></a>
 
 This project  was brought to you by the [Shipyard](http://ipshipyard.com/) team.
-
 
 ### Goals
 
@@ -63,7 +61,6 @@ The main goals of this project are:
 - **Improving JS tooling, IPFS specifications, and gateway-conformance tests.**
    - By having to implement gateway semantics end-to-end we identify bugs and
      gaps, and improve quality of libraries, specifications, and interop tests.
-
 
 
 ### Feature Set

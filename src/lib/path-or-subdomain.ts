@@ -77,11 +77,6 @@ export const toSubdomainRequest = (location: URL): URL => {
     .split('/')
     .filter(segment => segment !== '')
 
-  // remove cloudflare redirect
-  if (segments[0] === 'index.html') {
-    segments.shift()
-  }
-
   if (segments.length < 2) {
     throw new InvalidParametersError(`Invalid location ${location}`)
   }

@@ -4,24 +4,14 @@ export function getWontFixTests (): string[] {
     // service worker gateway
     'TestDNSLinkGatewayUnixFSDirectoryListing',
 
-    // browsers always send an Accept header which includes
-    // application/octet-stream so this test will always fail
-    'TestNativeDag/HEAD_plain_JSON_codec_with_no_explicit_format_returns_HTTP_200/Header_Content-Type',
-
-    // this test wants to ignore the format arg and return a text/html
-    // content-type which is not in the spec
+    // these tests want to ignore the format arg and return a text/html
+    // content-type which is not in the spec?
     // https://github.com/ipfs/gateway-conformance/issues/256
     'TestDagPbConversion/GET_UnixFS_with_format=json_%28not_dag-json%29_is_no-op_%28no_conversion%29',
     'TestDagPbConversion/GET_UnixFS_with_format=cbor_%28not_dag-cbor%29_is_no-op_%28no_conversion%29',
-
-    // we cannot send an accept header
-    'TestNativeDag/GET_plain_JSON_codec_on_%2Fipfs_with_Accept:_text%2Fhtml_returns_HTML_%28dag-index-html%29',
-    'TestNativeDag/GET_plain_CBOR_codec_on_%2Fipfs_with_Accept:_text%2Fhtml_returns_HTML_%28dag-index-html%29',
-    'TestNativeDag/Convert_application%2Fvnd.ipld.dag-cbor_to_text%2Fhtml',
-    'TestGatewayJSONCborAndIPNS/GET_plain_JSON_codec_on_%2Fipns_with_Accept:_text%2Fhtml_returns_HTML_%28dag-index-html%29',
-    'TestGatewayJSONCborAndIPNS/GET_plain_CBOR_codec_on_%2Fipns_with_Accept:_text%2Fhtml_returns_HTML_%28dag-index-html%29',
-    'TestDagPbConversion/GET_UnixFS_with_%27Accept:_application%2Fjson%27_%28not_dag-json%29_is_no-op_%28no_conversion%29',
-    'TestDagPbConversion/GET_UnixFS_with_%27Accept:_application%2Fcbor%27_%28not_dag-cbor%29_is_no-op_%28no_conversion%29',
+    'TestDagPbConversion/GET_UnixFS_with_%27Accept:_application%2Fjson%27_%28not_dag-json%29_is_no-op_%28no_conversion%29/Header_Content-Type',
+    'TestDagPbConversion/GET_UnixFS_with_%27Accept:_application%2Fcbor%27_%28not_dag-cbor%29_is_no-op_%28no_conversion%29/Header_Content-Type',
+    'TestDagPbConversion/GET_UnixFS_with_%27Accept:_application%2Fcbor%27_%28not_dag-cbor%29_is_no-op_%28no_conversion%29/Body',
 
     // kubo-specific tests
     'TestUnixFSDirectoryListing/path_gw:_backlink_on_root_CID_should_be_hidden_%28TODO:_cleanup_Kubo-specifics%29',

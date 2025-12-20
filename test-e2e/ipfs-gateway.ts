@@ -32,12 +32,15 @@ async function isKuboRunning (): Promise<boolean> {
 }
 
 export async function setupIpfsGateway (): Promise<KuboNodeInstance> {
-  // if we are running via playwright, we need to wait for the gateway to be open, otherwise we need to start the kubo node via createKuboNode
+  // if we are running via playwright, we need to wait for the gateway to be
+  // open, otherwise we need to start the kubo node via createKuboNode
   let controller: KuboNode | undefined
   if (!await isKuboRunning()) {
     log('Starting kubo node')
     controller = await createKuboNode()
     await controller.start()
+  } else {
+    log('Using existing kubo node')
   }
 
   const cid = await getKuboDistCid()

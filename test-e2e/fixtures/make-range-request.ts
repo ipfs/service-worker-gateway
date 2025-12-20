@@ -56,7 +56,7 @@ export async function makeFetchRequest (page: Page, url: URL | string, init?: Re
       headers: headersToObject(response.headers),
       body
     }
-  }, { url: url.toString(), headers: headersToObject(new Headers(init?.headers)) })
+  }, { url: `${url}`, headers: headersToObject(new Headers(init?.headers)) })
 
   const response: Response = {
     async allHeaders () {
