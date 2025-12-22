@@ -24,12 +24,11 @@ export function getWontFixTests (): string[] {
     'TestPathing/GET_DAG-JSON_traversal_returns_501_if_there_is_path_remainder',
     'TestPathing/GET_DAG-CBOR_traversal_returns_501_if_there_is_path_remainder',
 
-    // we cannot send a cache-control header
+    // these tests require the block /ipfs/bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui/root2/root3/root4
+    // to be in the blockstore already
     'TestNativeDag/Cache_control_HTTP_headers_%28json%29',
-    'TestNativeDag/HEAD_plain_JSON_codec_with_only-if-cached_for_missing_block_returns_HTTP_412_Precondition_Failed',
-    'TestNativeDag/HEAD_plain_CBOR_codec_with_only-if-cached_for_missing_block_returns_HTTP_412_Precondition_Failed',
-    'TestGatewayCache/HEAD_for_%2Fipfs%2F_with_only-if-cached_fails_when_not_in_local_datastore',
-    'TestGatewayCache/GET_for_%2Fipfs%2F_with_only-if-cached_fails_when_not_in_local_datastore',
+    'TestGatewayCache/HEAD_for_%2Fipfs%2F_with_only-if-cached_succeeds_when_in_local_datastore',
+    'TestGatewayCache/GET_for_%2Fipfs%2F_with_only-if-cached_succeeds_when_in_local_datastore',
 
     // we cannot send if-none-match header
     'TestGatewayCache/GET_for_%2Fipfs%2F_file_with_matching_Etag_in_If-None-Match_returns_304_Not_Modified',
