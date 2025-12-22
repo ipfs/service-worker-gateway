@@ -142,6 +142,16 @@ test.describe('smoke test', () => {
       return
     }
 
+    const isOnline = await page.evaluate(() => {
+      return window.navigator.onLine
+    })
+
+    if (!isOnline) {
+      // running tests offline so the service worker will not unregister itself
+      test.skip()
+      return
+    }
+
     async function hasRegistration (): Promise<boolean> {
       return page.evaluate(async () => {
         return await window.navigator.serviceWorker.getRegistration() != null
