@@ -27,22 +27,31 @@ const log = logger('kubo-init')
 
 // This needs to match the `repo` property provided to `ipfsd-ctl` in `createKuboNode` so our kubo instance in tests use the same repo
 export const kuboRepoDir = `${tmpdir()}/.ipfs/${Date.now()}`
-export const GWC_FIXTURES_PATH = resolve(__dirname, 'data/gateway-conformance-fixtures')
+export const GWC_FIXTURES_PATH = resolve(__dirname, '../../test-conformance/fixtures/gateway-conformance-fixtures')
 
 export async function downloadFixtures (force = false): Promise<void> {
   if (!force) {
-  // if the fixtures are already downloaded, we don't need to download them again
-    const allFixtures = await glob([`${GWC_FIXTURES_PATH}/**/*.car`, `${GWC_FIXTURES_PATH}/**/*.ipns-record`, `${GWC_FIXTURES_PATH}/dnslinks.json`])
-    if (allFixtures.length > 0) {
-      log('Fixtures already downloaded')
+    // skip downloading fixtures if they are already present
+    const allFixtures = await Promise.all([
+      glob([`${GWC_FIXTURES_PATH}/**/*.car`]),
+      glob([`${GWC_FIXTURES_PATH}/**/*.ipns-record`]),
+      glob([`${GWC_FIXTURES_PATH}/dnslinks.json`])
+    ])
+
+    if (allFixtures.every(fixtures => fixtures.length > 0)) {
+      console.info('Fixtures already downloaded')
       return
     }
   }
 
-  log('Downloading fixtures')
+  console.info('Downloading fixtures')
   try {
     await $`docker run -v ${process.cwd()}:/workspace -w /workspace ghcr.io/ipfs/gateway-conformance:v0.7.1 extract-fixtures --directory ${relative('.', GWC_FIXTURES_PATH)} --merged false`
-  } catch (err) {
+  } catch (err: any) {
+    if (err.message.includes('docker')) {
+      throw err
+    }
+
     log.error('error downloading fixtures, assuming current or previous success - %e', err)
   }
 }
