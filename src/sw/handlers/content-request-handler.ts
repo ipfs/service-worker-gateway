@@ -108,7 +108,12 @@ function shouldCacheResponse (response: Response, args: FetchHandlerArg): boolea
   const log = getSwLogger('should-cache-response')
 
   if (!response.ok) {
-    log.trace('response not ok, not caching %o', response)
+    log.trace('response not ok, not caching %s %d %s', response.url, response.status, response.statusText)
+
+    for (const [key, value] of response.headers) {
+      log.trace('%s: %s', key, value)
+    }
+
     return false
   }
 

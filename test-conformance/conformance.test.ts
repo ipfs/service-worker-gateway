@@ -142,12 +142,14 @@ test.describe('@helia/service-worker-gateway - gateway conformance', () => {
               const HEADERS = [
                 'accept',
                 'range',
-                'if-none-match'
+                'if-none-match',
+                'cache-control'
               ]
 
               if ([...Object.keys(req.headers)].some(key => HEADERS.includes(key))) {
                 response = await makeFetchRequest(page, url, {
-                  headers: new Headers(incomingHeadersToObject(req.headers))
+                  headers: new Headers(incomingHeadersToObject(req.headers)),
+                  redirect: 'follow'
                 })
               } else {
                 response = await loadWithServiceWorker(page, url.toString(), {
