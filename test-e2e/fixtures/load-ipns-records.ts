@@ -6,11 +6,16 @@ import { glob } from 'glob'
 import itAll from 'it-all'
 import type { KuboNode } from 'ipfsd-ctl'
 
+const FIXTURE_DIRS = [
+  `${process.cwd()}/test-e2e/fixtures/data/**/*.ipns-record`,
+  `${process.cwd()}/test-conformance/fixtures/**/*.ipns-record`
+]
+
 export async function loadIpnsRecords (node: KuboNode): Promise<void> {
   console.info('Loading ipns records')
   let loadedIpnsRecords = 0
 
-  for (const ipnsRecord of await glob([`${process.cwd()}/test-e2e/fixtures/data/**/*.ipns-record`])) {
+  for (const ipnsRecord of await glob(FIXTURE_DIRS)) {
     loadedIpnsRecords++
     console.info('Loading *.ipns-record fixture fullpath:', ipnsRecord)
 

@@ -49,7 +49,7 @@ interface FetchHandlerArg {
 const ONE_HOUR_IN_SECONDS = 3600
 
 function getCacheKey (url: URL, headers: Headers, renderPreview: boolean, config: ConfigDb): string {
-  return `${url}-${headers.get('accept') ?? ''}-preview-${renderPreview}-indexes-${config.supportDirectoryIndexes}-redirects-${config.supportWebRedirects}`
+  return `${url}-${headers.get('accept')}-preview-${renderPreview}-indexes-${config.supportDirectoryIndexes}-redirects-${config.supportWebRedirects}-match-${headers.get('if-none-match')}`
 }
 
 async function getResponseFromCacheOrFetch (args: FetchHandlerArg): Promise<Response> {
@@ -295,41 +295,41 @@ async function fetchHandler ({ url, headers, renderPreview, event, logs, subdoma
       renderPreview = shouldRenderDirectory(url, config, accept)
     }
 
-    if (!response.ok) {
+    if (response.status > 399) {
       return fetchErrorPageResponse(resource, init, response, await response.text(), providers, config, firstInstallTime, logs)
     }
 
-    if (renderPreview) {
-      try {
-        return renderEntityPageResponse(url, headers, response, await response.arrayBuffer())
-      } catch (err: any) {
-        log.error('error while loading body to render - %e', err)
+    if (response.status > 199 && response.status < 300) {
+      if (renderPreview) {
+        try {
+          return renderEntityPageResponse(url, headers, response, await response.arrayBuffer())
+        } catch (err: any) {
+          log.error('error while loading body to render - %e', err)
 
-        // if the response content involves loading more than one block and
-        // loading a subsequent block fails, the `.arrayBuffer()` promise will
-        // reject with an opaque 'TypeError: Failed to fetch' so show a 502 Bad
-        // Gateway with debugging information
-        return fetchErrorPageResponse(resource, init, new Response('', {
-          status: 502,
-          statusText: 'Bad Gateway',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }), JSON.stringify(errorToObject(err), null, 2), providers, config, firstInstallTime, logs)
+          // if the response content involves loading more than one block and
+          // loading a subsequent block fails, the `.arrayBuffer()` promise will
+          // reject with an opaque 'TypeError: Failed to fetch' so show a 502 Bad
+          // Gateway with debugging information
+          return fetchErrorPageResponse(resource, init, new Response('', {
+            status: 502,
+            statusText: 'Bad Gateway',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          }), JSON.stringify(errorToObject(err), null, 2), providers, config, firstInstallTime, logs)
+        }
+      } else if (url.searchParams.get('download') === 'true') {
+        // override inline attachments if present
+        let contentDisposition = response.headers.get('content-disposition')
+
+        if (contentDisposition == null || contentDisposition === '') {
+          contentDisposition = 'attachment'
+        } else if (contentDisposition.startsWith('inline')) {
+          contentDisposition = contentDisposition.replace('inline', 'attachment')
+        }
+
+        response.headers.set('content-disposition', contentDisposition)
       }
-    }
-
-    if (url.searchParams.get('download') === 'true') {
-      // override inline attachments if present
-      let contentDisposition = response.headers.get('content-disposition')
-
-      if (contentDisposition == null || contentDisposition === '') {
-        contentDisposition = 'attachment'
-      } else if (contentDisposition.startsWith('inline')) {
-        contentDisposition = contentDisposition.replace('inline', 'attachment')
-      }
-
-      response.headers.set('content-disposition', contentDisposition)
     }
 
     // Create a completely new response object with the same body, status,
