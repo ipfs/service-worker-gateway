@@ -65,11 +65,16 @@ export async function getIpfsNsMap (): Promise<string> {
   return ipfsNsMap
 }
 
+const FIXTURE_DIRS = [
+  `${process.cwd()}/test-e2e/fixtures/data/**/*.car`,
+  `${process.cwd()}/test-conformance/fixtures/**/*.car`
+]
+
 export async function loadCarFixtures (node: KuboNode): Promise<void> {
   // const execaOptions = getExecaOptions()
   let loadedCarFiles = 0
 
-  for (const carFile of await glob([`${process.cwd()}/test-e2e/fixtures/data/**/*.car`])) {
+  for (const carFile of await glob(FIXTURE_DIRS)) {
     loadedCarFiles++
     console.info('Loading *.car fixture %s', carFile)
 
