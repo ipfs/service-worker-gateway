@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.2](https://github.com/ipfs/service-worker-gateway/compare/v2.1.1...v2.1.2) (2025-12-27)
+
+
+### Bug Fixes
+
+* support accept header as per conformance tests ([#940](https://github.com/ipfs/service-worker-gateway/issues/940)) ([87dbae8](https://github.com/ipfs/service-worker-gateway/commit/87dbae86731cf62751e375c6d38e3baa2f59f07e))
+
 ## [2.1.1](https://github.com/ipfs/service-worker-gateway/compare/v2.1.0...v2.1.1) (2025-12-18)
 
 
