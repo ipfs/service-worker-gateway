@@ -73,11 +73,13 @@ test.describe('dag-pb', () => {
       redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}/${path}/` : undefined
     })
 
-    expect(await response.headerValue('x-ipfs-roots')).toBe([
+    // hack: firefox in playwright seems to add a space between comma delimited
+    // values so strip them out
+    expect((await response.headerValue('x-ipfs-roots'))?.split(',').map(line => line.trim()).join(',')).toBe([
       'bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui',
       'bafybeih2w7hjocxjg6g2ku25hvmd53zj7og4txpby3vsusfefw5rrg5sii',
       'bafybeiawdvhmjcz65x5egzx4iukxc72hg4woks6v6fvgyupiyt3oczk5ja',
       'bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q'
-    ].join(', '))
+    ].join(','))
   })
 })
