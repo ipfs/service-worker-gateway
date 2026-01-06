@@ -7,8 +7,13 @@ import { matchSubdomainGroupsGuard, SUBDOMAIN_GATEWAY_REGEX } from './resource-t
 export function updateRedirect (resource: URL, response: Response): Response {
   let location = response.headers.get('location')
 
-  if (location == null) {
+  if (location == null || location.trim() === '') {
     return response
+  }
+
+  if (location.startsWith('?') || location.startsWith('/') || location.startsWith('#')) {
+    // partial location, prefix with current origin
+    location = `${resource.href}${location}`
   }
 
   const url = new URL(location)
