@@ -12,6 +12,7 @@ import { isBitswapProvider, isTrustlessGatewayProvider } from '../../lib/provide
 import { APP_NAME, APP_VERSION, GIT_REVISION } from '../../version.js'
 import { getConfig } from '../lib/config.js'
 import { getInstallTime } from '../lib/install-time.js'
+import { httpResourceToIpfsUrl } from '../lib/resource-to-url.ts'
 import { getVerifiedFetch } from '../lib/verified-fetch.js'
 import { fetchErrorPageResponse } from '../pages/fetch-error-page.js'
 import { originIsolationWarningPageResponse } from '../pages/origin-isolation-warning-page.js'
@@ -223,10 +224,26 @@ async function fetchHandler ({ url, headers, renderPreview, event, logs, subdoma
     otherCount: 0
   }
 
-  const resource = url.href
+  const resource = httpResourceToIpfsUrl(url)
+
+  // check for redirect
+  if (resource instanceof Response) {
+    return resource
+  }
 
   const firstInstallTime = await getInstallTime()
   const start = Date.now()
+
+  let ifNoneMatch = headers.get('if-none-match')
+
+  // these tokens are added to the header by the entity renderer response,
+  // remove them for internal comparison by verified fetch
+  if (ifNoneMatch != null) {
+    ifNoneMatch = ifNoneMatch.replace('DirIndex-.*_CID-', '')
+    ifNoneMatch = ifNoneMatch.replace('DagIndex-', '')
+
+    headers.set('if-none-match', ifNoneMatch)
+  }
 
   /**
    * Note that there are existing bugs regarding service worker signal handling:
@@ -359,7 +376,8 @@ async function fetchHandler ({ url, headers, renderPreview, event, logs, subdoma
       status: 500,
       statusText: 'Internal Server Error',
       headers: {
-        'content-type': 'application/json'
+        'content-type': 'application/json',
+        'x-error-message': btoa(err.message)
       }
     }), JSON.stringify(errorToObject(err), null, 2), providers, config, firstInstallTime, logs)
   } finally {
@@ -382,10 +400,6 @@ function shouldRenderDirectory (url: URL, config: ConfigDb, accept?: string | nu
     return false
   } else if (url.searchParams.get('download') === 'false') {
     return true
-  }
-
-  if (config.renderHTMLViews === false) {
-    return false
   }
 
   return accept?.includes('text/html') === true

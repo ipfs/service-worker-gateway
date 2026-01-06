@@ -38,6 +38,7 @@ export interface LoadWithServiceWorkerOptions {
 const DOWNLOAD_CONTENT_TYPES: string[] = [
   'application/vnd.ipld.dag-json',
   'application/vnd.ipld.dag-cbor',
+  'application/vnd.ipld.dag-pb',
   'application/vnd.ipld.car',
   'application/vnd.ipld.raw',
   'application/cbor',

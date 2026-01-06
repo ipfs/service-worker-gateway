@@ -45,6 +45,10 @@ export function getWontFixTests (): string[] {
     'TestGatewaySubdomains',
     'TestGatewaySubdomainAndIPNS',
     'TestSubdomainGatewayDNSLinkInlining',
+    'TestRedirectCanonicalIPNS',
+    'TestUnixFSDirectoryListing/path_gw:_redirect_dir_listing_to_URL_with_trailing_slash',
+    'TestUnixFSDirectoryListingOnSubdomainGateway',
+    'TestGatewaySubdomains/request_for_example.com%2Fipfs%2F%7Bcid%7D_redirects_to_%7Bcid%7D.ipfs.example.com',
 
     // does not apply to service worker
     'TestProxyTunnelGatewaySubdomains',
@@ -56,22 +60,8 @@ export function getWontFixTests (): string[] {
 
     // last few tests
     'TestTar/GET_TAR_with_relative_paths_inside_root_works',
-    'TestRedirectCanonicalIPNS/GET_for_%2Fipns%2F%7Bcidv0-like-b58-multihash-of-rsa-key%7D_redirects_to_%2Fipns%2F%7Bcidv1-libp2p-key-base36%7D',
-    'TestRedirectCanonicalIPNS/GET_for_%2Fipns%2F%7Bb58-multihash-of-ed25519-key%7D_redirects_to_%2Fipns%2F%7Bcidv1-libp2p-key-base36%7D',
-    'TestUnixFSDirectoryListing/path_gw:_redirect_dir_listing_to_URL_with_trailing_slash',
-    'TestGatewayCache/GET_for_%2Fipfs%2F_unixfs_dir_listing_succeeds',
-    'TestGatewayCache/GET_for_%2Fipfs%2F_unixfs_file_succeeds',
-    'TestGatewayCache/GET_for_%2Fipfs%2F_unixfs_dir_with_index.html_succeeds',
-    'TestGatewayCache/DirIndex_etag_is_based_on_xxhash%28.%2Fassets%2Fdir-index-html%29%2C_so_we_need_to_fetch_it_dynamically',
-    'TestGatewayCache/GET_for_%2Fipfs%2F_dir_listing_with_matching_strong_Etag_in_If-None-Match_returns_304_Not_Modified',
-    'TestGatewayCacheWithIPNS/GET_for_%2Fipns%2F_unixfs_dir_listing_succeeds',
-    'TestGatewayCacheWithIPNS/GET_for_%2Fipns%2F_unixfs_dir_with_index.html_succeeds',
-    'TestGatewayCacheWithIPNS/GET_for_%2Fipns%2F_unixfs_file_succeeds',
     'TestGatewaySymlink/Test_the_directory_listing',
     'TestGatewaySymlink/Test_the_symlink',
-    'TestUnixFSDirectoryListingOnSubdomainGateway/redirect_dir_listing_to_URL_with_trailing_slash',
-    'TestGatewaySubdomains/request_for_example.com%2Fipfs%2F%7Bcid%7D_redirects_to_%7Bcid%7D.ipfs.example.com',
-    'TestGatewaySubdomains/valid_parent_directory_path_in_directory_listing_at_%7Bcid%7D.ipfs.example.com%2Fsub%2Fdir',
     'TestTrustlessCarPathing/GET_default_CAR_response_of_UnixFS_file_on_a_path_with_HAMT-sharded_directory_%28format=car%29/Body',
     'TestTrustlessCarPathing/GET_default_CAR_response_of_UnixFS_file_on_a_path_with_HAMT-sharded_directory_%28Accept_Header%29/Body',
     'TestTrustlessCarDagScopeBlock/GET_CAR_with_dag-scope=block_of_UnixFS_file_on_a_path_with_sharded_directory_%28format=car%29/Body',

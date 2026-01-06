@@ -60,4 +60,19 @@ test.describe('dag-pb', () => {
     const header = await page.waitForSelector('main header')
     expect(await header?.innerText()).toContain(`Index of /ipfs/${cid}/${path}`)
   })
+
+  test('should include path CIDs in x-ipfs-roots', async ({ page, protocol, rootDomain }) => {
+    const cid = 'bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui'
+    const path = 'root2/root3/root4'
+    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}/${path}/`, {
+      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}/${path}/` : undefined
+    })
+
+    expect(await response.headerValue('x-ipfs-roots')).toBe([
+      'bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui',
+      'bafybeih2w7hjocxjg6g2ku25hvmd53zj7og4txpby3vsusfefw5rrg5sii',
+      'bafybeiawdvhmjcz65x5egzx4iukxc72hg4woks6v6fvgyupiyt3oczk5ja',
+      'bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q'
+    ].join(', '))
+  })
 })

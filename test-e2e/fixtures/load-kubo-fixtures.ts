@@ -44,7 +44,7 @@ export async function downloadFixtures (force = false): Promise<void> {
     }
   }
 
-  console.info('Downloading fixtures')
+  console.info('Downloading fixtures to', relative('.', GWC_FIXTURES_PATH))
   try {
     await $`docker run -v ${process.cwd()}:/workspace -w /workspace ghcr.io/ipfs/gateway-conformance:v0.7.1 extract-fixtures --directory ${relative('.', GWC_FIXTURES_PATH)} --merged false`
   } catch (err: any) {
