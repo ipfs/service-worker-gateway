@@ -61,10 +61,6 @@ export function getWontFixTests (): string[] {
     // last few tests
     'TestTar/GET_TAR_with_relative_paths_inside_root_works',
     'TestGatewaySymlink/Test_the_directory_listing',
-    'TestGatewaySymlink/Test_the_symlink',
-    'TestTrustlessCarPathing/GET_default_CAR_response_of_UnixFS_file_on_a_path_with_HAMT-sharded_directory_%28format=car%29/Body',
-    'TestTrustlessCarPathing/GET_default_CAR_response_of_UnixFS_file_on_a_path_with_HAMT-sharded_directory_%28Accept_Header%29/Body',
-    'TestTrustlessCarDagScopeBlock/GET_CAR_with_dag-scope=block_of_UnixFS_file_on_a_path_with_sharded_directory_%28format=car%29/Body',
-    'TestTrustlessCarDagScopeBlock/GET_CAR_with_dag-scope=block_of_UnixFS_file_on_a_path_with_sharded_directory_%28Accept_Header%29/Body'
+    'TestGatewaySymlink/Test_the_symlink'
   ]
 }
