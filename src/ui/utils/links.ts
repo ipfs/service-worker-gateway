@@ -38,7 +38,11 @@ export function createLink ({ ipfsPath, params, hash }: CreateLinkOptions): stri
   if (isSubdomain) {
     const host = (url.host.includes('.ipfs.') ? url.host.split('.ipfs.') : url.host.split('.ipns.'))[1]
 
-    return `${url.protocol}//${CID.parse(cid).toV1()}.ipfs.${host}${path === '/' ? '' : path}${search}${hash ?? url.hash}`
+    try {
+      return `${url.protocol}//${CID.parse(cid).toV1()}.ipfs.${host}${path === '/' ? '' : path}${search}${hash ?? url.hash}`
+    } catch {
+      return `${url.protocol}//${cid}.ipns.${host}${path === '/' ? '' : path}${search}${hash ?? url.hash}`
+    }
   }
 
   return `${url.protocol}//${url.host}/ipfs/${cid}${path === '/' ? '' : path}${search}${hash ?? url.hash}`

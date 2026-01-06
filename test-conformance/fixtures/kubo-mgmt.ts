@@ -53,7 +53,7 @@ async function downloadFixtures (force = false): Promise<void> {
     }
   }
 
-  log('Downloading fixtures')
+  log('Downloading fixtures to %s', relative('.', GWC_FIXTURES_PATH))
 
   try {
     await $`docker run --name gateway-conformance-fixture-loader -v ${process.cwd()}:/workspace -w /workspace ${GWC_IMAGE} extract-fixtures --directory ${relative('.', GWC_FIXTURES_PATH)} --merged false`

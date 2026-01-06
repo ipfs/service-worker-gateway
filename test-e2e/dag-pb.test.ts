@@ -30,7 +30,7 @@ test.describe('dag-pb', () => {
     expect(headers['cache-control']).toBe('public, max-age=29030400, immutable')
   })
 
-  test('should return directory listing after turning off index.html support', async ({ page, protocol, rootDomain }) => {
+  test('should load index.html from directory', async ({ page, protocol, rootDomain }) => {
     const cid = 'bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui'
     const path = 'root2/root3/root4'
     const indexPage = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}/${path}/`, {
@@ -39,6 +39,11 @@ test.describe('dag-pb', () => {
     expect(indexPage.status()).toBe(200)
     expect(indexPage.headers()['content-type']).toBe('text/html; charset=utf-8')
     expect(await indexPage.text()).toContain('hello')
+  })
+
+  test('should return directory listing after turning off index.html support', async ({ page, protocol, rootDomain }) => {
+    const cid = 'bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui'
+    const path = 'root2/root3/root4'
 
     // turn off directory index support - this has to happen in the same
     // subdomain as the directory view
@@ -59,5 +64,22 @@ test.describe('dag-pb', () => {
 
     const header = await page.waitForSelector('main header')
     expect(await header?.innerText()).toContain(`Index of /ipfs/${cid}/${path}`)
+  })
+
+  test('should include path CIDs in x-ipfs-roots', async ({ page, protocol, rootDomain }) => {
+    const cid = 'bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui'
+    const path = 'root2/root3/root4'
+    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}/${path}/`, {
+      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}/${path}/` : undefined
+    })
+
+    // hack: firefox in playwright seems to add a space between comma delimited
+    // values so strip them out
+    expect((await response.headerValue('x-ipfs-roots'))?.split(',').map(line => line.trim()).join(',')).toBe([
+      'bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui',
+      'bafybeih2w7hjocxjg6g2ku25hvmd53zj7og4txpby3vsusfefw5rrg5sii',
+      'bafybeiawdvhmjcz65x5egzx4iukxc72hg4woks6v6fvgyupiyt3oczk5ja',
+      'bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q'
+    ].join(','))
   })
 })

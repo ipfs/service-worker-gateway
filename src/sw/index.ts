@@ -6,6 +6,7 @@ import { APP_NAME, APP_VERSION, GIT_REVISION } from '../version.js'
 import { handlers } from './handlers/index.js'
 import { getConfig } from './lib/config.js'
 import { getInstallTime, setInstallTime } from './lib/install-time.js'
+import { updateRedirect } from './lib/update-redirect.ts'
 import { serverErrorPageResponse } from './pages/server-error-page.js'
 
 /**
@@ -115,6 +116,10 @@ self.addEventListener('fetch', (event) => {
             }).finally(() => self.registration.unregister())
           )
         }
+
+        // if verified-fetch has redirected us, update the location header in
+        // the response to be a HTTP location not ipfs/ipns
+        updateRedirect(url, response)
 
         // add the server header to the response so we can be sure this response
         // came from the service worker - sometimes these are read-only so we

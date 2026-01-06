@@ -1,3 +1,4 @@
+import { MEDIA_TYPE_DAG_PB } from '@helia/verified-fetch'
 import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
 import { headersToObject } from '../../lib/headers-to-object.ts'
 import { APP_NAME, APP_VERSION, GIT_REVISION } from '../../version.js'
@@ -33,7 +34,11 @@ export function renderEntityPageResponse (url: URL, headers: Headers, response: 
   const page = htmlPage(props.cid ?? '', 'renderEntity', props)
   mergedHeaders.set('content-length', `${page.length}`)
 
-  mergedHeaders.set('etag', `"DagIndex-${props.cid}.html"`)
+  if (contentType === MEDIA_TYPE_DAG_PB) {
+    mergedHeaders.set('etag', `"DirIndex-.*_CID-${props.cid}"`)
+  } else {
+    mergedHeaders.set('etag', `"DagIndex-${props.cid}"`)
+  }
 
   return new Response(page, {
     status: response.status,

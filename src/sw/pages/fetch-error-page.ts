@@ -58,12 +58,12 @@ function toErrorPageProviders (providers: Providers): ErrorPageProviders {
 }
 
 export interface RequestDetails {
-  resource: string
+  resource: URL
   method: string
   headers: Record<string, string>
 }
 
-function getRequestDetails (resource: string, init: RequestInit): RequestDetails {
+function getRequestDetails (resource: URL, init: RequestInit): RequestDetails {
   const requestHeaders = new Headers(init.headers)
   const headers: Record<string, string> = {}
   requestHeaders.forEach((value, key) => {
@@ -103,7 +103,7 @@ function getResponseDetails (response: Response, body: string): ResponseDetails 
 /**
  * Shows an error page to the user
  */
-export function fetchErrorPageResponse (resource: string, request: RequestInit, fetchResponse: Response, responseBody: string, providers: Providers, config: ConfigDb, installTime: number, logs: string[]): Response {
+export function fetchErrorPageResponse (resource: URL, request: RequestInit, fetchResponse: Response, responseBody: string, providers: Providers, config: ConfigDb, installTime: number, logs: string[]): Response {
   const responseContentType = fetchResponse.headers.get('Content-Type')
 
   if (responseContentType?.includes('text/html')) {
