@@ -73,6 +73,6 @@ test.describe('dag-pb', () => {
       'bafybeih2w7hjocxjg6g2ku25hvmd53zj7og4txpby3vsusfefw5rrg5sii',
       'bafybeiawdvhmjcz65x5egzx4iukxc72hg4woks6v6fvgyupiyt3oczk5ja',
       'bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q'
-    ].join(', '))
+    ].join(','))
   })
 })

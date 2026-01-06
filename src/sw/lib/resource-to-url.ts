@@ -1,14 +1,15 @@
 import { InvalidParametersError } from '@libp2p/interface'
 import { peerIdFromString } from '@libp2p/peer-id'
 
-const SUBDOMAIN_GATEWAY_REGEX = /^(?<cidOrPeerIdOrDnsLink>[^/?]+)\.(?<protocol>ip[fn]s)\.([^/?]+)$/
+export const SUBDOMAIN_GATEWAY_REGEX = /^(?<cidOrPeerIdOrDnsLink>[^/?]+)\.(?<protocol>ip[fn]s)\.(?<host>[^/?]+)$/
 
-interface SubdomainMatchGroups {
+export interface SubdomainMatchGroups {
   protocol: 'ipfs' | 'ipns'
   cidOrPeerIdOrDnsLink: string
+  host: string
 }
 
-function matchSubdomainGroupsGuard (groups?: null | { [key in string]: string; } | SubdomainMatchGroups): groups is SubdomainMatchGroups {
+export function matchSubdomainGroupsGuard (groups?: null | { [key in string]: string; } | SubdomainMatchGroups): groups is SubdomainMatchGroups {
   const protocol = groups?.protocol
 
   if (protocol !== 'ipfs' && protocol !== 'ipns') {
@@ -67,7 +68,7 @@ function findOriginalCidOrPeer (needle: string, haystack: URL): string {
  * a redirect response that directs the user to a canonical URL for the resource
  */
 export function httpResourceToIpfsUrl (resource: URL): URL | Response {
-  // test for subdomain gateway URL
+  // test for subdomain gateway URL - match hostname to exclude port
   const subdomainMatch = resource.hostname.match(SUBDOMAIN_GATEWAY_REGEX)
 
   if (matchSubdomainGroupsGuard(subdomainMatch?.groups)) {
