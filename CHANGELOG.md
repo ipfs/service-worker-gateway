@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.1.2](https://github.com/ipfs/service-worker-gateway/compare/v2.1.1...v2.1.2) (2026-01-12)
+
+
+### Bug Fixes
+
+* export intermediate subshards in car files ([#948](https://github.com/ipfs/service-worker-gateway/issues/948)) ([8f3fa03](https://github.com/ipfs/service-worker-gateway/commit/8f3fa0365642314f83193d2ddc5d844290dbb86f))
+* parse path/subdomain gateway url as ipfs/ipns url ([#946](https://github.com/ipfs/service-worker-gateway/issues/946)) ([ea9e4f4](https://github.com/ipfs/service-worker-gateway/commit/ea9e4f4c2013ef1fc95eeefb88782d4893d03a9d))
+* support accept header as per conformance tests ([#940](https://github.com/ipfs/service-worker-gateway/issues/940)) ([87dbae8](https://github.com/ipfs/service-worker-gateway/commit/87dbae86731cf62751e375c6d38e3baa2f59f07e))
+
 ## [2.1.1](https://github.com/ipfs/service-worker-gateway/compare/v2.1.0...v2.1.1) (2025-12-18)
 
 
