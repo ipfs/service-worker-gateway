@@ -3,7 +3,7 @@ import { Config } from './lib/config-db.js'
 import { QUERY_PARAMS } from './lib/constants.js'
 import { isUIPageRequest } from './lib/is-ui-page-request.ts'
 import { uiLogger } from './lib/logger.js'
-import { isPathOrSubdomainRequest } from './lib/path-or-subdomain.ts'
+import { isPathOrSubdomainRequest, isSubdomainGatewayRequest } from './lib/path-or-subdomain.ts'
 import { createSearch } from './lib/query-helpers.ts'
 import { registerServiceWorker } from './lib/register-service-worker.js'
 
@@ -69,6 +69,24 @@ async function main (): Promise<void> {
     }
 
     let url = new URL(window.location.href)
+
+    // if we are on the root origin, register custom handlers for ipfs: and
+    // ipns: URLs
+    if (!isSubdomainGatewayRequest(url)) {
+      try {
+        navigator.registerProtocolHandler('ipfs', `${url.protocol}//${url.host}/ipfs/?uri=%s`)
+        navigator.registerProtocolHandler('ipns', `${url.protocol}//${url.host}/ipns/?uri=%s`)
+      } catch {}
+    }
+
+    // redirect if we are being invoked as a URI router
+    // @see https://specs.ipfs.tech/http-gateways/subdomain-gateway/#uri-router
+    if ((url.pathname === '/ipfs/' || url.pathname === '/ipns/') && url.searchParams.has(QUERY_PARAMS.URI_ROUTER)) {
+      try {
+        const uri = new URL(url.searchParams.get(QUERY_PARAMS.URI_ROUTER) ?? '')
+        window.location.href = `/${uri.protocol.substring(0, 4)}/${uri.hostname}${uri.pathname}${uri.search}${uri.hash}`
+      } catch {}
+    }
 
     const config = new Config({
       logger: uiLogger

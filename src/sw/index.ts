@@ -26,10 +26,11 @@ export interface Providers {
 declare let self: ServiceWorkerGlobalScope
 
 self.addEventListener('install', (event) => {
+  const log = getSwLogger('install')
+
   // 👇 When a new version of the SW is installed, activate immediately
   self.skipWaiting()
     .catch(err => {
-      const log = getSwLogger('fetch')
       log.error('error skipping waiting - %e', err)
     })
   event.waitUntil(setInstallTime())

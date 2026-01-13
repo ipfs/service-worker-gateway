@@ -3,6 +3,7 @@ import { configReloadHandler } from './config-reload-handler.js'
 import { configUpdateHandler } from './config-update-handler.js'
 import { contentRequestHandler } from './content-request-handler.js'
 import { unregisterHandler } from './unregister-handler.js'
+import { uriRouterHandler } from './uri-router-handler.ts'
 
 export interface Handler {
   name: string
@@ -18,6 +19,7 @@ export interface Handler {
  */
 export const handlers: Handler[] = [
   unregisterHandler,
+  uriRouterHandler,
   configUpdateHandler,
   configReloadHandler,
   assetRequestHandler,

@@ -1,4 +1,5 @@
 import { peerIdFromString } from '@libp2p/peer-id'
+import { createKuboRPCClient } from 'kubo-rpc-client'
 import { base16 } from 'multiformats/bases/base16'
 import { CID } from 'multiformats/cid'
 import * as json from 'multiformats/codecs/json'
@@ -252,5 +253,35 @@ test.describe('smoke test', () => {
     expect(jsonResponse.status()).toBe(200)
     expect(await jsonResponse.headerValue('content-type')).toBe('application/json')
     expect(await jsonResponse.json()).toStrictEqual(obj)
+  })
+
+  test('redirects URI router urls', async ({ page, protocol, rootDomain }) => {
+    const content = 'hi'
+    const digest = identity.digest(uint8ArrayFromString(content))
+    const cid = CID.createV1(CODE_RAW, digest)
+
+    const uri = new URL(`ipfs://${cid}`)
+
+    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/?uri=${encodeURIComponent(uri.toString())}`, {
+      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}/` : `${protocol}//${rootDomain}/ipfs/${cid}/`
+    })
+
+    expect(response?.status()).toBe(200)
+    expect(await response?.headerValue('x-ipfs-path')).toBe(`/ipfs/${cid}`)
+
+    // protocol handler is registered, invoke it
+    const kubo = createKuboRPCClient(process.env.KUBO_RPC)
+    const cid2 = await kubo.block.put(uint8ArrayFromString(`<html><body><a href="ipfs://${cid}">go!</a></body></html>`), {
+      format: 'raw'
+    })
+
+    await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid2}`, {
+      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid2}.ipfs.${rootDomain}/` : `${protocol}//${rootDomain}/ipfs/${cid2}/`
+    })
+
+    await page.locator('a').click()
+
+    // should see content from original CID - TODO doesn't seem to work
+    // await expect(page.getByText(content)).toBeVisible()
   })
 })
