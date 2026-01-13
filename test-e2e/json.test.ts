@@ -109,8 +109,7 @@ test.describe('json', () => {
     })
 
     expect(cid.toString()).toContain('bafkreibrppizs3g7axs2jdlnjua6vgpmltv7k72l7v7sa6mmht6mne3qqe')
-
-    await page.goto(`${protocol}://${rootDomain}`, {
+    await page.goto(`${protocol}//${rootDomain}`, {
       waitUntil: 'networkidle'
     })
     await waitForServiceWorker(page)
