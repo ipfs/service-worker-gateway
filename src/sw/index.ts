@@ -8,6 +8,7 @@ import { getConfig } from './lib/config.js'
 import { getInstallTime, setInstallTime } from './lib/install-time.js'
 import { updateRedirect } from './lib/update-redirect.ts'
 import { serverErrorPageResponse } from './pages/server-error-page.js'
+import type { Handler } from './handlers/index.js'
 
 /**
  * These are block/car providers that were used while downloading data
@@ -98,11 +99,18 @@ self.addEventListener('fetch', (event) => {
 
   log.trace('incoming request url %s', event.request.url)
 
+  const handler = handlers.find(handler => handler.canHandle(url, event, logs))
+
+  if (handler == null) {
+    log('no handler found, falling back to global fetch for %s', url)
+    return
+  }
+
   // `event.respondWith` must be called synchronously in the event handler, but
   // we can pass it a promise
   // https://stackoverflow.com/questions/76848928/failed-to-execute-respondwith-on-fetchevent-the-event-handler-is-already-f
   event.respondWith(
-    handleFetch(url, event, logs)
+    handleFetch(url, event, handler, logs)
       .then(async response => {
         // maybe uninstall service worker after request has finished
         // TODO: remove this, it breaks offline installations after the TTL
@@ -142,21 +150,9 @@ self.addEventListener('fetch', (event) => {
   )
 })
 
-async function handleFetch (url: URL, event: FetchEvent, logs: string[]): Promise<Response> {
+async function handleFetch (url: URL, event: FetchEvent, handler: Handler, logs: string[]): Promise<Response> {
   try {
-    const log = getSwLogger('handle-fetch')
-
-    // find a handler for the request
-    for (const handler of handlers) {
-      if (handler.canHandle(url, event, logs)) {
-        log('handler %s handling request', handler.name)
-        return await handler.handle(url, event, logs)
-      }
-    }
-
-    // if unhandled, do not intercept the request
-    log('no handler found, falling back to global fetch')
-    return await fetch(event.request)
+    return await handler.handle(url, event, logs)
   } catch (err) {
     // ensure we only reject, never throw
     return Promise.reject(err)
