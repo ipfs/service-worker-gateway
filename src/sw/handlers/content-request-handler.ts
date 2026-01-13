@@ -409,7 +409,33 @@ export const contentRequestHandler: Handler = {
   name: 'content-request-handler',
 
   canHandle (url) {
-    return isSubdomainGatewayRequest(url) || isPathGatewayRequest(url)
+    if (isSubdomainGatewayRequest(url)) {
+      return true
+    }
+
+    if (isPathGatewayRequest(url)) {
+      // if the request is for the current origin, allow the request to fail in
+      // the `handle` method if, for example the CID is invalid
+      if (url.origin === self.location.origin) {
+        return true
+      }
+
+      // if the request is for a different origin, make sure it is parseable -
+      // this allows us to intercept a request for another IPFS gateway locally
+      // while not failing to handle the situation where (for example) a user
+      // has an `ipfs` folder at the root of their site and they are requesting
+      // a static asset from it
+      try {
+        toSubdomainRequest(url)
+        return true
+      } catch {
+        // if we cannot convert the path gateway request to a subdomain request
+        // it means it may be `/ipfs/foo.png` for example
+        return false
+      }
+    }
+
+    return false
   },
 
   async handle (url, event, logs) {
