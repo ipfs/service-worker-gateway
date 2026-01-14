@@ -1,5 +1,5 @@
 import { MEDIA_TYPE_CAR, MEDIA_TYPE_CBOR, MEDIA_TYPE_DAG_CBOR, MEDIA_TYPE_DAG_JSON, MEDIA_TYPE_DAG_PB, MEDIA_TYPE_IPNS_RECORD, MEDIA_TYPE_JSON, MEDIA_TYPE_RAW, MEDIA_TYPE_TAR } from '@helia/verified-fetch'
-import { AbortError, setMaxListeners } from '@libp2p/interface'
+import { AbortError, setMaxListeners, TimeoutError } from '@libp2p/interface'
 import { anySignal } from 'any-signal'
 import { CURRENT_CACHES } from '../../constants.js'
 import { Config } from '../../lib/config-db.js'
@@ -245,15 +245,21 @@ async function fetchHandler ({ url, headers, renderPreview, event, logs, subdoma
     headers.set('if-none-match', ifNoneMatch)
   }
 
+  // make the timeout apply to receiving the response headers, then to each
+  // chunk of the body
+  const abortController = new AbortController()
+  let timeout = setTimeout(() => {
+    abortController.abort(new TimeoutError('Timed out'))
+  }, config.fetchTimeout)
+
   /**
    * Note that there are existing bugs regarding service worker signal handling:
    * https://bugs.chromium.org/p/chromium/issues/detail?id=823697
    * https://bugzilla.mozilla.org/show_bug.cgi?id=1394102
    */
-  const timeoutSignal = AbortSignal.timeout(config.fetchTimeout)
   const signal = anySignal([
     event.request.signal,
-    timeoutSignal
+    abortController.signal
   ])
   setMaxListeners(Infinity, signal)
 
@@ -325,8 +331,8 @@ async function fetchHandler ({ url, headers, renderPreview, event, logs, subdoma
 
           // if the response content involves loading more than one block and
           // loading a subsequent block fails, the `.arrayBuffer()` promise will
-          // reject with an opaque 'TypeError: Failed to fetch' so show a 502 Bad
-          // Gateway with debugging information
+          // reject with an opaque 'TypeError: Failed to fetch' so show a 502
+          // Bad Gateway with debugging information
           return fetchErrorPageResponse(resource, init, new Response('', {
             status: 502,
             statusText: 'Bad Gateway',
@@ -349,18 +355,33 @@ async function fetchHandler ({ url, headers, renderPreview, event, logs, subdoma
       }
     }
 
+    // this passthrough body stream resets the inactivity timer on every chunk
+    const body = response.body?.pipeThrough(new TransformStream({
+      transform (chunk, controller) {
+        clearTimeout(timeout)
+        timeout = setTimeout(() => {
+          abortController.abort(new TimeoutError('Timed out'))
+        }, config.fetchTimeout)
+
+        controller.enqueue(chunk)
+      },
+      flush () {
+        clearTimeout(timeout)
+      }
+    }))
+
     // Create a completely new response object with the same body, status,
     // statusText, and headers.
     //
     // This is necessary to work around a bug with Safari not rendering
     // content correctly.
-    return new Response(response.body, {
+    return new Response(body, {
       status: response.status,
       headers: response.headers,
       statusText: response.statusText
     })
   } catch (err: any) {
-    if (timeoutSignal.aborted) {
+    if (abortController.signal.aborted) {
       return fetchErrorPageResponse(resource, init, new Response('', {
         status: 504,
         statusText: 'Gateway Timeout',
@@ -382,6 +403,7 @@ async function fetchHandler ({ url, headers, renderPreview, event, logs, subdoma
     }), JSON.stringify(errorToObject(err), null, 2), providers, config, firstInstallTime, logs)
   } finally {
     signal.clear()
+    clearTimeout(timeout)
   }
 }
 
