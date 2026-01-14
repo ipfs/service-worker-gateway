@@ -98,14 +98,14 @@ self.addEventListener('fetch', (event) => {
 
   logEmitter.addEventListener('log', onLog)
 
-  log.trace('incoming request url %s', event.request.url)
-
   const handler = handlers.find(handler => handler.canHandle(url, event, logs))
 
   if (handler == null) {
     log('no handler found, falling back to global fetch for %s', url)
     return
   }
+
+  log.trace('incoming request url %s - handler %s', event.request.url, handler.name)
 
   // `event.respondWith` must be called synchronously in the event handler, but
   // we can pass it a promise
