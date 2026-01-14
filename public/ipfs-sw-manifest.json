@@ -24,5 +24,18 @@
       "protocol": "ipns",
       "url": "/ipns/?uri=%s"
     }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshot-narrow.png",
+      "sizes": "1360x1814",
+      "type": "image/png"
+    },
+    {
+      "src": "screenshot-wide.png",
+      "sizes": "2164x1634",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
   ]
 }
