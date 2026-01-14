@@ -34,7 +34,15 @@ export const QUERY_PARAMS = {
    * Instructs the service worker to recreate it's verified-fetch instance with
    * config freshly loaded from the database
    */
-  RELOAD_CONFIG: 'ipfs-sw-config-reload'
+  RELOAD_CONFIG: 'ipfs-sw-config-reload',
+
+  /**
+   * When the path is `/ipfs/` or `/ipns/` and this query parameter is present,
+   * we should parse the URI and redirect to the resource.
+   *
+   * @see https://specs.ipfs.tech/http-gateways/subdomain-gateway/#uri-router
+   */
+  URI_ROUTER: 'uri'
 }
 
 /**

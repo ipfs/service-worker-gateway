@@ -14,5 +14,15 @@
   "display": "standalone",
   "scope": "/",
   "theme_color": "#0B3A53",
-  "description": "An experimental IPFS Gateway implemented as a Service Worker with @helia/verified-fetch"
+  "description": "An experimental IPFS Gateway implemented as a Service Worker with @helia/verified-fetch",
+  "protocol_handlers": [
+    {
+      "protocol": "ipfs",
+      "url": "/ipfs/?uri=%s"
+    },
+    {
+      "protocol": "ipns",
+      "url": "/ipns/?uri=%s"
+    }
+  ]
 }
