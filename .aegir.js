@@ -14,10 +14,14 @@ export default {
   },
   dependencyCheck: {
     ignore: [
-      // .jsx files aren't checked properly.
+      // .jsx files aren't checked properly
       'react-dom',
+      'react',
 
-      // .css deps aren't checked properly.
+      // preact is substituted for react at build time
+      'preact',
+
+      // .css deps aren't checked properly
       'ipfs-css',
       'tachyons',
 

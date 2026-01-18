@@ -1,4 +1,3 @@
-/* eslint-env mocha */
 import { constants } from 'node:fs'
 import { access, readFile } from 'node:fs/promises'
 import { resolve, dirname } from 'node:path'

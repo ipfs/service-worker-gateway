@@ -1,4 +1,3 @@
-/* eslint-env mocha */
 import { expect } from 'aegir/chai'
 import { parseHashFragments, getHashFragment, setHashFragment, deleteHashFragment, hasHashFragment, hashFragmentsToString } from '../src/lib/hash-fragments.js'
 

@@ -371,7 +371,7 @@ export const buildOptions = {
     '.css': 'css',
     '.svg': 'file'
   },
-  minify: false,
+  minify: true,
   sourcemap: 'linked',
   metafile: true,
   splitting: false,
@@ -385,7 +385,14 @@ export const buildOptions = {
     updateVersions,
     modifyBuiltFiles,
     excludeFilesPlugin(['.eot?#iefix', '.otf', '.woff', '.woff2'])
-  ]
+  ],
+  alias: {
+    debug: 'weald',
+    react: 'preact/compat',
+    'react-dom/test-utils': 'preact/test-utils',
+    'react-dom': 'preact/compat', // Must be below test-utils
+    'react/jsx-runtime': 'preact/jsx-runtime'
+  }
 }
 
 const ctx = await esbuild.context(buildOptions)

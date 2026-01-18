@@ -1,4 +1,3 @@
-/* eslint-env mocha */
 import { expect } from 'aegir/chai'
 import { nativeProtocolRegex, pathRegex, subdomainRegex } from '../src/lib/regex.js'
 
