@@ -1,4 +1,3 @@
-/* eslint-env mocha */
 /* eslint-disable max-nested-callbacks,no-console */
 
 import { existsSync } from 'node:fs'

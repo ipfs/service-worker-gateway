@@ -1,4 +1,3 @@
-/* eslint-env mocha */
 import { expect } from 'aegir/chai'
 import { getSubdomainParts } from '../src/lib/get-subdomain-parts.js'
 
