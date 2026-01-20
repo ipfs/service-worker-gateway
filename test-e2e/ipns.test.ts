@@ -1,12 +1,17 @@
 import { peerIdFromString } from '@libp2p/peer-id'
+import { CID } from 'multiformats'
 import { base36 } from 'multiformats/bases/base36'
 import { base58btc } from 'multiformats/bases/base58'
-import { testPathRouting as test, expect } from './fixtures/config-test-fixtures.js'
+import { identity } from 'multiformats/hashes/identity'
+import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
+import { dnsLinkLabelEncoder } from '../src/lib/dns-link-labels.ts'
+import { CODE_RAW } from '../src/ui/pages/multicodec-table.ts'
+import { testPathRouting, test, expect } from './fixtures/config-test-fixtures.js'
 import { loadWithServiceWorker } from './fixtures/load-with-service-worker.js'
 import { setConfig } from './fixtures/set-sw-config.ts'
 
-test.describe('ipns', () => {
-  test.beforeEach(async ({ page }) => {
+testPathRouting.describe('ipns', () => {
+  testPathRouting.beforeEach(async ({ page }) => {
     await setConfig(page, {
       gateways: [
         `${process.env.KUBO_GATEWAY}`
@@ -14,11 +19,14 @@ test.describe('ipns', () => {
       routers: [
         `${process.env.KUBO_GATEWAY}`
       ],
+      dnsJsonResolvers: {
+        '.': `${process.env.DNS_JSON_SERVER}`
+      },
       acceptOriginIsolationWarning: true
     })
   })
 
-  test('should resolve IPNS name and return as dag-json', async ({ page, protocol, rootDomain }) => {
+  testPathRouting('should resolve IPNS name and return as dag-json', async ({ page, protocol, rootDomain }) => {
     const name = 'k51qzi5uqu5dhjghbwdvbo6mi40htrq6e2z4pwgp15pgv3ho1azvidttzh8yy2'
     const cid = 'baguqeeram5ujjqrwheyaty3w5gdsmoz6vittchvhk723jjqxk7hakxkd47xq'
 
@@ -47,7 +55,7 @@ test.describe('ipns', () => {
     })
   })
 
-  test('should redirect b58 IPNS name in path gateway to CIDv1 b36 libp2p key', async ({ page, protocol, rootDomain }) => {
+  testPathRouting('should redirect b58 IPNS name in path gateway to CIDv1 b36 libp2p key', async ({ page, protocol, rootDomain }) => {
     // @see TestRedirectCanonicalIPNS/GET_for_%2Fipns%2F%7Bb58-multihash-of-ed25519-key%7D_redirects_to_%2Fipns%2F%7Bcidv1-libp2p-key-base36%7D
     const name = '12D3KooWRBy97UB99e3J6hiPesre1MZeuNQvfan4gBziswrRJsNK'
     const peerId = peerIdFromString(name)
@@ -60,5 +68,76 @@ test.describe('ipns', () => {
     // performed redirect to re-encoded IPNS name but we can't resolve record so
     // expect a 504
     expect(response.status()).toBe(504)
+  })
+})
+
+// TODO: consolidate with IPNS tests above
+test.describe('ipns', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('http://localhost:3333/', {
+      waitUntil: 'networkidle'
+    })
+
+    await setConfig(page, {
+      gateways: [
+        `${process.env.KUBO_GATEWAY}`
+      ],
+      routers: [
+        `${process.env.KUBO_GATEWAY}`
+      ],
+      dnsJsonResolvers: {
+        '.': `${process.env.DNS_JSON_SERVER}`
+      },
+      acceptOriginIsolationWarning: true
+    })
+  })
+
+  test('should load an IPNS domain', async ({ page }) => {
+    const domain = 'ipns-happy-path.com'
+    const cid = CID.createV1(CODE_RAW, identity.digest(uint8ArrayFromString('hello world')))
+
+    await fetch(`${process.env.TEST_API_SERVER}/dns-record/_dnslink.${domain}`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        type: 'TXT',
+        data: `"dnslink=/ipfs/${cid}"`
+      })
+    })
+
+    // TODO: use rootDomain
+    const response = await loadWithServiceWorker(page, `http://localhost:3333/ipns/${domain}`, {
+      redirect: `http://${dnsLinkLabelEncoder(domain)}.ipns.localhost:3333/`
+    })
+
+    expect(response.status()).toBe(200)
+    expect(await response.text()).toContain('hello world')
+  })
+
+  test('should load an IPNS domain with a path', async ({ page }) => {
+    const domain = 'ipns-with-path.com'
+    const cid = 'bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui'
+    const path = 'root2/root3/root4'
+
+    await fetch(`${process.env.TEST_API_SERVER}/dns-record/_dnslink.${domain}`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        type: 'TXT',
+        data: `"dnslink=/ipfs/${cid}"`
+      })
+    })
+
+    // TODO: use rootDomain
+    const response = await loadWithServiceWorker(page, `http://localhost:3333/ipns/${domain}/${path}`, {
+      redirect: `http://${dnsLinkLabelEncoder(domain)}.ipns.localhost:3333/${path}/`
+    })
+
+    expect(response.status()).toBe(200)
+    expect(await response.text()).toContain('hello')
   })
 })

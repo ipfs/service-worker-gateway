@@ -95,6 +95,7 @@ let verifiedFetch: VerifiedFetch
 export async function updateVerifiedFetch (): Promise<void> {
   await updateConfig()
   const config = await getConfig()
+  const logger = collectingLogger()
 
   const log = getSwLogger('update-verified-fetch')
   log('got config for sw location %s %o', self.location.origin, config)
@@ -117,7 +118,8 @@ export async function updateVerifiedFetch (): Promise<void> {
   }
 
   const dnsConfig = dns({
-    resolvers: dnsResolvers
+    resolvers: dnsResolvers,
+    logger
   })
 
   const blockBrokers: Array<(components: any) => BlockBroker> = []
@@ -135,7 +137,6 @@ export async function updateVerifiedFetch (): Promise<void> {
   const hashers = [blake3, blake2b256, sha1]
   const datastore = new MemoryDatastore()
   const blockstore = new MemoryBlockstore()
-  const logger = collectingLogger()
 
   const libp2pOptions = await libp2pDefaults(config)
   libp2pOptions.dns = dnsConfig

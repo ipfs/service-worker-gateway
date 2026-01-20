@@ -371,7 +371,7 @@ export const buildOptions = {
     '.css': 'css',
     '.svg': 'file'
   },
-  minify: true,
+  minify: process.env.NODE_ENV !== 'test',
   sourcemap: 'linked',
   metafile: true,
   splitting: false,

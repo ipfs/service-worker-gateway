@@ -13,7 +13,7 @@ function getWebServerCommand () {
 
   const serveCommand = 'npx http-server --silent -p 3000 dist'
   if (process.env.SHOULD_BUILD !== 'false') {
-    return `npm run build && ${serveCommand}`
+    return `NODE_ENV=test npm run build && ${serveCommand}`
   }
   return serveCommand
 }
