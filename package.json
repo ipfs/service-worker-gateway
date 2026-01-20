@@ -77,7 +77,7 @@
     "@libp2p/websockets": "^10.1.0",
     "@libp2p/webtransport": "^6.0.9",
     "@multiformats/blake2": "^2.0.2",
-    "@multiformats/dns": "^1.0.10",
+    "@multiformats/dns": "^1.0.13",
     "@noble/hashes": "^2.0.1",
     "any-signal": "^4.1.1",
     "blockstore-core": "^6.1.2",
