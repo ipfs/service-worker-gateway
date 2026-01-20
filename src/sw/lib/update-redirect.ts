@@ -1,3 +1,4 @@
+import { dnsLinkLabelEncoder } from '../../lib/dns-link-labels.ts'
 import { matchSubdomainGroupsGuard, SUBDOMAIN_GATEWAY_REGEX } from './resource-to-url.ts'
 
 /**
@@ -28,7 +29,13 @@ export function updateRedirect (resource: URL, response: Response): Response {
   if (matchSubdomainGroupsGuard(subdomainMatch?.groups)) {
     const { host } = subdomainMatch.groups
 
-    location = `${resource.protocol}//${url.hostname}.${url.protocol.replace(':', '')}.${host}${url.pathname}${url.search}${url.hash}`
+    let hostname = url.hostname
+
+    if (url.protocol === 'ipns:') {
+      hostname = dnsLinkLabelEncoder(hostname)
+    }
+
+    location = `${resource.protocol}//${hostname}.${url.protocol.replace(':', '')}.${host}${url.pathname}${url.search}${url.hash}`
   } else {
     location = `${resource.protocol}//${resource.host}/${url.protocol.replace(':', '')}/${url.hostname}${url.pathname}${url.search}${url.hash}`
   }

@@ -1,8 +1,7 @@
 import { $ } from 'execa'
 import { kuboRepoDir } from './fixtures/load-kubo-fixtures.js'
-import type { Config } from '@playwright/test'
 
-export default async function globalTeardown (config: Config): Promise<void> {
+export default async function globalTeardown (config: Record<string, any>): Promise<void> {
   const kuboPid = process.env.KUBO_PID
 
   if (kuboPid != null) {
@@ -14,4 +13,8 @@ export default async function globalTeardown (config: Config): Promise<void> {
   }
 
   await $`rm -rf ${kuboRepoDir}`
+
+  // stop the API/DNS server
+  config.userData?.apiServer?.close?.()
+  config.userData?.apiServer?.closeAllConnections?.()
 }
