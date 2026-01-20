@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.2.0](https://github.com/ipfs/service-worker-gateway/compare/v2.1.2...v2.2.0) (2026-01-20)
+
+
+### Features
+
+* implement retrieval timeout ([#953](https://github.com/ipfs/service-worker-gateway/issues/953)) ([0b7aa87](https://github.com/ipfs/service-worker-gateway/commit/0b7aa8710696f5ac703eeacc1b85e5550de70e7b)), closes [#901](https://github.com/ipfs/service-worker-gateway/issues/901)
+* implement URI router for registerProtocolHandler ([#951](https://github.com/ipfs/service-worker-gateway/issues/951)) ([49ff20d](https://github.com/ipfs/service-worker-gateway/commit/49ff20d3ebef1aed54fb51012087576cdd2fcac8)), closes [#214](https://github.com/ipfs/service-worker-gateway/issues/214)
+
+
+### Bug Fixes
+
+* allow passthrough to for non-intercepted URLs ([#949](https://github.com/ipfs/service-worker-gateway/issues/949)) ([192d290](https://github.com/ipfs/service-worker-gateway/commit/192d2907db0ed4dfdf1f8276bd1e7eee34cf6b4d)), closes [#947](https://github.com/ipfs/service-worker-gateway/issues/947)
+* re-encode domain on redirect ([#958](https://github.com/ipfs/service-worker-gateway/issues/958)) ([a93a474](https://github.com/ipfs/service-worker-gateway/commit/a93a474190ae08c5af39649aa3b4ed58fc7d0112)), closes [#957](https://github.com/ipfs/service-worker-gateway/issues/957)
+* reduce bundle size ([#955](https://github.com/ipfs/service-worker-gateway/issues/955)) ([eea42d7](https://github.com/ipfs/service-worker-gateway/commit/eea42d731e323f5a4bb1f449ff14a28a9085cd35))
+
 ## [2.1.2](https://github.com/ipfs/service-worker-gateway/compare/v2.1.1...v2.1.2) (2026-01-12)
 
 
