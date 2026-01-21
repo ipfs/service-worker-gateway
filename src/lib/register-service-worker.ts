@@ -6,19 +6,35 @@ export async function registerServiceWorker (): Promise<ServiceWorkerRegistratio
     scope: '/'
   })
 
-  // sw was registered immediately
   if (swRegistration.active?.state === 'activated') {
     return swRegistration
   }
 
+  return waitForActivation(swRegistration)
+}
+
+async function waitForActivation (swRegistration: ServiceWorkerRegistration): Promise<ServiceWorkerRegistration> {
   return new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new Error('Service worker failed to activate within 30 seconds. Refresh the page to retry.'))
+    }, 30_000)
+
+    const onStateChange = (e: Event): void => {
+      const sw = e.target as ServiceWorker
+      if (sw.state === 'activated') {
+        clearTimeout(timeoutId)
+        resolve(swRegistration)
+      } else if (sw.state === 'redundant') {
+        clearTimeout(timeoutId)
+        reject(new Error('Service worker became redundant. Refresh the page to retry.'))
+      }
+    }
+
+    // track workers that may already be installing or waiting
+    swRegistration.installing?.addEventListener('statechange', onStateChange)
+    swRegistration.waiting?.addEventListener('statechange', onStateChange)
     swRegistration.addEventListener('updatefound', () => {
-      const newWorker = swRegistration.installing
-      newWorker?.addEventListener('statechange', () => {
-        if (newWorker.state === 'activated') {
-          resolve(swRegistration)
-        }
-      })
+      swRegistration.installing?.addEventListener('statechange', onStateChange)
     })
   })
 }
