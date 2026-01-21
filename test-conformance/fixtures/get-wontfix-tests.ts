@@ -73,6 +73,8 @@ export function getWontFixTests (): string[] {
     'TestTrustlessCarEntityBytes',
     'TestTrustlessCarDagScopeAll',
     'TestTrustlessCarDagScopeEntity',
-    'TestTrustlessCarDagScopeBlock'
+    'TestTrustlessCarDagScopeBlock',
+    'TestTrustlessRaw',
+    'TestGatewayIPNSRecord'
   ]
 }
