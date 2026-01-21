@@ -1,7 +1,7 @@
 import { stop } from '@libp2p/interface'
 import * as cbor from 'cborg'
 import { createKuboRPCClient } from 'kubo-rpc-client'
-import { testPathRouting as test, expect } from './fixtures/config-test-fixtures.js'
+import { test, expect } from './fixtures/config-test-fixtures.js'
 import { IPLD_CONVERSIONS } from './fixtures/ipld-conversions.ts'
 import { loadWithServiceWorker } from './fixtures/load-with-service-worker.js'
 import type { KuboRPCClient } from 'kubo-rpc-client'
@@ -29,9 +29,9 @@ test.describe('cbor', () => {
     await stop(kubo)
   })
 
-  test('should return cbor block', async ({ page, protocol, rootDomain }) => {
-    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}?download=true`, {
-      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}?download=true` : undefined
+  test('should return cbor block', async ({ page, baseURL, protocol, host }) => {
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?download=true`, {
+      redirect: `${protocol}//${cid}.ipfs.${host}/?download=true`
     })
 
     expect(response.status()).toBe(200)
@@ -44,9 +44,9 @@ test.describe('cbor', () => {
     expect(cbor.decode(await response?.body())).toStrictEqual(object)
   })
 
-  test('should return cbor block as raw', async ({ page, protocol, rootDomain }) => {
-    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}?format=raw&download=true`, {
-      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}?format=raw&download=true` : undefined
+  test('should return cbor block as raw', async ({ page, baseURL, protocol, host }) => {
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=raw&download=true`, {
+      redirect: `${protocol}//${cid}.ipfs.${host}/?format=raw&download=true`
     })
 
     expect(response.status()).toBe(200)
@@ -61,9 +61,9 @@ test.describe('cbor', () => {
 
   for (const conversion of IPLD_CONVERSIONS) {
     // eslint-disable-next-line no-loop-func
-    test(`should return cbor block as ${conversion.format}`, async ({ page, protocol, rootDomain }) => {
-      const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}?format=${conversion.format}&download=true`, {
-        redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}?format=${conversion.format}&download=true` : undefined
+    test(`should return cbor block as ${conversion.format}`, async ({ page, baseURL, protocol, host }) => {
+      const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=${conversion.format}&download=true`, {
+        redirect: `${protocol}//${cid}.ipfs.${host}/?format=${conversion.format}&download=true`
       })
 
       expect(response.status()).toBe(200)

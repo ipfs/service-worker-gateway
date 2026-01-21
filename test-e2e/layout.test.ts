@@ -1,5 +1,5 @@
 import { HASH_FRAGMENTS } from '../src/lib/constants.js'
-import { test, expect, testSubdomainRouting } from './fixtures/config-test-fixtures.js'
+import { test, expect } from './fixtures/config-test-fixtures.js'
 import { getConfigPage, getConfigPageSaveButton, getConfigPageInput, getHeader, getHeaderTitle, getHelperUi, getAboutSection } from './fixtures/locators.js'
 import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
 
@@ -46,17 +46,17 @@ test.describe('smoketests', () => {
   })
 })
 
-testSubdomainRouting.describe('smoketests', () => {
-  testSubdomainRouting.describe('config section on subdomains', () => {
+test.describe('smoketests', () => {
+  test.describe('config section on subdomains', () => {
     // TODO: remove this test because we don't want to support config page on subdomains. See
-    testSubdomainRouting(`only config and header are visible on /#/${HASH_FRAGMENTS.IPFS_SW_CONFIG_UI} requests`, async ({ page, baseURL, rootDomain, protocol, browserName }) => {
-      testSubdomainRouting.skip(browserName === 'firefox', 'Playwright doesn\'t treat hard refreshes correctly in Firefox.')
+    test(`only config and header are visible on /#/${HASH_FRAGMENTS.IPFS_SW_CONFIG_UI} requests`, async ({ page, baseURL, protocol, host, browserName }) => {
+      test.skip(browserName === 'firefox', 'Playwright doesn\'t treat hard refreshes correctly in Firefox.')
 
       await page.goto(baseURL, {
         waitUntil: 'networkidle'
       })
       await waitForServiceWorker(page)
-      await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/#/${HASH_FRAGMENTS.IPFS_SW_CONFIG_UI}`, {
+      await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${host}/#/${HASH_FRAGMENTS.IPFS_SW_CONFIG_UI}`, {
         waitUntil: 'networkidle'
       })
       await page.reload()

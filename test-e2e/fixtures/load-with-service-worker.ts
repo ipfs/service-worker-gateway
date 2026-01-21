@@ -2,22 +2,11 @@ import { readFileSync } from 'node:fs'
 import { QUERY_PARAMS } from '../../src/lib/constants.js'
 import type { Page, Response } from 'playwright'
 
-const ORIGIN_ISOLATION_WARNING = '.e2e-subdomain-warning'
-const ACCEPT_ORIGIN_ISOLATION_WARNING = '#accept-warning'
-
 export interface LoadWithServiceWorkerOptions {
   /**
    * Specify the final URL here, if different to `resource`
    */
   redirect?: string
-
-  /**
-   * The origin isolation warning will be accepted automatically, pass `false`
-   * here to do it manually
-   *
-   * @default true
-   */
-  acceptOriginIsolationWarning?: boolean
 
   /**
    * See Playwright Page.goto args
@@ -85,20 +74,6 @@ export async function loadWithServiceWorker (page: Page, resource: string, optio
   const expected = options?.redirect ?? resource
   const downloadPromise = page.waitForEvent('download')
     .catch(() => {})
-
-  if (options?.acceptOriginIsolationWarning !== false) {
-    // accept origin isolation warning if it appears
-    page.on('load', (page) => {
-      Promise.resolve()
-        .then(async () => {
-          await page.waitForSelector(ORIGIN_ISOLATION_WARNING, {
-            timeout: 5_000
-          })
-          await page.click(ACCEPT_ORIGIN_ISOLATION_WARNING)
-        })
-        .catch(() => {})
-    })
-  }
 
   const [
     response

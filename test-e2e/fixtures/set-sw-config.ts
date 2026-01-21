@@ -1,13 +1,13 @@
 /**
- * This fixutre is used to configure specific settings for the service worker
+ * This fixture is used to configure specific settings for the service worker
  * that are loaded in config-db.ts
  *
  * Note that this was only tested and confirmed working for subdomain pages.
  */
 import { QUERY_PARAMS } from '../../src/lib/constants.js'
-import { getConfigAcceptOriginIsolationWarning, getConfigDebug, getConfigDnsJsonResolvers, getConfigEnableGatewayProviders, getConfigEnableRecursiveGateways, getConfigEnableWebTransport, getConfigEnableWss, getConfigFetchTimeout, getConfigGatewaysInput, getConfigPage, getConfigPageSaveButton, getConfigRoutersInput, getConfigServiceWorkerRegistrationTTL, getRenderHTMLViews, getSupportDirectoryIndexes, getSupportWebRedirects } from './locators.js'
+import { getConfigDebug, getConfigDnsJsonResolvers, getConfigEnableGatewayProviders, getConfigEnableRecursiveGateways, getConfigEnableWebTransport, getConfigEnableWss, getConfigFetchTimeout, getConfigGatewaysInput, getConfigPage, getConfigPageSaveButton, getConfigRoutersInput, getConfigServiceWorkerRegistrationTTL, getRenderHTMLViews, getSupportDirectoryIndexes, getSupportWebRedirects } from './locators.js'
 import { waitForServiceWorker } from './wait-for-service-worker.js'
-import type { ConfigDb, ConfigDbWithoutPrivateFields } from '../../src/lib/config-db.js'
+import type { ConfigDb } from '../../src/lib/config-db.js'
 import type { Page } from '@playwright/test'
 
 export async function setConfigViaUi ({ page, config }: { page: Page, config: Partial<ConfigDb>, expectedSwScope: string }): Promise<void> {
@@ -73,7 +73,7 @@ export async function setConfigViaUi ({ page, config }: { page: Page, config: Pa
   await savePromise
 }
 
-export async function getConfigUi ({ page }: { page: Page, expectedSwScope: string }): Promise<ConfigDbWithoutPrivateFields> {
+export async function getConfigUi ({ page }: { page: Page, expectedSwScope: string }): Promise<ConfigDb> {
   await waitForServiceWorker(page)
 
   await getConfigPage(page).isVisible()
@@ -94,7 +94,6 @@ export async function getConfigUi ({ page }: { page: Page, expectedSwScope: stri
   })
   const debug = await getConfigDebug(page).locator('textarea').inputValue()
   const serviceWorkerRegistrationTTL = parseInt(await getConfigServiceWorkerRegistrationTTL(page).locator('input').inputValue(), 10) * 1000 * 60 * 60 // convert from hours to milliseconds
-  const acceptOriginIsolationWarning = await getConfigAcceptOriginIsolationWarning(page).locator('input').isChecked()
   const supportDirectoryIndexes = await getSupportDirectoryIndexes(page).locator('input').isChecked()
   const supportWebRedirects = await getSupportWebRedirects(page).locator('input').isChecked()
   const renderHTMLViews = await getRenderHTMLViews(page).locator('input').isChecked()
@@ -110,7 +109,6 @@ export async function getConfigUi ({ page }: { page: Page, expectedSwScope: stri
     debug,
     fetchTimeout,
     serviceWorkerRegistrationTTL,
-    acceptOriginIsolationWarning,
     supportDirectoryIndexes,
     supportWebRedirects,
     renderHTMLViews
@@ -132,7 +130,7 @@ export async function setConfig (page: Page, config?: Partial<ConfigDb>): Promis
       }
     })
     const db = await openDb()
-    const put = async <K extends keyof ConfigDb>(key: K, value: ConfigDb[K]): Promise<void> => {
+    const put = async <K extends keyof ConfigDb>(key: K | string, value: ConfigDb[K]): Promise<void> => {
       const transaction = db.transaction(storeName, 'readwrite')
       const store = transaction.objectStore(storeName)
       const request = store.put(value, key)
@@ -201,11 +199,9 @@ export async function getConfig (page: Page): Promise<ConfigDb> {
       debug: await get('debug'),
       fetchTimeout: await get('fetchTimeout'),
       serviceWorkerRegistrationTTL: await get('serviceWorkerRegistrationTTL'),
-      acceptOriginIsolationWarning: await get('acceptOriginIsolationWarning'),
       supportDirectoryIndexes: await get('supportDirectoryIndexes'),
       supportWebRedirects: await get('supportWebRedirects'),
-      renderHTMLViews: await get('renderHTMLViews'),
-      _supportsSubdomains: await get('_supportsSubdomains')
+      renderHTMLViews: await get('renderHTMLViews')
     }
 
     db.close()

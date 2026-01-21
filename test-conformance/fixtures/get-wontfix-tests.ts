@@ -58,9 +58,21 @@ export function getWontFixTests (): string[] {
     // https://github.com/ipfs/specs/issues/521
     'TestTrustlessCarOrderAndDuplicates/GET_CAR_with_Accept_and_%3Fformat%2C_specific_Accept_header_is_prioritized',
 
-    // last few tests
-    'TestTar/GET_TAR_with_relative_paths_inside_root_works',
-    'TestGatewaySymlink/Test_the_directory_listing',
-    'TestGatewaySymlink/Test_the_symlink'
+    // these fail without path gateway support
+    'TestGatewaySymlink',
+    'TestTar',
+    'TestGatewayJsonCbor',
+    'TestDagPbConversion',
+    'TestPlainCodec',
+    'TestPathing',
+    'TestNativeDag',
+    'TestTrustlessCarPathing',
+    'TestGatewayBlock',
+    'TestGatewayIPNSPath',
+    'TestGatewayCache',
+    'TestTrustlessCarEntityBytes',
+    'TestTrustlessCarDagScopeAll',
+    'TestTrustlessCarDagScopeEntity',
+    'TestTrustlessCarDagScopeBlock'
   ]
 }

@@ -22,7 +22,6 @@ export const getConfigDnsJsonResolvers: GetLocator = (page) => page.locator('.e2
 export const getConfigDebug: GetLocator = (page) => page.locator('.e2e-config-page-input-debug')
 export const getConfigFetchTimeout: GetLocator = (page) => page.locator('.e2e-config-page-input-fetchTimeout')
 export const getConfigServiceWorkerRegistrationTTL: GetLocator = (page) => page.locator('.e2e-config-page-input-serviceWorkerRegistrationTTL')
-export const getConfigAcceptOriginIsolationWarning: GetLocator = (page) => page.locator('.e2e-config-page-input-acceptOriginIsolationWarning')
 export const getSupportDirectoryIndexes: GetLocator = (page) => page.locator('.e2e-config-page-input-supportDirectoryIndexes')
 export const getSupportWebRedirects: GetLocator = (page) => page.locator('.e2e-config-page-input-supportWebRedirects')
 export const getRenderHTMLViews: GetLocator = (page) => page.locator('.e2e-config-page-input-renderHTMLViews')

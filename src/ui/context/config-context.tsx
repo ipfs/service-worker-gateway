@@ -1,10 +1,10 @@
 import React, { createContext, useState } from 'react'
 import { Config } from '../../lib/config-db.js'
-import type { ConfigDb, ConfigDbWithoutPrivateFields } from '../../lib/config-db.js'
+import type { ConfigDb } from '../../lib/config-db.js'
 import type { PropsWithChildren } from 'react'
 
 export interface ConfigContextType {
-  saveConfig(db: Partial<ConfigDbWithoutPrivateFields>): Promise<void>
+  saveConfig(db: Partial<ConfigDb>): Promise<void>
   resetConfig(): Promise<void>
   config: Config
   configDb: ConfigDb
@@ -12,7 +12,7 @@ export interface ConfigContextType {
 
 export const ConfigContext = createContext<ConfigContextType>({
   resetConfig: async () => Promise.resolve(),
-  saveConfig: async (db: Partial<ConfigDbWithoutPrivateFields>) => Promise.resolve(),
+  saveConfig: async (db: Partial<ConfigDb>) => Promise.resolve(),
   // @ts-expect-error incomplete implementation
   config: {},
   isLoading: true
@@ -31,7 +31,7 @@ export const ConfigProvider: React.FC<ConfigProviderProps> = ({ config, configDb
     setConfigDb(await config.get())
   }
 
-  const saveConfigLocal: ConfigContextType['saveConfig'] = async (db: Partial<ConfigDbWithoutPrivateFields>): Promise<void> => {
+  const saveConfigLocal: ConfigContextType['saveConfig'] = async (db: Partial<ConfigDb>): Promise<void> => {
     await config.set(db)
     setConfigDb(await config.get())
   }

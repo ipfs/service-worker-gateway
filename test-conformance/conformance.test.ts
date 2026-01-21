@@ -70,7 +70,7 @@ async function installBinary (binaryPath: string): Promise<void> {
 function getConformanceTestArgs (name: string = 'all', gwcArgs: string[] = [], goTestArgs: string[] = []): string[] {
   return [
     'test',
-    `--gateway-url=http://127.0.0.1:${PROXY_PORT}`,
+    `--gateway-url=http://localhost:${PROXY_PORT}`,
     `--subdomain-url=http://localhost:${PROXY_PORT}`,
     '--verbose',
     '--json', join(__dirname, `gwc-report-${name}.json`),
@@ -98,7 +98,7 @@ test.describe('@helia/service-worker-gateway - gateway conformance', () => {
             .then(async () => {
               const url = new URL(`http://${req.headers.host}${req.url}`)
 
-              console.info('incoming', `http://${req.headers.host}${req.url}`)
+              console.info('incoming', url.href)
               console.info('headers', req.headers)
 
               // replace proxy port with static asset port
@@ -127,7 +127,6 @@ test.describe('@helia/service-worker-gateway - gateway conformance', () => {
                 dnsJsonResolvers: {
                   '.': `${process.env.DNS_JSON_RESOLVER}`
                 },
-                acceptOriginIsolationWarning: true,
                 renderHTMLViews: false
               })
 

@@ -1,5 +1,5 @@
 import React, { useCallback, useContext, useState } from 'react'
-import { defaultAcceptOriginIsolationWarning, defaultDebug, defaultDnsJsonResolvers, defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, defaultFetchTimeout, defaultGateways, defaultRenderHTMLViews, defaultRouters, defaultServiceWorkerRegistrationTTL, defaultSupportDirectoryIndexes, defaultSupportWebRedirects } from '../../lib/config-db.js'
+import { defaultDebug, defaultDnsJsonResolvers, defaultEnableGatewayProviders, defaultEnableRecursiveGateways, defaultEnableWebTransport, defaultEnableWss, defaultFetchTimeout, defaultGateways, defaultRenderHTMLViews, defaultRouters, defaultServiceWorkerRegistrationTTL, defaultSupportDirectoryIndexes, defaultSupportWebRedirects } from '../../lib/config-db.js'
 import { QUERY_PARAMS } from '../../lib/constants.js'
 import { convertDnsResolverInputToObject, convertDnsResolverObjectToInput, convertUrlArrayToInput, convertUrlInputToArray } from '../../lib/input-helpers.js'
 import { uiLogger } from '../../lib/logger.js'
@@ -89,7 +89,6 @@ const ConfigPage: FunctionComponent = () => {
   const [debug, setDebug] = useState(configContext.configDb?.debug ?? defaultDebug())
   const [fetchTimeout, setFetchTimeout] = useState(configContext.configDb?.fetchTimeout ?? defaultFetchTimeout)
   const [serviceWorkerRegistrationTTL, setServiceWorkerRegistrationTTL] = useState(configContext.configDb?.serviceWorkerRegistrationTTL ?? defaultServiceWorkerRegistrationTTL)
-  const [acceptOriginIsolationWarning, setAcceptOriginIsolationWarning] = useState(configContext.configDb?.acceptOriginIsolationWarning ?? defaultAcceptOriginIsolationWarning)
   const [supportDirectoryIndexes, setSupportDirectoryIndexes] = useState(configContext.configDb?.supportDirectoryIndexes ?? defaultSupportDirectoryIndexes)
   const [supportWebRedirects, setSupportWebRedirects] = useState(configContext.configDb?.supportWebRedirects ?? defaultSupportWebRedirects)
   const [renderHTMLViews, setRenderHTMLViews] = useState(configContext.configDb?.renderHTMLViews ?? defaultRenderHTMLViews)
@@ -113,7 +112,6 @@ const ConfigPage: FunctionComponent = () => {
         enableWebTransport,
         fetchTimeout,
         serviceWorkerRegistrationTTL,
-        acceptOriginIsolationWarning,
         supportDirectoryIndexes,
         supportWebRedirects,
         renderHTMLViews
@@ -141,7 +139,6 @@ const ConfigPage: FunctionComponent = () => {
     enableWebTransport,
     fetchTimeout,
     serviceWorkerRegistrationTTL,
-    acceptOriginIsolationWarning,
     supportDirectoryIndexes,
     supportWebRedirects,
     renderHTMLViews
@@ -167,7 +164,6 @@ const ConfigPage: FunctionComponent = () => {
       setDebug(configContext.configDb.debug)
       setFetchTimeout(configContext.configDb.fetchTimeout)
       setServiceWorkerRegistrationTTL(configContext.configDb.serviceWorkerRegistrationTTL)
-      setAcceptOriginIsolationWarning(configContext.configDb.acceptOriginIsolationWarning)
       setSupportDirectoryIndexes(configContext.configDb.supportDirectoryIndexes)
       setSupportWebRedirects(configContext.configDb.supportWebRedirects)
       setRenderHTMLViews(configContext.configDb.renderHTMLViews)
@@ -191,7 +187,6 @@ const ConfigPage: FunctionComponent = () => {
     enableWebTransport,
     fetchTimeout,
     serviceWorkerRegistrationTTL,
-    acceptOriginIsolationWarning,
     supportDirectoryIndexes,
     supportWebRedirects,
     renderHTMLViews
@@ -301,20 +296,6 @@ const ConfigPage: FunctionComponent = () => {
             }}
             preSaveFormat={(value) => value * 1000 * 60 * 60}
             onChange={setServiceWorkerRegistrationTTL}
-            resetKey={resetKey}
-          />
-          <InputToggle
-            className='e2e-config-page-input e2e-config-page-input-acceptOriginIsolationWarning'
-            label='Accept origin isolation warning'
-            description={
-              <>
-                <span>Allow insecure website access in path gateway mode</span>
-                <br />
-                <span className='red'>Warning: this can lead to theft of credentials</span>
-              </>
-            }
-            value={acceptOriginIsolationWarning}
-            onChange={setAcceptOriginIsolationWarning}
             resetKey={resetKey}
           />
           <InputToggle

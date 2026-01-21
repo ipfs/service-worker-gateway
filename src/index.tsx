@@ -1,11 +1,16 @@
-import { checkSubdomainSupport } from './lib/check-subdomain-support.js'
 import { Config } from './lib/config-db.js'
 import { QUERY_PARAMS } from './lib/constants.js'
 import { isUIPageRequest } from './lib/is-ui-page-request.ts'
 import { uiLogger } from './lib/logger.js'
-import { isPathOrSubdomainRequest, isSubdomainGatewayRequest } from './lib/path-or-subdomain.ts'
+import { isPathOrSubdomainRequest, isSafeOrigin, isSubdomainGatewayRequest } from './lib/path-or-subdomain.ts'
 import { createSearch } from './lib/query-helpers.ts'
 import { registerServiceWorker } from './lib/register-service-worker.js'
+
+declare global {
+  var originIsolationWarning: {
+    location: string
+  }
+}
 
 /**
  * The `index.html` page is loaded either directly (e.g. `http://localhost:1234`
@@ -70,6 +75,23 @@ async function main (): Promise<void> {
 
     let url = new URL(window.location.href)
 
+    // special case - if the user has loaded loopback, redirect to localhost
+    if (url.hostname === '127.0.0.1') {
+      url.hostname = 'localhost'
+      window.location.href = url.href
+      return
+    }
+
+    // only support access via domain names - IP addresses cannot support origin
+    // isolation so are unsafe to use
+    if (!isSafeOrigin(url)) {
+      globalThis.originIsolationWarning = {
+        location: window.location.href
+      }
+      await renderUi()
+      return
+    }
+
     // if we are on the root origin, register custom handlers for ipfs: and
     // ipns: URLs
     if (!isSubdomainGatewayRequest(url)) {
@@ -94,12 +116,6 @@ async function main (): Promise<void> {
       url
     })
     await config.init()
-
-    // check for subdomain support if we have not already so service worker will
-    // know it can redirect path gateway requests to subdomains
-    if ((await config.areSubdomainsSupported() == null)) {
-      await checkSubdomainSupport(url, config)
-    }
 
     if (url.searchParams.get(QUERY_PARAMS.CONFIG) && document.referrer === '') {
       // someone has been linked to this page directly with config - if the

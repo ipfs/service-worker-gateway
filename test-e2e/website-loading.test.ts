@@ -1,22 +1,21 @@
-import { testPathRouting as test, expect } from './fixtures/config-test-fixtures.js'
+import { test, expect } from './fixtures/config-test-fixtures.js'
 import { loadWithServiceWorker } from './fixtures/load-with-service-worker.js'
 
 test.describe('website-loading', () => {
-  test('ensure unixfs directory trailing slash is added', async ({ page, protocol, rootDomain }) => {
+  test('ensure unixfs directory trailing slash is added', async ({ page, baseURL, protocol, host }) => {
     const cid = 'bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q'
-    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}`, {
-      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}/` : `${protocol}//${rootDomain}/ipfs/${cid}/`
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}`, {
+      redirect: `${protocol}//${cid}.ipfs.${host}/`
     })
 
     // playwright follows redirects so we won't see the 301
     expect(response?.status()).toBe(200)
-    await page.waitForURL(/http:\/\/127\.0\.0\.1:3333\/ipfs\/bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q/)
   })
 
-  test('ensure that index.html is returned for the root path', async ({ page, protocol, rootDomain }) => {
+  test('ensure that index.html is returned for the root path', async ({ page, baseURL, protocol, host }) => {
     const cid = 'bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q'
-    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}/`, {
-      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}/` : undefined
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}/`, {
+      redirect: `${protocol}//${cid}.ipfs.${host}/`
     })
 
     expect(response.status()).toBe(200)
@@ -31,10 +30,10 @@ test.describe('website-loading', () => {
     expect(bodyText).toBe('hello\n')
   })
 
-  test('ensure query string params are retained on reload', async ({ page, protocol, rootDomain }) => {
+  test('ensure query string params are retained on reload', async ({ page, baseURL, protocol, host }) => {
     const cid = 'bafkqablimvwgy3y'
-    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}`, {
-      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}` : undefined
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}`, {
+      redirect: `${protocol}//${cid}.ipfs.${host}/`
     })
 
     expect(response.status()).toBe(200)
@@ -42,8 +41,8 @@ test.describe('website-loading', () => {
     const headers = await response.allHeaders()
     expect(headers['content-type']).toContain('text/plain')
 
-    const responseWithFilename = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}?filename=index.html`, {
-      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}?filename=index.html` : undefined
+    const responseWithFilename = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?filename=index.html`, {
+      redirect: `${protocol}//${cid}.ipfs.${host}/?filename=index.html`
     })
 
     expect(responseWithFilename?.status()).toBe(200)

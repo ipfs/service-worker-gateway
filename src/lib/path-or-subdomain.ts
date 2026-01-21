@@ -16,6 +16,10 @@ export const isPathOrSubdomainRequest = (location: Pick<Location, 'host' | 'path
   return isPathGatewayRequest(location) || isSubdomainGatewayRequest(location)
 }
 
+export const isSafeOrigin = (location: Pick<Location, 'hostname'>): boolean => {
+  return !isIP(location.hostname)
+}
+
 export const isSubdomainGatewayRequest = (location: Pick<Location, 'host' | 'pathname'>): boolean => {
   const subdomainMatch = location.host.match(subdomainRegex)
   return subdomainMatch?.groups != null
@@ -30,7 +34,7 @@ export const isPathGatewayRequest = (location: Pick<Location, 'host' | 'pathname
  * Origin isolation check and enforcement
  * https://github.com/ipfs-shipyard/helia-service-worker-gateway/issues/30
  */
-export const findOriginIsolationRedirect = (location: Pick<Location, 'protocol' | 'host' | 'pathname' | 'search' | 'hash' | 'href' | 'origin'>, logger: Logger, supportsSubdomains: boolean | null): URL | null => {
+export const findOriginIsolationRedirect = (location: Pick<Location, 'protocol' | 'host' | 'pathname' | 'search' | 'hash' | 'href' | 'origin'>, logger: Logger): URL | null => {
   const log = logger?.newScope('find-origin-isolation-redirect')
 
   try {
@@ -40,12 +44,8 @@ export const findOriginIsolationRedirect = (location: Pick<Location, 'protocol' 
     }
 
     if (isPathGatewayRequest(location)) {
-      log?.trace('checking for subdomain support')
-
-      if (supportsSubdomains === true) {
-        log?.trace('subdomain support is enabled')
-        return toSubdomainRequest(new URL(location.href))
-      }
+      log?.trace('subdomain support is enabled')
+      return toSubdomainRequest(new URL(location.href))
     }
   } catch (err) {
     log.error('could not parse gateway request from URL - %e', err)

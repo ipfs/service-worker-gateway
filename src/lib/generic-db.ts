@@ -1,16 +1,13 @@
-export type BaseDbConfig = Record<string, any>
+type DbKeys<T> = (keyof T)
+type validDbKey<T, K> = K extends IDBValidKey ? keyof T : never
 
-type DbKeys<T extends BaseDbConfig> = (keyof T)
-type validDbKey<T extends BaseDbConfig, K> = K extends IDBValidKey ? keyof T : never
-
-interface TypedIDBDatabase<T extends BaseDbConfig> extends IDBDatabase {
+interface TypedIDBDatabase<T> extends IDBDatabase {
   get<K extends keyof T>(key: validDbKey<T, K>): Promise<T[K]>
   put<K extends DbKeys<T>>(value: T[K], key: validDbKey<T, K>): Promise<void>
   store(name: string): IDBObjectStore
-
 }
 
-export class GenericIDB<T extends BaseDbConfig> {
+export class GenericIDB<T> {
   private db: TypedIDBDatabase<T> | null = null
 
   constructor (private readonly dbName: string, private readonly storeName: string) {
@@ -49,12 +46,18 @@ export class GenericIDB<T extends BaseDbConfig> {
     if (this.db == null) {
       throw new Error('Database not opened')
     }
+
     const transaction = this.db.transaction(this.storeName, 'readonly')
     const store = transaction.objectStore(this.storeName)
     const request = store.get(key) as IDBRequest<T[K]>
-    return new Promise((resolve, reject) => {
-      request.onerror = () => { reject(request.error ?? new Error(`Could not get value for "${String(key)}"`)) }
-      request.onsuccess = () => { resolve(request.result) }
+
+    return new Promise<any>((resolve, reject) => {
+      request.onerror = () => {
+        reject(request.error ?? new Error(`Could not get value for "${String(key)}"`))
+      }
+      request.onsuccess = () => {
+        resolve(request.result)
+      }
     })
   }
 
@@ -62,6 +65,7 @@ export class GenericIDB<T extends BaseDbConfig> {
     if (this.db == null) {
       throw new Error('Database not opened')
     }
+
     const transaction = this.db.transaction(this.storeName, 'readonly')
     const store = transaction.objectStore(this.storeName)
 
