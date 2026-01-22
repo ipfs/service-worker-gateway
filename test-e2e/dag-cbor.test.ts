@@ -24,10 +24,8 @@ test.describe('dag-cbor', () => {
     })
   })
 
-  test('should return dag-cbor block', async ({ page, baseURL, protocol, host }) => {
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?download=true`, {
-      redirect: `${protocol}//${cid}.ipfs.${host}/?download=true`
-    })
+  test('should return dag-cbor block', async ({ page, baseURL }) => {
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?download=true`)
 
     expect(response.status()).toBe(200)
 
@@ -39,10 +37,8 @@ test.describe('dag-cbor', () => {
     expect(dagCbor.decode(await response?.body())).toStrictEqual(object)
   })
 
-  test('should return dag-cbor block as raw', async ({ page, baseURL, protocol, host }) => {
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=raw&download=true`, {
-      redirect: `${protocol}//${cid}.ipfs.${host}/?format=raw&download=true`
-    })
+  test('should return dag-cbor block as raw', async ({ page, baseURL }) => {
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=raw&download=true`)
 
     expect(response.status()).toBe(200)
 
@@ -56,10 +52,8 @@ test.describe('dag-cbor', () => {
 
   for (const conversion of IPLD_CONVERSIONS) {
     // eslint-disable-next-line no-loop-func
-    test(`should return dag-cbor block as ${conversion.format}`, async ({ page, baseURL, protocol, host }) => {
-      const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=${conversion.format}&download=true`, {
-        redirect: `${protocol}//${cid}.ipfs.${host}/?format=${conversion.format}&download=true`
-      })
+    test(`should return dag-cbor block as ${conversion.format}`, async ({ page, baseURL }) => {
+      const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=${conversion.format}&download=true`)
 
       expect(response.status()).toBe(200)
 

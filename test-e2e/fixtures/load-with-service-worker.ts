@@ -1,5 +1,10 @@
 import { readFileSync } from 'node:fs'
+import { peerIdFromString } from '@libp2p/peer-id'
+import { base32 } from 'multiformats/bases/base32'
+import { base36 } from 'multiformats/bases/base36'
+import { CID } from 'multiformats/cid'
 import { QUERY_PARAMS } from '../../src/lib/constants.js'
+import { dnsLinkLabelEncoder } from '../../src/lib/dns-link-labels.ts'
 import type { Page, Response } from 'playwright'
 
 export interface LoadWithServiceWorkerOptions {
@@ -66,12 +71,64 @@ async function wasDownloaded (response: Response): Promise<boolean> {
   return false
 }
 
+function maybeAsSubdomainUrlRedirect (resource: string): string {
+  const url = new URL(resource)
+
+  // a path gateway request
+  if (url.hostname === '127.0.0.1') {
+    throw new Error('Path gateway requests are unsupported, please convert to localhost')
+  }
+
+  // already a subdomain request
+  if (url.hostname.includes('.ipfs.') || url.hostname.includes('.ipns.')) {
+    return resource
+  }
+
+  let [
+    ,
+    protocol,
+    name,
+    ...rest
+  ] = url.pathname.split('/')
+
+  if (protocol === 'ipfs') {
+    name = CID.parse(name).toV1().toString(base32)
+  } else if (protocol === 'ipns') {
+    try {
+      name = peerIdFromString(name).toCID().toString(base36)
+    } catch {
+      // treat as dnslink
+      name = dnsLinkLabelEncoder(name)
+    }
+  } else {
+    // don't know what this protocol is
+    return resource
+  }
+
+  let path = `${rest.length > 0 ? '/' : ''}${rest.join('/')}`
+
+  if (!path.startsWith('/')) {
+    path = `/${path}`
+  }
+
+  return `http://${name}.${protocol}.${url.host}${path}${url.search}${url.hash}`
+}
+
 /**
  * Navigates to the passed resource and waits for a response from the service
  * worker that does not include a URL param to redirect to
  */
 export async function loadWithServiceWorker (page: Page, resource: string, options?: LoadWithServiceWorkerOptions): Promise<Response> {
-  let expected = options?.redirect ?? resource
+  let expected = resource
+
+  if (options?.redirect != null) {
+    expected = options.redirect
+  } else {
+    try {
+      expected = maybeAsSubdomainUrlRedirect(resource)
+    } catch {}
+  }
+
   const downloadPromise = page.waitForEvent('download')
     .catch(() => {})
 

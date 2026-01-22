@@ -25,10 +25,8 @@ test.describe('raw', () => {
     await stop(kubo)
   })
 
-  test('should return bytes with text content type', async ({ page, baseURL, protocol, host }) => {
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?download=true`, {
-      redirect: `${protocol}//${cid}.ipfs.${host}/?download=true`
-    })
+  test('should return bytes with text content type', async ({ page, baseURL }) => {
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?download=true`)
     expect(response.status()).toBe(200)
 
     const headers = response.headers()
@@ -38,10 +36,8 @@ test.describe('raw', () => {
     expect(await response.text()).toContain('I am a txt file on path with utf8')
   })
 
-  test('should return raw block as raw', async ({ page, baseURL, protocol, host }) => {
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=raw&download=true`, {
-      redirect: `${protocol}//${cid}.ipfs.${host}/?format=raw&download=true`
-    })
+  test('should return raw block as raw', async ({ page, baseURL }) => {
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=raw&download=true`)
 
     expect(response.status()).toBe(200)
 
@@ -55,10 +51,8 @@ test.describe('raw', () => {
 
   for (const conversion of IPLD_CONVERSIONS) {
     // eslint-disable-next-line no-loop-func
-    test(`should return raw block as ${conversion.format}`, async ({ page, baseURL, protocol, host }) => {
-      const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=${conversion.format}&download=true`, {
-        redirect: `${protocol}//${cid}.ipfs.${host}/?format=${conversion.format}&download=true`
-      })
+    test(`should return raw block as ${conversion.format}`, async ({ page, baseURL }) => {
+      const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=${conversion.format}&download=true`)
 
       expect(response.status()).toBe(200)
 

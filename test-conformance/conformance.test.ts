@@ -7,11 +7,8 @@ import { homedir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { prefixLogger } from '@libp2p/logger'
-import { peerIdFromString } from '@libp2p/peer-id'
 import { test, expect } from '@playwright/test'
 import { execa } from 'execa'
-import { base36 } from 'multiformats/bases/base36'
-import { CID } from 'multiformats/cid'
 import { loadWithServiceWorker } from '../test-e2e/fixtures/load-with-service-worker.js'
 import { makeFetchRequest } from '../test-e2e/fixtures/make-range-request.ts'
 import { setConfig } from '../test-e2e/fixtures/set-sw-config.ts'
@@ -151,8 +148,6 @@ test.describe('@helia/service-worker-gateway - gateway conformance', () => {
                 })
               } else {
                 response = await loadWithServiceWorker(page, url.toString(), {
-                  redirect: maybeAsSubdomainUrlRedirect(url),
-
                   // all data should be local so no need to wait for long timeout
                   timeout: 10_000
                 })
@@ -301,55 +296,6 @@ test.describe('@helia/service-worker-gateway - gateway conformance', () => {
     })
   })
 })
-
-function maybeAsSubdomainUrlRedirect (url: URL): string | undefined {
-  // a path gateway request
-  if (url.hostname === '127.0.0.1') {
-    throw new Error('Path gateway requests are unsupported, please convert to localhost')
-  }
-
-  // already a subdomain request
-  if (url.hostname.includes('.ipfs.') || url.hostname.includes('.ipns.')) {
-    return
-  }
-
-  let [
-    ,
-    protocol,
-    name,
-    ...rest
-  ] = url.pathname.split('/')
-
-  if (protocol === 'ipfs') {
-    name = CID.parse(name).toV1().toString()
-  } else if (protocol === 'ipns') {
-    try {
-      name = peerIdFromString(name).toCID().toString(base36)
-    } catch {
-      // treat as dnslink
-      name = encodeDNSLinkLabel(name)
-    }
-  } else {
-    // don't know what this protocol is
-    return
-  }
-
-  let path = `${rest.length > 0 ? '/' : ''}${rest.join('/')}`
-
-  if (!path.startsWith('/')) {
-    path = `/${path}`
-  }
-
-  console.info('url', url.toString())
-  console.info('as subdomain')
-  console.info('   ', `http://${name}.${protocol}.${url.host}${path}${url.search}${url.hash}`)
-
-  return `http://${name}.${protocol}.${url.host}${path}${url.search}${url.hash}`
-}
-
-function encodeDNSLinkLabel (name: string): string {
-  return name.replace(/-/g, '--').replace(/\./g, '-')
-}
 
 function incomingHeadersToObject (headers: IncomingHttpHeaders): Record<string, string> {
   const output: Record<string, string> = {}

@@ -15,7 +15,7 @@ import { setConfig } from './fixtures/set-sw-config.js'
 import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
 
 test.describe('smoke test', () => {
-  test('loads a jpeg', async ({ page, baseURL, protocol, host }) => {
+  test('loads a jpeg', async ({ page, baseURL }) => {
     const cid = 'bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi'
 
     await loadWithServiceWorker(page, `${baseURL}/`)
@@ -24,9 +24,7 @@ test.describe('smoke test', () => {
     expect(await hasCacheEntry(page, CURRENT_CACHES.mutable, cid)).toBeFalsy()
     expect(await hasCacheEntry(page, CURRENT_CACHES.immutable, cid)).toBeFalsy()
 
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}`, {
-      redirect: `${protocol}//${cid}.ipfs.${host}/`
-    })
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}`)
     expect(response?.status()).toBe(200)
     expect(response?.headers()['content-type']).toBe('image/jpeg')
     expect(response?.headers()['cache-control']).toBe('public, max-age=29030400, immutable')
@@ -39,9 +37,7 @@ test.describe('smoke test', () => {
   test('request to /ipfs/dir-cid redirects to /ipfs/dir-cid/', async ({ page, baseURL, protocol, host }) => {
     const cid = 'bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui'
     const path = 'root2/root3/root4'
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}/${path}`, {
-      redirect: `${protocol}//${cid}.ipfs.${host}/${path}/`
-    })
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}/${path}`)
 
     // should have added trailing slash for directory
     expect(response.url()).toBe(`${protocol}//${cid}.ipfs.${host}/${path}/`)
@@ -53,12 +49,10 @@ test.describe('smoke test', () => {
   /**
    * TODO: address issues mentioned in https://github.com/ipfs/helia-verified-fetch/issues/208
    */
-  test('request to /ipfs/dir-cid without index.html returns dir listing', async ({ page, baseURL, protocol, host }) => {
+  test('request to /ipfs/dir-cid without index.html returns dir listing', async ({ page, baseURL }) => {
     const cid = 'bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui'
     const path = 'root2/root3'
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}/${path}`, {
-      redirect: `${protocol}//${cid}.ipfs.${host}/${path}/`
-    })
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}/${path}`)
     expect(response.status()).toBe(200)
     expect(response.headers()['content-type']).toContain('text/html')
 
@@ -81,16 +75,14 @@ test.describe('smoke test', () => {
     expect(await hashCells?.[0]?.innerText()).toContain('bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q')
   })
 
-  test('request to /ipns/<libp2p-key> returns expected content', async ({ page, baseURL, protocol, host }) => {
+  test('request to /ipns/<libp2p-key> returns expected content', async ({ page, baseURL }) => {
     const name = 'k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam'
 
     // should not be cached
     expect(await hasCacheEntry(page, CURRENT_CACHES.mutable, name)).toBeFalsy()
     expect(await hasCacheEntry(page, CURRENT_CACHES.immutable, name)).toBeFalsy()
 
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${name}`, {
-      redirect: `${protocol}//${name}.ipns.${host}/`
-    })
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${name}`)
     expect(response.status()).toBe(200)
     expect(await response.text()).toContain('hello')
 
@@ -220,35 +212,29 @@ test.describe('smoke test', () => {
     expect(await response.text()).toContain('Could not parse CID')
   })
 
-  test('supports truncated CID hashes', async ({ page, baseURL, protocol, host }) => {
+  test('supports truncated CID hashes', async ({ page, baseURL }) => {
     // this is sha2-512-half
     const cid = CID.parse('bafkrgihhyivzstcz3hhswshfjgy6ertgmnqeleynhwt4dlfsthi4hn7zge')
 
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}`, {
-      redirect: `${protocol}//${cid}.ipfs.${host}/`
-    })
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}`)
     expect(response.status()).toBe(200)
     expect(await response.text()).toContain('hello')
   })
 
-  test('converts the same block to different formats', async ({ page, baseURL, protocol, host }) => {
+  test('converts the same block to different formats', async ({ page, baseURL }) => {
     const obj = {
       hello: 'world'
     }
     const buf = json.encode(obj)
     const cid = CID.createV1(CODE_RAW, identity.digest(buf))
 
-    const rawResponse = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=raw`, {
-      redirect: `${protocol}//${cid}.ipfs.${host}/?format=raw`
-    })
+    const rawResponse = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=raw`)
     expect(rawResponse.status()).toBe(200)
     expect(await rawResponse.headerValue('content-type')).toBe('application/vnd.ipld.raw')
     expect(new Uint8Array(await rawResponse.body())).toStrictEqual(buf)
 
     // sending a different format should cause a response cache miss
-    const jsonResponse = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=json`, {
-      redirect: `${protocol}//${cid}.ipfs.${host}/?format=json`
-    })
+    const jsonResponse = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=json`)
     expect(jsonResponse.status()).toBe(200)
     expect(await jsonResponse.headerValue('content-type')).toBe('application/json')
     expect(await jsonResponse.json()).toStrictEqual(obj)

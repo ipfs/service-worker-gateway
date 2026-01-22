@@ -2,11 +2,9 @@ import { test, expect } from './fixtures/config-test-fixtures.js'
 import { loadWithServiceWorker } from './fixtures/load-with-service-worker.ts'
 
 test.describe('path-routing', () => {
-  test('can load identity CID via path', async ({ page, baseURL, protocol, host }) => {
+  test('can load identity CID via path', async ({ page, baseURL }) => {
     const cid = 'bafkqablimvwgy3y'
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}`, {
-      redirect: `${protocol}//${cid}.ipfs.${host}/`
-    })
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}`)
 
     const headers = await response?.allHeaders()
     expect(headers?.['content-type']).toBe('text/plain; charset=utf-8')

@@ -33,10 +33,8 @@ test.describe('json', () => {
     await stop(kubo)
   })
 
-  test('should return json block', async ({ page, baseURL, protocol, host }) => {
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?download=true`, {
-      redirect: `${protocol}//${cid}.ipfs.${host}/?download=true`
-    })
+  test('should return json block', async ({ page, baseURL }) => {
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?download=true`)
 
     expect(response.status()).toBe(200)
 
@@ -47,10 +45,8 @@ test.describe('json', () => {
     expect(await response.json()).toStrictEqual(object)
   })
 
-  test('should return json block as raw', async ({ page, baseURL, protocol, host }) => {
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=raw&download=true`, {
-      redirect: `${protocol}//${cid}.ipfs.${host}/?format=raw&download=true`
-    })
+  test('should return json block as raw', async ({ page, baseURL }) => {
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=raw&download=true`)
 
     expect(response.status()).toBe(200)
 
@@ -64,10 +60,8 @@ test.describe('json', () => {
 
   for (const conversion of IPLD_CONVERSIONS) {
     // eslint-disable-next-line no-loop-func
-    test(`should return json block as ${conversion.format}`, async ({ page, baseURL, protocol, host }) => {
-      const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=${conversion.format}&download=true`, {
-        redirect: `${protocol}//${cid}.ipfs.${host}/?format=${conversion.format}&download=true`
-      })
+    test(`should return json block as ${conversion.format}`, async ({ page, baseURL }) => {
+      const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=${conversion.format}&download=true`)
 
       expect(response.status()).toBe(200)
 
@@ -85,7 +79,7 @@ test.describe('json', () => {
     })
   }
 
-  test('should load json file with raw codec as application/json without headers', async ({ page, baseURL, protocol, host }) => {
+  test('should load json file with raw codec as application/json without headers', async ({ page, baseURL }) => {
     const body = '{ "test": "i am a plain json file" }\n'
     const cid = await kubo.block.put(uint8ArrayFromString(body), {
       format: 'raw'
@@ -93,9 +87,7 @@ test.describe('json', () => {
 
     expect(cid.toString()).toContain('bafkreibrppizs3g7axs2jdlnjua6vgpmltv7k72l7v7sa6mmht6mne3qqe')
 
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=json&download=true`, {
-      redirect: `${protocol}//${cid}.ipfs.${host}/?format=json&download=true`
-    })
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=json&download=true`)
 
     expect(response.status()).toBe(200)
 

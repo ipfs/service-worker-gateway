@@ -3,13 +3,11 @@ import { findIpAddress } from './fixtures/find-ip-address.ts'
 import { loadWithServiceWorker } from './fixtures/load-with-service-worker.ts'
 
 test.describe('error pages', () => {
-  test('it should show a message for unsupported hash algorithms', async ({ page, baseURL, host, protocol }) => {
+  test('it should show a message for unsupported hash algorithms', async ({ page, baseURL }) => {
     // uses un-configured dbl-sha2-256 algorithm
     const cid = 'bahaacvrabdhd3fzrwaambazyivoiustl2bo2c3rgweo2ug4rogcoz2apaqaa'
 
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}`, {
-      redirect: `${protocol}//${cid}.ipfs.${host}/`
-    })
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}`)
 
     expect(response.status()).toBe(500)
     expect(await response.text()).toContain('UnknownHashAlgorithmError')

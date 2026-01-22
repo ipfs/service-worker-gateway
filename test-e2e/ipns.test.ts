@@ -3,7 +3,6 @@ import { CID } from 'multiformats'
 import { base36 } from 'multiformats/bases/base36'
 import { identity } from 'multiformats/hashes/identity'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
-import { dnsLinkLabelEncoder } from '../src/lib/dns-link-labels.ts'
 import { CODE_RAW } from '../src/ui/pages/multicodec-table.ts'
 import { test, expect } from './fixtures/config-test-fixtures.js'
 import { publishDNSLink } from './fixtures/dns-record-cache.ts'
@@ -25,13 +24,11 @@ test.describe('ipns', () => {
     })
   })
 
-  test('should resolve IPNS name and return as dag-json', async ({ page, baseURL, protocol, host }) => {
+  test('should resolve IPNS name and return as dag-json', async ({ page, baseURL }) => {
     const name = 'k51qzi5uqu5dhjghbwdvbo6mi40htrq6e2z4pwgp15pgv3ho1azvidttzh8yy2'
     const cid = 'baguqeeram5ujjqrwheyaty3w5gdsmoz6vittchvhk723jjqxk7hakxkd47xq'
 
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${name}?format=dag-json`, {
-      redirect: `${protocol}//${name}.ipns.${host}/?format=dag-json`
-    })
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${name}?format=dag-json`)
 
     expect(response.status()).toBe(200)
 
@@ -69,22 +66,20 @@ test.describe('ipns', () => {
     expect(response.status()).toBe(504)
   })
 
-  test('should load an IPNS domain', async ({ page, baseURL, protocol, host }) => {
+  test('should load an IPNS domain', async ({ page, baseURL }) => {
     const domain = 'ipns-happy-path.com'
     const cid = CID.createV1(CODE_RAW, identity.digest(uint8ArrayFromString('hello world')))
 
     await publishDNSLink(domain, cid)
 
     // TODO: use rootDomain
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${domain}`, {
-      redirect: `${protocol}//${dnsLinkLabelEncoder(domain)}.ipns.${host}/`
-    })
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${domain}`)
 
     expect(response.status()).toBe(200)
     expect(await response.text()).toContain('hello world')
   })
 
-  test('should load an IPNS domain with a path', async ({ page, baseURL, protocol, host }) => {
+  test('should load an IPNS domain with a path', async ({ page, baseURL }) => {
     const domain = 'ipns-with-path.com'
     const cid = CID.parse('bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui')
     const path = 'root2/root3/root4'
@@ -92,9 +87,7 @@ test.describe('ipns', () => {
     await publishDNSLink(domain, cid)
 
     // TODO: use rootDomain
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${domain}/${path}`, {
-      redirect: `${protocol}//${dnsLinkLabelEncoder(domain)}.ipns.${host}/${path}/`
-    })
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${domain}/${path}`)
 
     expect(response.status()).toBe(200)
     expect(await response.text()).toContain('hello')

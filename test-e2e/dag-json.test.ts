@@ -29,10 +29,8 @@ test.describe('dag-json', () => {
     await stop(kubo)
   })
 
-  test('should return dag-json block', async ({ page, baseURL, protocol, host }) => {
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?download=true`, {
-      redirect: `${protocol}//${cid}.ipfs.${host}/?download=true`
-    })
+  test('should return dag-json block', async ({ page, baseURL }) => {
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?download=true`)
 
     expect(response.status()).toBe(200)
 
@@ -44,10 +42,8 @@ test.describe('dag-json', () => {
     expect(dagJson.decode(await response?.body())).toStrictEqual(object)
   })
 
-  test('should return dag-json block as raw', async ({ page, baseURL, protocol, host }) => {
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=raw&download=true`, {
-      redirect: `${protocol}//${cid}.ipfs.${host}/?format=raw&download=true`
-    })
+  test('should return dag-json block as raw', async ({ page, baseURL }) => {
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=raw&download=true`)
 
     expect(response.status()).toBe(200)
 
@@ -61,10 +57,8 @@ test.describe('dag-json', () => {
 
   for (const conversion of IPLD_CONVERSIONS) {
     // eslint-disable-next-line no-loop-func
-    test(`should return dag-json block as ${conversion.format}`, async ({ page, baseURL, protocol, host }) => {
-      const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=${conversion.format}&download=true`, {
-        redirect: `${protocol}//${cid}.ipfs.${host}/?format=${conversion.format}&download=true`
-      })
+    test(`should return dag-json block as ${conversion.format}`, async ({ page, baseURL }) => {
+      const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=${conversion.format}&download=true`)
 
       expect(response.status()).toBe(200)
 
