@@ -71,7 +71,7 @@ async function wasDownloaded (response: Response): Promise<boolean> {
  * worker that does not include a URL param to redirect to
  */
 export async function loadWithServiceWorker (page: Page, resource: string, options?: LoadWithServiceWorkerOptions): Promise<Response> {
-  const expected = options?.redirect ?? resource
+  let expected = options?.redirect ?? resource
   const downloadPromise = page.waitForEvent('download')
     .catch(() => {})
 
@@ -133,7 +133,12 @@ export async function loadWithServiceWorker (page: Page, resource: string, optio
         gotPath = `${gotPath}/`
       }
 
-      return expectedPath === gotPath
+      if (expectedPath === gotPath) {
+        expected = url
+        return true
+      }
+
+      return false
     }, options),
     page.goto(resource, options)
       .catch((err) => {
@@ -163,6 +168,11 @@ export async function loadWithServiceWorker (page: Page, resource: string, optio
     response.body = async () => buf
     response.text = async () => new TextDecoder().decode(await response.body())
     response.json = async () => JSON.parse(await response.text())
+  } else if (page.url() !== expected) {
+    // not sure why this is necessary - the response has come from the service
+    // worker and is the URL we expect but it takes a little time for the page
+    // to catch up?
+    await page.waitForURL(expected, options)
   }
 
   return response
