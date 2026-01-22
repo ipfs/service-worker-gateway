@@ -77,7 +77,11 @@ test.describe('json', () => {
       expect(headers['content-disposition']).toContain(conversion.disposition)
       expect(headers['content-disposition']).toContain(conversion.filename(cid))
 
-      expect(await conversion.decode(response)).toStrictEqual(object)
+      if (headers['content-type'].includes('application/json') || headers['content-type'].includes('application/cbor')) {
+        expect(new Uint8Array(await response.body())).toStrictEqual(block)
+      } else {
+        expect(await conversion.decode(response)).toStrictEqual(object)
+      }
     })
   }
 

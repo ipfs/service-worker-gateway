@@ -6,6 +6,7 @@ import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { dnsLinkLabelEncoder } from '../src/lib/dns-link-labels.ts'
 import { CODE_RAW } from '../src/ui/pages/multicodec-table.ts'
 import { test, expect } from './fixtures/config-test-fixtures.js'
+import { publishDNSLink } from './fixtures/dns-record-cache.ts'
 import { loadWithServiceWorker } from './fixtures/load-with-service-worker.js'
 import { setConfig } from './fixtures/set-sw-config.ts'
 
@@ -72,16 +73,7 @@ test.describe('ipns', () => {
     const domain = 'ipns-happy-path.com'
     const cid = CID.createV1(CODE_RAW, identity.digest(uint8ArrayFromString('hello world')))
 
-    await fetch(`${process.env.TEST_API_SERVER}/dns-record/_dnslink.${domain}`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json'
-      },
-      body: JSON.stringify({
-        type: 'TXT',
-        data: `"dnslink=/ipfs/${cid}"`
-      })
-    })
+    await publishDNSLink(domain, cid)
 
     // TODO: use rootDomain
     const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${domain}`, {
@@ -94,19 +86,10 @@ test.describe('ipns', () => {
 
   test('should load an IPNS domain with a path', async ({ page, baseURL, protocol, host }) => {
     const domain = 'ipns-with-path.com'
-    const cid = 'bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui'
+    const cid = CID.parse('bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui')
     const path = 'root2/root3/root4'
 
-    await fetch(`${process.env.TEST_API_SERVER}/dns-record/_dnslink.${domain}`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json'
-      },
-      body: JSON.stringify({
-        type: 'TXT',
-        data: `"dnslink=/ipfs/${cid}"`
-      })
-    })
+    await publishDNSLink(domain, cid)
 
     // TODO: use rootDomain
     const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${domain}/${path}`, {

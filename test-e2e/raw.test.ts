@@ -67,7 +67,7 @@ test.describe('raw', () => {
       expect(headers['cache-control']).toBe('public, max-age=29030400, immutable')
       expect(headers['content-disposition']).toContain('attachment')
 
-      if (headers['content-type'].includes('application/json')) {
+      if (headers['content-type'].includes('application/json') || headers['content-type'].includes('application/cbor')) {
         expect(new Uint8Array(await response.body())).toStrictEqual(object)
       } else {
         expect(await conversion.decode(response)).toStrictEqual(object)

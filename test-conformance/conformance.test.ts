@@ -305,7 +305,7 @@ test.describe('@helia/service-worker-gateway - gateway conformance', () => {
 function maybeAsSubdomainUrlRedirect (url: URL): string | undefined {
   // a path gateway request
   if (url.hostname === '127.0.0.1') {
-    return
+    throw new Error('Path gateway requests are unsupported, please convert to localhost')
   }
 
   // already a subdomain request
@@ -334,11 +334,17 @@ function maybeAsSubdomainUrlRedirect (url: URL): string | undefined {
     return
   }
 
+  let path = `${rest.length > 0 ? '/' : ''}${rest.join('/')}`
+
+  if (!path.startsWith('/')) {
+    path = `/${path}`
+  }
+
   console.info('url', url.toString())
   console.info('as subdomain')
-  console.info('   ', `http://${name}.${protocol}.${url.host}${rest.length > 0 ? '/' : ''}${rest.join('/')}`)
+  console.info('   ', `http://${name}.${protocol}.${url.host}${path}${url.search}${url.hash}`)
 
-  return `http://${name}.${protocol}.${url.host}${rest.length > 0 ? '/' : ''}${rest.join('/')}`
+  return `http://${name}.${protocol}.${url.host}${path}${url.search}${url.hash}`
 }
 
 function encodeDNSLinkLabel (name: string): string {

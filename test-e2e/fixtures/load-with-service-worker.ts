@@ -78,7 +78,14 @@ export async function loadWithServiceWorker (page: Page, resource: string, optio
   const [
     response
   ] = await Promise.all([
-    page.waitForResponse((response) => {
+    page.waitForResponse(async (response) => {
+      let url = response.url()
+
+      if (url.includes('*') && expected.includes('%2A')) {
+        // this doesn't always get escaped?
+        url = url.replaceAll('*', '%2A')
+      }
+
       // ignore responses from the UI
       // if (!response.fromServiceWorker()) { <-- does not work in Firefox :(
       if (response.headers()['server']?.includes('@helia/service-worker-gateway') !== true) {
@@ -86,7 +93,7 @@ export async function loadWithServiceWorker (page: Page, resource: string, optio
       }
 
       // ignore redirects by param
-      if (new URL(response.url()).searchParams.has(QUERY_PARAMS.REDIRECT)) {
+      if (new URL(url).searchParams.has(QUERY_PARAMS.REDIRECT)) {
         return false
       }
 
@@ -95,7 +102,38 @@ export async function loadWithServiceWorker (page: Page, resource: string, optio
         return false
       }
 
-      return response.url() === expected
+      const location = await response.headerValue('location')
+
+      // ignore redirects by header
+      if (location != null) {
+        return false
+      }
+
+      if (url === expected) {
+        return true
+      }
+
+      const expectedUrl = new URL(expected)
+      const gotUrl = new URL(url)
+
+      if (expectedUrl.protocol !== gotUrl.protocol || expectedUrl.host !== gotUrl.host || expectedUrl.search !== gotUrl.search) {
+        return false
+      }
+
+      // protocol, host and query all match, normalise path to have trailing
+      // slash and compare
+      let expectedPath = expectedUrl.pathname
+      let gotPath = gotUrl.pathname
+
+      if (!expectedPath.endsWith('/')) {
+        expectedPath = `${expectedPath}/`
+      }
+
+      if (!gotPath.endsWith('/')) {
+        gotPath = `${gotPath}/`
+      }
+
+      return expectedPath === gotPath
     }, options),
     page.goto(resource, options)
       .catch((err) => {
@@ -125,11 +163,6 @@ export async function loadWithServiceWorker (page: Page, resource: string, optio
     response.body = async () => buf
     response.text = async () => new TextDecoder().decode(await response.body())
     response.json = async () => JSON.parse(await response.text())
-  } else if (page.url() !== expected) {
-    // not sure why this is necessary - the response has come from the service
-    // worker and is the URL we expect but it takes a little time for the page
-    // to catch up?
-    await page.waitForURL(expected, options)
   }
 
   return response
