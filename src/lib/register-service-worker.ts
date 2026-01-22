@@ -29,23 +29,16 @@ export async function registerServiceWorker (): Promise<ServiceWorkerRegistratio
  * hang the page forever with no feedback.
  *
  * To handle these, we track all existing workers (installing, waiting, active)
- * plus any new ones via 'updatefound', use a settled flag to prevent double
- * resolution, and enforce a 30-second timeout with a clear error message.
+ * plus any new ones via 'updatefound', and enforce a 30-second timeout.
  */
 async function waitForActivation (swRegistration: ServiceWorkerRegistration): Promise<ServiceWorkerRegistration> {
   return new Promise((resolve, reject) => {
-    let settled = false
-
     const succeed = (): void => {
-      if (settled) { return }
-      settled = true
       clearTimeout(timeoutId)
       resolve(swRegistration)
     }
 
     const fail = (msg: string): void => {
-      if (settled) { return }
-      settled = true
       clearTimeout(timeoutId)
       reject(new Error(msg))
     }
