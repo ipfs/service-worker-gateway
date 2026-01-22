@@ -1,5 +1,4 @@
 import { isPeerId } from '@libp2p/interface'
-import { peerIdFromString } from '@libp2p/peer-id'
 import { CID } from 'multiformats/cid'
 import type { PeerId } from '@libp2p/interface'
 

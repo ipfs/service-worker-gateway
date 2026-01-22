@@ -64,6 +64,6 @@ export function getWontFixTests (): string[] {
     'TestTrustlessCarEntityBytes/GET_CAR_with_entity-bytes_succeeds_even_if_the_gateway_is_missing_a_block_before_the_requested_range_%28Accept_Header%29/Body',
     'TestTrustlessCarEntityBytes/GET_CAR_with_entity-bytes_succeeds_even_if_the_gateway_is_missing_a_block_before_the_requested_range_%28format=car%29/Body',
     'TestTrustlessCarEntityBytes/GET_CAR_with_entity-bytes_succeeds_even_if_the_gateway_is_missing_a_block_after_the_requested_range_%28Accept_Header%29/Body',
-    'TestTrustlessCarEntityBytes/GET_CAR_with_entity-bytes_succeeds_even_if_the_gateway_is_missing_a_block_after_the_requested_range_%28format=car%29/Body',
+    'TestTrustlessCarEntityBytes/GET_CAR_with_entity-bytes_succeeds_even_if_the_gateway_is_missing_a_block_after_the_requested_range_%28format=car%29/Body'
   ]
 }
