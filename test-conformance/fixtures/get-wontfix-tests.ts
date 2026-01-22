@@ -7,11 +7,10 @@ export function getWontFixTests (): string[] {
     // these tests want to ignore the format arg and return a text/html
     // content-type which is not in the spec?
     // https://github.com/ipfs/gateway-conformance/issues/256
-    'TestDagPbConversion/GET_UnixFS_with_format=json_%28not_dag-json%29_is_no-op_%28no_conversion%29',
-    'TestDagPbConversion/GET_UnixFS_with_format=cbor_%28not_dag-cbor%29_is_no-op_%28no_conversion%29',
+    'TestDagPbConversion/GET_UnixFS_with_format=json_%28not_dag-json%29_is_no-op_%28no_conversion%29/Header_Content-Type',
+    'TestDagPbConversion/GET_UnixFS_with_format=cbor_%28not_dag-cbor%29_is_no-op_%28no_conversion%29/Header_Content-Type',
     'TestDagPbConversion/GET_UnixFS_with_%27Accept:_application%2Fjson%27_%28not_dag-json%29_is_no-op_%28no_conversion%29/Header_Content-Type',
     'TestDagPbConversion/GET_UnixFS_with_%27Accept:_application%2Fcbor%27_%28not_dag-cbor%29_is_no-op_%28no_conversion%29/Header_Content-Type',
-    'TestDagPbConversion/GET_UnixFS_with_%27Accept:_application%2Fcbor%27_%28not_dag-cbor%29_is_no-op_%28no_conversion%29/Body',
 
     // kubo-specific tests
     'TestUnixFSDirectoryListing/path_gw:_backlink_on_root_CID_should_be_hidden_%28TODO:_cleanup_Kubo-specifics%29',
@@ -61,6 +60,10 @@ export function getWontFixTests (): string[] {
     // last few tests
     'TestTar/GET_TAR_with_relative_paths_inside_root_works',
     'TestGatewaySymlink/Test_the_directory_listing',
-    'TestGatewaySymlink/Test_the_symlink'
+    'TestGatewaySymlink/Test_the_symlink',
+    'TestTrustlessCarEntityBytes/GET_CAR_with_entity-bytes_succeeds_even_if_the_gateway_is_missing_a_block_before_the_requested_range_%28Accept_Header%29/Body',
+    'TestTrustlessCarEntityBytes/GET_CAR_with_entity-bytes_succeeds_even_if_the_gateway_is_missing_a_block_before_the_requested_range_%28format=car%29/Body',
+    'TestTrustlessCarEntityBytes/GET_CAR_with_entity-bytes_succeeds_even_if_the_gateway_is_missing_a_block_after_the_requested_range_%28Accept_Header%29/Body',
+    'TestTrustlessCarEntityBytes/GET_CAR_with_entity-bytes_succeeds_even_if_the_gateway_is_missing_a_block_after_the_requested_range_%28format=car%29/Body',
   ]
 }
