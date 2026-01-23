@@ -1,4 +1,4 @@
-import { QUERY_PARAMS } from './constants.js'
+import { QUERY_PARAMS } from './constants.ts'
 
 export async function tellSwToReloadConfig (): Promise<void> {
   const resp = await fetch(`?${QUERY_PARAMS.RELOAD_CONFIG}=true`)

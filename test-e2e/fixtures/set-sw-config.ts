@@ -4,10 +4,10 @@
  *
  * Note that this was only tested and confirmed working for subdomain pages.
  */
-import { QUERY_PARAMS } from '../../src/lib/constants.js'
-import { getConfigDebug, getConfigDnsJsonResolvers, getConfigEnableGatewayProviders, getConfigEnableRecursiveGateways, getConfigEnableWebTransport, getConfigEnableWss, getConfigFetchTimeout, getConfigGatewaysInput, getConfigPage, getConfigPageSaveButton, getConfigRoutersInput, getConfigServiceWorkerRegistrationTTL, getRenderHTMLViews, getSupportDirectoryIndexes, getSupportWebRedirects } from './locators.js'
-import { waitForServiceWorker } from './wait-for-service-worker.js'
-import type { ConfigDb } from '../../src/lib/config-db.js'
+import { QUERY_PARAMS } from '../../src/lib/constants.ts'
+import { getConfigDebug, getConfigDnsJsonResolvers, getConfigEnableGatewayProviders, getConfigEnableRecursiveGateways, getConfigEnableWebTransport, getConfigEnableWss, getConfigFetchTimeout, getConfigGatewaysInput, getConfigPage, getConfigPageSaveButton, getConfigRoutersInput, getConfigServiceWorkerRegistrationTTL, getRenderHTMLViews, getSupportDirectoryIndexes, getSupportWebRedirects } from './locators.ts'
+import { waitForServiceWorker } from './wait-for-service-worker.ts'
+import type { ConfigDb } from '../../src/lib/config-db.ts'
 import type { Page } from '@playwright/test'
 
 export async function setConfigViaUi ({ page, config }: { page: Page, config: Partial<ConfigDb>, expectedSwScope: string }): Promise<void> {

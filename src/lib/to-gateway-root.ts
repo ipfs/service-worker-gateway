@@ -1,4 +1,4 @@
-import { subdomainRegex } from './regex.js'
+import { subdomainRegex } from './regex.ts'
 
 /**
  * If we are on a path gateway, return the gateway URL without the path but with

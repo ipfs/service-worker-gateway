@@ -1,9 +1,9 @@
 import { stop } from '@libp2p/interface'
 import * as cbor from 'cborg'
 import { createKuboRPCClient } from 'kubo-rpc-client'
-import { test, expect } from './fixtures/config-test-fixtures.js'
+import { test, expect } from './fixtures/config-test-fixtures.ts'
 import { IPLD_CONVERSIONS } from './fixtures/ipld-conversions.ts'
-import { loadWithServiceWorker } from './fixtures/load-with-service-worker.js'
+import { loadWithServiceWorker } from './fixtures/load-with-service-worker.ts'
 import type { KuboRPCClient } from 'kubo-rpc-client'
 import type { CID } from 'multiformats/cid'
 

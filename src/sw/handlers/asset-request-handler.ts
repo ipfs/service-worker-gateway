@@ -1,7 +1,7 @@
-import { CURRENT_CACHES } from '../../constants.js'
-import { getSwLogger } from '../../lib/logger.js'
-import { isSubdomainGatewayRequest } from '../../lib/path-or-subdomain.js'
-import type { Handler } from './index.js'
+import { CURRENT_CACHES } from '../../constants.ts'
+import { getSwLogger } from '../../lib/logger.ts'
+import { isSubdomainGatewayRequest } from '../../lib/path-or-subdomain.ts'
+import type { Handler } from './index.ts'
 
 export const assetRequestHandler: Handler = {
   name: 'asset-request-handler',

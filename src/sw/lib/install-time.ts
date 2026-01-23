@@ -1,5 +1,5 @@
-import { getSwLogger } from '../../lib/logger.js'
-import { getSwConfig } from './sw-config.js'
+import { getSwLogger } from '../../lib/logger.ts'
+import { getSwConfig } from './sw-config.ts'
 
 let firstInstallTime: number
 

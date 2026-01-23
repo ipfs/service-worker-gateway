@@ -4,9 +4,9 @@ import { base36 } from 'multiformats/bases/base36'
 import { identity } from 'multiformats/hashes/identity'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { CODE_RAW } from '../src/ui/pages/multicodec-table.ts'
-import { test, expect } from './fixtures/config-test-fixtures.js'
+import { test, expect } from './fixtures/config-test-fixtures.ts'
 import { publishDNSLink } from './fixtures/dns-record-cache.ts'
-import { loadWithServiceWorker } from './fixtures/load-with-service-worker.js'
+import { loadWithServiceWorker } from './fixtures/load-with-service-worker.ts'
 import { setConfig } from './fixtures/set-sw-config.ts'
 
 test.describe('ipns', () => {

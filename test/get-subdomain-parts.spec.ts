@@ -1,5 +1,5 @@
 import { expect } from 'aegir/chai'
-import { getSubdomainParts } from '../src/lib/get-subdomain-parts.js'
+import { getSubdomainParts } from '../src/lib/get-subdomain-parts.ts'
 
 describe('get-subdomain-parts', () => {
   it('should support deeply nested subdomains', () => {

@@ -1,4 +1,4 @@
-import { GenericIDB } from '../../lib/generic-db.js'
+import { GenericIDB } from '../../lib/generic-db.ts'
 
 /**
  * IndexedDB schema for each registered service worker

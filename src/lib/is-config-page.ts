@@ -1,4 +1,4 @@
-import { HASH_FRAGMENTS } from './constants.js'
+import { HASH_FRAGMENTS } from './constants.ts'
 
 /**
  * As of https://github.com/ipfs/service-worker-gateway/issues/486, we no longer

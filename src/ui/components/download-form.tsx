@@ -1,10 +1,10 @@
 import React, { useState } from 'react'
 import { FaAngleDown, FaAngleRight } from 'react-icons/fa'
-import { CIDInput } from './cid-input.jsx'
-import { EntityBytesInput } from './entity-bytes-input.jsx'
-import { InputLabel } from './input-label.jsx'
-import { InputSection } from './input-section.js'
-import { InputSelect } from './input-select.jsx'
+import { CIDInput } from './cid-input.tsx'
+import { EntityBytesInput } from './entity-bytes-input.tsx'
+import { InputLabel } from './input-label.tsx'
+import { InputSection } from './input-section.tsx'
+import { InputSelect } from './input-select.tsx'
 import type { ReactElement, MouseEvent } from 'react'
 
 export interface DownloadFormProps {

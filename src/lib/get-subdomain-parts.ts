@@ -1,4 +1,4 @@
-import { dnsLinkLabelDecoder, isInlinedDnsLink } from './dns-link-labels.js'
+import { dnsLinkLabelDecoder, isInlinedDnsLink } from './dns-link-labels.ts'
 
 export interface UrlParts {
   /**

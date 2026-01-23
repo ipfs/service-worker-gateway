@@ -1,10 +1,10 @@
 import React from 'react'
-import { removeRootHashIfPresent } from '../../lib/remove-root-hash.js'
-import { toGatewayRoot } from '../../lib/to-gateway-root.js'
-import { Button } from '../components/button.jsx'
-import ContentBox from '../components/content-box.jsx'
-import { Link } from '../components/link.jsx'
-import Terminal from '../components/terminal.jsx'
+import { removeRootHashIfPresent } from '../../lib/remove-root-hash.ts'
+import { toGatewayRoot } from '../../lib/to-gateway-root.ts'
+import { Button } from '../components/button.tsx'
+import ContentBox from '../components/content-box.tsx'
+import { Link } from '../components/link.tsx'
+import Terminal from '../components/terminal.tsx'
 import type { ReactElement } from 'react'
 
 /**

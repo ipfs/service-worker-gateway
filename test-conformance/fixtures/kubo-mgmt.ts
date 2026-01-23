@@ -14,7 +14,7 @@ import { logger } from '@libp2p/logger'
 import { $ } from 'execa'
 import fg from 'fast-glob'
 import { path } from 'kubo'
-import { GWC_IMAGE } from './constants.js'
+import { GWC_IMAGE } from './constants.ts'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 

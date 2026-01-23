@@ -1,10 +1,10 @@
-import { Config } from './lib/config-db.js'
-import { QUERY_PARAMS } from './lib/constants.js'
+import { Config } from './lib/config-db.ts'
+import { QUERY_PARAMS } from './lib/constants.ts'
 import { isUIPageRequest } from './lib/is-ui-page-request.ts'
-import { uiLogger } from './lib/logger.js'
+import { uiLogger } from './lib/logger.ts'
 import { isPathOrSubdomainRequest, isSafeOrigin, isSubdomainGatewayRequest } from './lib/path-or-subdomain.ts'
 import { createSearch } from './lib/query-helpers.ts'
-import { registerServiceWorker } from './lib/register-service-worker.js'
+import { registerServiceWorker } from './lib/register-service-worker.ts'
 
 declare global {
   var originIsolationWarning: {

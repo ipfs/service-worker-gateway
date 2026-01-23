@@ -1,5 +1,5 @@
-import { test, expect } from './fixtures/config-test-fixtures.js'
-import { loadWithServiceWorker } from './fixtures/load-with-service-worker.js'
+import { test, expect } from './fixtures/config-test-fixtures.ts'
+import { loadWithServiceWorker } from './fixtures/load-with-service-worker.ts'
 
 test.describe('hamt-dir', () => {
   test('can open UnixFS file from HAMT-sharded directory', async ({ page, baseURL }) => {

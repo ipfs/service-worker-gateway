@@ -1,6 +1,6 @@
-import { Config } from '../../lib/config-db.js'
-import { getSwLogger } from '../../lib/logger.js'
-import type { ConfigDb } from '../../lib/config-db.js'
+import { Config } from '../../lib/config-db.ts'
+import { getSwLogger } from '../../lib/logger.ts'
+import type { ConfigDb } from '../../lib/config-db.ts'
 
 let config: ConfigDb
 
