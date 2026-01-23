@@ -1,5 +1,5 @@
 import { $ } from 'execa'
-import { kuboRepoDir } from './fixtures/load-kubo-fixtures.js'
+import { kuboRepoDir } from './fixtures/load-kubo-fixtures.ts'
 
 export default async function globalTeardown (config: Record<string, any>): Promise<void> {
   const kuboPid = process.env.KUBO_PID

@@ -1,8 +1,8 @@
 import React from 'react'
-import { removeRootHashIfPresent } from '../../lib/remove-root-hash.js'
-import { toGatewayRoot } from '../../lib/to-gateway-root.js'
+import { removeRootHashIfPresent } from '../../lib/remove-root-hash.ts'
+import { toGatewayRoot } from '../../lib/to-gateway-root.ts'
 import './default-page-styles.css'
-import { Link } from '../components/link.js'
+import { Link } from '../components/link.tsx'
 import type { ReactNode } from 'react'
 
 declare global {

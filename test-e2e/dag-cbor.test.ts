@@ -1,9 +1,9 @@
 import * as dagCbor from '@ipld/dag-cbor'
 import { createKuboRPCClient } from 'kubo-rpc-client'
 import { CID } from 'multiformats/cid'
-import { test, expect } from './fixtures/config-test-fixtures.js'
+import { test, expect } from './fixtures/config-test-fixtures.ts'
 import { IPLD_CONVERSIONS } from './fixtures/ipld-conversions.ts'
-import { loadWithServiceWorker } from './fixtures/load-with-service-worker.js'
+import { loadWithServiceWorker } from './fixtures/load-with-service-worker.ts'
 import type { KuboRPCClient } from 'kubo-rpc-client'
 
 const object = {

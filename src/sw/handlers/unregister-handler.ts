@@ -1,5 +1,5 @@
-import { isUnregisterRequest } from '../../lib/unregister-request.js'
-import type { Handler } from './index.js'
+import { isUnregisterRequest } from '../../lib/unregister-request.ts'
+import type { Handler } from './index.ts'
 
 declare let self: ServiceWorkerGlobalScope
 

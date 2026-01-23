@@ -1,5 +1,5 @@
-import { APP_NAME, APP_VERSION, GIT_REVISION } from '../../version.js'
-import { htmlPage } from './page.js'
+import { APP_NAME, APP_VERSION, GIT_REVISION } from '../../version.ts'
+import { htmlPage } from './page.ts'
 
 function isAggregateError (obj?: any): obj is AggregateError {
   return obj?.name === 'AggregateError' || obj instanceof AggregateError

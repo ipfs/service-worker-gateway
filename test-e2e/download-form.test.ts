@@ -10,9 +10,9 @@ import toBuffer from 'it-to-buffer'
 import { CID } from 'multiformats/cid'
 import * as json from 'multiformats/codecs/json'
 import * as tar from 'tar'
-import { test, expect } from './fixtures/config-test-fixtures.js'
-import { setConfig } from './fixtures/set-sw-config.js'
-import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
+import { test, expect } from './fixtures/config-test-fixtures.ts'
+import { setConfig } from './fixtures/set-sw-config.ts'
+import { waitForServiceWorker } from './fixtures/wait-for-service-worker.ts'
 import type { Download, Page, Response } from 'playwright'
 
 function captureDownloadResponse (page: Page, cid: string): Promise<Response> {

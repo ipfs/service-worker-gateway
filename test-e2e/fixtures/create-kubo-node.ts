@@ -8,7 +8,7 @@ import { $ } from 'execa'
 import { createNode } from 'ipfsd-ctl'
 import { path as kuboPath, path } from 'kubo'
 import { create } from 'kubo-rpc-client'
-import { kuboRepoDir as IPFS_PATH } from './load-kubo-fixtures.js'
+import { kuboRepoDir as IPFS_PATH } from './load-kubo-fixtures.ts'
 import type { KuboNode } from 'ipfsd-ctl'
 
 const kuboBin = path()

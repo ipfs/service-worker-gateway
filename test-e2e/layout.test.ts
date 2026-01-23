@@ -1,7 +1,7 @@
-import { HASH_FRAGMENTS } from '../src/lib/constants.js'
-import { test, expect } from './fixtures/config-test-fixtures.js'
-import { getConfigPage, getConfigPageSaveButton, getConfigPageInput, getHeader, getHeaderTitle, getHelperUi, getAboutSection } from './fixtures/locators.js'
-import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
+import { HASH_FRAGMENTS } from '../src/lib/constants.ts'
+import { test, expect } from './fixtures/config-test-fixtures.ts'
+import { getConfigPage, getConfigPageSaveButton, getConfigPageInput, getHeader, getHeaderTitle, getHelperUi, getAboutSection } from './fixtures/locators.ts'
+import { waitForServiceWorker } from './fixtures/wait-for-service-worker.ts'
 
 test.describe('smoketests', () => {
   test.beforeEach(async ({ page }) => {

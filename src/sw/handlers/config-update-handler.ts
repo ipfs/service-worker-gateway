@@ -1,7 +1,7 @@
-import { QUERY_PARAMS } from '../../lib/constants.js'
-import { createSearch } from '../../lib/query-helpers.js'
-import { updateConfig } from '../lib/config.js'
-import type { Handler } from './index.js'
+import { QUERY_PARAMS } from '../../lib/constants.ts'
+import { createSearch } from '../../lib/query-helpers.ts'
+import { updateConfig } from '../lib/config.ts'
+import type { Handler } from './index.ts'
 
 export const configUpdateHandler: Handler = {
   name: 'config-update-handler',

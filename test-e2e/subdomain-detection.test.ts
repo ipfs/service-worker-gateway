@@ -1,5 +1,5 @@
-import { test, expect } from './fixtures/config-test-fixtures.js'
-import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
+import { test, expect } from './fixtures/config-test-fixtures.ts'
+import { waitForServiceWorker } from './fixtures/wait-for-service-worker.ts'
 
 test.describe('subdomain-detection', () => {
   test('path requests are redirected to subdomains', async ({ page, protocol, host }) => {

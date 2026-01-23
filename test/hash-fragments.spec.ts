@@ -1,5 +1,5 @@
 import { expect } from 'aegir/chai'
-import { parseHashFragments, getHashFragment, setHashFragment, deleteHashFragment, hasHashFragment, hashFragmentsToString } from '../src/lib/hash-fragments.js'
+import { parseHashFragments, getHashFragment, setHashFragment, deleteHashFragment, hasHashFragment, hashFragmentsToString } from '../src/lib/hash-fragments.ts'
 
 describe('hash-fragments', () => {
   describe('hashFragmentsToString', () => {

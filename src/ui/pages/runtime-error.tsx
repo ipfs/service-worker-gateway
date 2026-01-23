@@ -1,8 +1,8 @@
 import React from 'react'
-import { Button } from '../components/button.jsx'
-import ContentBox from '../components/content-box.jsx'
-import { Link } from '../components/link.jsx'
-import Terminal from '../components/terminal.jsx'
+import { Button } from '../components/button.tsx'
+import ContentBox from '../components/content-box.tsx'
+import { Link } from '../components/link.tsx'
+import Terminal from '../components/terminal.tsx'
 import type { ReactElement } from 'react'
 
 function isAggregateError (obj?: any): obj is AggregateError {

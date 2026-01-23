@@ -1,5 +1,5 @@
-import { APP_NAME, APP_VERSION, GIT_REVISION } from '../../version.js'
-import { htmlPage } from './page.js'
+import { APP_NAME, APP_VERSION, GIT_REVISION } from '../../version.ts'
+import { htmlPage } from './page.ts'
 
 /**
  * Shows a warning page to the user, allowing them to accept the risk of

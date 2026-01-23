@@ -1,4 +1,4 @@
-import { HASH_FRAGMENTS } from './constants.js'
+import { HASH_FRAGMENTS } from './constants.ts'
 
 export function isUIPageRequest (url: URL): boolean {
   return Object.values(HASH_FRAGMENTS)

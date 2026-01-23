@@ -1,4 +1,4 @@
-import { QUERY_PARAMS } from './constants.js'
+import { QUERY_PARAMS } from './constants.ts'
 
 /**
  * Check if the url includes a `ipfs-sw-unregister` parameter

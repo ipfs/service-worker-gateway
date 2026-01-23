@@ -1,7 +1,7 @@
-import { test, expect } from './fixtures/config-test-fixtures.js'
-import { setConfig } from './fixtures/set-sw-config.js'
-import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
-import type { ConfigDb } from '../src/lib/config-db.js'
+import { test, expect } from './fixtures/config-test-fixtures.ts'
+import { setConfig } from './fixtures/set-sw-config.ts'
+import { waitForServiceWorker } from './fixtures/wait-for-service-worker.ts'
+import type { ConfigDb } from '../src/lib/config-db.ts'
 
 const cid = 'bafybeie4vcqkutumw7s26ob2bwqwqi44m6lrssjmiirlhrzhs2akdqmkw4' // big buck bunny webm trimmed to 15 seconds with `ffmpeg -i bigbuckbunny.webm -ss 00:00 -t 00:15 -c:a copy -c:v copy bigbuckbunny-mini.webm`
 

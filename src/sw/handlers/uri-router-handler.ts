@@ -1,6 +1,6 @@
 import { QUERY_PARAMS } from '../../lib/constants.ts'
-import { getSwLogger } from '../../lib/logger.js'
-import type { Handler } from './index.js'
+import { getSwLogger } from '../../lib/logger.ts'
+import type { Handler } from './index.ts'
 
 export const uriRouterHandler: Handler = {
   name: 'uri-router-handler',

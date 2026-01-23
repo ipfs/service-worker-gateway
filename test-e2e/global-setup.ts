@@ -1,7 +1,7 @@
 import bodyParser from 'body-parser'
 import cors from 'cors'
 import polka from 'polka'
-import { serve } from '../serve.js'
+import { serve } from '../serve.ts'
 import { DNSRecordCache, toResourceRecordType } from './fixtures/dns-record-cache.ts'
 
 export default async function globalSetup (config: Record<string, any>): Promise<void> {

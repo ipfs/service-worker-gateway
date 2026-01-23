@@ -1,9 +1,9 @@
-import { compressConfig } from '../src/lib/config-db.js'
-import { QUERY_PARAMS } from '../src/lib/constants.js'
-import { test, expect } from './fixtures/config-test-fixtures.js'
-import { getConfig, setConfig } from './fixtures/set-sw-config.js'
-import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
-import type { ConfigDb } from '../src/lib/config-db.js'
+import { compressConfig } from '../src/lib/config-db.ts'
+import { QUERY_PARAMS } from '../src/lib/constants.ts'
+import { test, expect } from './fixtures/config-test-fixtures.ts'
+import { getConfig, setConfig } from './fixtures/set-sw-config.ts'
+import { waitForServiceWorker } from './fixtures/wait-for-service-worker.ts'
+import type { ConfigDb } from '../src/lib/config-db.ts'
 import type { Response as PlaywrightResponse } from 'playwright'
 
 test.describe('ipfs-sw configuration', () => {

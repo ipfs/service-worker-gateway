@@ -1,5 +1,5 @@
 import React from 'react'
-import { Link } from '../components/link.jsx'
+import { Link } from '../components/link.tsx'
 import type { ReactElement } from 'react'
 
 export default function NoServiceWorkerErrorPage (): ReactElement {

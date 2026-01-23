@@ -1,6 +1,6 @@
-import { QUERY_PARAMS } from '../../lib/constants.js'
-import { updateVerifiedFetch } from '../lib/verified-fetch.js'
-import type { Handler } from './index.js'
+import { QUERY_PARAMS } from '../../lib/constants.ts'
+import { updateVerifiedFetch } from '../lib/verified-fetch.ts'
+import type { Handler } from './index.ts'
 
 export const configReloadHandler: Handler = {
   name: 'config-reload-handler',

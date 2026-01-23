@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures/config-test-fixtures.js'
+import { test, expect } from './fixtures/config-test-fixtures.ts'
 import { loadWithServiceWorker } from './fixtures/load-with-service-worker.ts'
 
 test.describe('path-routing', () => {

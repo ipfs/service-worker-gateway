@@ -6,8 +6,8 @@ import { base36 } from 'multiformats/bases/base36'
 import { CID } from 'multiformats/cid'
 import { identity } from 'multiformats/hashes/identity'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
-import { QUERY_PARAMS } from '../src/lib/constants.js'
-import { isPathOrSubdomainRequest, toSubdomainRequest } from '../src/lib/path-or-subdomain.js'
+import { QUERY_PARAMS } from '../src/lib/constants.ts'
+import { isPathOrSubdomainRequest, toSubdomainRequest } from '../src/lib/path-or-subdomain.ts'
 import { CODE_RAW } from '../src/ui/pages/multicodec-table.ts'
 
 describe('path-or-subdomain', () => {

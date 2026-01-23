@@ -4,8 +4,8 @@ import { CID } from 'multiformats/cid'
 import { identity } from 'multiformats/hashes/identity'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { CODE_RAW } from '../src/ui/pages/multicodec-table.ts'
-import { test, expect } from './fixtures/config-test-fixtures.js'
-import { swScopeVerification } from './fixtures/sw-scope-verification.js'
+import { test, expect } from './fixtures/config-test-fixtures.ts'
+import { swScopeVerification } from './fixtures/sw-scope-verification.ts'
 
 test.afterEach(async ({ page }) => {
   await swScopeVerification(page, expect)

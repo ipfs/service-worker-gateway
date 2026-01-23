@@ -1,8 +1,8 @@
 import { CID } from 'multiformats/cid'
 import React, { useState } from 'react'
-import { nativeProtocolRegex, pathRegex, subdomainRegex } from '../../lib/regex.js'
-import { Link } from './link.jsx'
-import type { IpfsUriParts } from '../../lib/regex.js'
+import { nativeProtocolRegex, pathRegex, subdomainRegex } from '../../lib/regex.ts'
+import { Link } from './link.tsx'
+import type { IpfsUriParts } from '../../lib/regex.ts'
 import type { ReactElement } from 'react'
 
 function FormatHelp (): ReactElement {

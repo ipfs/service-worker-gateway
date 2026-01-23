@@ -1,8 +1,8 @@
 import { MEDIA_TYPE_DAG_PB } from '@helia/verified-fetch'
 import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
 import { headersToObject } from '../../lib/headers-to-object.ts'
-import { APP_NAME, APP_VERSION, GIT_REVISION } from '../../version.js'
-import { htmlPage } from './page.js'
+import { APP_NAME, APP_VERSION, GIT_REVISION } from '../../version.ts'
+import { htmlPage } from './page.ts'
 
 /**
  * Renders the properties of the object deserialized from the block

@@ -1,6 +1,6 @@
 import { enable } from '@libp2p/logger'
-import { QUERY_PARAMS } from './constants.js'
-import { GenericIDB } from './generic-db.js'
+import { QUERY_PARAMS } from './constants.ts'
+import { GenericIDB } from './generic-db.ts'
 import type { ComponentLogger, Logger } from '@libp2p/interface'
 
 function isPrivate (key: string): boolean {

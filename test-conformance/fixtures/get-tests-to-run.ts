@@ -1,4 +1,4 @@
-import { getWontFixTests } from './get-wontfix-tests.js'
+import { getWontFixTests } from './get-wontfix-tests.ts'
 
 /**
  *

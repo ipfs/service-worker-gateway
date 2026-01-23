@@ -1,6 +1,6 @@
 import { test as base } from '@playwright/test'
-import { setConfig } from './set-sw-config.js'
-import { waitForServiceWorker } from './wait-for-service-worker.js'
+import { setConfig } from './set-sw-config.ts'
+import { waitForServiceWorker } from './wait-for-service-worker.ts'
 import type { Page, TestFixture } from '@playwright/test'
 
 interface TestOptions {

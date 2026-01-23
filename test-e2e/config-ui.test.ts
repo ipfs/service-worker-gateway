@@ -2,9 +2,9 @@
  * Ensure the config saves to IDB and on refresh, the config is loaded from IDB
  */
 
-import { HASH_FRAGMENTS } from '../src/lib/constants.js'
-import { test, expect } from './fixtures/config-test-fixtures.js'
-import { getConfig, getConfigUi, setConfigViaUi } from './fixtures/set-sw-config.js'
+import { HASH_FRAGMENTS } from '../src/lib/constants.ts'
+import { test, expect } from './fixtures/config-test-fixtures.ts'
+import { getConfig, getConfigUi, setConfigViaUi } from './fixtures/set-sw-config.ts'
 
 test.describe('config-ui', () => {
   test('setting the config via UI actually works', async ({ page, baseURL, protocol, host }) => {

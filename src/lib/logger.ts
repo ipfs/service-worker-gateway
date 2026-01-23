@@ -1,5 +1,5 @@
 import { prefixLogger } from '@libp2p/logger'
-import { collectingLogger } from './collecting-logger.js'
+import { collectingLogger } from './collecting-logger.ts'
 import type { ComponentLogger, Logger } from '@libp2p/interface'
 
 export const uiLogger = prefixLogger('ui')

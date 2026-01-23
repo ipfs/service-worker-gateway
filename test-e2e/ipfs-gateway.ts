@@ -3,8 +3,8 @@
  */
 import { logger } from '@libp2p/logger'
 import waitOn from 'wait-on'
-import { createKuboNode, gatewayPort, getKuboDistCid } from './fixtures/create-kubo-node.js'
-import { createReverseProxy } from './reverse-proxy.js'
+import { createKuboNode, gatewayPort, getKuboDistCid } from './fixtures/create-kubo-node.ts'
+import { createReverseProxy } from './reverse-proxy.ts'
 import type { KuboNode } from 'ipfsd-ctl'
 
 // to get logs for kubo node, you need to use 'ipfsd-ctl:kubo'
