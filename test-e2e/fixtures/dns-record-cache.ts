@@ -1,3 +1,7 @@
+import { isPeerId } from '@libp2p/interface'
+import { CID } from 'multiformats/cid'
+import type { PeerId } from '@libp2p/interface'
+
 /**
  * @see https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-4
  */
@@ -93,4 +97,27 @@ export class DNSRecordCache {
 
     return records ?? []
   }
+}
+
+export async function publishDNSLink (domain: string, record: string | CID | PeerId): Promise<void> {
+  let data = ''
+
+  if (isPeerId(record)) {
+    data = `"dnslink=/ipns/${record.toString()}"`
+  } else if (CID.asCID(record) === record || record instanceof CID) {
+    data = `"dnslink=/ipfs/${record.toString()}"`
+  } else {
+    data = `"dnslink=${record}"`
+  }
+
+  await fetch(`${process.env.TEST_API_SERVER}/dns-record/_dnslink.${domain}`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify({
+      type: 'TXT',
+      data
+    })
+  })
 }

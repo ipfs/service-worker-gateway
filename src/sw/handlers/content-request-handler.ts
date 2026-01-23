@@ -182,18 +182,16 @@ async function fetchHandler ({ url, headers, renderPreview, event, logs, subdoma
     try {
       const asSubdomainRequest = toSubdomainRequest(url)
 
-      if (config._supportsSubdomains) {
-        log.trace('url was %s', url.toString())
-        log.trace('redirecting to subdomain - %s', asSubdomainRequest)
+      log.trace('url was %s', url.toString())
+      log.trace('redirecting to subdomain - %s', asSubdomainRequest)
 
-        return new Response('Gateway supports subdomain mode, redirecting to ensure Origin isolation..', {
-          status: 301,
-          headers: {
-            'Content-Type': 'text/plain',
-            Location: asSubdomainRequest.toString()
-          }
-        })
-      }
+      return new Response('Gateway supports subdomain mode, redirecting to ensure Origin isolation..', {
+        status: 301,
+        headers: {
+          'Content-Type': 'text/plain',
+          Location: asSubdomainRequest.toString()
+        }
+      })
     } catch (err: any) {
       // the user supplied an unparseable/incorrect path or key
       if (err.name === 'InvalidParametersError') {
@@ -207,13 +205,8 @@ async function fetchHandler ({ url, headers, renderPreview, event, logs, subdoma
       // to a subdomain gateway URL)
     }
 
-    if (!config.acceptOriginIsolationWarning) {
-      log('showing origin isolation warning')
-      return originIsolationWarningPageResponse(event.request.url)
-    }
-
-    // no subdomain support and the user has yolo'ed the warning so continue to
-    // loading the requested content
+    log('showing origin isolation warning')
+    return originIsolationWarningPageResponse(event.request.url)
   }
 
   const providers: Providers = {

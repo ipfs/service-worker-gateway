@@ -1,14 +1,13 @@
 import { enable } from '@libp2p/logger'
 import { QUERY_PARAMS } from './constants.js'
 import { GenericIDB } from './generic-db.js'
-import type { BaseDbConfig } from './generic-db.js'
 import type { ComponentLogger, Logger } from '@libp2p/interface'
 
 function isPrivate (key: string): boolean {
   return key.startsWith('_')
 }
 
-export interface ConfigDbWithoutPrivateFields extends BaseDbConfig {
+export interface ConfigDb {
   gateways: string[]
   routers: string[]
   dnsJsonResolvers: Record<string, string>
@@ -32,15 +31,6 @@ export interface ConfigDbWithoutPrivateFields extends BaseDbConfig {
    * @default 86_400_000 (24 hours)
    */
   serviceWorkerRegistrationTTL: number
-
-  /**
-   * Accessing a website via the path gateway is dangerous as all websites
-   * accessed this way share a single origin (e.g. they can read each others
-   * cookies and other credentials).
-   *
-   * This will be true if the user has accepted this risk.
-   */
-  acceptOriginIsolationWarning: boolean
 
   /**
    * By default if a UnixFS directory is requested, we will check to see if an
@@ -72,18 +62,6 @@ export interface ConfigDbWithoutPrivateFields extends BaseDbConfig {
   renderHTMLViews: boolean
 }
 
-/**
- * Private fields for app-only config added to ConfigDbWithoutPrivateFields.
- *
- * These are not configurable by the user, and are only for programmatic use and
- * changing functionality.
- *
- * Keys must be prefixed with a `_` character.
- */
-export interface ConfigDb extends ConfigDbWithoutPrivateFields {
-  _supportsSubdomains: null | boolean
-}
-
 export const defaultGateways = ['https://trustless-gateway.link']
 export const defaultRouters = ['https://delegated-ipfs.dev']
 export const defaultDnsJsonResolvers: Record<string, string> = {
@@ -93,9 +71,7 @@ export const defaultEnableRecursiveGateways = true
 export const defaultEnableWss = true
 export const defaultEnableWebTransport = false
 export const defaultEnableGatewayProviders = true
-export const defaultSupportsSubdomains: null | boolean = null
 export const defaultServiceWorkerRegistrationTTL = 86_400_000 // 24 hours
-export const defaultAcceptOriginIsolationWarning = false
 export const defaultSupportDirectoryIndexes = true
 export const defaultSupportWebRedirects = true
 export const defaultRenderHTMLViews = true
@@ -186,7 +162,6 @@ export class Config {
       await configDb.put('debug', defaultDebug())
       await configDb.put('fetchTimeout', defaultFetchTimeout * 1000)
       await configDb.put('serviceWorkerRegistrationTTL', defaultServiceWorkerRegistrationTTL)
-      await configDb.put('acceptOriginIsolationWarning', defaultAcceptOriginIsolationWarning)
       // leave private/app-only fields as is
     } catch (err) {
       this.log.error('error resetting config in db - %e', err)
@@ -198,7 +173,7 @@ export class Config {
   /**
    * Sets config to a specific set of values
    */
-  async set (config: Partial<ConfigDbWithoutPrivateFields>): Promise<void> {
+  async set (config: Partial<ConfigDb>): Promise<void> {
     enable(config.debug ?? defaultDebug()) // set debug level first.
 
     try {
@@ -247,8 +222,6 @@ export class Config {
       let fetchTimeout = defaultFetchTimeout * 1000
       let debug = defaultDebug()
       let serviceWorkerRegistrationTTL = defaultServiceWorkerRegistrationTTL
-      let _supportsSubdomains = defaultSupportsSubdomains
-      let acceptOriginIsolationWarning = defaultAcceptOriginIsolationWarning
       let supportDirectoryIndexes = defaultSupportDirectoryIndexes
       let supportWebRedirects = defaultSupportWebRedirects
       let renderHTMLViews = defaultRenderHTMLViews
@@ -273,11 +246,9 @@ export class Config {
         enableGatewayProviders = config.enableGatewayProviders
         fetchTimeout = config.fetchTimeout
         serviceWorkerRegistrationTTL = config.serviceWorkerRegistrationTTL
-        acceptOriginIsolationWarning = config.acceptOriginIsolationWarning
         supportDirectoryIndexes = config.supportDirectoryIndexes
         supportWebRedirects = config.supportWebRedirects
         renderHTMLViews = config.renderHTMLViews
-        _supportsSubdomains = config._supportsSubdomains
       } catch (err) {
         this.log.error('error loading config from db - %e', err)
       } finally {
@@ -307,11 +278,9 @@ export class Config {
         debug: debug ?? defaultDebug(),
         fetchTimeout: fetchTimeout ?? defaultFetchTimeout * 1000,
         serviceWorkerRegistrationTTL: serviceWorkerRegistrationTTL ?? defaultServiceWorkerRegistrationTTL,
-        acceptOriginIsolationWarning: acceptOriginIsolationWarning ?? defaultAcceptOriginIsolationWarning,
         supportDirectoryIndexes: supportDirectoryIndexes ?? defaultSupportDirectoryIndexes,
         supportWebRedirects: supportWebRedirects ?? defaultSupportWebRedirects,
-        renderHTMLViews: renderHTMLViews ?? defaultRenderHTMLViews,
-        _supportsSubdomains: _supportsSubdomains ?? defaultSupportsSubdomains
+        renderHTMLViews: renderHTMLViews ?? defaultRenderHTMLViews
       } satisfies ConfigDb
     })().finally(() => {
       this.getConfigPromise = null
@@ -331,42 +300,11 @@ export class Config {
   /**
    * Ensure the passed config object is usable
    */
-  async validate (config: Partial<ConfigDbWithoutPrivateFields>): Promise<void> {
+  async validate (config: Partial<ConfigDb>): Promise<void> {
     if (!config.enableRecursiveGateways && !config.enableGatewayProviders && !config.enableWss && !config.enableWebTransport) {
       this.log.error('config is invalid. At least one of the following must be enabled: recursive gateways, gateway providers, Secure WebSockets, or WebTransport')
       throw new Error('Config is invalid. At least one of the following must be enabled: recursive gateways, gateway providers, Secure WebSockets, or WebTransport')
     }
-  }
-
-  async setSubdomainsSupported (supportsSubdomains: boolean): Promise<void> {
-    try {
-      await configDb.open()
-      await configDb.put('_supportsSubdomains', supportsSubdomains)
-    } catch (err) {
-      this.log.error('error setting subdomain support in db - %e', err)
-    } finally {
-      configDb.close()
-    }
-  }
-
-  /**
-   * This should only be used by the service worker or the `checkSubdomainSupport`
-   * function in the UI.
-   *
-   * If you need to check for subdomain support in the UI, use the
-   * `checkSubdomainSupport` function from `check-subdomain-support.ts` instead.
-   */
-  async areSubdomainsSupported (): Promise<null | boolean> {
-    try {
-      await configDb.open()
-      return await configDb.get('_supportsSubdomains') ?? defaultSupportsSubdomains
-    } catch (err) {
-      this.log.error('error loading subdomain support from db - %e', err)
-    } finally {
-      configDb.close()
-    }
-
-    return false
   }
 
   async hasConfig (): Promise<boolean> {
@@ -395,7 +333,7 @@ export class Config {
  * value, if different adds it to an output object which is turned into base64
  * encoded JSON.
  */
-export function compressConfig (config: Partial<ConfigDbWithoutPrivateFields>): string {
+export function compressConfig (config: Partial<ConfigDb>): string {
   const values: Record<string, any> = {
     t: Date.now()
   }
@@ -417,7 +355,7 @@ export function compressConfig (config: Partial<ConfigDbWithoutPrivateFields>): 
 /**
  * Takes a compressed config string and returns a config object
  */
-export function decompressConfig (compressedConfig: string, referrer: string = globalThis.document?.referrer): Partial<ConfigDbWithoutPrivateFields> {
+export function decompressConfig (compressedConfig: string, referrer: string = globalThis.document?.referrer): Partial<ConfigDb> {
   let trusted = true
   let uncompressedConfig = compressedConfig
 
@@ -444,7 +382,7 @@ export function decompressConfig (compressedConfig: string, referrer: string = g
     }
   }
 
-  let c: ConfigDbWithoutPrivateFields
+  let c: ConfigDb & { t?: number }
 
   try {
     c = JSON.parse(uncompressedConfig)
@@ -461,11 +399,11 @@ export function decompressConfig (compressedConfig: string, referrer: string = g
     return {}
   }
 
-  let config: Partial<ConfigDbWithoutPrivateFields> = {}
+  let config: Partial<ConfigDb> = {}
 
   if (!trusted) {
     // only override allowed settings
-    const allowed = [
+    const allowed: Array<keyof ConfigDb> = [
       'enableWss',
       'enableWebTransport',
       'enableGatewayProviders',
@@ -476,6 +414,7 @@ export function decompressConfig (compressedConfig: string, referrer: string = g
 
     for (const key of allowed) {
       if (c[key] != null) {
+        // @ts-expect-error not sure why this doesn't work
         config[key] = c[key]
       }
     }

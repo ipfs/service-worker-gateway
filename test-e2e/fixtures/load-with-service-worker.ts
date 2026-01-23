@@ -1,23 +1,17 @@
 import { readFileSync } from 'node:fs'
+import { peerIdFromString } from '@libp2p/peer-id'
+import { base32 } from 'multiformats/bases/base32'
+import { base36 } from 'multiformats/bases/base36'
+import { CID } from 'multiformats/cid'
 import { QUERY_PARAMS } from '../../src/lib/constants.js'
+import { dnsLinkLabelEncoder } from '../../src/lib/dns-link-labels.ts'
 import type { Page, Response } from 'playwright'
-
-const ORIGIN_ISOLATION_WARNING = '.e2e-subdomain-warning'
-const ACCEPT_ORIGIN_ISOLATION_WARNING = '#accept-warning'
 
 export interface LoadWithServiceWorkerOptions {
   /**
    * Specify the final URL here, if different to `resource`
    */
   redirect?: string
-
-  /**
-   * The origin isolation warning will be accepted automatically, pass `false`
-   * here to do it manually
-   *
-   * @default true
-   */
-  acceptOriginIsolationWarning?: boolean
 
   /**
    * See Playwright Page.goto args
@@ -77,33 +71,78 @@ async function wasDownloaded (response: Response): Promise<boolean> {
   return false
 }
 
+function maybeAsSubdomainUrlRedirect (resource: string): string {
+  const url = new URL(resource)
+
+  // a path gateway request
+  if (url.hostname === '127.0.0.1') {
+    throw new Error('Path gateway requests are unsupported, please convert to localhost')
+  }
+
+  // already a subdomain request
+  if (url.hostname.includes('.ipfs.') || url.hostname.includes('.ipns.')) {
+    return resource
+  }
+
+  let [
+    ,
+    protocol,
+    name,
+    ...rest
+  ] = url.pathname.split('/')
+
+  if (protocol === 'ipfs') {
+    name = CID.parse(name).toV1().toString(base32)
+  } else if (protocol === 'ipns') {
+    try {
+      name = peerIdFromString(name).toCID().toString(base36)
+    } catch {
+      // treat as dnslink
+      name = dnsLinkLabelEncoder(name)
+    }
+  } else {
+    // don't know what this protocol is
+    return resource
+  }
+
+  let path = `${rest.length > 0 ? '/' : ''}${rest.join('/')}`
+
+  if (!path.startsWith('/')) {
+    path = `/${path}`
+  }
+
+  return `http://${name}.${protocol}.${url.host}${path}${url.search}${url.hash}`
+}
+
 /**
  * Navigates to the passed resource and waits for a response from the service
  * worker that does not include a URL param to redirect to
  */
 export async function loadWithServiceWorker (page: Page, resource: string, options?: LoadWithServiceWorkerOptions): Promise<Response> {
-  const expected = options?.redirect ?? resource
+  let expected = resource
+
+  if (options?.redirect != null) {
+    expected = options.redirect
+  } else {
+    try {
+      expected = maybeAsSubdomainUrlRedirect(resource)
+    } catch {}
+  }
+
   const downloadPromise = page.waitForEvent('download')
     .catch(() => {})
-
-  if (options?.acceptOriginIsolationWarning !== false) {
-    // accept origin isolation warning if it appears
-    page.on('load', (page) => {
-      Promise.resolve()
-        .then(async () => {
-          await page.waitForSelector(ORIGIN_ISOLATION_WARNING, {
-            timeout: 5_000
-          })
-          await page.click(ACCEPT_ORIGIN_ISOLATION_WARNING)
-        })
-        .catch(() => {})
-    })
-  }
 
   const [
     response
   ] = await Promise.all([
-    page.waitForResponse((response) => {
+    page.waitForResponse(async (response) => {
+      let url = response.url()
+
+      if (url.includes('*') && expected.includes('%2A')) {
+        // this doesn't always get escaped?
+        url = url.replaceAll('*', '%2A')
+      }
+
       // ignore responses from the UI
       // if (!response.fromServiceWorker()) { <-- does not work in Firefox :(
       if (response.headers()['server']?.includes('@helia/service-worker-gateway') !== true) {
@@ -111,7 +150,7 @@ export async function loadWithServiceWorker (page: Page, resource: string, optio
       }
 
       // ignore redirects by param
-      if (new URL(response.url()).searchParams.has(QUERY_PARAMS.REDIRECT)) {
+      if (new URL(url).searchParams.has(QUERY_PARAMS.REDIRECT)) {
         return false
       }
 
@@ -120,7 +159,43 @@ export async function loadWithServiceWorker (page: Page, resource: string, optio
         return false
       }
 
-      return response.url() === expected
+      const location = await response.headerValue('location')
+
+      // ignore redirects by header
+      if (location != null) {
+        return false
+      }
+
+      if (url === expected) {
+        return true
+      }
+
+      const expectedUrl = new URL(expected)
+      const gotUrl = new URL(url)
+
+      if (expectedUrl.protocol !== gotUrl.protocol || expectedUrl.host !== gotUrl.host || expectedUrl.search !== gotUrl.search) {
+        return false
+      }
+
+      // protocol, host and query all match, normalise path to have trailing
+      // slash and compare
+      let expectedPath = expectedUrl.pathname
+      let gotPath = gotUrl.pathname
+
+      if (!expectedPath.endsWith('/')) {
+        expectedPath = `${expectedPath}/`
+      }
+
+      if (!gotPath.endsWith('/')) {
+        gotPath = `${gotPath}/`
+      }
+
+      if (expectedPath === gotPath) {
+        expected = url
+        return true
+      }
+
+      return false
     }, options),
     page.goto(resource, options)
       .catch((err) => {

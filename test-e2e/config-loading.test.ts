@@ -3,11 +3,11 @@ import { QUERY_PARAMS } from '../src/lib/constants.js'
 import { test, expect } from './fixtures/config-test-fixtures.js'
 import { getConfig, setConfig } from './fixtures/set-sw-config.js'
 import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
-import type { ConfigDbWithoutPrivateFields } from '../src/lib/config-db.js'
+import type { ConfigDb } from '../src/lib/config-db.js'
 import type { Response as PlaywrightResponse } from 'playwright'
 
 test.describe('ipfs-sw configuration', () => {
-  const testConfig: ConfigDbWithoutPrivateFields = {
+  const testConfig: ConfigDb = {
     gateways: ['http://example.com'],
     routers: ['http://example.com/routing/v1'],
     dnsJsonResolvers: {
@@ -20,7 +20,6 @@ test.describe('ipfs-sw configuration', () => {
     enableGatewayProviders: true,
     fetchTimeout: 29 * 1000,
     serviceWorkerRegistrationTTL: 24 * 60 * 60 * 1000,
-    acceptOriginIsolationWarning: false,
     supportDirectoryIndexes: true,
     supportWebRedirects: true,
     renderHTMLViews: true
@@ -42,10 +41,10 @@ test.describe('ipfs-sw configuration', () => {
     await waitForServiceWorker(page)
 
     await setConfig(page, testConfig)
-    expect(await getConfig(page)).toMatchObject(testConfig)
+    expect(await getConfig(page)).toMatchObject(testConfig as any)
   })
 
-  test('root config is propagated to subdomain', async ({ page, baseURL, rootDomain, protocol }) => {
+  test('root config is propagated to subdomain', async ({ page, baseURL, protocol, host }) => {
     if (['webkit', 'safari'].includes(test.info().project.name)) {
       // @see https://github.com/ipfs/in-web-browsers/issues/206
       test.skip()
@@ -62,7 +61,7 @@ test.describe('ipfs-sw configuration', () => {
     const rootConfig = await getConfig(page)
 
     // now query a new subdomain and make sure that the config on this page is the same as the root after the page loads
-    await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/`, {
+    await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${host}/`, {
       waitUntil: 'networkidle'
     })
 
@@ -73,18 +72,18 @@ test.describe('ipfs-sw configuration', () => {
     const subdomainConfig = await getConfig(page)
 
     // ensure it equals the root config (except for _supportsSubdomains which only matters on the root and won't be set on subdomains)
-    expect({ ...subdomainConfig, _supportsSubdomains: rootConfig._supportsSubdomains }).toEqual(rootConfig)
-    expect(subdomainConfig).toMatchObject(testConfig)
+    expect({ ...subdomainConfig }).toEqual(rootConfig)
+    expect(subdomainConfig).toMatchObject(testConfig as any)
   })
 
-  test('config can be injected from an untrusted source', async ({ page, rootDomain, protocol }) => {
+  test('config can be injected from an untrusted source', async ({ page, baseURL, protocol, host }) => {
     if (['webkit', 'safari'].includes(test.info().project.name)) {
       // @see https://github.com/ipfs/in-web-browsers/issues/206
       test.skip()
       return
     }
 
-    const newConfig: ConfigDbWithoutPrivateFields = {
+    const newConfig: ConfigDb = {
       ...testConfig,
       gateways: [
         ...testConfig.gateways,
@@ -114,13 +113,13 @@ test.describe('ipfs-sw configuration', () => {
       responses.push(response)
     })
 
-    await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/?${QUERY_PARAMS.CONFIG}=${compressedConfig}`, {
+    await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${host}/?${QUERY_PARAMS.CONFIG}=${compressedConfig}`, {
       waitUntil: 'networkidle'
     })
     await waitForServiceWorker(page)
 
     // we injected the config and were never redirected to the root domain
-    expect(responses.map(r => r.url())).not.toContain(`${protocol}//${rootDomain}/`)
+    expect(responses.map(r => r.url())).not.toContain(`${protocol}//${host}/`)
 
     const config = await getConfig(page)
     // malicious urls should not exist in the config

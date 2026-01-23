@@ -1,4 +1,4 @@
-import { testPathRouting as test, expect } from './fixtures/config-test-fixtures.js'
+import { test, expect } from './fixtures/config-test-fixtures.js'
 import { makeFetchRequest } from './fixtures/make-range-request.js'
 import { setConfig } from './fixtures/set-sw-config.js'
 import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
@@ -7,7 +7,6 @@ test.describe('byte-ranges', () => {
   test.beforeEach(async ({ page }) => {
     await waitForServiceWorker(page)
     await setConfig(page, {
-      acceptOriginIsolationWarning: true,
       renderHTMLViews: false
     })
   })

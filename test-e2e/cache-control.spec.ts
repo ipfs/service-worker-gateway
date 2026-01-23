@@ -1,7 +1,7 @@
 import { stop } from '@libp2p/interface'
 import * as cbor from 'cborg'
 import { createKuboRPCClient } from 'kubo-rpc-client'
-import { testPathRouting as test, expect } from './fixtures/config-test-fixtures.js'
+import { test, expect } from './fixtures/config-test-fixtures.js'
 import { makeFetchRequest } from './fixtures/make-range-request.ts'
 import { setConfig } from './fixtures/set-sw-config.ts'
 import { waitForServiceWorker } from './fixtures/wait-for-service-worker.ts'
@@ -37,7 +37,6 @@ test.describe('cache-control', () => {
       routers: [
         process.env.KUBO_GATEWAY
       ],
-      acceptOriginIsolationWarning: true,
       renderHTMLViews: false
     })
   })

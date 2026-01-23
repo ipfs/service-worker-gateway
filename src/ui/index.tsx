@@ -89,13 +89,13 @@ function Header (): React.ReactElement {
       <div className='pb1 ma0 mr2 inline-flex items-center aqua'>
         <h1 className='e2e-header-title f3 fw2 ttu sans-serif'>Service Worker Gateway</h1>
         {errorPageLink}
-        <NavLink to={`/${HASH_FRAGMENTS.IPFS_SW_LOAD_UI}`} className={({ isActive }) => (isActive || (errorPageLink == null && globalThis.location.hash === '')) ? 'white' : 'aqua'}>
+        <NavLink id='e2e-link-home-page' to={`/${HASH_FRAGMENTS.IPFS_SW_LOAD_UI}`} className={({ isActive }) => (isActive || (errorPageLink == null && globalThis.location.hash === '')) ? 'white' : 'aqua'}>
           <FaHome className='ml2 f3' />
         </NavLink>
-        <NavLink to={`/${HASH_FRAGMENTS.IPFS_SW_ABOUT_UI}`} className={({ isActive }) => isActive ? 'white' : 'aqua'}>
+        <NavLink id='e2e-link-about-page' to={`/${HASH_FRAGMENTS.IPFS_SW_ABOUT_UI}`} className={({ isActive }) => isActive ? 'white' : 'aqua'}>
           <FaInfoCircle className='ml2 f3' />
         </NavLink>
-        <NavLink to={`/${HASH_FRAGMENTS.IPFS_SW_CONFIG_UI}`} className={({ isActive }) => isActive ? 'white' : 'aqua'}>
+        <NavLink id='e2e-link-config-page' to={`/${HASH_FRAGMENTS.IPFS_SW_CONFIG_UI}`} className={({ isActive }) => isActive ? 'white' : 'aqua'}>
           <FaCog className='ml2 f3' />
         </NavLink>
         <a href='https://github.com/ipfs/service-worker-gateway' className='aqua' title='IPFS Service Worker Gateway on GitHub' target='_blank' rel='noopener noreferrer' aria-label='Visit the GitHub repository for the IPFS Service Worker Gateway'>

@@ -1,42 +1,14 @@
-import React, { useContext, useState } from 'react'
-import { QUERY_PARAMS } from '../../lib/constants.js'
+import React from 'react'
 import { removeRootHashIfPresent } from '../../lib/remove-root-hash.js'
 import { toGatewayRoot } from '../../lib/to-gateway-root.js'
-import { ServiceWorkerReadyButton } from '../components/sw-ready-button.jsx'
-import { ConfigContext } from '../context/config-context.jsx'
 import './default-page-styles.css'
-import type { MouseEvent, ReactNode } from 'react'
+import { Link } from '../components/link.js'
+import type { ReactNode } from 'react'
 
 declare global {
   var originIsolationWarning: {
     location: string
   }
-}
-
-function IpAddressRecommendations ({ currentHost }: { currentHost: string }): ReactNode {
-  return (
-    <div>
-      <span>Current Host: {currentHost}</span>
-      <p>IP addresses do not support origin isolation, please only access this page via a domain name.</p>
-      <p>If you are the website administrator, please ensure your domain has proper DNS configuration.</p>
-    </div>
-  )
-}
-
-function DefaultRecommendations ({ currentHost }: { currentHost: string }): ReactNode {
-  return (
-    <div>
-      <span>Current Host: {currentHost}</span>
-      <p>
-        For the best experience, this website should be accessed through a subdomain gateway
-        (e.g., <code>cid.ipfs.{currentHost}</code> instead of <code>{currentHost}/ipfs/cid</code>).
-      </p>
-      <p>
-        If you are the website administrator, please ensure your domain has proper DNS configuration
-        for wildcard subdomains (<code>*.ipfs.{currentHost}</code> and <code>*.ipns.{currentHost}</code>).
-      </p>
-    </div>
-  )
 }
 
 /**
@@ -58,47 +30,6 @@ export default function OriginIsolationWarningPage (): ReactNode {
 
   removeRootHashIfPresent()
 
-  const [isSaving, setIsSaving] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const configContext = useContext(ConfigContext)
-
-  const handleAcceptRisk = async (event: MouseEvent): Promise<void> => {
-    event.stopPropagation()
-    event.preventDefault()
-
-    setIsSaving(true)
-
-    try {
-      // update the config
-      await configContext.saveConfig({
-        acceptOriginIsolationWarning: true
-      })
-
-      // tell the service worker to reload the config
-      await fetch(`/?${QUERY_PARAMS.RELOAD_CONFIG}=true`)
-
-      setIsLoading(true)
-
-      // remove the origin isolation warning page from the browser history
-      history.pushState('', document.title, window.location.pathname + window.location.search)
-
-      // @ts-expect-error boolean `forceGet` argument is firefox-only
-      window.location.reload(true)
-    } catch {
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  const currentHost = window.location.host
-  const isCurrentHostAnIpAddress = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/.test(currentHost)
-
-  let RecommendationsElement: (props: { currentHost: string }) => ReactNode = DefaultRecommendations
-
-  if (isCurrentHostAnIpAddress) {
-    RecommendationsElement = IpAddressRecommendations
-  }
-
   return (
     <main className='e2e-subdomain-warning pa4-l bg-red mw7 mv4-l center pa4 br2 white'>
       <div className='flex items-center mb4'>
@@ -111,26 +42,25 @@ export default function OriginIsolationWarningPage (): ReactNode {
       </div>
 
       <div className='bg-yellow pa3 mb4 br2'>
-        <p className='ma0 mb2 b'>This website is using a path-based IPFS gateway without proper origin isolation.</p>
+        <p className='ma0 mb2 b'>This website is being accessed without proper origin isolation.</p>
         <p className='ma0'>
-          Without subdomain support, the following features will be missing:
+          Without origin isolation it is not safe to access IPFS content as user credentials will not be sandboxed by CID or IPNS name and can be accessed by any content that is loaded.
         </p>
-        <ul className='mt2 mb0'>
-          <li>Origin isolation for security</li>
-          <li>Support for _redirects functionality</li>
-          <li>Proper web application functionality</li>
-        </ul>
       </div>
 
-      <RecommendationsElement currentHost={currentHost} />
-
-      <div className='flex justify-center mt4'>
-        <ServiceWorkerReadyButton
-          id='accept-warning' label={isSaving ? 'Accepting...' : 'I understand the risks - Continue anyway'}
-          waitingLabel='Waiting for service worker registration...'
-          onClick={handleAcceptRisk}
-          disabled={isLoading}
-        />
+      <div>
+        <span>Current Host: {window.location.host}</span>
+        <p>IP addresses do not support origin isolation, please only access this page via a domain name.</p>
+        <p>
+          If you are the website administrator, please ensure your domain has proper DNS configuration
+          for wildcard subdomains (e.g. <code>*.ipfs.DOMAIN_NAME</code> and <code>*.ipns.DOMAIN_NAME</code>).
+        </p>
+        <p>Further reading:</p>
+        <ul>
+          <li><Link href='https://en.wikipedia.org/wiki/Same-origin_policy'>Same origin policy and Web Applications</Link></li>
+          <li><Link href='https://docs.ipfs.tech/how-to/address-ipfs-on-web/'>Address IPFS on the Web</Link></li>
+          <li><Link href='https://github.com/ipfs/in-web-browsers/blob/master/ADDRESSING.md'>IPFS Addressing in Web Browsers</Link></li>
+        </ul>
       </div>
     </main>
   )

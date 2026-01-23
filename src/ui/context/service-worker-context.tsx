@@ -11,12 +11,11 @@
  * After the service worker is loaded. Usually any react code isn't loaded, but some edge cases are:
  * 1. The page being loaded using some /ip[fn]s/<path> url, but subdomain isolation is supported, so we need to redirect to the isolated origin
  */
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useEffect, useState } from 'react'
 import { uiLogger } from '../../lib/logger.js'
 import { findOriginIsolationRedirect } from '../../lib/path-or-subdomain.js'
 import { registerServiceWorker } from '../../lib/register-service-worker.js'
 import { isUnregisterRequest } from '../../lib/unregister-request.js'
-import { ConfigContext } from './config-context.jsx'
 import type { PropsWithChildren } from 'react'
 
 const log = uiLogger.forComponent('service-worker-context')
@@ -27,11 +26,10 @@ export const ServiceWorkerContext = createContext({
 
 export const ServiceWorkerProvider: React.FC<PropsWithChildren> = ({ children }) => {
   const [isServiceWorkerRegistered, setIsServiceWorkerRegistered] = useState(false)
-  const context = useContext(ConfigContext)
 
   useEffect(() => {
     if (isServiceWorkerRegistered) {
-      const originRedirect = findOriginIsolationRedirect(window.location, log, context.configDb._supportsSubdomains)
+      const originRedirect = findOriginIsolationRedirect(window.location, log)
 
       if (originRedirect !== null) {
         window.location.replace(originRedirect)

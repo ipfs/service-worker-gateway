@@ -10,8 +10,8 @@ test.describe('no-service-worker', () => {
     await expect(getNoServiceWorkerError(page)).toBeVisible()
   })
 
-  test('warning message renders on subdomain page', async ({ page, rootDomain, protocol }) => {
-    await page.goto(`${protocol ?? 'http'}//bafkqablimvwgy3y.ipfs.${rootDomain}`, {
+  test('warning message renders on subdomain page', async ({ page, protocol, host }) => {
+    await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${host}`, {
       waitUntil: 'networkidle'
     })
 

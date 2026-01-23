@@ -1,8 +1,8 @@
-import { test, testSubdomainRouting, expect } from './fixtures/config-test-fixtures.js'
+import { test, expect } from './fixtures/config-test-fixtures.js'
 import { waitForServiceWorker } from './fixtures/wait-for-service-worker.js'
 
 test.describe('subdomain-detection', () => {
-  test('path requests are redirected to subdomains', async ({ page, baseURL, rootDomain, protocol }) => {
+  test('path requests are redirected to subdomains', async ({ page, protocol, host }) => {
     if (['webkit', 'safari'].includes(test.info().project.name)) {
       // @see https://github.com/ipfs/in-web-browsers/issues/206
       test.skip()
@@ -13,7 +13,7 @@ test.describe('subdomain-detection', () => {
       waitUntil: 'commit'
     })
 
-    await page.waitForURL(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}`)
+    await page.waitForURL(`${protocol}//bafkqablimvwgy3y.ipfs.${host}`)
     // wait for config loading and final redirect to complete
     await page.waitForLoadState('networkidle')
 
@@ -24,9 +24,9 @@ test.describe('subdomain-detection', () => {
   })
 })
 
-testSubdomainRouting.describe('subdomain-detection auto fixture', () => {
-  testSubdomainRouting('loads subdomains easily', async ({ page, rootDomain, protocol }) => {
-    await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${rootDomain}/`, {
+test.describe('subdomain-detection auto fixture', () => {
+  test('loads subdomains easily', async ({ page, protocol, host }) => {
+    await page.goto(`${protocol}//bafkqablimvwgy3y.ipfs.${host}/`, {
       waitUntil: 'networkidle'
     })
 

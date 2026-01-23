@@ -1,14 +1,12 @@
-import { testPathRouting as test, expect } from './fixtures/config-test-fixtures.js'
+import { test, expect } from './fixtures/config-test-fixtures.js'
 import { loadWithServiceWorker } from './fixtures/load-with-service-worker.js'
 
 test.describe('hamt-dir', () => {
-  test('can open UnixFS file from HAMT-sharded directory', async ({ page, protocol, rootDomain }) => {
+  test('can open UnixFS file from HAMT-sharded directory', async ({ page, baseURL }) => {
     const cid = 'bafybeidbclfqleg2uojchspzd4bob56dqetqjsj27gy2cq3klkkgxtpn4i'
     const path = '685.txt'
 
-    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}/${path}`, {
-      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}/${path}` : undefined
-    })
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}/${path}`)
 
     expect(response.status()).toBe(200)
 

@@ -1,7 +1,7 @@
 import * as dagCbor from '@ipld/dag-cbor'
 import { createKuboRPCClient } from 'kubo-rpc-client'
 import { CID } from 'multiformats/cid'
-import { testPathRouting as test, expect } from './fixtures/config-test-fixtures.js'
+import { test, expect } from './fixtures/config-test-fixtures.js'
 import { IPLD_CONVERSIONS } from './fixtures/ipld-conversions.ts'
 import { loadWithServiceWorker } from './fixtures/load-with-service-worker.js'
 import type { KuboRPCClient } from 'kubo-rpc-client'
@@ -24,10 +24,8 @@ test.describe('dag-cbor', () => {
     })
   })
 
-  test('should return dag-cbor block', async ({ page, protocol, rootDomain }) => {
-    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}?download=true`, {
-      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}?download=true` : undefined
-    })
+  test('should return dag-cbor block', async ({ page, baseURL }) => {
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?download=true`)
 
     expect(response.status()).toBe(200)
 
@@ -39,10 +37,8 @@ test.describe('dag-cbor', () => {
     expect(dagCbor.decode(await response?.body())).toStrictEqual(object)
   })
 
-  test('should return dag-cbor block as raw', async ({ page, protocol, rootDomain }) => {
-    const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}?format=raw&download=true`, {
-      redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}?format=raw&download=true` : undefined
-    })
+  test('should return dag-cbor block as raw', async ({ page, baseURL }) => {
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=raw&download=true`)
 
     expect(response.status()).toBe(200)
 
@@ -56,10 +52,8 @@ test.describe('dag-cbor', () => {
 
   for (const conversion of IPLD_CONVERSIONS) {
     // eslint-disable-next-line no-loop-func
-    test(`should return dag-cbor block as ${conversion.format}`, async ({ page, protocol, rootDomain }) => {
-      const response = await loadWithServiceWorker(page, `${protocol}//${rootDomain}/ipfs/${cid}?format=${conversion.format}&download=true`, {
-        redirect: rootDomain.includes('localhost') ? `${protocol}//${cid}.ipfs.${rootDomain}?format=${conversion.format}&download=true` : undefined
-      })
+    test(`should return dag-cbor block as ${conversion.format}`, async ({ page, baseURL }) => {
+      const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=${conversion.format}&download=true`)
 
       expect(response.status()).toBe(200)
 

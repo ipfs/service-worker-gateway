@@ -7,11 +7,8 @@ import { homedir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { prefixLogger } from '@libp2p/logger'
-import { peerIdFromString } from '@libp2p/peer-id'
 import { test, expect } from '@playwright/test'
 import { execa } from 'execa'
-import { base36 } from 'multiformats/bases/base36'
-import { CID } from 'multiformats/cid'
 import { loadWithServiceWorker } from '../test-e2e/fixtures/load-with-service-worker.js'
 import { makeFetchRequest } from '../test-e2e/fixtures/make-range-request.ts'
 import { setConfig } from '../test-e2e/fixtures/set-sw-config.ts'
@@ -70,7 +67,7 @@ async function installBinary (binaryPath: string): Promise<void> {
 function getConformanceTestArgs (name: string = 'all', gwcArgs: string[] = [], goTestArgs: string[] = []): string[] {
   return [
     'test',
-    `--gateway-url=http://127.0.0.1:${PROXY_PORT}`,
+    `--gateway-url=http://localhost:${PROXY_PORT}`,
     `--subdomain-url=http://localhost:${PROXY_PORT}`,
     '--verbose',
     '--json', join(__dirname, `gwc-report-${name}.json`),
@@ -98,7 +95,7 @@ test.describe('@helia/service-worker-gateway - gateway conformance', () => {
             .then(async () => {
               const url = new URL(`http://${req.headers.host}${req.url}`)
 
-              console.info('incoming', `http://${req.headers.host}${req.url}`)
+              console.info('incoming', url.href)
               console.info('headers', req.headers)
 
               // replace proxy port with static asset port
@@ -127,7 +124,6 @@ test.describe('@helia/service-worker-gateway - gateway conformance', () => {
                 dnsJsonResolvers: {
                   '.': `${process.env.DNS_JSON_RESOLVER}`
                 },
-                acceptOriginIsolationWarning: true,
                 renderHTMLViews: false
               })
 
@@ -152,8 +148,6 @@ test.describe('@helia/service-worker-gateway - gateway conformance', () => {
                 })
               } else {
                 response = await loadWithServiceWorker(page, url.toString(), {
-                  redirect: maybeAsSubdomainUrlRedirect(url),
-
                   // all data should be local so no need to wait for long timeout
                   timeout: 10_000
                 })
@@ -302,49 +296,6 @@ test.describe('@helia/service-worker-gateway - gateway conformance', () => {
     })
   })
 })
-
-function maybeAsSubdomainUrlRedirect (url: URL): string | undefined {
-  // a path gateway request
-  if (url.hostname === '127.0.0.1') {
-    return
-  }
-
-  // already a subdomain request
-  if (url.hostname.includes('.ipfs.') || url.hostname.includes('.ipns.')) {
-    return
-  }
-
-  let [
-    ,
-    protocol,
-    name,
-    ...rest
-  ] = url.pathname.split('/')
-
-  if (protocol === 'ipfs') {
-    name = CID.parse(name).toV1().toString()
-  } else if (protocol === 'ipns') {
-    try {
-      name = peerIdFromString(name).toCID().toString(base36)
-    } catch {
-      // treat as dnslink
-      name = encodeDNSLinkLabel(name)
-    }
-  } else {
-    // don't know what this protocol is
-    return
-  }
-
-  console.info('url', url.toString())
-  console.info('as subdomain')
-  console.info('   ', `http://${name}.${protocol}.${url.host}${rest.length > 0 ? '/' : ''}${rest.join('/')}`)
-
-  return `http://${name}.${protocol}.${url.host}${rest.length > 0 ? '/' : ''}${rest.join('/')}`
-}
-
-function encodeDNSLinkLabel (name: string): string {
-  return name.replace(/-/g, '--').replace(/\./g, '-')
-}
 
 function incomingHeadersToObject (headers: IncomingHttpHeaders): Record<string, string> {
   const output: Record<string, string> = {}
