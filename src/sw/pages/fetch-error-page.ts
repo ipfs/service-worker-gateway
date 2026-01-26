@@ -1,6 +1,5 @@
 import { APP_NAME, APP_VERSION, GIT_REVISION } from '../../version.ts'
 import { htmlPage } from './page.ts'
-import type { ConfigDb } from '../../lib/config-db.ts'
 import type { Providers as ErrorPageProviders } from '../../ui/pages/fetch-error.tsx'
 import type { Providers } from '../index.ts'
 
@@ -11,7 +10,6 @@ declare let self: ServiceWorkerGlobalScope
  * the service worker
  */
 interface ServiceWorkerDetails {
-  config: ConfigDb
   crossOriginIsolated: boolean
   installTime: string
   origin: string
@@ -24,12 +22,11 @@ interface ServiceWorkerDetails {
 /**
  * TODO: more service worker details
  */
-function getServiceWorkerDetails (config: ConfigDb, firstInstallTime: number): ServiceWorkerDetails {
+function getServiceWorkerDetails (firstInstallTime: number): ServiceWorkerDetails {
   const registration = self.registration
   const state = registration.installing?.state ?? registration.waiting?.state ?? registration.active?.state ?? 'unknown'
 
   return {
-    config,
     // TODO: implement https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Opener-Policy
     crossOriginIsolated: self.crossOriginIsolated,
     installTime: (new Date(firstInstallTime)).toUTCString(),
@@ -103,7 +100,7 @@ function getResponseDetails (response: Response, body: string): ResponseDetails 
 /**
  * Shows an error page to the user
  */
-export function fetchErrorPageResponse (resource: URL, request: RequestInit, fetchResponse: Response, responseBody: string, providers: Providers, config: ConfigDb, installTime: number, logs: string[]): Response {
+export function fetchErrorPageResponse (resource: URL, request: RequestInit, fetchResponse: Response, responseBody: string, providers: Providers, installTime: number, logs: string[]): Response {
   const responseContentType = fetchResponse.headers.get('Content-Type')
 
   if (responseContentType?.includes('text/html')) {
@@ -118,7 +115,7 @@ export function fetchErrorPageResponse (resource: URL, request: RequestInit, fet
   const props = {
     request: getRequestDetails(resource, request),
     response: responseDetails,
-    config: getServiceWorkerDetails(config, installTime),
+    config: getServiceWorkerDetails(installTime),
     providers: toErrorPageProviders(providers),
     title: `${responseDetails.status} ${responseDetails.statusText}`,
     logs

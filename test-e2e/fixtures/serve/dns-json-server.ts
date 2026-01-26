@@ -1,25 +1,11 @@
 import bodyParser from 'body-parser'
 import cors from 'cors'
 import polka from 'polka'
-import { serve } from '../serve.ts'
-import { DNSRecordCache, toResourceRecordType } from './fixtures/dns-record-cache.ts'
+import { DNSRecordCache, toResourceRecordType } from './dns-record-cache.ts'
 
-export default async function globalSetup (config: Record<string, any>): Promise<void> {
-  process.env.PLAYWRIGHT = 'true'
+const DNS_JSON_SERVER_PORT = 3335
 
-  const {
-    controller
-  } = await serve({
-    shouldLoadFixtures: true,
-    shouldStartFrontend: false
-  })
-
-  const info = await controller.info()
-
-  process.env.KUBO_PID = `${info.pid}`
-  process.env.KUBO_GATEWAY = info.gateway
-  process.env.KUBO_RPC = info.api
-
+export async function createDNSJSONServer (port = DNS_JSON_SERVER_PORT): Promise<polka.Polka> {
   const dnsRecords = new DNSRecordCache()
 
   const apiServer = polka()
@@ -78,25 +64,10 @@ export default async function globalSetup (config: Record<string, any>): Promise
     })
 
   await new Promise((resolve) => {
-    apiServer.listen(0, () => {
+    apiServer.listen(port, () => {
       resolve(true)
     })
   })
 
-  process.env.DNS_JSON_SERVER = `http://127.0.0.1:${getPort(apiServer)}/dns-query`
-  process.env.TEST_API_SERVER = `http://127.0.0.1:${getPort(apiServer)}`
-
-  config.userData = {
-    apiServer
-  }
-}
-
-function getPort (server: polka.Polka): number {
-  const address = server.server?.address()
-
-  if (address == null || typeof address === 'string') {
-    throw new Error('Server was not listening')
-  }
-
-  return address.port
+  return apiServer
 }

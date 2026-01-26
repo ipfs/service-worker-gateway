@@ -1,6 +1,11 @@
 import { Buffer } from 'node:buffer'
 import { NotImplementedError } from '@libp2p/interface'
+import { CID } from 'multiformats'
+import { identity } from 'multiformats/hashes/identity'
+import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { headersToObject } from '../../src/lib/headers-to-object.ts'
+import { CODE_RAW } from '../../src/ui/pages/multicodec-table.ts'
+import { loadWithServiceWorker } from './load-with-service-worker.ts'
 import type { Page, Response } from '@playwright/test'
 
 /**
@@ -11,6 +16,11 @@ import type { Page, Response } from '@playwright/test'
  * does not go to the service worker.
  */
 export async function makeFetchRequest (page: Page, url: URL | string, init?: RequestInit): Promise<Response> {
+  const cid = CID.createV1(CODE_RAW, identity.digest(
+    uint8ArrayFromString('<html><body></body></html>')
+  ))
+  await loadWithServiceWorker(page, `http://${cid}.ipfs.localhost:3000/`)
+
   const result = await page.evaluate(async ({ url, headers }) => {
     function headersToObject (headers: Headers): Record<string, string> {
       const output: Record<string, string> = {}

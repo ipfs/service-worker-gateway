@@ -1,18 +1,9 @@
 import { test, expect } from './fixtures/config-test-fixtures.ts'
 import { makeFetchRequest } from './fixtures/make-range-request.ts'
-import { setConfig } from './fixtures/set-sw-config.ts'
-import { waitForServiceWorker } from './fixtures/wait-for-service-worker.ts'
 
 test.describe('byte-ranges', () => {
-  test.beforeEach(async ({ page }) => {
-    await waitForServiceWorker(page)
-    await setConfig(page, {
-      renderHTMLViews: false
-    })
-  })
-
-  test('should be able to get a single character', async ({ page }) => {
-    const response = await makeFetchRequest(page, '/ipfs/bafkqaddimvwgy3zao5xxe3debi', {
+  test('should be able to get a single character', async ({ page, baseURL }) => {
+    const response = await makeFetchRequest(page, `${baseURL}/ipfs/bafkqaddimvwgy3zao5xxe3debi`, {
       headers: {
         range: 'bytes=1-2'
       }
@@ -22,8 +13,8 @@ test.describe('byte-ranges', () => {
     expect(await response.text()).toBe('el')
   })
 
-  test('can get 0-0 byte range from car with missing data', async ({ page }) => {
-    const response = await makeFetchRequest(page, '/ipfs/QmYhmPjhFjYFyaoiuNzYv8WGavpSRDwdHWe5B4M5du5Rtk', {
+  test('can get 0-0 byte range from car with missing data', async ({ page, baseURL }) => {
+    const response = await makeFetchRequest(page, `${baseURL}/ipfs/QmYhmPjhFjYFyaoiuNzYv8WGavpSRDwdHWe5B4M5du5Rtk`, {
       headers: {
         range: 'bytes=0-0'
       }
@@ -34,8 +25,8 @@ test.describe('byte-ranges', () => {
     expect(await response.text()).toBe('+')
   })
 
-  test('can get trailing byte range from car with missing data', async ({ page }) => {
-    const response = await makeFetchRequest(page, '/ipfs/QmYhmPjhFjYFyaoiuNzYv8WGavpSRDwdHWe5B4M5du5Rtk', {
+  test('can get trailing byte range from car with missing data', async ({ page, baseURL }) => {
+    const response = await makeFetchRequest(page, `${baseURL}/ipfs/QmYhmPjhFjYFyaoiuNzYv8WGavpSRDwdHWe5B4M5du5Rtk`, {
       headers: {
         range: 'bytes=2200-'
       }
@@ -48,12 +39,13 @@ test.describe('byte-ranges', () => {
     expect(await response.body()).toStrictEqual(tailBytes)
   })
 
-  test('video file first set of bytes match kubo gateway', async ({ page }) => {
-    const response = await makeFetchRequest(page, '/ipfs/bafybeie4vcqkutumw7s26ob2bwqwqi44m6lrssjmiirlhrzhs2akdqmkw4', {
+  test('video file first set of bytes match kubo gateway', async ({ page, baseURL }) => {
+    const response = await makeFetchRequest(page, `${baseURL}/ipfs/bafybeie4vcqkutumw7s26ob2bwqwqi44m6lrssjmiirlhrzhs2akdqmkw4`, {
       headers: {
         range: 'bytes=0-100'
       }
     })
+    expect(response.status()).toBe(206)
 
     // also fetch from KUBO_GATEWAY to compare
     const kuboResponse = await fetch(`${process.env.KUBO_GATEWAY}/ipfs/bafybeie4vcqkutumw7s26ob2bwqwqi44m6lrssjmiirlhrzhs2akdqmkw4`, {
@@ -66,7 +58,6 @@ test.describe('byte-ranges', () => {
     const kuboByteSize = buffer.byteLength
     const kuboBytes = Buffer.from(buffer)
 
-    expect(response.status()).toBe(206)
     expect(await response.headerValue('content-length')).toBe(`${kuboByteSize}`)
     expect(await response.body()).toStrictEqual(kuboBytes)
   })

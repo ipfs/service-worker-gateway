@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
 import { execSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import esbuild from 'esbuild'
@@ -252,38 +253,40 @@ const replaceImports = {
 }
 
 /**
- * Updates the built version of `src/version.ts` to contain the latest package
- * version and git revision, then overrides the path to the file when it is
- * imported
- *
- * @type {esbuild.Plugin}
+ * a simple plugin to replace environment source file based on the build environment
  */
-const updateVersions = {
-  name: 'update-versions',
-  async setup (build) {
-    const pkg = JSON.parse(await fs.readFile(path.resolve('package.json'), 'utf-8'))
-    const rev = gitRevision()
+const configFilePlugin = {
+  name: 'config-file-replacement',
+  setup (build) {
+    build.onLoad({
+      filter: /src\/config\/index.ts/,
+      namespace: 'file'
+    },
+    async (args) => {
+      let configFile = ''
 
-    console.info('Detected versions', pkg.name, pkg.version, rev)
-
-    await fs.writeFile(path.resolve('dist-tsc/src/version.js'), `export const APP_NAME = '${pkg.name}'
-export const APP_VERSION = '${pkg.version}'
-export const GIT_REVISION = '${rev}'
-`)
-
-    const target = path.resolve('src/version')
-
-    build.onResolve({ filter: /(.*)version\.[j|t]s/ }, args => {
-      const file = path.resolve(args.resolveDir, args.path)
-
-      if (file !== `${target}.js` && file !== `${target}.ts`) {
-        return
+      if (process.env.NODE_ENV === 'test') {
+        configFile = '-test'
+      } else if (process.env.NODE_ENV === 'development') {
+        configFile = '-development'
       }
+
+      const fileReplacementPath = args.path.replace(
+        'index.ts',
+          `index${configFile}.ts`
+      )
+
+      const fileReplacementContent = await fs.readFile(
+        fileReplacementPath,
+        'utf8'
+      )
 
       return {
-        path: path.resolve('dist-tsc/src/version.js')
+        contents: fileReplacementContent,
+        loader: 'default'
       }
-    })
+    }
+    )
   }
 }
 
@@ -352,12 +355,19 @@ const excludeFilesPlugin = (extensions) => ({
   }
 })
 
+const pkg = JSON.parse(readFileSync(path.resolve('package.json'), 'utf-8'))
+const rev = gitRevision()
+console.info('Detected versions', pkg.name, pkg.version, rev)
+
 /**
  * @type {esbuild.BuildOptions}
  */
 export const buildOptions = {
   define: {
-    'process.env.NODE_ENV': '"production"'
+    'process.env.NODE_ENV': '"production"',
+    'process.env.APP_NAME': `'${pkg.name}'`,
+    'process.env.APP_VERSION': `'${pkg.version}'`,
+    'process.env.GIT_REVISION': `'${rev}'`
   },
   entryPoints: [
     'src/index.tsx',
@@ -371,7 +381,7 @@ export const buildOptions = {
     '.css': 'css',
     '.svg': 'file'
   },
-  minify: process.env.NODE_ENV !== 'test',
+  minify: process.env.NODE_ENV !== 'test' && process.env.NODE_ENV !== 'development',
   sourcemap: 'linked',
   metafile: true,
   splitting: false,
@@ -382,7 +392,7 @@ export const buildOptions = {
   plugins: [
     replaceImports,
     renameSwPlugin,
-    updateVersions,
+    configFilePlugin,
     modifyBuiltFiles,
     excludeFilesPlugin(['.eot?#iefix', '.otf', '.woff', '.woff2'])
   ],

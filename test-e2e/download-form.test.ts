@@ -11,21 +11,23 @@ import { CID } from 'multiformats/cid'
 import * as json from 'multiformats/codecs/json'
 import * as tar from 'tar'
 import { test, expect } from './fixtures/config-test-fixtures.ts'
-import { setConfig } from './fixtures/set-sw-config.ts'
-import { waitForServiceWorker } from './fixtures/wait-for-service-worker.ts'
 import type { Download, Page, Response } from 'playwright'
 
-function captureDownloadResponse (page: Page, cid: string): Promise<Response> {
+function captureDownloadResponse (page: Page, cid: string, host: string): Promise<Response> {
   const responsePromise = Promise.withResolvers<Response>()
 
   page.on('response', (response) => {
     const url = new URL(response.url())
 
-    if (url.host !== `${cid}.ipfs.localhost:3333`) {
+    if (url.host !== `${cid}.ipfs.${host}`) {
       return
     }
 
     if (!url.searchParams.has('download')) {
+      return
+    }
+
+    if (response.headers()['server']?.includes('@helia/service-worker-gateway') !== true) {
       return
     }
 
@@ -37,12 +39,6 @@ function captureDownloadResponse (page: Page, cid: string): Promise<Response> {
 
 test.describe('download form', () => {
   let download: Download
-
-  test.beforeEach(async ({ page }) => {
-    await page.goto('http://localhost:3333')
-    await setConfig(page)
-    await waitForServiceWorker(page)
-  })
 
   test.afterEach(async () => {
     try {
@@ -127,9 +123,9 @@ test.describe('download form', () => {
   })
 
   test.describe('car format options', () => {
-    test('should specify car version as v1', async ({ page }) => {
+    test('should specify car version as v1', async ({ page, host }) => {
       const cid = 'bafkqaddimvwgy3zao5xxe3debi'
-      const responsePromise = captureDownloadResponse(page, cid)
+      const responsePromise = captureDownloadResponse(page, cid, host)
       const downloadPromise = page.waitForEvent('download')
 
       await page.fill('#inputContent', `/ipfs/${cid}`)
@@ -156,7 +152,7 @@ test.describe('download form', () => {
       ])
     })
 
-    test('should specify car version as v2', async ({ page }) => {
+    test('should specify car version as v2', async ({ page, protocol, host }) => {
       const cid = 'bafkqaddimvwgy3zao5xxe3debi'
 
       await page.fill('#inputContent', `/ipfs/${cid}`)
@@ -167,13 +163,23 @@ test.describe('download form', () => {
       await page.click('#load-directly')
 
       // TODO: `@ipld/car` only supports CARv1
-      const response = await page.waitForResponse(`http://${cid}.ipfs.localhost:3333?download=true&format=car&car-version=2`)
+      const response = await page.waitForResponse((response) => {
+        if (response.url() !== `${protocol}//${cid}.ipfs.${host}/?download=true&format=car&car-version=2`) {
+          return false
+        }
+
+        if (response.headers()['server']?.includes('@helia/service-worker-gateway') !== true) {
+          return false
+        }
+
+        return true
+      })
       expect(response.status()).toBe(406)
     })
 
-    test('should specify DFS block traversal order', async ({ page }) => {
+    test('should specify DFS block traversal order', async ({ page, host }) => {
       const cid = 'bafyreiagfcucdlcbo333incasoqyizw7ecaj5sfb3scippojfb7dm6fjcy'
-      const responsePromise = captureDownloadResponse(page, cid)
+      const responsePromise = captureDownloadResponse(page, cid, host)
       const downloadPromise = page.waitForEvent('download')
 
       await page.fill('#inputContent', `/ipfs/${cid}`)
@@ -206,9 +212,9 @@ test.describe('download form', () => {
       ])
     })
 
-    test('should specify unknown block traversal order', async ({ page }) => {
+    test('should specify unknown block traversal order', async ({ page, host }) => {
       const cid = 'bafyreiagfcucdlcbo333incasoqyizw7ecaj5sfb3scippojfb7dm6fjcy'
-      const responsePromise = captureDownloadResponse(page, cid)
+      const responsePromise = captureDownloadResponse(page, cid, host)
       const downloadPromise = page.waitForEvent('download')
 
       await page.fill('#inputContent', `/ipfs/${cid}`)
@@ -241,9 +247,9 @@ test.describe('download form', () => {
       ])
     })
 
-    test('should allow duplicate blocks', async ({ page }) => {
+    test('should allow duplicate blocks', async ({ page, host }) => {
       const cid = 'bafyreidb33bjp5ns3cfpzcbn34hrbmt4rrndri3uv4howob3hythkyddci'
-      const responsePromise = captureDownloadResponse(page, cid)
+      const responsePromise = captureDownloadResponse(page, cid, host)
       const downloadPromise = page.waitForEvent('download')
 
       await page.fill('#inputContent', `/ipfs/${cid}`)
@@ -275,9 +281,9 @@ test.describe('download form', () => {
       ])
     })
 
-    test('should disallow duplicate blocks', async ({ page }) => {
+    test('should disallow duplicate blocks', async ({ page, host }) => {
       const cid = 'bafyreidb33bjp5ns3cfpzcbn34hrbmt4rrndri3uv4howob3hythkyddci'
-      const responsePromise = captureDownloadResponse(page, cid)
+      const responsePromise = captureDownloadResponse(page, cid, host)
       const downloadPromise = page.waitForEvent('download')
 
       await page.fill('#inputContent', `/ipfs/${cid}`)
@@ -308,9 +314,9 @@ test.describe('download form', () => {
       ])
     })
 
-    test('should choose block DAG scope', async ({ page }) => {
+    test('should choose block DAG scope', async ({ page, host }) => {
       const cid = 'bafybeicvjyaiqmgfe7wupl72gpf7cadwyjqf7nzsxrap6npgrgtd3d6m4y'
-      const responsePromise = captureDownloadResponse(page, cid)
+      const responsePromise = captureDownloadResponse(page, cid, host)
       const downloadPromise = page.waitForEvent('download')
 
       await page.fill('#inputContent', `/ipfs/${cid}`)
@@ -340,9 +346,9 @@ test.describe('download form', () => {
       ])
     })
 
-    test('should choose entity DAG scope', async ({ page }) => {
+    test('should choose entity DAG scope', async ({ page, host }) => {
       const cid = 'bafybeicvjyaiqmgfe7wupl72gpf7cadwyjqf7nzsxrap6npgrgtd3d6m4y'
-      const responsePromise = captureDownloadResponse(page, cid)
+      const responsePromise = captureDownloadResponse(page, cid, host)
       const downloadPromise = page.waitForEvent('download')
 
       await page.fill('#inputContent', `/ipfs/${cid}`)
@@ -374,9 +380,9 @@ test.describe('download form', () => {
       ])
     })
 
-    test('should choose all DAG scope', async ({ page }) => {
+    test('should choose all DAG scope', async ({ page, host }) => {
       const cid = 'bafybeicvjyaiqmgfe7wupl72gpf7cadwyjqf7nzsxrap6npgrgtd3d6m4y'
-      const responsePromise = captureDownloadResponse(page, cid)
+      const responsePromise = captureDownloadResponse(page, cid, host)
       const downloadPromise = page.waitForEvent('download')
 
       await page.fill('#inputContent', `/ipfs/${cid}`)
@@ -409,9 +415,9 @@ test.describe('download form', () => {
       ])
     })
 
-    test('should use entity-bytes to select all blocks', async ({ page }) => {
+    test('should use entity-bytes to select all blocks', async ({ page, host }) => {
       const cid = 'bafybeia7mk3ljigvxaqlzqapyo22hivsja2n5tdjmhpqvvzheoyaribela'
-      const responsePromise = captureDownloadResponse(page, cid)
+      const responsePromise = captureDownloadResponse(page, cid, host)
       const downloadPromise = page.waitForEvent('download')
 
       await page.fill('#inputContent', `/ipfs/${cid}`)
@@ -445,9 +451,9 @@ test.describe('download form', () => {
       ])
     })
 
-    test('should use entity-bytes to select first block', async ({ page }) => {
+    test('should use entity-bytes to select first block', async ({ page, host }) => {
       const cid = 'bafybeia7mk3ljigvxaqlzqapyo22hivsja2n5tdjmhpqvvzheoyaribela'
-      const responsePromise = captureDownloadResponse(page, cid)
+      const responsePromise = captureDownloadResponse(page, cid, host)
       const downloadPromise = page.waitForEvent('download')
 
       await page.fill('#inputContent', `/ipfs/${cid}`)
@@ -481,9 +487,9 @@ test.describe('download form', () => {
       ])
     })
 
-    test('should use entity-bytes to select middle block', async ({ page }) => {
+    test('should use entity-bytes to select middle block', async ({ page, host }) => {
       const cid = 'bafybeia7mk3ljigvxaqlzqapyo22hivsja2n5tdjmhpqvvzheoyaribela'
-      const responsePromise = captureDownloadResponse(page, cid)
+      const responsePromise = captureDownloadResponse(page, cid, host)
       const downloadPromise = page.waitForEvent('download')
 
       await page.fill('#inputContent', `/ipfs/${cid}`)
@@ -517,9 +523,9 @@ test.describe('download form', () => {
       ])
     })
 
-    test('should use entity-bytes to select last block', async ({ page }) => {
+    test('should use entity-bytes to select last block', async ({ page, host }) => {
       const cid = 'bafybeia7mk3ljigvxaqlzqapyo22hivsja2n5tdjmhpqvvzheoyaribela'
-      const responsePromise = captureDownloadResponse(page, cid)
+      const responsePromise = captureDownloadResponse(page, cid, host)
       const downloadPromise = page.waitForEvent('download')
 
       await page.fill('#inputContent', `/ipfs/${cid}`)

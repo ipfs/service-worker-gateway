@@ -20,47 +20,48 @@ import { MemoryDatastore } from 'datastore-core'
 import { createLibp2p } from 'libp2p'
 import * as libp2pInfo from 'libp2p/version'
 import { sha1 } from 'multiformats/hashes/sha1'
+import { config } from '../../config/index.ts'
 import { collectingLogger } from '../../lib/collecting-logger.ts'
-import { getSwLogger } from '../../lib/logger.ts'
 import { blake3 } from './blake3.ts'
-import { getConfig, updateConfig } from './config.ts'
-import type { ConfigDb } from '../../lib/config-db.ts'
-import type { DelegatedRoutingV1HttpApiClient } from '@helia/delegated-routing-v1-http-api-client'
-import type { BlockBroker } from '@helia/interface'
 import type { VerifiedFetch } from '@helia/verified-fetch'
-import type { DNSResolvers } from '@multiformats/dns'
-import type { Routing } from 'helia'
 import type { Libp2pOptions } from 'libp2p'
 
-type Libp2pDefaultsOptions = Pick<ConfigDb, 'routers' | 'enableWss' | 'enableWebTransport' | 'enableGatewayProviders'>
-
-async function libp2pDefaults (config: Libp2pDefaultsOptions): Promise<Libp2pOptions> {
+async function libp2pDefaults (): Promise<Libp2pOptions> {
   const agentVersion = `@helia/verified-fetch ${libp2pInfo.name}/${libp2pInfo.version} UserAgent=${globalThis.navigator.userAgent}`
   const privateKey = await generateKeyPair('Ed25519')
 
-  const filterAddrs = [] as string[]
-  const transports: Array<(components: any) => any> = []
+  const filterAddrs = [
+    'wss',  // /dns4/sv15.bootstrap.libp2p.io/tcp/443/wss/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJ
+    'tls',  // /ip4/A.B.C.D/tcp/4002/tls/sni/A-B-C-D.peerid.libp2p.direct/ws/p2p/peerid
+    'https' // /dns/example.com/tcp/443/https
+  ] as string[]
+  const transports: Array<(components: any) => any> = [
+    webSockets()
+  ]
 
-  if (config.enableWss) {
-    transports.push(webSockets())
-    filterAddrs.push('wss') // /dns4/sv15.bootstrap.libp2p.io/tcp/443/wss/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJ
-    filterAddrs.push('tls') // /ip4/A.B.C.D/tcp/4002/tls/sni/A-B-C-D.peerid.libp2p.direct/ws/p2p/peerid
-  }
-
-  if (config.enableWebTransport) {
+  // WebTransport only works reliably in Firefox at the time of writing
+  if (navigator?.userAgent?.toLowerCase().includes('firefox') === true) {
     transports.push(webTransport())
     filterAddrs.push('webtransport')
   }
 
-  if (config.enableGatewayProviders) {
-    filterAddrs.push('https') // /dns/example.com/tcp/443/https
-    filterAddrs.push('tls') // /ip4/A.B.C.D/tcp/4002/tls/sni/example.com/http
+  const services: Record<string, any> = {
+    dcutr: dcutr(),
+    identify: identify(),
+    identifyPush: identifyPush(),
+    keychain: keychain(),
+    ping: ping()
   }
 
-  interface Libp2pOptionsWithDelegatedRouting extends Libp2pOptions {
-    services: Libp2pOptions['services'] & Record<`delegatedRouter${number}`, (components: any) => DelegatedRoutingV1HttpApiClient>
-  }
-  const libp2pOptions: Libp2pOptionsWithDelegatedRouting = {
+  config.routers.forEach((url, i) => {
+    services[`delegatedRouter${i}`] = delegatedRoutingV1HttpApiClient({
+      url,
+      filterProtocols: ['unknown', 'transport-bitswap', 'transport-ipfs-gateway-http'],
+      filterAddrs
+    })
+  })
+
+  return {
     privateKey,
     nodeInfo: {
       userAgent: agentVersion
@@ -69,88 +70,53 @@ async function libp2pDefaults (config: Libp2pDefaultsOptions): Promise<Libp2pOpt
     transports,
     connectionEncrypters: [noise()],
     streamMuxers: [yamux()],
-    services: {
-      dcutr: dcutr(),
-      identify: identify(),
-      identifyPush: identifyPush(),
-      keychain: keychain(),
-      ping: ping()
-    }
-  } satisfies Libp2pOptionsWithDelegatedRouting
-
-  // Add delegated routing services for each passed delegated router endpoint
-  config.routers.forEach((router, i) => {
-    libp2pOptions.services[`delegatedRouter${i}`] = delegatedRoutingV1HttpApiClient({
-      url: router,
-      filterProtocols: ['unknown', 'transport-bitswap', 'transport-ipfs-gateway-http'],
-      filterAddrs
-    })
-  })
-
-  return libp2pOptions
+    services
+  }
 }
 
 let verifiedFetch: VerifiedFetch
 
 export async function updateVerifiedFetch (): Promise<void> {
-  await updateConfig()
-  const config = await getConfig()
   const logger = collectingLogger()
 
-  const log = getSwLogger('update-verified-fetch')
-  log('got config for sw location %s %o', self.location.origin, config)
+  const resolvers: Record<string, any> = {}
 
-  // Start by adding the config routers as delegated routers
-  const routers: Array<Partial<Routing> | ((components: any) => Partial<Routing>)> = []
-
-  if (config.enableRecursiveGateways) {
-    // Only add the gateways if the recursive gateways toggle is enabled
-    routers.push(httpGatewayRouting({
-      gateways: config.gateways
-    }))
-  }
-
-  // set dns resolver instances
-  const dnsResolvers: DNSResolvers = {}
-
-  for (const [key, value] of Object.entries(config.dnsJsonResolvers)) {
-    dnsResolvers[key] = dnsJsonOverHttps(value)
+  for (const [key, resolver] of Object.entries(config.dnsResolvers)) {
+    resolvers[key] = Array.isArray(resolver) ? resolver.map(r => dnsJsonOverHttps(r)) : dnsJsonOverHttps(resolver)
   }
 
   const dnsConfig = dns({
-    resolvers: dnsResolvers,
+    resolvers,
     logger
   })
-
-  const blockBrokers: Array<(components: any) => BlockBroker> = []
-
-  if (config.enableWss || config.enableWebTransport) {
-    blockBrokers.push(bitswap())
-  }
-
-  if (config.enableGatewayProviders) {
-    blockBrokers.push(trustlessGateway({
-      allowLocal: true
-    }))
-  }
 
   const hashers = [blake3, blake2b256, sha1]
   const datastore = new MemoryDatastore()
   const blockstore = new MemoryBlockstore()
 
-  const libp2pOptions = await libp2pDefaults(config)
+  const libp2pOptions = await libp2pDefaults()
   libp2pOptions.dns = dnsConfig
   libp2pOptions.logger = logger
   libp2pOptions.datastore = datastore
 
   const libp2p = await createLibp2p(libp2pOptions)
-  routers.push(libp2pRouting(libp2p))
 
   const helia = new Helia({
     logger,
     libp2p,
-    routers,
-    blockBrokers,
+    routers: [
+      httpGatewayRouting({
+        gateways: config.gateways
+      }),
+      libp2pRouting(libp2p)
+    ],
+    blockBrokers: [
+      bitswap(),
+      trustlessGateway({
+        allowLocal: true
+
+      })
+    ],
     hashers,
     dns: dnsConfig,
     datastore,

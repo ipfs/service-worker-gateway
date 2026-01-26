@@ -3,8 +3,6 @@ import * as cbor from 'cborg'
 import { createKuboRPCClient } from 'kubo-rpc-client'
 import { test, expect } from './fixtures/config-test-fixtures.ts'
 import { makeFetchRequest } from './fixtures/make-range-request.ts'
-import { setConfig } from './fixtures/set-sw-config.ts'
-import { waitForServiceWorker } from './fixtures/wait-for-service-worker.ts'
 import type { KuboRPCClient } from 'kubo-rpc-client'
 import type { CID } from 'multiformats/cid'
 
@@ -28,31 +26,20 @@ test.describe('if-none-match', () => {
     cid = await kubo.block.put(block, {
       format: 'cbor'
     })
-
-    await waitForServiceWorker(page)
-    await setConfig(page, {
-      gateways: [
-        process.env.KUBO_GATEWAY
-      ],
-      routers: [
-        process.env.KUBO_GATEWAY
-      ],
-      renderHTMLViews: false
-    })
   })
 
   test.afterEach(async () => {
     await stop(kubo)
   })
 
-  test('should return 304 if the etag matches', async ({ page }) => {
-    const response0 = await makeFetchRequest(page, `/ipfs/${cid}`)
+  test('should return 304 if the etag matches', async ({ page, baseURL }) => {
+    const response0 = await makeFetchRequest(page, `${baseURL}/ipfs/${cid}`)
     expect(response0.status()).toBe(200)
 
     const etag = await response0.headerValue('etag') ?? ''
     expect(etag).toContain(cid.toString())
 
-    const response1 = await makeFetchRequest(page, `/ipfs/${cid}`, {
+    const response1 = await makeFetchRequest(page, `${baseURL}/ipfs/${cid}`, {
       headers: {
         'if-none-match': etag
       }
@@ -60,14 +47,14 @@ test.describe('if-none-match', () => {
     expect(response1.status()).toBe(304)
   })
 
-  test('should return 304 if the etag matches one of the etags', async ({ page }) => {
-    const response0 = await makeFetchRequest(page, `/ipfs/${cid}`)
+  test('should return 304 if the etag matches one of the etags', async ({ page, baseURL }) => {
+    const response0 = await makeFetchRequest(page, `${baseURL}/ipfs/${cid}`)
     expect(response0.status()).toBe(200)
 
     const etag = await response0.headerValue('etag') ?? ''
     expect(etag).toContain(cid.toString())
 
-    const response1 = await makeFetchRequest(page, `/ipfs/${cid}`, {
+    const response1 = await makeFetchRequest(page, `${baseURL}/ipfs/${cid}`, {
       headers: {
         'if-none-match': `"foo", W/"bar", ${etag}, "baz"`
       }
@@ -75,14 +62,14 @@ test.describe('if-none-match', () => {
     expect(response1.status()).toBe(304)
   })
 
-  test('should return 304 if the etag matches a wildcard', async ({ page }) => {
-    const response0 = await makeFetchRequest(page, `/ipfs/${cid}`)
+  test('should return 304 if the etag matches a wildcard', async ({ page, baseURL }) => {
+    const response0 = await makeFetchRequest(page, `${baseURL}/ipfs/${cid}`)
     expect(response0.status()).toBe(200)
 
     const etag = await response0.headerValue('etag') ?? ''
     expect(etag).toContain(cid.toString())
 
-    const response1 = await makeFetchRequest(page, `/ipfs/${cid}`, {
+    const response1 = await makeFetchRequest(page, `${baseURL}/ipfs/${cid}`, {
       headers: {
         'if-none-match': '*'
       }
@@ -90,14 +77,14 @@ test.describe('if-none-match', () => {
     expect(response1.status()).toBe(304)
   })
 
-  test('should return 304 if the etag matches a weak value', async ({ page }) => {
-    const response0 = await makeFetchRequest(page, `/ipfs/${cid}`)
+  test('should return 304 if the etag matches a weak value', async ({ page, baseURL }) => {
+    const response0 = await makeFetchRequest(page, `${baseURL}/ipfs/${cid}`)
     expect(response0.status()).toBe(200)
 
     const etag = await response0.headerValue('etag') ?? ''
     expect(etag).toContain(cid.toString())
 
-    const response1 = await makeFetchRequest(page, `/ipfs/${cid}`, {
+    const response1 = await makeFetchRequest(page, `${baseURL}/ipfs/${cid}`, {
       headers: {
         'if-none-match': `W/"${cid}.dag-cbor"`
       }

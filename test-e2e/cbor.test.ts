@@ -31,7 +31,6 @@ test.describe('cbor', () => {
 
   test('should return cbor block', async ({ page, baseURL }) => {
     const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?download=true`)
-
     expect(response.status()).toBe(200)
 
     const headers = await response.allHeaders()
@@ -44,7 +43,6 @@ test.describe('cbor', () => {
 
   test('should return cbor block as raw', async ({ page, baseURL }) => {
     const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=raw&download=true`)
-
     expect(response.status()).toBe(200)
 
     const headers = await response.allHeaders()
@@ -59,7 +57,6 @@ test.describe('cbor', () => {
     // eslint-disable-next-line no-loop-func
     test(`should return cbor block as ${conversion.format}`, async ({ page, baseURL }) => {
       const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=${conversion.format}&download=true`)
-
       expect(response.status()).toBe(200)
 
       const headers = await response.allHeaders()

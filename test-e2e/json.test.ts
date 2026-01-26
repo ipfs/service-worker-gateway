@@ -6,8 +6,6 @@ import { test, expect } from './fixtures/config-test-fixtures.ts'
 import { IPLD_CONVERSIONS } from './fixtures/ipld-conversions.ts'
 import { loadWithServiceWorker } from './fixtures/load-with-service-worker.ts'
 import { makeFetchRequest } from './fixtures/make-range-request.ts'
-import { setConfig } from './fixtures/set-sw-config.ts'
-import { waitForServiceWorker } from './fixtures/wait-for-service-worker.ts'
 import type { KuboRPCClient } from 'kubo-rpc-client'
 import type { CID } from 'multiformats/cid'
 
@@ -108,16 +106,12 @@ test.describe('json', () => {
     await page.goto(`${baseURL}`, {
       waitUntil: 'networkidle'
     })
-    await waitForServiceWorker(page)
-    await setConfig(page, {
-      renderHTMLViews: false
-    })
-    const response = await makeFetchRequest(page, `/ipfs/${cid}`, {
+
+    const response = await makeFetchRequest(page, `${baseURL}/ipfs/${cid}`, {
       headers: {
         accept: 'text/html'
       }
     })
-
     expect(response.status()).toBe(200)
 
     const headers = await response.allHeaders()

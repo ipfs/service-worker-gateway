@@ -6,7 +6,6 @@ import { base32 } from 'multiformats/bases/base32'
 import { base36 } from 'multiformats/bases/base36'
 import { base58btc } from 'multiformats/bases/base58'
 import { CID } from 'multiformats/cid'
-import { QUERY_PARAMS } from './constants.ts'
 import { dnsLinkLabelEncoder } from './dns-link-labels.ts'
 import { pathRegex, subdomainRegex } from './regex.ts'
 import type { Logger } from '@libp2p/interface'
@@ -63,42 +62,47 @@ export const findOriginIsolationRedirect = (location: Pick<Location, 'protocol' 
  * or `Error` if subdomains are unsupported because (for example) the gateway
  * is accessed via an IP address instead of a domain.
  */
-export const toSubdomainRequest = (location: URL): URL => {
-  if (isIP(location.host)) {
+export const toSubdomainRequest = (url: URL): URL => {
+  if (isIP(url.host)) {
     throw new Error('Host was an IP address so subdomains are unsupported')
   }
 
   // do not need to convert this
-  if (isSubdomainGatewayRequest(location)) {
-    return location
+  if (isSubdomainGatewayRequest(url)) {
+    return url
   }
 
-  const segments = location.pathname
+  const segments = url.pathname
     .split('/')
     .filter(segment => segment !== '')
 
   if (segments.length < 2) {
-    throw new InvalidParametersError(`Invalid location ${location}`)
+    throw new InvalidParametersError(`Invalid location ${url}`)
   }
 
-  const ns = segments[0]
-  let id = segments[1]
+  let [
+    protocol,
+    name,
+    ...rest
+  ] = segments
 
   // DNS labels are case-insensitive, and the length limit is 63.
   // We ensure base32 if CID, base36 if ipns, or inlined if DNSLink name
   // https://specs.ipfs.tech/http-gateways/subdomain-gateway/#host-request-header
-  switch (ns) {
+  switch (protocol) {
     case 'ipfs':
       // Base32 is case-insensitive and allows CID with popular hashes like
       // sha2-256 to fit in a single DNS label
-      id = parseCID(id).toString(base32)
+      try {
+        name = parseCID(name).toString(base32)
+      } catch {}
       break
     case 'ipns':
-      if (id.startsWith('Q') || id.startsWith('1')) {
+      if (name.startsWith('Q') || name.startsWith('1')) {
         // possibly a PeerId - non-standard but try converting to a CID
         try {
-          const peerId = peerIdFromString(id)
-          id = peerId.toCID().toString()
+          const peerId = peerIdFromString(name)
+          name = peerId.toCID().toString()
         } catch {}
       }
 
@@ -108,41 +112,24 @@ export const toSubdomainRequest = (location: URL): URL => {
 
         // /ipns/ namespace uses Base36 instead of 32 because ED25519 keys need
         // to fit in DNS label of max length 63
-        id = parseCID(id).toString(base36)
+        name = parseCID(name).toString(base36)
       } catch {
         // not a CID, so we assume a DNSLink name and inline it
-        id = dnsLinkLabelEncoder(id)
+        name = dnsLinkLabelEncoder(name)
       }
       break
     default:
       // ignore unknown namespaces
   }
 
-  const remainingPath = segments.slice(2).join('/')
+  let path = `${rest.length > 0 ? '/' : ''}${rest.join('/')}`
+
+  if (!path.startsWith('/')) {
+    path = `/${path}`
+  }
 
   // create new URL with the subdomain but without the path
-  let subdomain = `${location.protocol}//${id}.${ns}.${location.host}`
-
-  // append the
-  let redirect = ''
-
-  if (remainingPath !== '') {
-    redirect += `/${remainingPath}`
-  }
-
-  if (location.search !== '') {
-    redirect += location.search
-  }
-
-  if (location.hash !== '') {
-    redirect += location.hash
-  }
-
-  if (redirect !== '') {
-    subdomain += `?${QUERY_PARAMS.REDIRECT}=${encodeURIComponent(redirect)}`
-  }
-
-  return new URL(subdomain)
+  return new URL(`${url.protocol}//${name}.${protocol}.${url.host}${path}${url.search}${url.hash}`)
 }
 
 /**

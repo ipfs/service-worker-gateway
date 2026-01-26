@@ -11,8 +11,6 @@ import { test, expect } from '@playwright/test'
 import { execa } from 'execa'
 import { loadWithServiceWorker } from '../test-e2e/fixtures/load-with-service-worker.ts'
 import { makeFetchRequest } from '../test-e2e/fixtures/make-range-request.ts'
-import { setConfig } from '../test-e2e/fixtures/set-sw-config.ts'
-import { waitForServiceWorker } from '../test-e2e/fixtures/wait-for-service-worker.ts'
 import { GWC_IMAGE } from './fixtures/constants.ts'
 import expectedFailingTests from './fixtures/expected-failing-tests.json' with { type: 'json' }
 import expectedPassingTests from './fixtures/expected-passing-tests.json' with { type: 'json' }
@@ -112,19 +110,6 @@ test.describe('@helia/service-worker-gateway - gateway conformance', () => {
 
               await page.goto(home.toString(), {
                 waitUntil: 'networkidle'
-              })
-              await waitForServiceWorker(page)
-              await setConfig(page, {
-                gateways: [
-                  `${process.env.KUBO_GATEWAY}`
-                ],
-                routers: [
-                  `${process.env.KUBO_GATEWAY}`
-                ],
-                dnsJsonResolvers: {
-                  '.': `${process.env.DNS_JSON_RESOLVER}`
-                },
-                renderHTMLViews: false
               })
 
               console.info('REQUEST', id, req.method, url.toString(), req.headers)

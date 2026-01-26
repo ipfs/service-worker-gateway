@@ -1,10 +1,11 @@
-import { Config } from './lib/config-db.ts'
+import weald from 'weald'
+import { config } from './config/index.ts'
 import { QUERY_PARAMS } from './lib/constants.ts'
 import { isUIPageRequest } from './lib/is-ui-page-request.ts'
-import { uiLogger } from './lib/logger.ts'
-import { isPathOrSubdomainRequest, isSafeOrigin, isSubdomainGatewayRequest } from './lib/path-or-subdomain.ts'
-import { createSearch } from './lib/query-helpers.ts'
+import { isPathGatewayRequest, isPathOrSubdomainRequest, isSafeOrigin, isSubdomainGatewayRequest, toSubdomainRequest } from './lib/path-or-subdomain.ts'
 import { registerServiceWorker } from './lib/register-service-worker.ts'
+
+weald.enable(config.debug)
 
 declare global {
   var originIsolationWarning: {
@@ -73,7 +74,7 @@ async function main (): Promise<void> {
       return
     }
 
-    let url = new URL(window.location.href)
+    const url = new URL(window.location.href)
 
     // special case - if the user has loaded loopback, redirect to localhost
     if (url.hostname === '127.0.0.1') {
@@ -92,97 +93,10 @@ async function main (): Promise<void> {
       return
     }
 
-    // if we are on the root origin, register custom handlers for ipfs: and
-    // ipns: URLs
-    if (!isSubdomainGatewayRequest(url)) {
-      try {
-        navigator.registerProtocolHandler('ipfs', `${url.protocol}//${url.host}/ipfs/?uri=%s`)
-        navigator.registerProtocolHandler('ipns', `${url.protocol}//${url.host}/ipns/?uri=%s`)
-      } catch {}
-    }
-
-    // redirect if we are being invoked as a URI router
-    // @see https://specs.ipfs.tech/http-gateways/subdomain-gateway/#uri-router
-    if ((url.pathname === '/ipfs/' || url.pathname === '/ipns/') && url.searchParams.has(QUERY_PARAMS.URI_ROUTER)) {
-      try {
-        const uri = new URL(url.searchParams.get(QUERY_PARAMS.URI_ROUTER) ?? '')
-        window.location.href = `/${uri.protocol.substring(0, 4)}/${uri.hostname}${uri.pathname}${uri.search}${uri.hash}`
-      } catch {}
-    }
-
-    const config = new Config({
-      logger: uiLogger
-    }, {
-      url
-    })
-    await config.init()
-
-    if (url.searchParams.get(QUERY_PARAMS.CONFIG) && document.referrer === '') {
-      // someone has been linked to this page directly with config - if the
-      // timestamp field is present, delete it to cause the config to become
-      // untrusted which will reduce the number of fields allowed to be updated
-      try {
-        const uncompressed = JSON.parse(atob(url.searchParams.get(QUERY_PARAMS.CONFIG) ?? ''))
-        delete uncompressed.t
-        const compressed = btoa(JSON.stringify(uncompressed))
-
-        const search = createSearch(url.searchParams, {
-          filter: (key) => key !== QUERY_PARAMS.CONFIG,
-          params: {
-            [QUERY_PARAMS.CONFIG]: compressed
-          }
-        })
-
-        url = new URL(`${url.protocol}//${url.host}${url.pathname}${search}${url.hash}`)
-      } catch {}
-    }
-
-    const registration = await navigator.serviceWorker.getRegistration()
-    const hasActiveWorker = registration?.active != null
-
-    if (!hasActiveWorker) {
-      // install the service worker on the root path of this domain, either path
-      // or subdomain gateway
-      await registerServiceWorker()
-    }
-
-    let redirectTo = url.searchParams.get(QUERY_PARAMS.REDIRECT)
-
-    // perform redirect, if requested
-    if (redirectTo != null) {
-      const includeConfig = url.searchParams.get(QUERY_PARAMS.GET_CONFIG)
-
-      // append config to the redirect if requested
-      if (includeConfig === 'true') {
-        const redirectUrl = new URL(redirectTo)
-
-        // remove config request param from search
-        const search = createSearch(redirectUrl.searchParams, {
-          params: {
-            [QUERY_PARAMS.CONFIG]: await config.getCompressed()
-          },
-          filter: (key) => key !== QUERY_PARAMS.GET_CONFIG && key !== QUERY_PARAMS.REDIRECT
-        })
-
-        redirectTo = `${redirectUrl.protocol}//${redirectUrl.host}${redirectUrl.pathname}${search}${redirectUrl.hash}`
-      }
-
-      window.location.href = redirectTo
-      return
-    }
-
-    // no content requested, show UI
-    if (!isRequestForContentAddressedData(url)) {
-      await renderUi()
-      return
-    }
-
-    const href = url.toString()
-
     // make sure we don't redirect endlessly
-    if (tooManyRedirects(`ipfs-sw-${href}-redirects`)) {
+    if (tooManyRedirects(`ipfs-sw-${window.location.href}-redirects`)) {
       globalThis.serverError = {
-        url: href,
+        url: window.location.href,
         title: '310 Too many redirects',
         description: [
           'The initialization page reloaded itself too many times.',
@@ -199,14 +113,55 @@ async function main (): Promise<void> {
       return
     }
 
-    // service worker is now installed so redirect to path or subdomain for data
-    // so it can intercept the request
-    window.location.href = url.toString()
+    if (!isSubdomainGatewayRequest(url)) {
+      // if we are on the root origin, register custom handlers for ipfs:// and
+      // ipns:// URLs
+      try {
+        navigator.registerProtocolHandler('ipfs', `${url.protocol}//${url.host}/ipfs/?uri=%s`)
+        navigator.registerProtocolHandler('ipns', `${url.protocol}//${url.host}/ipns/?uri=%s`)
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('could not register protocol handlers', err)
+      }
+
+      // redirect if we are being invoked as a URI router
+      // @see https://specs.ipfs.tech/http-gateways/subdomain-gateway/#uri-router
+      if ((url.pathname === '/ipfs/' || url.pathname === '/ipns/') && url.searchParams.has(QUERY_PARAMS.URI_ROUTER)) {
+        try {
+          const uri = new URL(url.searchParams.get(QUERY_PARAMS.URI_ROUTER) ?? '')
+          window.location.href = `/${uri.protocol.substring(0, 4)}/${uri.hostname}${uri.pathname}${uri.search}${uri.hash}`
+          return
+        } catch {}
+      }
+
+      if (isPathGatewayRequest(url)) {
+        // redirect to subdomain
+        window.location.href = toSubdomainRequest(url).toString()
+        return
+      }
+
+      await renderUi()
+    } else {
+      // we are on a subdomain, ensure the service worker is installed
+      const registration = await navigator.serviceWorker.getRegistration()
+      const hasActiveWorker = registration?.active != null
+
+      if (!hasActiveWorker) {
+        // install the service worker on the root path of this domain, either path
+        // or subdomain gateway
+        await registerServiceWorker()
+
+        // service worker is now installed so redirect to path or subdomain for data
+        // so it can intercept the request
+        window.location.href = url.toString()
+        return
+      }
+    }
   } catch (err: any) {
     // error during initialization, show an error message
     globalThis.serverError = {
       url: document.location.href,
-      title: '500 Server Error',
+      title: 'Installation Error',
       description: 'An error occurred while trying to install the service worker.',
       error: {
         name: err.name,
@@ -219,9 +174,9 @@ async function main (): Promise<void> {
       },
       logs: []
     }
-
-    await renderUi()
   }
+
+  await renderUi()
 }
 
 /**
@@ -292,11 +247,6 @@ export function isRequestForContentAddressedData (url: URL): boolean {
 
   if (isPathOrSubdomainRequest(url)) {
     // subdomain request
-    return true
-  }
-
-  if (url.searchParams.has(QUERY_PARAMS.REDIRECT)) {
-    // query param request
     return true
   }
 

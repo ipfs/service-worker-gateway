@@ -1,3 +1,3 @@
-export const APP_NAME = '@helia/service-worker'
-export const APP_VERSION = '1.0.0'
-export const GIT_REVISION = 'HEAD'
+export const APP_NAME = process.env.APP_NAME ?? ''
+export const APP_VERSION = process.env.APP_VERSION ?? ''
+export const GIT_REVISION = process.env.GIT_REVISION ?? ''

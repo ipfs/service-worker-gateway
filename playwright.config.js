@@ -1,22 +1,6 @@
 import { defineConfig, devices } from '@playwright/test'
 
-function getWebServerCommand () {
-  if (process.env.BASE_URL != null) {
-    // we need to make sure the webserver doesn't exit before the tests are done, but we don't want to build or serve if the BASE_URL is set
-    return `
-    echo "BASE_URL is set to ${process.env.BASE_URL}, skipping http-server setup"
-    while true; do
-      sleep 100
-    done
-    `
-  }
-
-  const serveCommand = 'npx http-server --silent -p 3000 dist'
-  if (process.env.SHOULD_BUILD !== 'false') {
-    return `NODE_ENV=test npm run build && ${serveCommand}`
-  }
-  return serveCommand
-}
+process.env.NODE_ENV ??= 'test'
 
 export default defineConfig({
   testDir: './test-e2e',
@@ -32,7 +16,7 @@ export default defineConfig({
   // reporter: 'html', // Uncomment to generate HTML report
   use: {
     // Base URL to use in actions like `await page.goto('/')`.
-    baseURL: 'http://localhost:3333',
+    baseURL: 'http://localhost:3000',
 
     // Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer
     trace: 'on-first-retry',
@@ -41,8 +25,8 @@ export default defineConfig({
     serviceWorkers: 'allow'
   },
 
-  globalSetup: './test-e2e/global-setup.ts',
-  globalTeardown: './test-e2e/global-teardown.ts',
+  globalSetup: './test-e2e/fixtures/global-setup.ts',
+  globalTeardown: './test-e2e/fixtures/global-teardown.ts',
 
   projects: [
     {
@@ -113,15 +97,5 @@ export default defineConfig({
         }
       }
     }
-  ],
-
-  webServer: [{
-    // need to use built assets due to service worker loading issue.
-    command: getWebServerCommand(),
-    port: process.env.BASE_URL != null ? undefined : 3000,
-    timeout: 60 * 1000,
-    reuseExistingServer: false,
-    stdout: process.env.CI ? undefined : 'pipe',
-    stderr: process.env.CI ? undefined : 'pipe'
-  }]
+  ]
 })

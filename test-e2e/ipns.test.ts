@@ -5,25 +5,10 @@ import { identity } from 'multiformats/hashes/identity'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { CODE_RAW } from '../src/ui/pages/multicodec-table.ts'
 import { test, expect } from './fixtures/config-test-fixtures.ts'
-import { publishDNSLink } from './fixtures/dns-record-cache.ts'
 import { loadWithServiceWorker } from './fixtures/load-with-service-worker.ts'
-import { setConfig } from './fixtures/set-sw-config.ts'
+import { publishDNSLink } from './fixtures/serve/dns-record-cache.ts'
 
 test.describe('ipns', () => {
-  test.beforeEach(async ({ page }) => {
-    await setConfig(page, {
-      gateways: [
-        `${process.env.KUBO_GATEWAY}`
-      ],
-      routers: [
-        `${process.env.KUBO_GATEWAY}`
-      ],
-      dnsJsonResolvers: {
-        '.': `${process.env.DNS_JSON_SERVER}`
-      }
-    })
-  })
-
   test('should resolve IPNS name and return as dag-json', async ({ page, baseURL }) => {
     const name = 'k51qzi5uqu5dhjghbwdvbo6mi40htrq6e2z4pwgp15pgv3ho1azvidttzh8yy2'
     const cid = 'baguqeeram5ujjqrwheyaty3w5gdsmoz6vittchvhk723jjqxk7hakxkd47xq'

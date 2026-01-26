@@ -1,18 +1,13 @@
 import React from 'react'
 import ReactDOMClient from 'react-dom/client'
 import './index.css'
-import { FaInfoCircle, FaCog, FaGithub, FaExclamationTriangle, FaExclamationCircle, FaHome, FaListAlt } from 'react-icons/fa'
+import { FaInfoCircle, FaGithub, FaExclamationTriangle, FaExclamationCircle, FaHome, FaListAlt } from 'react-icons/fa'
 import { HashRouter, Route, Routes, NavLink } from 'react-router-dom'
-import { Config } from '../lib/config-db.ts'
 import { HASH_FRAGMENTS } from '../lib/constants.ts'
 import { injectCSS } from '../lib/css-injector.ts'
-import { uiLogger } from '../lib/logger.ts'
 import { ErrorBoundary } from './components/error-boundary.tsx'
-import { ConfigProvider } from './context/config-context.tsx'
-import { ServiceWorkerProvider } from './context/service-worker-context.tsx'
 import ipfsLogo from './ipfs-logo.svg'
 import AboutPage from './pages/about.tsx'
-import ConfigPage from './pages/config.tsx'
 import { FetchErrorPage } from './pages/fetch-error.tsx'
 import HomePage from './pages/home.tsx'
 import NoServiceWorkerErrorPage from './pages/no-service-worker.tsx'
@@ -95,9 +90,6 @@ function Header (): React.ReactElement {
         <NavLink id='e2e-link-about-page' to={`/${HASH_FRAGMENTS.IPFS_SW_ABOUT_UI}`} className={({ isActive }) => isActive ? 'white' : 'aqua'}>
           <FaInfoCircle className='ml2 f3' />
         </NavLink>
-        <NavLink id='e2e-link-config-page' to={`/${HASH_FRAGMENTS.IPFS_SW_CONFIG_UI}`} className={({ isActive }) => isActive ? 'white' : 'aqua'}>
-          <FaCog className='ml2 f3' />
-        </NavLink>
         <a href='https://github.com/ipfs/service-worker-gateway' className='aqua' title='IPFS Service Worker Gateway on GitHub' target='_blank' rel='noopener noreferrer' aria-label='Visit the GitHub repository for the IPFS Service Worker Gateway'>
           <FaGithub className='ml2 f3' />
         </a>
@@ -157,7 +149,6 @@ function App (): React.ReactElement {
           {getIndexRoute()}
           <Route path={`/${HASH_FRAGMENTS.IPFS_SW_LOAD_UI}`} element={<HomePage />} />,
           <Route path={`/${HASH_FRAGMENTS.IPFS_SW_ABOUT_UI}`} element={<AboutPage />} />,
-          <Route path={`/${HASH_FRAGMENTS.IPFS_SW_CONFIG_UI}`} element={<ConfigPage />} />,
           <Route path={`/${HASH_FRAGMENTS.IPFS_SW_FETCH_ERROR_UI}`} element={<FetchErrorPage />} />
           <Route path={`/${HASH_FRAGMENTS.IPFS_SW_SERVER_ERROR_UI}`} element={<ServerErrorPage />} />
           <Route path={`/${HASH_FRAGMENTS.IPFS_SW_ORIGIN_ISOLATION_WARNING}`} element={<OriginIsolationWarningPage />} />
@@ -215,18 +206,9 @@ async function renderUi (): Promise<void> {
     return
   }
 
-  const config = new Config({
-    logger: uiLogger
-  })
-  const configDb = await config.get()
-
   root.render(
     <React.StrictMode>
-      <ConfigProvider config={config} configDb={configDb}>
-        <ServiceWorkerProvider>
-          <App />
-        </ServiceWorkerProvider>
-      </ConfigProvider>
+      <App />
     </React.StrictMode>
   )
 }
