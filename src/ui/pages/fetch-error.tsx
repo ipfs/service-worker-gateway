@@ -1,5 +1,4 @@
 import React, { useState } from 'react'
-import { HASH_FRAGMENTS } from '../../lib/constants.ts'
 import { isPathGatewayRequest, isSubdomainGatewayRequest } from '../../lib/path-or-subdomain.ts'
 import { removeRootHashIfPresent } from '../../lib/remove-root-hash.ts'
 import { toGatewayRoot } from '../../lib/to-gateway-root.ts'
@@ -8,7 +7,6 @@ import ContentBox from '../components/content-box.tsx'
 import { Link } from '../components/link.tsx'
 import Terminal from '../components/terminal.tsx'
 import { createLink } from '../utils/links.ts'
-import type { ConfigDb } from '../../lib/config-db.ts'
 import type { RequestDetails, ResponseDetails } from '../../sw/pages/fetch-error-page.ts'
 import type { ReactElement } from 'react'
 
@@ -16,7 +14,6 @@ declare global {
   var fetchError: {
     request: RequestDetails
     response: ResponseDetails
-    config: ConfigDb
     providers: Providers
     title: string
     logs: string[]
@@ -94,12 +91,11 @@ export interface Providers {
 export interface FetchErrorPageProps {
   request?: RequestDetails
   response?: ResponseDetails
-  config?: Record<string, any>
   logs?: string[]
   providers?: Providers
 }
 
-function DebugInfo ({ request, response, config, logs }: FetchErrorPageProps): ReactElement {
+function DebugInfo ({ request, response, logs }: FetchErrorPageProps): ReactElement {
   let requestDisplay = <></>
 
   if (request != null) {
@@ -122,17 +118,6 @@ function DebugInfo ({ request, response, config, logs }: FetchErrorPageProps): R
     )
   }
 
-  let configDisplay = <></>
-
-  if (config != null) {
-    configDisplay = (
-      <>
-        <h4 className='ma3'>Configuration</h4>
-        <Terminal>{JSON.stringify(config, null, 2)}</Terminal>
-      </>
-    )
-  }
-
   let logDisplay = <></>
 
   if (logs != null) {
@@ -151,20 +136,18 @@ function DebugInfo ({ request, response, config, logs }: FetchErrorPageProps): R
       {response?.status === 500 ? '' : <p className='ma3'>If you open a <Link href='https://github.com/ipfs/service-worker-gateway/issues?q=sort%3Aupdated-desc+is%3Aissue+is%3Aopen'>bug report</Link> please include all of the information below.</p>}
       {requestDisplay}
       {responseDisplay}
-      {configDisplay}
       {logDisplay}
     </>
   )
 }
 
-export function FetchErrorPage ({ request, response, config, logs, providers }: FetchErrorPageProps): ReactElement {
+export function FetchErrorPage ({ request, response, logs, providers }: FetchErrorPageProps): ReactElement {
   request = request ?? globalThis.fetchError?.request
   response = response ?? globalThis.fetchError?.response
-  config = config ?? globalThis.fetchError?.config
   logs = logs ?? globalThis.fetchError?.logs
   providers = providers ?? globalThis.fetchError?.providers
 
-  if (request == null || response == null || config == null || logs == null || providers == null) {
+  if (request == null || response == null || logs == null || providers == null) {
     globalThis.location.href = toGatewayRoot('/')
 
     return (
@@ -255,7 +238,6 @@ export function FetchErrorPage ({ request, response, config, logs, providers }: 
         <li>Self-host and run an <Link href='https://docs.ipfs.tech/concepts/ipfs-implementations/'>IPFS client</Link> that verifies your data.</li>
         <li>Try diagnosing your request with the <Link href='https://docs.ipfs.tech/reference/diagnostic-tools/'>IPFS diagnostic tools</Link>.</li>
         <li>Inspect the <Link href={`https://cid.ipfs.tech/${cid ? `#${cid}` : ''}`}>CID</Link> or <Link href={`https://explore.ipld.io/${cid ? `#/explore/${cid}` : ''}`}>DAG</Link>.</li>
-        <li>Increase the timeout in the <a href={createLink({ hash: `#/${HASH_FRAGMENTS.IPFS_SW_CONFIG_UI}` })} className='link'>config page</a> for this Service Worker Gateway instance.</li>
         <li>Install the <Link href='https://docs.ipfs.tech/install/ipfs-companion'>IPFS companion browser extension </Link> to run a local IPFS node.</li>
       </ul>
     </>
@@ -369,7 +351,7 @@ export function FetchErrorPage ({ request, response, config, logs, providers }: 
             {checkAvailabilityButton}
             {viewRawBlockButton}
           </p>
-          {showDebugInfo && <DebugInfo request={request} response={response} config={config} logs={logs} />}
+          {showDebugInfo && <DebugInfo request={request} response={response} logs={logs} />}
         </>
       </ContentBox>
     </>

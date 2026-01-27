@@ -1,6 +1,4 @@
 import { assetRequestHandler } from './asset-request-handler.ts'
-import { configReloadHandler } from './config-reload-handler.ts'
-import { configUpdateHandler } from './config-update-handler.ts'
 import { contentRequestHandler } from './content-request-handler.ts'
 import { unregisterHandler } from './unregister-handler.ts'
 import { uriRouterHandler } from './uri-router-handler.ts'
@@ -20,8 +18,6 @@ export interface Handler {
 export const handlers: Handler[] = [
   unregisterHandler,
   uriRouterHandler,
-  configUpdateHandler,
-  configReloadHandler,
   assetRequestHandler,
   contentRequestHandler
 ]

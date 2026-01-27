@@ -3,8 +3,6 @@ import * as cbor from 'cborg'
 import { createKuboRPCClient } from 'kubo-rpc-client'
 import { test, expect } from './fixtures/config-test-fixtures.ts'
 import { makeFetchRequest } from './fixtures/make-range-request.ts'
-import { setConfig } from './fixtures/set-sw-config.ts'
-import { waitForServiceWorker } from './fixtures/wait-for-service-worker.ts'
 import type { KuboRPCClient } from 'kubo-rpc-client'
 import type { CID } from 'multiformats/cid'
 
@@ -28,26 +26,15 @@ test.describe('cache-control', () => {
     cid = await kubo.block.put(block, {
       format: 'cbor'
     })
-
-    await waitForServiceWorker(page)
-    await setConfig(page, {
-      gateways: [
-        process.env.KUBO_GATEWAY
-      ],
-      routers: [
-        process.env.KUBO_GATEWAY
-      ],
-      renderHTMLViews: false
-    })
   })
 
   test.afterEach(async () => {
     await stop(kubo)
   })
 
-  test('should return block that is in local datastore', async ({ page }) => {
+  test('should return block that is in local datastore', async ({ page, baseURL }) => {
     // try offline without block
-    const response0 = await makeFetchRequest(page, `/ipfs/${cid}`, {
+    const response0 = await makeFetchRequest(page, `${baseURL}/ipfs/${cid}`, {
       headers: {
         'cache-control': 'only-if-cached'
       }
@@ -55,12 +42,12 @@ test.describe('cache-control', () => {
     expect(response0.status()).toBe(412)
 
     // fetch block from gateway
-    const response1 = await makeFetchRequest(page, `/ipfs/${cid}`)
+    const response1 = await makeFetchRequest(page, `${baseURL}/ipfs/${cid}`)
     expect(response1.status()).toBe(200)
     expect(new Uint8Array(await response1.body())).toStrictEqual(block)
 
     // try again offline, should be cached now
-    const response2 = await makeFetchRequest(page, `/ipfs/${cid}`, {
+    const response2 = await makeFetchRequest(page, `${baseURL}/ipfs/${cid}`, {
       headers: {
         'cache-control': 'only-if-cached'
       }
@@ -70,8 +57,8 @@ test.describe('cache-control', () => {
     expect(new Uint8Array(await response2.body())).toStrictEqual(block)
   })
 
-  test('should return 412 for block that is not in local datastore', async ({ page }) => {
-    const response = await makeFetchRequest(page, '/ipfs/bafybeicvjyaiqmgfe7wupl72gpf7cadwyjqf7nzsxrap6npgrgtd3d6m4a', {
+  test('should return 412 for block that is not in local datastore', async ({ page, baseURL }) => {
+    const response = await makeFetchRequest(page, `${baseURL}/ipfs/bafybeicvjyaiqmgfe7wupl72gpf7cadwyjqf7nzsxrap6npgrgtd3d6m4a`, {
       headers: {
         'cache-control': 'only-if-cached'
       }

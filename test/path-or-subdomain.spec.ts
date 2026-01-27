@@ -6,7 +6,6 @@ import { base36 } from 'multiformats/bases/base36'
 import { CID } from 'multiformats/cid'
 import { identity } from 'multiformats/hashes/identity'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
-import { QUERY_PARAMS } from '../src/lib/constants.ts'
 import { isPathOrSubdomainRequest, toSubdomainRequest } from '../src/lib/path-or-subdomain.ts'
 import { CODE_RAW } from '../src/ui/pages/multicodec-table.ts'
 
@@ -65,8 +64,7 @@ describe('path-or-subdomain', () => {
       const loc = new URL(`http://example.com/ipfs/${cid}/foo/bar.txt`)
 
       const out = toSubdomainRequest(loc)
-      const exp = new URL(`http://${cidV1}.ipfs.example.com/`)
-      exp.searchParams.set(QUERY_PARAMS.REDIRECT, '/foo/bar.txt')
+      const exp = new URL(`http://${cidV1}.ipfs.example.com/foo/bar.txt`)
 
       expect(out.href).to.equal(exp.href)
     })
@@ -77,19 +75,9 @@ describe('path-or-subdomain', () => {
       const loc = new URL(`https://example.com/ipfs/${cid}/path/to/file?foo=bar&baz=qux#section2`)
 
       const out = toSubdomainRequest(loc)
-      const exp = new URL(`https://${cidV1}.ipfs.example.com/`)
-      exp.searchParams.set(QUERY_PARAMS.REDIRECT, '/path/to/file?foo=bar&baz=qux#section2')
+      const exp = new URL(`https://${cidV1}.ipfs.example.com/path/to/file?foo=bar&baz=qux#section2`)
 
       expect(out.href).to.equal(exp.href)
-    })
-
-    it(`drops ${QUERY_PARAMS.REDIRECT} when there is no “extra” path (i.e. only /ipfs/<cid>)`, () => {
-      const cid = 'QmbQDovX7wRe9ek7u6QXe9zgCXkTzoUSsTFJEkrYV1HrVR'
-      const cidV1 = CID.parse(cid).toV1().toString(base32)
-      const loc = new URL(`http://example.com/ipfs/${cid}`)
-
-      const out = toSubdomainRequest(loc)
-      expect(out.href).to.equal(`http://${cidV1}.ipfs.example.com/`)
     })
 
     it('handles /ipns/<libp2p-key>/… by converting to Base36 and preserving rest', () => {
@@ -99,8 +87,7 @@ describe('path-or-subdomain', () => {
       const loc = new URL(`https://gateway.local/ipns/${key}/blog/post`)
 
       const out = toSubdomainRequest(loc)
-      const exp = new URL(`https://${keyV1}.ipns.gateway.local/`)
-      exp.searchParams.set(QUERY_PARAMS.REDIRECT, '/blog/post')
+      const exp = new URL(`https://${keyV1}.ipns.gateway.local/blog/post`)
       expect(out.href).to.equal(exp.href)
     })
 
@@ -110,8 +97,7 @@ describe('path-or-subdomain', () => {
 
       const out = toSubdomainRequest(loc)
       expect(out.origin).to.equal(`http://foo-bar.ipns.${hostname}`)
-      expect(out.pathname).to.equal('/')
-      expect(out.searchParams.get(QUERY_PARAMS.REDIRECT)).to.equal('/baz')
+      expect(out.pathname).to.equal('/baz')
     })
 
     it('ignores invalid namespaces', () => {
@@ -119,7 +105,7 @@ describe('path-or-subdomain', () => {
       const loc = new URL('http://example.com/potato/QmWhatever/foo')
       const out = toSubdomainRequest(loc)
       expect(out.origin).to.equal('http://qmwhatever.potato.example.com')
-      expect(out.searchParams.get(QUERY_PARAMS.REDIRECT)).to.equal('/foo')
+      expect(out.pathname).to.equal('/foo')
     })
 
     it('should handle paths with spaces', () => {
@@ -141,7 +127,7 @@ describe('path-or-subdomain', () => {
       const input = new URL(`http://localhost:3333/ipfs/${cid}/${fileName}`)
 
       expect(toSubdomainRequest(input).href).to.equal(
-        new URL(`http://${cid}.ipfs.localhost:3333/?${QUERY_PARAMS.REDIRECT}=${encodeURIComponent(`/${encodeURIComponent(fileName)}`)}`).href
+        new URL(`http://${cid}.ipfs.localhost:3333/${encodeURIComponent(fileName)}`).href
       )
     })
   })

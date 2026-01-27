@@ -5,7 +5,6 @@ import { pathRegex, subdomainRegex } from '../../lib/regex.ts'
 import { removeRootHashIfPresent } from '../../lib/remove-root-hash.ts'
 import { getGatewayRoot } from '../../lib/to-gateway-root.ts'
 import DownloadForm from '../components/download-form.tsx'
-import { ServiceWorkerProvider } from '../context/service-worker-context.tsx'
 import './default-page-styles.css'
 import type { ReactElement } from 'react'
 
@@ -135,8 +134,6 @@ function LoadContent (): ReactElement {
 
 export default (): ReactElement => {
   return (
-    <ServiceWorkerProvider>
-      <LoadContent />
-    </ServiceWorkerProvider>
+    <LoadContent />
   )
 }

@@ -1,25 +1,20 @@
 import { MEDIA_TYPE_CAR, MEDIA_TYPE_CBOR, MEDIA_TYPE_DAG_CBOR, MEDIA_TYPE_DAG_JSON, MEDIA_TYPE_DAG_PB, MEDIA_TYPE_IPNS_RECORD, MEDIA_TYPE_JSON, MEDIA_TYPE_RAW, MEDIA_TYPE_TAR } from '@helia/verified-fetch'
 import { AbortError, setMaxListeners, TimeoutError } from '@libp2p/interface'
 import { anySignal } from 'any-signal'
+import { config } from '../../config/index.ts'
 import { CURRENT_CACHES } from '../../constants.ts'
-import { Config } from '../../lib/config-db.ts'
-import { QUERY_PARAMS } from '../../lib/constants.ts'
 import { errorToObject } from '../../lib/error-to-object.ts'
 import { getSubdomainParts } from '../../lib/get-subdomain-parts.ts'
 import { getSwLogger } from '../../lib/logger.ts'
 import { isPathGatewayRequest, isSubdomainGatewayRequest, toSubdomainRequest } from '../../lib/path-or-subdomain.ts'
 import { isBitswapProvider, isTrustlessGatewayProvider } from '../../lib/providers.ts'
 import { APP_NAME, APP_VERSION, GIT_REVISION } from '../../version.ts'
-import { getConfig } from '../lib/config.ts'
 import { getInstallTime } from '../lib/install-time.ts'
 import { httpResourceToIpfsUrl } from '../lib/resource-to-url.ts'
 import { getVerifiedFetch } from '../lib/verified-fetch.ts'
 import { fetchErrorPageResponse } from '../pages/fetch-error-page.ts'
-import { originIsolationWarningPageResponse } from '../pages/origin-isolation-warning-page.ts'
 import { renderEntityPageResponse } from '../pages/render-entity.ts'
-import { serverErrorPageResponse } from '../pages/server-error-page.ts'
 import type { Handler } from './index.ts'
-import type { ConfigDb } from '../../lib/config-db.ts'
 import type { Providers } from '../index.ts'
 import type { VerifiedFetchInit } from '@helia/verified-fetch'
 
@@ -37,11 +32,9 @@ const FORMAT_TO_MEDIA_TYPE: Record<string, string> = {
 interface FetchHandlerArg {
   event: FetchEvent
   logs: string[]
-  subdomainGatewayRequest: boolean
-  pathGatewayRequest: boolean
   url: URL
   headers: Headers
-  renderPreview: boolean
+  renderHtml: boolean
   cacheKey: string
   isMutable: boolean
   accept: string | null
@@ -49,8 +42,8 @@ interface FetchHandlerArg {
 
 const ONE_HOUR_IN_SECONDS = 3600
 
-function getCacheKey (url: URL, headers: Headers, renderPreview: boolean, config: ConfigDb): string {
-  return `${url}-${headers.get('accept')}-preview-${renderPreview}-indexes-${config.supportDirectoryIndexes}-redirects-${config.supportWebRedirects}-match-${headers.get('if-none-match')}`
+function getCacheKey (url: URL, headers: Headers, renderHtml: boolean): string {
+  return `${url}-${headers.get('accept')}-html-${renderHtml}-match-${headers.get('if-none-match')}`
 }
 
 async function getResponseFromCacheOrFetch (args: FetchHandlerArg): Promise<Response> {
@@ -173,41 +166,8 @@ async function storeResponseInCache (response: Response, args: FetchHandlerArg):
   }
 }
 
-async function fetchHandler ({ url, headers, renderPreview, event, logs, subdomainGatewayRequest, pathGatewayRequest, accept }: FetchHandlerArg): Promise<Response> {
+async function fetchHandler ({ url, headers, renderHtml, event, logs, accept }: FetchHandlerArg): Promise<Response> {
   const log = getSwLogger('fetch-handler')
-  const config = await getConfig()
-
-  // test and enforce origin isolation before anything else is executed
-  if (!subdomainGatewayRequest && pathGatewayRequest) {
-    try {
-      const asSubdomainRequest = toSubdomainRequest(url)
-
-      log.trace('url was %s', url.toString())
-      log.trace('redirecting to subdomain - %s', asSubdomainRequest)
-
-      return new Response('Gateway supports subdomain mode, redirecting to ensure Origin isolation..', {
-        status: 301,
-        headers: {
-          'Content-Type': 'text/plain',
-          Location: asSubdomainRequest.toString()
-        }
-      })
-    } catch (err: any) {
-      // the user supplied an unparseable/incorrect path or key
-      if (err.name === 'InvalidParametersError') {
-        return serverErrorPageResponse(url, err, logs, {
-          title: '400 Bad Request',
-          status: 400
-        })
-      }
-
-      // URL was invalid (may have been an IP address which can't be translated
-      // to a subdomain gateway URL)
-    }
-
-    log('showing origin isolation warning')
-    return originIsolationWarningPageResponse(event.request.url)
-  }
 
   const providers: Providers = {
     total: 0,
@@ -282,8 +242,8 @@ async function fetchHandler ({ url, headers, renderPreview, event, logs, subdoma
         }
       }
     },
-    supportDirectoryIndexes: config.supportDirectoryIndexes,
-    supportWebRedirects: config.supportWebRedirects
+    supportDirectoryIndexes: url.searchParams.get('download') !== 'false',
+    supportWebRedirects: url.searchParams.get('download') !== 'false'
   }
 
   try {
@@ -308,15 +268,15 @@ async function fetchHandler ({ url, headers, renderPreview, event, logs, subdoma
 
     // render previews for UnixFS directories
     if (response.headers.get('content-type') === MEDIA_TYPE_DAG_PB) {
-      renderPreview = shouldRenderDirectory(url, config, accept)
+      renderHtml = shouldRenderDirectory(url, accept)
     }
 
     if (response.status > 399) {
-      return fetchErrorPageResponse(resource, init, response, await response.text(), providers, config, firstInstallTime, logs)
+      return fetchErrorPageResponse(resource, init, response, await response.text(), providers, firstInstallTime, logs)
     }
 
     if (response.status > 199 && response.status < 300) {
-      if (renderPreview) {
+      if (renderHtml) {
         try {
           return renderEntityPageResponse(url, headers, response, await response.arrayBuffer())
         } catch (err: any) {
@@ -332,7 +292,7 @@ async function fetchHandler ({ url, headers, renderPreview, event, logs, subdoma
             headers: {
               'Content-Type': 'application/json'
             }
-          }), JSON.stringify(errorToObject(err), null, 2), providers, config, firstInstallTime, logs)
+          }), JSON.stringify(errorToObject(err), null, 2), providers, firstInstallTime, logs)
         }
       } else if (url.searchParams.get('download') === 'true') {
         // override inline attachments if present
@@ -381,7 +341,7 @@ async function fetchHandler ({ url, headers, renderPreview, event, logs, subdoma
         headers: {
           'content-type': 'application/json'
         }
-      }), JSON.stringify(errorToObject(new AbortError(`Timed out after ${Date.now() - start}ms`)), null, 2), providers, config, firstInstallTime, logs)
+      }), JSON.stringify(errorToObject(new AbortError(`Timed out after ${Date.now() - start}ms`)), null, 2), providers, firstInstallTime, logs)
     }
 
     log.error('error during request - %e', err)
@@ -393,7 +353,7 @@ async function fetchHandler ({ url, headers, renderPreview, event, logs, subdoma
         'content-type': 'application/json',
         'x-error-message': btoa(err.message)
       }
-    }), JSON.stringify(errorToObject(err), null, 2), providers, config, firstInstallTime, logs)
+    }), JSON.stringify(errorToObject(err), null, 2), providers, firstInstallTime, logs)
   } finally {
     signal.clear()
     clearTimeout(timeout)
@@ -410,7 +370,7 @@ function setExpiresHeader (response: Response, ttlSeconds: number = ONE_HOUR_IN_
   response.headers.set('sw-cache-expires', expirationTime.toUTCString())
 }
 
-function shouldRenderDirectory (url: URL, config: ConfigDb, accept?: string | null): boolean {
+function shouldRenderDirectory (url: URL, accept?: string | null): boolean {
   if (url.searchParams.get('download') === 'true') {
     return false
   } else if (url.searchParams.get('download') === 'false') {
@@ -460,8 +420,6 @@ export const contentRequestHandler: Handler = {
     log('handling request for %s', url)
 
     const urlParts = getSubdomainParts(event.request.url)
-    const subdomainGatewayRequest = isSubdomainGatewayRequest(url)
-    const pathGatewayRequest = isPathGatewayRequest(url)
 
     // `bafkqaaa` is an empty identity CID that is used to detect subdomain
     // support so this response MUST be returned before we check for config on
@@ -473,41 +431,8 @@ export const contentRequestHandler: Handler = {
       })
     }
 
-    const conf = new Config({
-      logger: getSwLogger()
-    })
-
-    // if we don't have config in the database and we are on a
-    // subdomain, we have to redirect to the gateway root to skirt
-    // around origin isolation and load any custom config the user has
-    // set, then redirect back here
-    if ((await conf.hasConfig()) === false && subdomainGatewayRequest) {
-      log('subdomain request has no config set, redirecting to gateway root')
-      const location = new URL(`${url.protocol}//${urlParts.parentDomain}?${QUERY_PARAMS.REDIRECT}=${encodeURIComponent(event.request.url)}&${QUERY_PARAMS.GET_CONFIG}=true`)
-
-      return new Response('', {
-        status: 307,
-        headers: {
-          location: location.toString()
-        }
-      })
-    }
-
-    // if we need to apply a redirect, apply it now
-    const redirect = url.searchParams.get(QUERY_PARAMS.REDIRECT)
-
-    if (redirect != null) {
-      return new Response('', {
-        status: 307,
-        headers: {
-          location: redirect
-        }
-      })
-    }
-
-    const config = await conf.get()
     const headers = createHeaders(event)
-    let renderPreview = false
+    let renderHtml = false
 
     const accept = headers.get('accept')
 
@@ -523,23 +448,23 @@ export const contentRequestHandler: Handler = {
         // verified-fetch will 406 but we can render an HTML view of the result so
         // remove the accept header and accept whatever verified-fetch gives us
         headers.delete('accept')
-
-        if (url.searchParams.get('download') !== 'true') {
-          renderPreview = true
-        }
+        renderHtml = true
       }
+    }
+
+    // if the user has explicitly requested a preview, show it to them
+    if (url.searchParams.get('download') === 'false') {
+      renderHtml = true
     }
 
     const response = await getResponseFromCacheOrFetch({
       event,
       url,
       headers,
-      subdomainGatewayRequest,
-      pathGatewayRequest,
       logs,
-      cacheKey: getCacheKey(url, headers, renderPreview, config),
+      cacheKey: getCacheKey(url, headers, renderHtml),
       isMutable: urlParts.protocol === 'ipns',
-      renderPreview,
+      renderHtml,
       accept
     })
 

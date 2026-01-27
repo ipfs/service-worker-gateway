@@ -1,6 +1,4 @@
 import { test as base } from '@playwright/test'
-import { setConfig } from './set-sw-config.ts'
-import { waitForServiceWorker } from './wait-for-service-worker.ts'
 import type { Page, TestFixture } from '@playwright/test'
 
 interface TestOptions {
@@ -75,29 +73,6 @@ export const test = base.extend<TestOptions>({
 
     await page.goto(baseURL, {
       waitUntil: 'networkidle'
-    })
-
-    await waitForServiceWorker(page)
-
-    if (process.env.KUBO_GATEWAY == null || process.env.KUBO_GATEWAY === '') {
-      throw new Error('KUBO_GATEWAY not set')
-    }
-
-    if (process.env.DNS_JSON_SERVER == null || process.env.DNS_JSON_SERVER === '') {
-      throw new Error('DNS_JSON_SERVER not set')
-    }
-
-    // set config for the initial page
-    await setConfig(page, {
-      gateways: [
-        `${process.env.KUBO_GATEWAY}`
-      ],
-      routers: [
-        `${process.env.KUBO_GATEWAY}`
-      ],
-      dnsJsonResolvers: {
-        '.': `${process.env.DNS_JSON_SERVER}`
-      }
     })
 
     await page.route('**/*', async (route) => {

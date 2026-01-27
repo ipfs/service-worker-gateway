@@ -6,23 +6,14 @@ import * as json from 'multiformats/codecs/json'
 import { identity } from 'multiformats/hashes/identity'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { CURRENT_CACHES } from '../src/constants.ts'
-import { HASH_FRAGMENTS } from '../src/lib/constants.ts'
 import { CODE_RAW } from '../src/ui/pages/multicodec-table.ts'
 import { test, expect } from './fixtures/config-test-fixtures.ts'
 import { hasCacheEntry } from './fixtures/has-cache-entry.ts'
 import { loadWithServiceWorker } from './fixtures/load-with-service-worker.ts'
-import { setConfig } from './fixtures/set-sw-config.ts'
-import { waitForServiceWorker } from './fixtures/wait-for-service-worker.ts'
 
 test.describe('smoke test', () => {
   test('loads a jpeg', async ({ page, baseURL }) => {
     const cid = 'bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi'
-
-    await loadWithServiceWorker(page, `${baseURL}/`)
-
-    // should not be cached
-    expect(await hasCacheEntry(page, CURRENT_CACHES.mutable, cid)).toBeFalsy()
-    expect(await hasCacheEntry(page, CURRENT_CACHES.immutable, cid)).toBeFalsy()
 
     const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}`)
     expect(response?.status()).toBe(200)
@@ -91,97 +82,6 @@ test.describe('smoke test', () => {
     expect(await hasCacheEntry(page, CURRENT_CACHES.immutable, name)).toBeFalsy()
   })
 
-  test('configurable timeout value is respected', async ({ page, baseURL, protocol, host }) => {
-    await page.goto(`${baseURL}`)
-    await waitForServiceWorker(page)
-    await setConfig(page, {
-      fetchTimeout: 5
-    })
-
-    const response504 = page.waitForResponse(async (response) => {
-      const url = new URL(response.url())
-      return url.host === `bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze.ipfs.${host}` && url.pathname.includes('/wiki/Antarctica') && response.status() === 504
-    })
-    await page.goto(`${baseURL}/ipfs/bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze/wiki/Antarctica`)
-
-    const response = await response504
-    expect(response?.status()).toBe(504)
-    const text = await response?.text()
-    expect(text).toContain('504 Gateway Timeout')
-  })
-
-  test('unregistering the service worker works', async ({ page, baseURL }) => {
-    await page.goto(`${baseURL}/#${HASH_FRAGMENTS.IPFS_SW_CONFIG_UI}`, {
-      waitUntil: 'networkidle'
-    })
-    await waitForServiceWorker(page)
-
-    // unregister the service worker and make sure the config is empty
-    await page.click('#unregister-sw')
-    await page.waitForLoadState('networkidle')
-
-    const noRegistration = await page.evaluate(async () => {
-      return await window.navigator.serviceWorker.getRegistration() === undefined
-    })
-
-    expect(noRegistration).toBe(true)
-  })
-
-  test('service worker un-registers automatically when ttl expires', async ({ page, baseURL, protocol, host }) => {
-    // TODO: this test fails for firefox in CI, works locally
-    if (process.env.CI != null) {
-      test.skip()
-      return
-    }
-
-    const isOnline = await page.evaluate(() => {
-      return window.navigator.onLine
-    })
-
-    if (!isOnline) {
-      // running tests offline so the service worker will not unregister itself
-      test.skip()
-      return
-    }
-
-    async function hasRegistration (): Promise<boolean> {
-      return page.evaluate(async () => {
-        return await window.navigator.serviceWorker.getRegistration() != null
-      })
-    }
-
-    const serviceWorkerRegistrationTTL = 1_000
-
-    // set the ttl in milliseconds
-    await setConfig(page, {
-      serviceWorkerRegistrationTTL
-    })
-
-    const content = 'unregister after ttl expiry test'
-    const cid = CID.createV1(CODE_RAW, identity.digest(uint8ArrayFromString(content)))
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}`, {
-      redirect: `${protocol}//${cid}.ipfs.${host}/`
-    })
-    expect(response.status()).toBe(200)
-    expect(await response.text()).toContain(content)
-
-    expect(await hasRegistration()).toBe(true)
-
-    // wait for the ttl to expire
-    await page.waitForTimeout(serviceWorkerRegistrationTTL * 2)
-
-    // invoke the service worker again so it checks the TTL and finds that it
-    // has expired
-    await page.reload({
-      waitUntil: 'networkidle'
-    })
-
-    // give the service worker time to unregister
-    await page.waitForTimeout(serviceWorkerRegistrationTTL * 2)
-
-    expect(await hasRegistration()).toBe(false)
-  })
-
   test('normalizes base16 CIDs to base32', async ({ page, baseURL, protocol, host }) => {
     const cid = 'bafkqablimvwgy3y'
     const asBase16 = CID.parse(cid).toString(base16)
@@ -205,11 +105,11 @@ test.describe('smoke test', () => {
   })
 
   test('errors on invalid CIDs', async ({ page, baseURL }) => {
-    const cid = '!bafkqablimvwgy3y'
+    const cid = 'bafkqablimvwgy3yasdfasdff32'
 
     const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}`)
-    expect(response.status()).toBe(400)
-    expect(await response.text()).toContain('Could not parse CID')
+    expect(response?.status()).toBe(400)
+    expect(await response?.text()).toContain('Could not parse CID')
   })
 
   test('supports truncated CID hashes', async ({ page, baseURL }) => {

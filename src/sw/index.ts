@@ -1,14 +1,17 @@
+import weald from 'weald'
+import { config } from '../config/index.ts'
 import { CURRENT_CACHES } from '../constants.ts'
 import { logEmitter } from '../lib/collecting-logger.ts'
 import { QUERY_PARAMS } from '../lib/constants.ts'
 import { getSwLogger } from '../lib/logger.ts'
 import { APP_NAME, APP_VERSION, GIT_REVISION } from '../version.ts'
 import { handlers } from './handlers/index.ts'
-import { getConfig } from './lib/config.ts'
 import { getInstallTime, setInstallTime } from './lib/install-time.ts'
 import { updateRedirect } from './lib/update-redirect.ts'
 import { serverErrorPageResponse } from './pages/server-error-page.ts'
 import type { Handler } from './handlers/index.ts'
+
+weald.enable(config.debug)
 
 /**
  * These are block/car providers that were used while downloading data
@@ -178,16 +181,15 @@ async function isServiceWorkerRegistrationTTLValid (): Promise<boolean> {
     return true
   }
 
-  const config = await getConfig()
   const firstInstallTime = await getInstallTime()
 
-  if (firstInstallTime == null || config?.serviceWorkerRegistrationTTL == null) {
+  if (firstInstallTime == null) {
     // no firstInstallTime or serviceWorkerRegistrationTTL, assume new and valid
     return true
   }
 
   const now = Date.now()
-  return now - firstInstallTime <= config.serviceWorkerRegistrationTTL
+  return now - firstInstallTime <= config.serviceWorkerTTL
 }
 
 /**

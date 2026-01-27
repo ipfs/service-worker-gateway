@@ -1,3 +1,5 @@
+/* eslint-disable max-nested-callbacks */
+
 import { constants } from 'node:fs'
 import { access, readFile } from 'node:fs/promises'
 import { resolve, dirname } from 'node:path'
@@ -6,8 +8,7 @@ import { expect } from 'aegir/chai'
 import { glob } from 'glob'
 
 const cwd = dirname(fileURLToPath(import.meta.url))
-
-const distRoot = resolve(cwd, '../../dist')
+const distRoot = resolve(cwd, '../dist')
 
 interface DistTest {
   content?: Array<string | RegExp>
@@ -51,23 +52,32 @@ describe(`verify-dist at ${distRoot}`, () => {
   ]
 
   distTests.forEach(({ filePath, globPath, content }) => {
-    it(`has ${filePath ?? globPath} with expected content`, async () => {
-      let resolvedPath
-      if (filePath != null) {
-        resolvedPath = resolve(distRoot, filePath)
-      } else {
-        const files = await glob(`${distRoot}/${globPath}`)
-        resolvedPath = files[0]
-      }
-      await expect(access(resolvedPath, constants.F_OK)).to.not.be.rejected()
+    describe(`${filePath ?? globPath}`, () => {
+      let resolvedPath: string
+
+      beforeEach(async () => {
+        if (filePath != null) {
+          resolvedPath = resolve(distRoot, filePath)
+        } else {
+          const files = await glob(`${distRoot}/${globPath}`)
+          resolvedPath = files[0]
+        }
+      })
+
+      it(`has ${filePath ?? globPath}`, async () => {
+        await expect(access(resolvedPath, constants.F_OK)).to.not.be.rejected()
+      })
+
       if (content != null) {
-        const fileContents = await readFile(resolvedPath, 'utf8')
-        content.forEach((c) => {
-          if (c instanceof RegExp) {
-            expect(fileContents).to.match(c)
-          } else {
-            expect(fileContents).to.include(c)
-          }
+        it(`${filePath ?? globPath} has expected content`, async () => {
+          const fileContents = await readFile(resolvedPath, 'utf8')
+          content.forEach((c) => {
+            if (c instanceof RegExp) {
+              expect(fileContents).to.match(c)
+            } else {
+              expect(fileContents).to.include(c)
+            }
+          })
         })
       }
     })

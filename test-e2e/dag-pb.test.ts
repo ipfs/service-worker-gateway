@@ -36,17 +36,11 @@ test.describe('dag-pb', () => {
     expect(await indexPage.text()).toContain('hello')
   })
 
-  test('should return directory listing after turning off index.html support', async ({ page, baseURL }) => {
-    // turn off directory index support
-    await page.click('#e2e-link-config-page')
-    await page.click('.e2e-config-page-input-supportDirectoryIndexes label')
-    await page.click('#save-config')
-    await page.waitForTimeout(1_000)
-
+  test('should return directory listing when not downloading', async ({ page, baseURL }) => {
     const cid = 'bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui'
     const path = 'root2/root3/root4'
 
-    const directoryListing = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}/${path}/`)
+    const directoryListing = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}/${path}/?download=false`)
     expect(directoryListing.status()).toBe(200)
     expect(directoryListing.headers()['content-type']).toContain('text/html')
 
