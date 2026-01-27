@@ -17,7 +17,7 @@ declare global {
  * The `index.html` page is loaded either as the root domain (e.g.
  * `http://localhost:1234`), a path gateway request (e.g.
  * `http://localhost:1234/ipfs/bafyfoo`)
- *  or as subdomain request (e.g. `http://bafyfoo.ipfs.localhost:1234/bar/baz`).
+ * or as subdomain request (e.g. `http://bafyfoo.ipfs.localhost:1234/bar/baz`).
  *
  * If the root domain was requested with a path gateway path (e.g. `/ipfs/Qmfoo`
  * or `/ipns/Qmfoo`) we need to redirect the user to a subdomain to load the
