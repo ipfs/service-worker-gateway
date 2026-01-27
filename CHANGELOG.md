@@ -1,5 +1,22 @@
 # Changelog
 
+## [3.0.0](https://github.com/ipfs/service-worker-gateway/compare/v2.2.0...v3.0.0) (2026-01-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* the config page has been removed
+* path gateway or access via IP addresses is no longer supported
+
+### Features
+
+* remove path gateway support ([#959](https://github.com/ipfs/service-worker-gateway/issues/959)) ([9c7ddfd](https://github.com/ipfs/service-worker-gateway/commit/9c7ddfd6ec1da457d2b7bd7e8d04a34259e689b2))
+
+
+### Bug Fixes
+
+* remove config page ([#963](https://github.com/ipfs/service-worker-gateway/issues/963)) ([a13fbc6](https://github.com/ipfs/service-worker-gateway/commit/a13fbc6f6afa5504be86ae8023f8b3c478a6cd32))
+
 ## [2.2.0](https://github.com/ipfs/service-worker-gateway/compare/v2.1.2...v2.2.0) (2026-01-20)
 
 
