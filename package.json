@@ -24,7 +24,8 @@
     "test:conformance": "npm run build:test && playwright test -c ./test-conformance/playwright.config.js --project chromium",
     "update-conformance": "node --experimental-strip-types ./test-conformance/fixtures/update-expected-tests.ts",
     "postinstall": "patch-package",
-    "generate-fixtures": "node --experimental-strip-types ./test-e2e/fixtures/data/generate.ts"
+    "generate-fixtures": "node --experimental-strip-types ./test-e2e/fixtures/data/generate.ts",
+    "benchmark": "playwright test -c ./benchmark/playwright.config.js --project chromium"
   },
   "browser": "./dist/src/index.js",
   "browserslist": [

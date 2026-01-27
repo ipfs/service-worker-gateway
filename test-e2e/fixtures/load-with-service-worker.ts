@@ -10,16 +10,22 @@ export interface LoadWithServiceWorkerOptions {
 
   /**
    * See Playwright Page.goto args
+   *
+   * @see {Page.goto}
    */
   referer?: string
 
   /**
    * See Playwright Page.goto args
+   *
+   * @see {Page.goto}
    */
   timeout?: number
 
   /**
    * See Playwright Page.goto args
+   *
+   * @see {Page.goto}
    */
   waitUntil?: 'load' | 'domcontentloaded' | 'networkidle' | 'commit'
 }
