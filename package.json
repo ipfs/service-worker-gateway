@@ -20,7 +20,7 @@
     "test:firefox": "npm run build:test && playwright test -c playwright.config.js --project firefox no-service-worker",
     "test:safari": "npm run build:test && playwright test -c playwright.config.js --project safari",
     "test:local-binary": "npm run build:test && concurrently -k --success first -n \"binary,tests\" \"./service-worker-gateway\" \"cross-env SHOULD_BUILD=false SHOULD_SERVE=false playwright test -c playwright.config.js --project deployed no-service-worker\"",
-    "test:node": "aegir test -t node -f test/node.ts --cov -- --experimental-strip-types",
+    "test:node": "cross-env NODE_ENV=test aegir test -t node -f test/**/*.spec.ts -- --experimental-strip-types",
     "test:conformance": "npm run build:test && playwright test -c ./test-conformance/playwright.config.js --project chromium",
     "update-conformance": "node --experimental-strip-types ./test-conformance/fixtures/update-expected-tests.ts",
     "postinstall": "patch-package",
