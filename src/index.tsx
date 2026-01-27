@@ -14,62 +14,23 @@ declare global {
 }
 
 /**
- * The `index.html` page is loaded either directly (e.g. `http://localhost:1234`
- * or `http://bafyfoo.ipfs.localhost:1234`)
- * or via an internal redirect (e.g. `http://localhost:1234/ipfs/bafyfoo` or
- * `http://bafyfoo.ipfs.localhost:1234/bar/baz`).
+ * The `index.html` page is loaded either as the root domain (e.g.
+ * `http://localhost:1234`), a path gateway request (e.g.
+ * `http://localhost:1234/ipfs/bafyfoo`)
+ *  or as subdomain request (e.g. `http://bafyfoo.ipfs.localhost:1234/bar/baz`).
  *
- * A direct load means we need to install the service worker and then either
- * show the UI (if it was explicitly requested/it was a non-subdomain gateway
- * request) or redirect the user to an onward page (either due to the presence
- * of the `QUERY_PARAMS.REDIRECT` param or if it was a subdomain gateway
- * request).
+ * If the root domain was requested with a path gateway path (e.g. `/ipfs/Qmfoo`
+ * or `/ipns/Qmfoo`) we need to redirect the user to a subdomain to load the
+ * content, otherwise we show the UI.
  *
- * An indirect load means we need to install the service worker and then
- * redirect.
- *
- * In both cases we need to write the config into IndexedDB if not present.
- *
- * If loaded directly or indirectly:
- *
- * 1. Check for service worker support
- * - If not found, render the UI which will show an error
- * 2. Check for pre-existing config
- * - If not found, initialize using contents of `QUERY_PARAMS.CONFIG` param or defaults
- * 3. Check for service worker
- * - If not found, initialize service worker
- *
- * If loaded directly
- *
- * This means we are either about to redirect back to a path/subdomain gateway
- * or show the UI
- *
- * 1. Check `QUERY_PARAMS.REDIRECT` param
- * - If present
- * - - Check `helia-get-config` param
- * - - - If present, load config, compress and add to redirect URL
- * - - Redirect to param value
- * - Otherwise show service worker UI
- *
- * If loaded indirectly:
- *
- * This means a subdomain or path gateway request was made but the service
- * worker was not installed (as it would have intercepted the request).
- *
- * 1. If the request is for a path gateway:
- * - Detect subdomain support
- * - - If present, redirect to subdomain gateway URL
- * - - If not present, detect whether origin isolation warning has been accepted
- * - - - If accepted encode current URL as `QUERY_PARAMS.REDIRECT` and redirect to domain root
- * - - - If not accepted, show origin isolation warning UI
- * 2. Otherwise if the request is for a subdomain gateway
- * - Check `helia-config` param, if present, deserialize and write into IndexedDB
+ * If it's a subdomain request we need to install the service worker, then
+ * reload the current page so the request can be handled by the service worker.
  */
 async function main (): Promise<void> {
   try {
     if (!('serviceWorker' in navigator)) {
-      // no service worker support, render the UI which will tell the user service
-      // workers are not supported
+      // no service worker support, render the UI which will tell the user
+      // service workers are not supported
       await renderUi()
       return
     }
@@ -147,12 +108,12 @@ async function main (): Promise<void> {
       const hasActiveWorker = registration?.active != null
 
       if (!hasActiveWorker) {
-        // install the service worker on the root path of this domain, either path
-        // or subdomain gateway
+        // install the service worker on the root path of this domain, either
+        // path or subdomain gateway
         await registerServiceWorker()
 
-        // service worker is now installed so redirect to path or subdomain for data
-        // so it can intercept the request
+        // service worker is now installed so redirect to path or subdomain for
+        // data so it can intercept the request
         window.location.href = url.toString()
         return
       }

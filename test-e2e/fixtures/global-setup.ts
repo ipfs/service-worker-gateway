@@ -3,7 +3,8 @@ import { startServers } from './serve/index.ts'
 
 export default async function globalSetup (config: Record<string, any> = {}): Promise<void> {
   const servers = await startServers({
-    loadFixtures: true
+    loadFixtures: true,
+    startFrontend: process.env.SHOULD_SERVE !== 'false'
   })
   const kuboInfo = await servers.kubo.info()
 

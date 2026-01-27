@@ -85,21 +85,8 @@ You can build and run the project locally:
 
 Now open your browser and go to `http://localhost:3000`
 
-Below is an explanation of the different URLs and what they do:
-
-With reverse-proxy:
-* `http://localhost:3333` - The service worker gateway front-end served directly with esbuild. (localhost:3333 -> localhost:8345)
-* `http://localhost:3334` - The service worker gateway front-end hosted by an IPFS gateway running on 'localhost:8088'. (localhost:3334 -> localhost:8088 with x-forwarded-host header)
-
-Without reverse-proxy:
-* `http://localhost:8345` - The service worker gateway front-end served directly with esbuild.
-
-For the above URLs with reverse-proxy, the reverse proxy ensures subdomain
-support. This ensures you can access URLs like `https://<hash>.ipfs.localhost:<port>/`
-and `https://<dnslink>.ipns.localhost:<port>/`
-
 As you type in a content path, you will be redirected to appropriate URL
-(typically that means [subdomain style resolution](https://docs.ipfs.tech/how-to/gateway-best-practices/#use-subdomain-gateway-resolution-for-origin-isolation)).
+using [subdomain style resolution](https://docs.ipfs.tech/how-to/gateway-best-practices/#use-subdomain-gateway-resolution-for-origin-isolation).
 
 For more information about local development setup, see [/docs/DEVELOPMENT.md](/docs/DEVELOPMENT.md).
 
@@ -110,12 +97,6 @@ aiming to be a drop-in replacement for `dweb.link`:
 
 - 🚧 **WIP: alpha quality** https://inbrowser.link hosts the `release` branch, with a stable [release](https://github.com/ipfs/service-worker-gateway/releases)
 - 🚧 **WIP: alpha quality** https://inbrowser.dev hosts the `staging` branch with development / testing version
-
-There is also an instance running in [path mode](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#path-gateway),
-aiming to be a drop-in replacement for `ipfs.io`:
-
-- 🚧 **WIP: alpha quality** https://ipfs-service-worker-gateway.pages.dev hosts the `release` branch, with a stable [release](https://github.com/ipfs/service-worker-gateway/releases)
-- 🚧 **WIP: alpha quality** https://staging.ipfs-service-worker-gateway.pages.dev hosts the `staging` branch with development / testing version
 
 #### Deploying to `production` and `staging`
 
