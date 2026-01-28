@@ -1,9 +1,12 @@
+/* eslint-disable max-depth */
+
 import weald from 'weald'
 import { config } from './config/index.ts'
 import { QUERY_PARAMS } from './lib/constants.ts'
-import { isUIPageRequest } from './lib/is-ui-page-request.ts'
-import { isPathGatewayRequest, isPathOrSubdomainRequest, isSafeOrigin, isSubdomainGatewayRequest, toSubdomainRequest } from './lib/path-or-subdomain.ts'
+import { parseRequest } from './lib/parse-request.ts'
+import { isSafeOrigin } from './lib/path-or-subdomain.ts'
 import { registerServiceWorker } from './lib/register-service-worker.ts'
+import type { ResolvableURI } from './lib/parse-request.ts'
 
 weald.enable(config.debug)
 
@@ -27,54 +30,86 @@ declare global {
  * reload the current page so the request can be handled by the service worker.
  */
 async function main (): Promise<void> {
+  if (!('serviceWorker' in navigator)) {
+    // no service worker support, render the UI which will tell the user
+    // service workers are not supported
+    await renderUi()
+    return
+  }
+
+  const url = new URL(window.location.href)
+
+  // special case - if the user has loaded loopback, redirect to localhost
+  if (url.hostname === '127.0.0.1') {
+    url.hostname = 'localhost'
+    window.location.href = url.href
+    return
+  }
+
+  // only support access via domain names - IP addresses cannot support origin
+  // isolation so are unsafe to use
+  if (!isSafeOrigin(url)) {
+    globalThis.originIsolationWarning = {
+      location: window.location.href
+    }
+    await renderUi()
+    return
+  }
+
+  // make sure we don't redirect endlessly
+  if (tooManyRedirects(`ipfs-sw-${window.location.href}-redirects`)) {
+    globalThis.serverError = {
+      url: window.location.href,
+      title: '310 Too many redirects',
+      description: [
+        'The initialization page reloaded itself too many times.',
+        'This can mean the service worker failed to install, it was invalid or it cannot run.'
+      ],
+      error: {
+        name: 'TooManyRedirects',
+        message: 'The current page redirected too many times'
+      },
+      logs: []
+    }
+
+    await renderUi()
+    return
+  }
+
+  let request: ResolvableURI
+
   try {
-    if (!('serviceWorker' in navigator)) {
-      // no service worker support, render the UI which will tell the user
-      // service workers are not supported
-      await renderUi()
+    request = parseRequest(url, new URL(globalThis.location.href))
+  } catch (err: any) {
+    // error during initialization, show an error message
+    globalThis.serverError = {
+      url: document.location.href,
+      title: 'Bad request',
+      description: 'An error occurred while trying to parse the URL.',
+      error: {
+        name: err.name,
+        message: err.message,
+        stack: err.stack,
+        reason: err.reason,
+        code: err.code,
+        cause: err.cause,
+        errors: err.errors
+      },
+      logs: []
+    }
+
+    await renderUi()
+    return
+  }
+
+  try {
+    if (request?.type === 'path' || request?.type === 'native') {
+      // redirect to subdomain
+      window.location.href = request.subdomainURL.href
       return
     }
 
-    const url = new URL(window.location.href)
-
-    // special case - if the user has loaded loopback, redirect to localhost
-    if (url.hostname === '127.0.0.1') {
-      url.hostname = 'localhost'
-      window.location.href = url.href
-      return
-    }
-
-    // only support access via domain names - IP addresses cannot support origin
-    // isolation so are unsafe to use
-    if (!isSafeOrigin(url)) {
-      globalThis.originIsolationWarning = {
-        location: window.location.href
-      }
-      await renderUi()
-      return
-    }
-
-    // make sure we don't redirect endlessly
-    if (tooManyRedirects(`ipfs-sw-${window.location.href}-redirects`)) {
-      globalThis.serverError = {
-        url: window.location.href,
-        title: '310 Too many redirects',
-        description: [
-          'The initialization page reloaded itself too many times.',
-          'This can mean the service worker failed to install, it was invalid or it cannot run.'
-        ],
-        error: {
-          name: 'TooManyRedirects',
-          message: 'The current page redirected too many times'
-        },
-        logs: []
-      }
-
-      await renderUi()
-      return
-    }
-
-    if (!isSubdomainGatewayRequest(url)) {
+    if (request.type === 'internal') {
       // if we are on the root origin, register custom handlers for ipfs:// and
       // ipns:// URLs
       try {
@@ -87,18 +122,34 @@ async function main (): Promise<void> {
 
       // redirect if we are being invoked as a URI router
       // @see https://specs.ipfs.tech/http-gateways/subdomain-gateway/#uri-router
-      if ((url.pathname === '/ipfs/' || url.pathname === '/ipns/') && url.searchParams.has(QUERY_PARAMS.URI_ROUTER)) {
+      if ((url.pathname.startsWith('/ipfs') || url.pathname.startsWith('/ipns')) && url.searchParams.has(QUERY_PARAMS.URI_ROUTER)) {
         try {
           const uri = new URL(url.searchParams.get(QUERY_PARAMS.URI_ROUTER) ?? '')
-          window.location.href = `/${uri.protocol.substring(0, 4)}/${uri.hostname}${uri.pathname}${uri.search}${uri.hash}`
-          return
-        } catch {}
-      }
+          const request = parseRequest(uri, new URL(globalThis.location.href))
 
-      if (isPathGatewayRequest(url)) {
-        // redirect to subdomain
-        window.location.href = toSubdomainRequest(url).toString()
-        return
+          if (request.type === 'subdomain' || request.type === 'path' || request.type === 'native') {
+            window.location.href = request.subdomainURL.href
+            return
+          }
+          return
+        } catch (err: any) {
+          // error during initialization, show an error message
+          globalThis.serverError = {
+            url: document.location.href,
+            title: 'Invalid URI',
+            description: 'Could not parse a valid URI from the passed argument',
+            error: {
+              name: err.name,
+              message: err.message,
+              stack: err.stack,
+              reason: err.reason,
+              code: err.code,
+              cause: err.cause,
+              errors: err.errors
+            },
+            logs: []
+          }
+        }
       }
 
       await renderUi()
@@ -198,20 +249,6 @@ function tooManyRedirects (storageKey: string, maxRedirects = 5, period = 5_000)
   localStorage.setItem(storageKey, JSON.stringify(recent))
 
   return recent.length > maxRedirects
-}
-
-export function isRequestForContentAddressedData (url: URL): boolean {
-  if (isUIPageRequest(url)) {
-    // hash request for UI pages, not content addressed data
-    return false
-  }
-
-  if (isPathOrSubdomainRequest(url)) {
-    // subdomain request
-    return true
-  }
-
-  return false
 }
 
 main()

@@ -3,11 +3,12 @@ import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
 import { headersToObject } from '../../lib/headers-to-object.ts'
 import { APP_NAME, APP_VERSION, GIT_REVISION } from '../../version.ts'
 import { htmlPage } from './page.ts'
+import type { ContentURI } from '../../lib/parse-request.ts'
 
 /**
  * Renders the properties of the object deserialized from the block
  */
-export function renderEntityPageResponse (url: URL, headers: Headers, response: Response, entity: ArrayBuffer): Response {
+export function renderEntityPageResponse (request: ContentURI, headers: Headers, response: Response, entity: ArrayBuffer): Response {
   const mergedHeaders = new Headers(response.headers)
   const contentType = mergedHeaders.get('content-type')
 
@@ -22,7 +23,7 @@ export function renderEntityPageResponse (url: URL, headers: Headers, response: 
     entity: uint8ArrayToString(new Uint8Array(entity, 0, entity.byteLength), 'base64'),
     contentType,
     request: {
-      url: url.toString(),
+      url: request.subdomainURL.toString(),
       headers: headersToObject(headers)
     },
     response: {

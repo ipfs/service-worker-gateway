@@ -4,6 +4,7 @@ import { CID } from 'multiformats'
 import { identity } from 'multiformats/hashes/identity'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { headersToObject } from '../../src/lib/headers-to-object.ts'
+import { parseRequest } from '../../src/lib/parse-request.ts'
 import { CODE_RAW } from '../../src/ui/pages/multicodec-table.ts'
 import { loadWithServiceWorker } from './load-with-service-worker.ts'
 import type { Page, Response } from '@playwright/test'
@@ -20,6 +21,11 @@ export async function makeFetchRequest (page: Page, url: URL | string, init?: Re
     uint8ArrayFromString('<html><body></body></html>')
   ))
   await loadWithServiceWorker(page, `http://${cid}.ipfs.localhost:3000/`)
+  const request = parseRequest(url, new URL('http://localhost:3000'))
+
+  if (request.type === 'subdomain' || request.type === 'path' || request.type === 'native') {
+    url = request.subdomainURL
+  }
 
   const result = await page.evaluate(async ({ url, headers }) => {
     function headersToObject (headers: Headers): Record<string, string> {

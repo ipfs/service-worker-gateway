@@ -6,15 +6,14 @@ import { CURRENT_CACHES } from '../../constants.ts'
 import { errorToObject } from '../../lib/error-to-object.ts'
 import { getSubdomainParts } from '../../lib/get-subdomain-parts.ts'
 import { getSwLogger } from '../../lib/logger.ts'
-import { isPathGatewayRequest, isSubdomainGatewayRequest, toSubdomainRequest } from '../../lib/path-or-subdomain.ts'
 import { isBitswapProvider, isTrustlessGatewayProvider } from '../../lib/providers.ts'
 import { APP_NAME, APP_VERSION, GIT_REVISION } from '../../version.ts'
 import { getInstallTime } from '../lib/install-time.ts'
-import { httpResourceToIpfsUrl } from '../lib/resource-to-url.ts'
 import { getVerifiedFetch } from '../lib/verified-fetch.ts'
 import { fetchErrorPageResponse } from '../pages/fetch-error-page.ts'
 import { renderEntityPageResponse } from '../pages/render-entity.ts'
 import type { Handler } from './index.ts'
+import type { ContentURI } from '../../lib/parse-request.ts'
 import type { Providers } from '../index.ts'
 import type { VerifiedFetchInit } from '@helia/verified-fetch'
 
@@ -32,7 +31,7 @@ const FORMAT_TO_MEDIA_TYPE: Record<string, string> = {
 interface FetchHandlerArg {
   event: FetchEvent
   logs: string[]
-  url: URL
+  request: ContentURI
   headers: Headers
   renderHtml: boolean
   cacheKey: string
@@ -42,8 +41,8 @@ interface FetchHandlerArg {
 
 const ONE_HOUR_IN_SECONDS = 3600
 
-function getCacheKey (url: URL, headers: Headers, renderHtml: boolean): string {
-  return `${url}-${headers.get('accept')}-html-${renderHtml}-match-${headers.get('if-none-match')}`
+function getCacheKey (resource: ContentURI, headers: Headers, renderHtml: boolean): string {
+  return `${resource.subdomainURL}-${headers.get('accept')}-html-${renderHtml}-match-${headers.get('if-none-match')}`
 }
 
 async function getResponseFromCacheOrFetch (args: FetchHandlerArg): Promise<Response> {
@@ -166,7 +165,7 @@ async function storeResponseInCache (response: Response, args: FetchHandlerArg):
   }
 }
 
-async function fetchHandler ({ url, headers, renderHtml, event, logs, accept }: FetchHandlerArg): Promise<Response> {
+async function fetchHandler ({ request, headers, renderHtml, event, logs, accept }: FetchHandlerArg): Promise<Response> {
   const log = getSwLogger('fetch-handler')
 
   const providers: Providers = {
@@ -177,13 +176,7 @@ async function fetchHandler ({ url, headers, renderHtml, event, logs, accept }: 
     otherCount: 0
   }
 
-  const resource = httpResourceToIpfsUrl(url)
-
-  // check for redirect
-  if (resource instanceof Response) {
-    return resource
-  }
-
+  const resource = request.nativeURL
   const firstInstallTime = await getInstallTime()
   const start = Date.now()
 
@@ -242,8 +235,8 @@ async function fetchHandler ({ url, headers, renderHtml, event, logs, accept }: 
         }
       }
     },
-    supportDirectoryIndexes: url.searchParams.get('download') !== 'false',
-    supportWebRedirects: url.searchParams.get('download') !== 'false'
+    supportDirectoryIndexes: resource.searchParams.get('download') !== 'false',
+    supportWebRedirects: resource.searchParams.get('download') !== 'false'
   }
 
   try {
@@ -268,17 +261,17 @@ async function fetchHandler ({ url, headers, renderHtml, event, logs, accept }: 
 
     // render previews for UnixFS directories
     if (response.headers.get('content-type') === MEDIA_TYPE_DAG_PB) {
-      renderHtml = shouldRenderDirectory(url, accept)
+      renderHtml = shouldRenderDirectory(resource, accept)
     }
 
     if (response.status > 399) {
-      return fetchErrorPageResponse(resource, init, response, await response.text(), providers, firstInstallTime, logs)
+      return fetchErrorPageResponse(request, init, response, await response.text(), providers, firstInstallTime, logs)
     }
 
     if (response.status > 199 && response.status < 300) {
       if (renderHtml) {
         try {
-          return renderEntityPageResponse(url, headers, response, await response.arrayBuffer())
+          return renderEntityPageResponse(request, headers, response, await response.arrayBuffer())
         } catch (err: any) {
           log.error('error while loading body to render - %e', err)
 
@@ -286,7 +279,7 @@ async function fetchHandler ({ url, headers, renderHtml, event, logs, accept }: 
           // loading a subsequent block fails, the `.arrayBuffer()` promise will
           // reject with an opaque 'TypeError: Failed to fetch' so show a 502
           // Bad Gateway with debugging information
-          return fetchErrorPageResponse(resource, init, new Response('', {
+          return fetchErrorPageResponse(request, init, new Response('', {
             status: 502,
             statusText: 'Bad Gateway',
             headers: {
@@ -294,7 +287,7 @@ async function fetchHandler ({ url, headers, renderHtml, event, logs, accept }: 
             }
           }), JSON.stringify(errorToObject(err), null, 2), providers, firstInstallTime, logs)
         }
-      } else if (url.searchParams.get('download') === 'true') {
+      } else if (resource.searchParams.get('download') === 'true') {
         // override inline attachments if present
         let contentDisposition = response.headers.get('content-disposition')
 
@@ -335,7 +328,7 @@ async function fetchHandler ({ url, headers, renderHtml, event, logs, accept }: 
     })
   } catch (err: any) {
     if (abortController.signal.aborted) {
-      return fetchErrorPageResponse(resource, init, new Response('', {
+      return fetchErrorPageResponse(request, init, new Response('', {
         status: 504,
         statusText: 'Gateway Timeout',
         headers: {
@@ -346,7 +339,7 @@ async function fetchHandler ({ url, headers, renderHtml, event, logs, accept }: 
 
     log.error('error during request - %e', err)
 
-    return fetchErrorPageResponse(resource, init, new Response('', {
+    return fetchErrorPageResponse(request, init, new Response('', {
       status: 500,
       statusText: 'Internal Server Error',
       headers: {
@@ -383,41 +376,15 @@ function shouldRenderDirectory (url: URL, accept?: string | null): boolean {
 export const contentRequestHandler: Handler = {
   name: 'content-request-handler',
 
-  canHandle (url) {
-    if (isSubdomainGatewayRequest(url)) {
-      return true
-    }
-
-    if (isPathGatewayRequest(url)) {
-      // if the request is for the current origin, allow the request to fail in
-      // the `handle` method if, for example the CID is invalid
-      if (url.origin === self.location.origin) {
-        return true
-      }
-
-      // if the request is for a different origin, make sure it is parseable -
-      // this allows us to intercept a request for another IPFS gateway locally
-      // while not failing to handle the situation where (for example) a user
-      // has an `ipfs` folder at the root of their site and they are requesting
-      // a static asset from it
-      try {
-        toSubdomainRequest(url)
-        return true
-      } catch {
-        // if we cannot convert the path gateway request to a subdomain request
-        // it means it may be `/ipfs/foo.png` for example
-        return false
-      }
-    }
-
-    return false
+  canHandle (request) {
+    return request.type === 'subdomain'
   },
 
-  async handle (url, event, logs) {
+  async handle (request: ContentURI, event, logs) {
     // request was for subdomain or path gateway
     const log = getSwLogger('fetch-handler')
 
-    log('handling request for %s', url)
+    log('handling request for %s', request.subdomainURL)
 
     const urlParts = getSubdomainParts(event.request.url)
 
@@ -453,16 +420,16 @@ export const contentRequestHandler: Handler = {
     }
 
     // if the user has explicitly requested a preview, show it to them
-    if (url.searchParams.get('download') === 'false') {
+    if (request.subdomainURL.searchParams.get('download') === 'false') {
       renderHtml = true
     }
 
     const response = await getResponseFromCacheOrFetch({
       event,
-      url,
+      request,
       headers,
       logs,
-      cacheKey: getCacheKey(url, headers, renderHtml),
+      cacheKey: getCacheKey(request, headers, renderHtml),
       isMutable: urlParts.protocol === 'ipns',
       renderHtml,
       accept
