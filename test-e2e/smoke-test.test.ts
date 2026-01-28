@@ -107,9 +107,13 @@ test.describe('smoke test', () => {
   test('errors on invalid CIDs', async ({ page, baseURL }) => {
     const cid = 'bafkqablimvwgy3yasdfasdff32'
 
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}`)
-    expect(response?.status()).toBe(400)
-    expect(await response?.text()).toContain('Could not parse CID')
+    const response = await page.goto(`${baseURL}/ipfs/${cid}`, {
+      waitUntil: 'networkidle'
+    })
+    expect(response?.status()).toBe(200)
+    await page.waitForSelector('text=Could not parse CID', {
+      timeout: 25_000
+    })
   })
 
   test('supports truncated CID hashes', async ({ page, baseURL }) => {

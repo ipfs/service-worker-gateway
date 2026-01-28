@@ -9,7 +9,6 @@ import prettyBytes from 'pretty-bytes'
 import React from 'react'
 import { FaRegFile } from 'react-icons/fa'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
-import { isSubdomainGatewayRequest } from '../../lib/path-or-subdomain.ts'
 import { removeRootHashIfPresent } from '../../lib/remove-root-hash.ts'
 import { getGatewayRoot, toGatewayRoot } from '../../lib/to-gateway-root.ts'
 import { CIDDetails } from '../components/cid-details.tsx'
@@ -140,21 +139,13 @@ interface UnixFSPathProps {
 }
 
 function UnixFSPath ({ ipfsPath }: UnixFSPathProps): ReactElement {
-  const onSubdomain = isSubdomainGatewayRequest(document.location)
-
   // /ipfs/cid/path
   const parts = ipfsPath.split('/')
     .slice(2)
     .filter(segment => segment !== '')
     .map((segment, index, arr) => {
-      if (onSubdomain) {
-        return (
-          <span key={`index-${index}`}>/<a href={`/${arr.slice(1, index + 1).join('/')}`} className={`link ${index === 0 ? 'ipfs-hash' : ''}`}>{segment}</a></span>
-        )
-      }
-
       return (
-        <span key={`index-${index}`}>/<a href={`/ipfs/${arr.slice(0, index + 1).join('/')}`} className={`link ${index === 0 ? 'ipfs-hash' : ''}`}>{segment}</a></span>
+        <span key={`index-${index}`}>/<a href={`/${arr.slice(1, index + 1).join('/')}`} className={`link ${index === 0 ? 'ipfs-hash' : ''}`}>{segment}</a></span>
       )
     })
 

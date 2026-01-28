@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { toSubdomainRequest } from '../../src/lib/path-or-subdomain.ts'
+import { parseRequest } from '../../src/lib/parse-request.ts'
 import type { Page, Response } from 'playwright'
 
 export interface LoadWithServiceWorkerOptions {
@@ -83,7 +83,11 @@ export async function loadWithServiceWorker (page: Page, resource: string, optio
     expected = options.redirect
   } else {
     try {
-      expected = toSubdomainRequest(new URL(resource)).href
+      const request = parseRequest(new URL(resource), new URL('http://localhost:3000'))
+
+      if (request.type === 'subdomain' || request.type === 'path' || request.type === 'native') {
+        expected = request.subdomainURL.href
+      }
     } catch {}
   }
 
@@ -100,6 +104,9 @@ export async function loadWithServiceWorker (page: Page, resource: string, optio
         // this doesn't always get escaped?
         url = url.replaceAll('*', '%2A')
       }
+
+      // console.info('expect', expected)
+      // console.info('got', url)
 
       // ignore responses from the UI
       // if (!response.fromServiceWorker()) { <-- does not work in Firefox :(

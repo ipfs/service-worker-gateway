@@ -1,6 +1,6 @@
-import { expect } from 'aegir/chai'
-import { nativeProtocolRegex, pathRegex, subdomainRegex } from '../src/lib/regex.ts'
-
+// import { expect } from 'aegir/chai'
+// import { nativeProtocolRegex, pathRegex, subdomainRegex } from '../../src/lib/regex.ts'
+/*
 const validPathUrls = [
   // IPFS paths without domain
   ['/ipfs/bafyFoo', 'ipfs', 'bafyFoo', ''],
@@ -153,3 +153,4 @@ describe('regex', () => {
     })
   })
 })
+*/

@@ -1,5 +1,6 @@
 import { APP_NAME, APP_VERSION, GIT_REVISION } from '../../version.ts'
 import { htmlPage } from './page.ts'
+import type { ContentURI } from '../../lib/parse-request.ts'
 import type { Providers as ErrorPageProviders } from '../../ui/pages/fetch-error.tsx'
 import type { Providers } from '../index.ts'
 
@@ -60,7 +61,7 @@ export interface RequestDetails {
   headers: Record<string, string>
 }
 
-function getRequestDetails (resource: URL, init: RequestInit): RequestDetails {
+function getRequestDetails (request: ContentURI, init: RequestInit): RequestDetails {
   const requestHeaders = new Headers(init.headers)
   const headers: Record<string, string> = {}
   requestHeaders.forEach((value, key) => {
@@ -68,7 +69,7 @@ function getRequestDetails (resource: URL, init: RequestInit): RequestDetails {
   })
 
   return {
-    resource,
+    resource: request.subdomainURL,
     method: init.method ?? 'GET',
     headers
   }
@@ -100,7 +101,7 @@ function getResponseDetails (response: Response, body: string): ResponseDetails 
 /**
  * Shows an error page to the user
  */
-export function fetchErrorPageResponse (resource: URL, request: RequestInit, fetchResponse: Response, responseBody: string, providers: Providers, installTime: number, logs: string[]): Response {
+export function fetchErrorPageResponse (request: ContentURI, requestInit: RequestInit, fetchResponse: Response, responseBody: string, providers: Providers, installTime: number, logs: string[]): Response {
   const responseContentType = fetchResponse.headers.get('Content-Type')
 
   if (responseContentType?.includes('text/html')) {
@@ -113,7 +114,7 @@ export function fetchErrorPageResponse (resource: URL, request: RequestInit, fet
   mergedHeaders.set('server', `${APP_NAME}/${APP_VERSION}#${GIT_REVISION}`)
 
   const props = {
-    request: getRequestDetails(resource, request),
+    request: getRequestDetails(request, requestInit),
     response: responseDetails,
     config: getServiceWorkerDetails(installTime),
     providers: toErrorPageProviders(providers),

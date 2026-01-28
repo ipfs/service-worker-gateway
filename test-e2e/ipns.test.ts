@@ -57,7 +57,6 @@ test.describe('ipns', () => {
 
     await publishDNSLink(domain, cid)
 
-    // TODO: use rootDomain
     const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${domain}`)
 
     expect(response.status()).toBe(200)

@@ -1,5 +1,3 @@
-import { CID } from 'multiformats/cid'
-
 /**
  * For dnslinks see https://specs.ipfs.tech/http-gateways/subdomain-gateway/#host-request-header
  * DNSLink names include . which means they must be inlined into a single DNS
@@ -13,19 +11,12 @@ import { CID } from 'multiformats/cid'
 const dnsLabelRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/
 
 /**
- * We can receive either IPNS Name string or DNSLink label string here.
+ * DNSLink label string here.
  *
  * IPNS Names do not have dots or dashes.
  */
 function isValidDnsLabel (label: string): boolean {
-  // If string is not a valid IPNS Name (CID)
-  // then we assume it may be a valid DNSLabel.
-  try {
-    CID.parse(label)
-    return false
-  } catch {
-    return dnsLabelRegex.test(label)
-  }
+  return dnsLabelRegex.test(label)
 }
 
 /**

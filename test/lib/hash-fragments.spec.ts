@@ -1,5 +1,5 @@
 import { expect } from 'aegir/chai'
-import { parseHashFragments, getHashFragment, setHashFragment, deleteHashFragment, hasHashFragment, hashFragmentsToString } from '../src/lib/hash-fragments.ts'
+import { parseHashFragments, getHashFragment, setHashFragment, deleteHashFragment, hasHashFragment, hashFragmentsToString } from '../../src/lib/hash-fragments.ts'
 
 describe('hash-fragments', () => {
   describe('hashFragmentsToString', () => {
@@ -9,6 +9,7 @@ describe('hash-fragments', () => {
       const hash2 = hashFragmentsToString(fragments)
       expect(hash2).to.equal(hash)
     })
+
     it('should round-trip complex hash', () => {
       const hash = '#someKey=undefinedValue&someOtherKey=someValue&someNullKey&someNumericValue=123'
       const fragments = parseHashFragments(hash)
