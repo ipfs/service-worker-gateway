@@ -4,11 +4,13 @@ import { CURRENT_CACHES } from '../constants.ts'
 import { logEmitter } from '../lib/collecting-logger.ts'
 import { QUERY_PARAMS } from '../lib/constants.ts'
 import { getSwLogger } from '../lib/logger.ts'
+import { parseRequest } from '../lib/parse-request.ts'
 import { APP_NAME, APP_VERSION, GIT_REVISION } from '../version.ts'
 import { handlers } from './handlers/index.ts'
 import { getInstallTime, setInstallTime } from './lib/install-time.ts'
 import { updateRedirect } from './lib/update-redirect.ts'
 import { serverErrorPageResponse } from './pages/server-error-page.ts'
+import type { ResolvableURI } from '../lib/parse-request.ts'
 import type { Handler } from './handlers/index.ts'
 
 weald.enable(config.debug)
@@ -87,10 +89,8 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const log = getSwLogger('fetch')
-
-  const request = event.request
-  const urlString = request.url
-  const url = new URL(urlString)
+  const url = new URL(event.request.url)
+  const request = parseRequest(url, new URL(self.location.href))
 
   // collect logs from Helia/libp2p during the fetch operation
   const logs: string[] = []
@@ -101,7 +101,7 @@ self.addEventListener('fetch', (event) => {
 
   logEmitter.addEventListener('log', onLog)
 
-  const handler = handlers.find(handler => handler.canHandle(url, event, logs))
+  const handler = handlers.find(handler => handler.canHandle(request, event, logs))
 
   if (handler == null) {
     log('no handler found, falling back to global fetch for %s', url)
@@ -114,7 +114,7 @@ self.addEventListener('fetch', (event) => {
   // we can pass it a promise
   // https://stackoverflow.com/questions/76848928/failed-to-execute-respondwith-on-fetchevent-the-event-handler-is-already-f
   event.respondWith(
-    handleFetch(url, event, handler, logs)
+    handleFetch(request, event, handler, logs)
       .then(async response => {
         // maybe uninstall service worker after request has finished
         // TODO: remove this, it breaks offline installations after the TTL
@@ -154,9 +154,9 @@ self.addEventListener('fetch', (event) => {
   )
 })
 
-async function handleFetch (url: URL, event: FetchEvent, handler: Handler, logs: string[]): Promise<Response> {
+async function handleFetch (request: ResolvableURI, event: FetchEvent, handler: Handler, logs: string[]): Promise<Response> {
   try {
-    return await handler.handle(url, event, logs)
+    return await handler.handle(request, event, logs)
   } catch (err) {
     // ensure we only reject, never throw
     return Promise.reject(err)

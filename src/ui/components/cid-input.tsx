@@ -1,8 +1,7 @@
 import { CID } from 'multiformats/cid'
 import React, { useState } from 'react'
-import { nativeProtocolRegex, pathRegex, subdomainRegex } from '../../lib/regex.ts'
+import { parseRequest } from '../../lib/parse-request.ts'
 import { Link } from './link.tsx'
-import type { IpfsUriParts } from '../../lib/regex.ts'
 import type { ReactElement } from 'react'
 
 function FormatHelp (): ReactElement {
@@ -85,11 +84,11 @@ export function CIDInput ({ requestPath, setRequestPath, setInvalid }: CIDInputP
   let initialCid = ''
 
   try {
-    const uriMatch = requestPath.match(pathRegex) ?? requestPath.match(subdomainRegex) ?? requestPath.match(nativeProtocolRegex)
-    const { protocol, cidOrPeerIdOrDnslink } = uriMatch?.groups as unknown as IpfsUriParts
-
-    initialProtocol = protocol
-    initialCid = cidOrPeerIdOrDnslink
+    if (requestPath.startsWith('/ipfs') || requestPath.startsWith('/ipns')) {
+      const [, protocol, cidOrPeerIdOrDnslink] = requestPath.split('/')
+      initialProtocol = protocol
+      initialCid = cidOrPeerIdOrDnslink
+    }
   } catch {}
 
   const [protocol, setProtocol] = useState(initialProtocol)
@@ -98,16 +97,25 @@ export function CIDInput ({ requestPath, setRequestPath, setInvalid }: CIDInputP
   function validate (val: string): void {
     setRequestPath(val)
 
-    const uriMatch = val.match(pathRegex) ?? val.match(subdomainRegex) ?? val.match(nativeProtocolRegex)
-    if (uriMatch?.groups != null) {
-      const { protocol, cidOrPeerIdOrDnslink } = uriMatch.groups as unknown as IpfsUriParts
+    const request = parseRequest(val, new URL(globalThis.location.href))
 
-      setProtocol(protocol)
-      setCidOrPeerIdOrDnslink(cidOrPeerIdOrDnslink)
-      setInvalid(false)
-      return
+    if (request.type === 'subdomain' || request.type === 'path' || request.type === 'native') {
+      setProtocol(request.protocol)
+
+      if (request.protocol === 'ipfs') {
+        setCidOrPeerIdOrDnslink(request.cid.toString())
+        setInvalid(false)
+        return
+      } else if (request.protocol === 'ipns') {
+        setCidOrPeerIdOrDnslink(request.peerId.toString())
+        setInvalid(false)
+        return
+      } else if (request.protocol === 'dnslink') {
+        setCidOrPeerIdOrDnslink(request.domain)
+        setInvalid(false)
+        return
+      }
     }
-
     // it may be just a CID
     try {
       CID.parse(val)

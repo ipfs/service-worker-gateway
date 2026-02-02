@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { dnsLinkLabelDecoder, isInlinedDnsLink } from '../../lib/dns-link-labels.ts'
 import { LOCAL_STORAGE_KEYS } from '../../lib/local-storage.ts'
-import { pathRegex, subdomainRegex } from '../../lib/regex.ts'
 import { removeRootHashIfPresent } from '../../lib/remove-root-hash.ts'
 import { getGatewayRoot } from '../../lib/to-gateway-root.ts'
 import DownloadForm from '../components/download-form.tsx'
@@ -11,29 +9,7 @@ import type { ReactElement } from 'react'
 function LoadContent (): ReactElement {
   removeRootHashIfPresent()
 
-  let initialPath = localStorage.getItem(LOCAL_STORAGE_KEYS.forms.requestPath) ?? ''
-
-  if (initialPath === '') {
-    // try to read path from location if not previously set
-    const groups = globalThis.location.href.match(subdomainRegex)?.groups ?? globalThis.location.href.match(pathRegex)?.groups
-
-    if (groups != null) {
-      let name = groups.cidOrPeerIdOrDnslink
-
-      // decode the domain name if it's an inline dnslink
-      if (groups.protocol === 'ipns' && isInlinedDnsLink(name)) {
-        name = dnsLinkLabelDecoder(name)
-      }
-
-      initialPath = `/${[
-        groups.protocol,
-        name,
-        groups.path.split('#')[0]
-      ]
-        .filter((val) => Boolean(val) && val !== '/')
-        .join('/')}`
-    }
-  }
+  const initialPath = localStorage.getItem(LOCAL_STORAGE_KEYS.forms.requestPath) ?? ''
 
   const [requestPath, setRequestPath] = useState(initialPath)
   const [download, setDownload] = useState('')

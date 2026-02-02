@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { isPathGatewayRequest, isSubdomainGatewayRequest } from '../../lib/path-or-subdomain.ts'
+import { parseRequest } from '../../lib/parse-request.ts'
 import { removeRootHashIfPresent } from '../../lib/remove-root-hash.ts'
 import { toGatewayRoot } from '../../lib/to-gateway-root.ts'
 import { Button } from '../components/button.tsx'
@@ -62,18 +62,10 @@ function findCid (request: RequestDetails): string | void {
   try {
     const url = new URL(request.resource)
 
-    if (isSubdomainGatewayRequest(url) && url.hostname.includes('.ipfs.')) {
-      const [cid] = url.hostname.split('.ipfs.')
+    const req = parseRequest(url, new URL(globalThis.location.href))
 
-      if (cid != null) {
-        return cid
-      }
-    } else if (isPathGatewayRequest(url) && url.pathname.startsWith('/ipfs/')) {
-      const path = url.pathname.split('/')
-
-      if (path.length > 2 && path[1] === 'ipfs') {
-        return path[2]
-      }
+    if ((req.type === 'subdomain' || req.type === 'path' || req.type === 'native') && req.protocol === 'ipfs') {
+      return req.cid.toString()
     }
   } catch {}
 }

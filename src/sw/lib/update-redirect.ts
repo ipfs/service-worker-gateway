@@ -1,5 +1,5 @@
-import { dnsLinkLabelEncoder } from '../../lib/dns-link-labels.ts'
-import { matchSubdomainGroupsGuard, SUBDOMAIN_GATEWAY_REGEX } from './resource-to-url.ts'
+import { parseRequest } from '../../lib/parse-request.ts'
+import { getGatewayRoot } from '../../lib/to-gateway-root.ts'
 
 /**
  * If the response has a location header with an ipfs/ipns URL, translate it
@@ -23,21 +23,12 @@ export function updateRedirect (resource: URL, response: Response): Response {
     return response
   }
 
-  // match host to include port (if present)
-  const subdomainMatch = resource.host.match(SUBDOMAIN_GATEWAY_REGEX)
+  const request = parseRequest(url, new URL(getGatewayRoot()))
 
-  if (matchSubdomainGroupsGuard(subdomainMatch?.groups)) {
-    const { host } = subdomainMatch.groups
-
-    let hostname = url.hostname
-
-    if (url.protocol === 'ipns:') {
-      hostname = dnsLinkLabelEncoder(hostname)
-    }
-
-    location = `${resource.protocol}//${hostname}.${url.protocol.replace(':', '')}.${host}${url.pathname}${url.search}${url.hash}`
-  } else {
-    location = `${resource.protocol}//${resource.host}/${url.protocol.replace(':', '')}/${url.hostname}${url.pathname}${url.search}${url.hash}`
+  if (request.type === 'subdomain' || request.type === 'path' || request.type === 'native') {
+    location = request.subdomainURL.href
+  } else if (request.type === 'internal' || request.type === 'external') {
+    location = request.url.href
   }
 
   response.headers.set('location', location)
