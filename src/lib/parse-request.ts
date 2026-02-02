@@ -1,3 +1,5 @@
+/* eslint-disable max-depth */
+
 import { isIP } from '@chainsafe/is-ip'
 import { InvalidParametersError } from '@libp2p/interface'
 import { peerIdFromCID, peerIdFromString } from '@libp2p/peer-id'
@@ -7,6 +9,7 @@ import { base36 } from 'multiformats/bases/base36'
 import { base58btc } from 'multiformats/bases/base58'
 import { CID } from 'multiformats/cid'
 import { dnsLinkLabelDecoder, dnsLinkLabelEncoder, isInlinedDnsLink } from './dns-link-labels.ts'
+import { formatSearch } from './query-helpers.ts'
 import type { PeerId } from '@libp2p/interface'
 import type { MultibaseDecoder } from 'multiformats/cid'
 
@@ -19,7 +22,7 @@ export interface IPFSURI {
   protocol: 'ipfs'
   type: 'subdomain' | 'path' | 'native'
   cid: CID
-  gateway?: URL
+  gateways?: URL[]
   subdomainURL: URL
   pathURL: URL
   nativeURL: URL
@@ -72,7 +75,7 @@ export type ResolvableURI = IPFSURI | IPNSURI | DNSLinkURI | InternalURI | Exter
 const SUBDOMAIN_IPFS = '.ipfs.'
 const SUBDOMAIN_IPNS = '.ipns.'
 
-function toIPFSURI (type: 'subdomain' | 'path' | 'native', cidStr: string, host: string, pathname: string, search: string, hash: string, root: URL): IPFSURI | undefined {
+function toIPFSURI (type: 'subdomain' | 'path' | 'native', cidStr: string, gateways: URL[], host: string, pathname: string, search: string, hash: string, root: URL): IPFSURI | undefined {
   if (cidStr == null || cidStr === '') {
     return
   }
@@ -91,21 +94,45 @@ function toIPFSURI (type: 'subdomain' | 'path' | 'native', cidStr: string, host:
     return
   }
 
+  if (host != null && host !== '') {
+    const gateway = new URL(`${root.protocol}//${host}`)
+
+    if (gateway.host !== root.host) {
+      gateways.push(gateway)
+    }
+  }
+
+  // add gateways to search string
+  if (gateways.length > 0) {
+    const opts: Record<string, string | string[]> = {
+      gateway: gateways.map(url => url.toString())
+    }
+
+    for (const [key, value] of new URLSearchParams(search).entries()) {
+      if (opts[key] != null) {
+        if (Array.isArray(opts[key])) {
+          if (!opts[key].includes(value)) {
+            opts[key].push(value)
+          }
+        } else {
+          opts[key] = [opts[key], value]
+        }
+      } else {
+        opts[key] = value
+      }
+    }
+
+    search = formatSearch(opts)
+  }
+
   const output: IPFSURI = {
     type,
     protocol: 'ipfs',
     cid,
     subdomainURL: new URL(`${root.protocol}//${cid.toV1().toString(base32)}.ipfs.${root.host}${pathname}${search}${hash}`),
     pathURL: new URL(`${root.protocol}//${root.host}/ipfs/${cidStr}${pathname}${search}${hash}`),
-    nativeURL: new URL(`ipfs://${cidStr}${pathname}${search}${hash}`)
-  }
-
-  if (host != null && host !== '') {
-    const gateway = new URL(`${root.protocol}//${host}`)
-
-    if (gateway.host !== root.host) {
-      output.gateway = gateway
-    }
+    nativeURL: new URL(`ipfs://${cidStr}${pathname}${search}${hash}`),
+    gateways
   }
 
   return output
@@ -164,6 +191,14 @@ function asSubdomainMatch (url: URL, root: URL): ResolvableURI | undefined {
     return toIPFSURI(
       'subdomain',
       cidStr,
+      url.searchParams.getAll('gateway')
+        .map(str => {
+          try {
+            return new URL(str)
+          } catch {}
+          return undefined
+        })
+        .filter(val => val != null),
       host,
       url.pathname,
       url.search,
@@ -226,6 +261,14 @@ function asPathMatch (url: URL, root: URL): ResolvableURI | undefined {
     return toIPFSURI(
       'path',
       cidStr,
+      url.searchParams.getAll('gateway')
+        .map(str => {
+          try {
+            return new URL(str)
+          } catch {}
+          return undefined
+        })
+        .filter(val => val != null),
       url.host,
       `/${rest.join('/')}`,
       url.search,
@@ -267,6 +310,14 @@ function asNativeMatch (url: URL, root: URL): ResolvableURI | undefined {
     return toIPFSURI(
       'native',
       url.hostname,
+      url.searchParams.getAll('gateway')
+        .map(str => {
+          try {
+            return new URL(str)
+          } catch {}
+          return undefined
+        })
+        .filter(val => val != null),
       '',
       url.pathname,
       url.search,

@@ -5,9 +5,18 @@
  * `application/x-www-form-urlencoded` encoding which encodes " " as "+" and
  * not "%20" so use encodeURIComponent instead
  */
-export function formatSearch (params: Record<string, string>): string {
+export function formatSearch (params: Record<string, string | string[]>): string {
   const search = [...Object.entries(params)]
-    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`).join('&')
+    .map(([key, value]) => {
+      if (!Array.isArray(value)) {
+        value = [value]
+      }
+
+      return value
+        .map(val => `${encodeURIComponent(key)}=${encodeURIComponent(val)}`)
+        .join('&')
+    })
+    .join('&')
 
   if (search === '') {
     return search

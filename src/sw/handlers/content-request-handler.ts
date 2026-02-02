@@ -1,5 +1,6 @@
 import { MEDIA_TYPE_CAR, MEDIA_TYPE_CBOR, MEDIA_TYPE_DAG_CBOR, MEDIA_TYPE_DAG_JSON, MEDIA_TYPE_DAG_PB, MEDIA_TYPE_IPNS_RECORD, MEDIA_TYPE_JSON, MEDIA_TYPE_RAW, MEDIA_TYPE_TAR } from '@helia/verified-fetch'
 import { AbortError, setMaxListeners, TimeoutError } from '@libp2p/interface'
+import { uriToMultiaddr } from '@multiformats/uri-to-multiaddr'
 import { anySignal } from 'any-signal'
 import { config } from '../../config/index.ts'
 import { CURRENT_CACHES } from '../../constants.ts'
@@ -16,6 +17,7 @@ import type { Handler } from './index.ts'
 import type { ContentURI } from '../../lib/parse-request.ts'
 import type { Providers } from '../index.ts'
 import type { VerifiedFetchInit } from '@helia/verified-fetch'
+import type { Multiaddr } from '@multiformats/multiaddr'
 
 const FORMAT_TO_MEDIA_TYPE: Record<string, string> = {
   raw: 'application/vnd.ipld.raw',
@@ -209,6 +211,14 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
   ])
   setMaxListeners(Infinity, signal)
 
+  // pre-fill session with gateways if present
+  const gateways: Multiaddr[] = []
+  if (request.protocol === 'ipfs' && request.gateways != null) {
+    gateways.push(
+      ...request.gateways.map(url => uriToMultiaddr(url.toString()))
+    )
+  }
+
   const init: VerifiedFetchInit = {
     signal,
     headers,
@@ -236,7 +246,9 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
       }
     },
     supportDirectoryIndexes: resource.searchParams.get('download') !== 'false',
-    supportWebRedirects: resource.searchParams.get('download') !== 'false'
+    supportWebRedirects: resource.searchParams.get('download') !== 'false',
+    session: true,
+    providers: gateways
   }
 
   try {
