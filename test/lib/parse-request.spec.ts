@@ -25,7 +25,7 @@ describe('parse-request', () => {
 
     it('should parse IPFS request with gateway', () => {
       const cid = 'bafyaaaa'
-      const gateway = 'http://example.com:8000/'
+      const gateway = 'http://example.com:8000'
 
       expect(parseRequest(new URL(`http://${cid}.ipfs.example.com:8000`), new URL('http://localhost:3000'))).to.deep.equal({
         protocol: 'ipfs',
@@ -60,7 +60,7 @@ describe('parse-request', () => {
     it('should parse IPFS request with gateway and a path', () => {
       const cid = 'bafyaaaa'
       const path = '/foo/bar/baz.txt'
-      const gateway = 'http://example.com:8000/'
+      const gateway = 'http://example.com:8000'
 
       expect(parseRequest(new URL(`http://${cid}.ipfs.example.com:8000${path}`), new URL('http://localhost:3000'))).to.deep.equal({
         protocol: 'ipfs',
@@ -160,6 +160,22 @@ describe('parse-request', () => {
       })
     })
 
+    it('should parse IPFS request with IP based HTTP gateway', () => {
+      const cid = 'bafyaaaa'
+
+      expect(parseRequest(new URL(`http://127.0.0.1:57721/ipfs/${cid}`), new URL('http://localhost:3000'))).to.deep.equal({
+        protocol: 'ipfs',
+        type: 'path',
+        cid: CID.parse(cid),
+        gateways: [
+          new URL('http://127.0.0.1:57721')
+        ],
+        subdomainURL: new URL(`http://${cid}.ipfs.localhost:3000?gateway=${encodeURIComponent('http://127.0.0.1:57721')}`),
+        pathURL: new URL(`http://localhost:3000/ipfs/${cid}/?gateway=${encodeURIComponent('http://127.0.0.1:57721')}`),
+        nativeURL: new URL(`ipfs://${cid}/?gateway=${encodeURIComponent('http://127.0.0.1:57721')}`)
+      })
+    })
+
     it('should parse IPFS request with CIDv0', () => {
       const cid = CID.parse('QmbQDovX7wRe9ek7u6QXe9zgCXkTzoUSsTFJEkrYV1HrVR')
 
@@ -191,7 +207,7 @@ describe('parse-request', () => {
 
     it('should parse IPFS request with gateway', () => {
       const cid = 'bafyaaaa'
-      const gateway = 'http://example.com:8000/'
+      const gateway = 'http://example.com:8000'
 
       expect(parseRequest(new URL(`http://example.com:8000/ipfs/${cid}`), new URL('http://localhost:3000'))).to.deep.equal({
         protocol: 'ipfs',
@@ -226,7 +242,7 @@ describe('parse-request', () => {
     it('should parse IPFS request with gateway and a path', () => {
       const cid = 'bafyaaaa'
       const path = '/foo/bar/baz.txt'
-      const gateway = 'http://example.com:8000/'
+      const gateway = 'http://example.com:8000'
 
       expect(parseRequest(new URL(`http://example.com:8000/ipfs/${cid}${path}`), new URL('http://localhost:3000'))).to.deep.equal({
         protocol: 'ipfs',

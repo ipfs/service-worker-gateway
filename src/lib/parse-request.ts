@@ -94,18 +94,18 @@ function toIPFSURI (type: 'subdomain' | 'path' | 'native', cidStr: string, gatew
     return
   }
 
-  if (host != null && host !== '') {
-    const gateway = new URL(`${root.protocol}//${host}`)
+  const gatewayHints = new Set<string>(
+    gateways.map(url => url.toString())
+  )
 
-    if (gateway.host !== root.host) {
-      gateways.push(gateway)
-    }
+  if (host != null && host !== '' && host !== root.host) {
+    gatewayHints.add(`${root.protocol}//${host}`)
   }
 
   // add gateways to search string
-  if (gateways.length > 0) {
+  if (gatewayHints.size > 0) {
     const opts: Record<string, string | string[]> = {
-      gateway: gateways.map(url => url.toString())
+      gateway: [...gatewayHints]
     }
 
     for (const [key, value] of new URLSearchParams(search).entries()) {
@@ -132,7 +132,7 @@ function toIPFSURI (type: 'subdomain' | 'path' | 'native', cidStr: string, gatew
     subdomainURL: new URL(`${root.protocol}//${cid.toV1().toString(base32)}.ipfs.${root.host}${pathname}${search}${hash}`),
     pathURL: new URL(`${root.protocol}//${root.host}/ipfs/${cidStr}${pathname}${search}${hash}`),
     nativeURL: new URL(`ipfs://${cidStr}${pathname}${search}${hash}`),
-    gateways
+    gateways: [...gatewayHints].map(gateway => new URL(gateway))
   }
 
   return output
@@ -245,11 +245,6 @@ function asSubdomainMatch (url: URL, root: URL): ResolvableURI | undefined {
 function asPathMatch (url: URL, root: URL): ResolvableURI | undefined {
   // only http
   if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-    return
-  }
-
-  // only domains
-  if (isIP(url.hostname)) {
     return
   }
 

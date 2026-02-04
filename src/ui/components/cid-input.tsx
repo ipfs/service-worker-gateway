@@ -15,8 +15,12 @@ function FormatHelp (): ReactElement {
             <td><pre className='di pl3'>/ipfs/cid/..</pre></td>
           </tr>
           <tr>
-            <td>HTTP Gateway URL</td>
+            <td>HTTP Subdomain Gateway URL</td>
             <td><pre className='di pl3'>https://cid.ipfs.dweb.link/..</pre></td>
+          </tr>
+          <tr>
+            <td>HTTP Path Gateway URL</td>
+            <td><pre className='di pl3'>https://dweb.link/ipfs/cid/..</pre></td>
           </tr>
           <tr>
             <td>Native IPFS URL</td>
@@ -30,34 +34,10 @@ function FormatHelp (): ReactElement {
 }
 
 interface ValidationMessageProps {
-  cidOrPeerIdOrDnslink: string,
-  requestPath: string,
-  protocol: string
+  errorElement?: ReactElement
 }
 
-const ValidationMessage: React.FC<ValidationMessageProps> = ({ cidOrPeerIdOrDnslink, requestPath, protocol }) => {
-  let errorElement: ReactElement | null = null
-
-  if (requestPath == null || requestPath === '') {
-    errorElement = null
-  } else if (protocol !== 'ipfs' && protocol !== 'ipns') {
-    errorElement = <FormatHelp />
-  } else if (cidOrPeerIdOrDnslink == null || cidOrPeerIdOrDnslink === '') {
-    const contentType = protocol === 'ipfs' ? 'CID' : 'PeerID or DNSLink'
-    errorElement = <span>Content identifier missing. Add a {contentType} to your path</span>
-  } else if (protocol === 'ipfs') {
-    try {
-      CID.parse(cidOrPeerIdOrDnslink)
-    } catch (err: any) {
-      errorElement = (
-        <>
-          <p>Invalid CID</p>
-          <p>The CID failed to parse with the error "{err.message}"</p>
-        </>
-      )
-    }
-  }
-
+const ValidationMessage: React.FC<ValidationMessageProps> = ({ errorElement }) => {
   if (errorElement == null) {
     return (
       <></>
@@ -74,57 +54,49 @@ const ValidationMessage: React.FC<ValidationMessageProps> = ({ cidOrPeerIdOrDnsl
 }
 
 export interface CIDInputProps {
-  requestPath: string
-  setRequestPath(val: string): void
+  input: string
+  setInput(download: string): void
+  setSubdomainURL(val: URL): void
   setInvalid(invalid: boolean): void
 }
 
-export function CIDInput ({ requestPath, setRequestPath, setInvalid }: CIDInputProps): ReactElement {
-  let initialProtocol = ''
-  let initialCid = ''
+export function CIDInput ({ input, setInput, setSubdomainURL, setInvalid }: CIDInputProps): ReactElement {
+  let initialErrorElement: ReactElement | undefined
 
-  try {
-    if (requestPath.startsWith('/ipfs') || requestPath.startsWith('/ipns')) {
-      const [, protocol, cidOrPeerIdOrDnslink] = requestPath.split('/')
-      initialProtocol = protocol
-      initialCid = cidOrPeerIdOrDnslink
-    }
-  } catch {}
-
-  const [protocol, setProtocol] = useState(initialProtocol)
-  const [cidOrPeerIdOrDnslink, setCidOrPeerIdOrDnslink] = useState(initialCid)
+  const [errorElement, setErrorElement] = useState(initialErrorElement)
 
   function validate (val: string): void {
-    setRequestPath(val)
+    setInput(val)
 
-    const request = parseRequest(val, new URL(globalThis.location.href))
-
-    if (request.type === 'subdomain' || request.type === 'path' || request.type === 'native') {
-      setProtocol(request.protocol)
-
-      if (request.protocol === 'ipfs') {
-        setCidOrPeerIdOrDnslink(request.cid.toString())
-        setInvalid(false)
-        return
-      } else if (request.protocol === 'ipns') {
-        setCidOrPeerIdOrDnslink(request.peerId.toString())
-        setInvalid(false)
-        return
-      } else if (request.protocol === 'dnslink') {
-        setCidOrPeerIdOrDnslink(request.domain)
-        setInvalid(false)
-        return
-      }
-    }
     // it may be just a CID
     try {
       CID.parse(val)
 
-      setProtocol('ipfs')
-      setCidOrPeerIdOrDnslink(val)
-      setInvalid(false)
-      return
+      val = `/ipfs/${val}`
     } catch {
+      // ignore
+    }
+
+    try {
+      const request = parseRequest(val, new URL(globalThis.location.href))
+
+      if (request.type === 'subdomain' || request.type === 'path' || request.type === 'native') {
+        if (request.protocol === 'ipfs') {
+          setSubdomainURL(request.subdomainURL)
+          setInvalid(false)
+          return
+        } else if (request.protocol === 'ipns') {
+          setSubdomainURL(request.subdomainURL)
+          setInvalid(false)
+          return
+        } else if (request.protocol === 'dnslink') {
+          setSubdomainURL(request.subdomainURL)
+          setInvalid(false)
+          return
+        }
+      }
+    } catch (err) {
+      setErrorElement(<FormatHelp />)
       // ignore
     }
 
@@ -141,13 +113,11 @@ export function CIDInput ({ requestPath, setRequestPath, setInvalid }: CIDInputP
         type='text'
         placeholder='/ipfs/bafk.../path/to/file'
         required
-        value={requestPath}
+        value={input}
         onChange={(e) => validate(e.target.value)}
       />
       <ValidationMessage
-        protocol={protocol}
-        cidOrPeerIdOrDnslink={cidOrPeerIdOrDnslink}
-        requestPath={requestPath}
+        errorElement={errorElement}
       />
     </>
   )

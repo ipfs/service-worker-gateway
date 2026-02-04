@@ -10,7 +10,7 @@ export interface LogEvents {
 /**
  * Listen for 'log' events to collect logs for operations
  */
-export const logEmitter: TypedEventTarget<LogEvents> = new TypedEventEmitter<LogEvents>()
+export let logEmitter: TypedEventTarget<LogEvents> = new TypedEventEmitter<LogEvents>()
 
 /**
  * A log implementation that also emits all log lines as 'log' events on the
@@ -21,6 +21,10 @@ export function collectingLogger (prefix?: string): ComponentLogger {
     forComponent (name: string) {
       return logger(`${prefix == null ? '' : `${prefix}:`}${name}`, {
         onLog (fmt: string, ...args: any[]): void {
+          if (logEmitter == null) {
+            logEmitter = new TypedEventEmitter<LogEvents>()
+          }
+
           logEmitter.safeDispatchEvent('log', {
             detail: format(fmt.replaceAll('%c', ''), ...args.filter(arg => !`${arg}`.startsWith('color:')))
           })

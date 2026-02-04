@@ -215,7 +215,13 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
   const gateways: Multiaddr[] = []
   if (request.protocol === 'ipfs' && request.gateways != null) {
     gateways.push(
-      ...request.gateways.map(url => uriToMultiaddr(url.toString()))
+      ...request.gateways.map(url => {
+        const ma = uriToMultiaddr(url.toString())
+
+        log('adding session gateway %a', ma)
+
+        return ma
+      })
     )
   }
 
@@ -348,6 +354,8 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
         }
       }), JSON.stringify(errorToObject(new AbortError(`Timed out after ${Date.now() - start}ms`)), null, 2), providers, firstInstallTime, logs)
     }
+
+    abortController.abort(new Error('Nope'))
 
     log.error('error during request - %e', err)
 

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { LOCAL_STORAGE_KEYS } from '../../lib/local-storage.ts'
 import { removeRootHashIfPresent } from '../../lib/remove-root-hash.ts'
-import { getGatewayRoot } from '../../lib/to-gateway-root.ts'
 import DownloadForm from '../components/download-form.tsx'
 import './default-page-styles.css'
 import type { ReactElement } from 'react'
@@ -9,9 +8,10 @@ import type { ReactElement } from 'react'
 function LoadContent (): ReactElement {
   removeRootHashIfPresent()
 
-  const initialPath = localStorage.getItem(LOCAL_STORAGE_KEYS.forms.requestPath) ?? ''
+  const initialInput = localStorage.getItem(LOCAL_STORAGE_KEYS.forms.requestPath) ?? ''
 
-  const [requestPath, setRequestPath] = useState(initialPath)
+  const [input, setInput] = useState(initialInput)
+  const [subdomainURL, setSubdomainURL] = useState<URL | undefined>()
   const [download, setDownload] = useState('')
   const [format, setFormat] = useState('')
   const [filename, setFilename] = useState('')
@@ -23,12 +23,16 @@ function LoadContent (): ReactElement {
   const [carDups, setCarDups] = useState('')
 
   useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEYS.forms.requestPath, requestPath)
-  }, [requestPath])
+    localStorage.setItem(LOCAL_STORAGE_KEYS.forms.requestPath, input)
+  }, [input])
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.stopPropagation()
     e.preventDefault()
+
+    if (subdomainURL == null) {
+      return
+    }
 
     const params: Record<string, string> = {
       download,
@@ -38,6 +42,10 @@ function LoadContent (): ReactElement {
       'car-version': carVersion,
       'car-order': carOrder,
       'car-dups': carDups
+    }
+
+    for (const [key, value] of subdomainURL.searchParams.entries()) {
+      params[key] = value
     }
 
     if (entityBytesFrom !== '' && entityBytesTo !== '') {
@@ -66,13 +74,9 @@ function LoadContent (): ReactElement {
       })
       .join('&')
 
-    let request = requestPath
+    // window.location.href = getGatewayRoot() + request + (search === '' ? '' : `?${search}`)
 
-    if (!request.startsWith('/ipfs/') && !request.startsWith('/ipns/')) {
-      request = `/ipfs/${request}`
-    }
-
-    window.location.href = getGatewayRoot() + request + (search === '' ? '' : `?${search}`)
+    window.location.href = `${subdomainURL.protocol}//${subdomainURL.host}${subdomainURL.pathname}${search === '' ? '' : `?${search}`}${subdomainURL.hash}`
   }
 
   return (
@@ -82,8 +86,9 @@ function LoadContent (): ReactElement {
         <p className='db pt1 lh-copy mb2'>Enter a CID, IPFS Path, or URL to download data in a safe and verified way.</p>
         <DownloadForm
           handleSubmit={handleSubmit}
-          requestPath={requestPath}
-          setRequestPath={setRequestPath}
+          input={input}
+          setInput={setInput}
+          setSubdomainURL={setSubdomainURL}
           download={download}
           setDownload={setDownload}
           format={format}

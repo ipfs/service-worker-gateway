@@ -12,10 +12,16 @@ export interface StartServersOptions {
   dnsJsonServerPort?: number
   serviceWorkerPort?: number
   startFrontend?: boolean
+
+  /**
+   * If true, start a secondary gateway unconnected to the first
+   */
+  startSecondaryGateway?: boolean
 }
 
 export interface Servers {
   kubo: KuboNode
+  gateway?: KuboNode
   dnsJsonServer: polka.Polka
   serviceWorker?: Server
 
@@ -51,8 +57,15 @@ export async function startServers (options: StartServersOptions = {}): Promise<
     serviceWorker = await createHttpServer(options.serviceWorkerPort)
   }
 
+  let gateway: KuboNode | undefined
+
+  if (options.startSecondaryGateway !== false) {
+    gateway = await createKuboNode(0, '')
+  }
+
   const stop = async (): Promise<void> => {
     await kubo?.stop()
+    await gateway?.stop()
     dnsJsonServer?.server?.close?.()
     dnsJsonServer?.server?.closeAllConnections?.()
     serviceWorker?.close?.()
@@ -61,6 +74,7 @@ export async function startServers (options: StartServersOptions = {}): Promise<
 
   return {
     kubo,
+    gateway,
     dnsJsonServer,
     serviceWorker,
     stop

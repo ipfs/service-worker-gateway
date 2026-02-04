@@ -13,7 +13,9 @@
  * for you if ran via `npm run start`.
  */
 import { parseArgs } from 'node:util'
+import * as dagCbor from '@ipld/dag-cbor'
 import { execa } from 'execa'
+import { createKuboRPCClient } from 'kubo-rpc-client'
 import { startServers } from './test-e2e/fixtures/serve/index.ts'
 import type { ResultPromise } from 'execa'
 import type { Server } from 'node:http'
@@ -51,7 +53,8 @@ const args = parseArgs({
 
 const servers = await startServers({
   loadFixtures: toBoolean(args.values['load-fixtures'], false),
-  startFrontend: toBoolean(args.values['start-frontend'], true)
+  startFrontend: toBoolean(args.values['start-frontend'], true),
+  startSecondaryGateway: true
 })
 
 const info = await servers.kubo.info()
@@ -61,6 +64,24 @@ console.info('Kubo RPC API:', info.api)
 
 if (servers.serviceWorker != null) {
   console.info('HTTP server:', `http://localhost:${getPort(servers.serviceWorker)}`)
+}
+
+const gateway = await servers.gateway?.info()
+
+if (gateway != null) {
+  console.info('Secondary Kubo gateway:', gateway.gateway)
+  console.info('Secondary Kubo RPC API:', gateway.api)
+
+  const gatewayApi = createKuboRPCClient(gateway.api)
+
+  const block = dagCbor.encode({
+    hello: 'world'
+  })
+  const cid = await gatewayApi.block.put(block, {
+    format: 'dag-cbor'
+  })
+
+  console.info('Secondary Kubo gateway CID', cid.toString())
 }
 
 let build: ResultPromise | undefined
