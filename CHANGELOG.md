@@ -1,5 +1,26 @@
 # Changelog
 
+## [3.0.0](https://github.com/ipfs/service-worker-gateway/compare/v2.2.0...v3.0.0) (2026-02-05)
+
+
+### ⚠ BREAKING CHANGES
+
+* the config page has been removed
+* path gateway or access via IP addresses is no longer supported
+
+### Features
+
+* parse gateway from entered URL ([#966](https://github.com/ipfs/service-worker-gateway/issues/966)) ([26e3b0d](https://github.com/ipfs/service-worker-gateway/commit/26e3b0dcd40dbc2facdfc226a3a011631235238c)), closes [#814](https://github.com/ipfs/service-worker-gateway/issues/814)
+* remove path gateway support ([#959](https://github.com/ipfs/service-worker-gateway/issues/959)) ([9c7ddfd](https://github.com/ipfs/service-worker-gateway/commit/9c7ddfd6ec1da457d2b7bd7e8d04a34259e689b2))
+* support gateway hints ([#968](https://github.com/ipfs/service-worker-gateway/issues/968)) ([8b858eb](https://github.com/ipfs/service-worker-gateway/commit/8b858eb30f0cdb8edbf50eb180cba32140977aac)), closes [#814](https://github.com/ipfs/service-worker-gateway/issues/814)
+
+
+### Bug Fixes
+
+* flash of unstyled content ([#969](https://github.com/ipfs/service-worker-gateway/issues/969)) ([cc9f7a4](https://github.com/ipfs/service-worker-gateway/commit/cc9f7a46b6884bd1cebdc8d29aeb0cf5161e8e3c))
+* remove config page ([#963](https://github.com/ipfs/service-worker-gateway/issues/963)) ([a13fbc6](https://github.com/ipfs/service-worker-gateway/commit/a13fbc6f6afa5504be86ae8023f8b3c478a6cd32))
+* show provider routing source ([#971](https://github.com/ipfs/service-worker-gateway/issues/971)) ([0066239](https://github.com/ipfs/service-worker-gateway/commit/00662394c286ac7cf357d14e66486c255a6786ea))
+
 ## [2.2.0](https://github.com/ipfs/service-worker-gateway/compare/v2.1.2...v2.2.0) (2026-01-20)
 
 
