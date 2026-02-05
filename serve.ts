@@ -13,7 +13,6 @@
  * for you if ran via `npm run start`.
  */
 import { parseArgs } from 'node:util'
-import * as dagCbor from '@ipld/dag-cbor'
 import { execa } from 'execa'
 import { startServers } from './test-e2e/fixtures/serve/index.ts'
 import type { ResultPromise } from 'execa'
