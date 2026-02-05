@@ -7,6 +7,7 @@ import ContentBox from '../components/content-box.tsx'
 import { Link } from '../components/link.tsx'
 import Terminal from '../components/terminal.tsx'
 import { createLink } from '../utils/links.ts'
+import type { Providers } from '../../sw/index.ts'
 import type { RequestDetails, ResponseDetails } from '../../sw/pages/fetch-error-page.ts'
 import type { ReactElement } from 'react'
 
@@ -68,16 +69,6 @@ function findCid (request: RequestDetails): string | void {
       return req.cid.toString()
     }
   } catch {}
-}
-
-export interface Providers {
-  total: number
-  bitswap: Record<string, string[]>
-  trustlessGateway: string[]
-
-  // this is limited to 5x entries to prevent new routing systems causing OOMs
-  other: any[]
-  otherCount: number
 }
 
 export interface FetchErrorPageProps {
@@ -199,24 +190,12 @@ export function FetchErrorPage ({ request, response, logs, providers }: FetchErr
       </>
     )
   } else {
-    const bitswapProviders: Array<{ PeerID: string, Multiaddrs: string[] }> = []
-    const trustlessGatewayProviders: string[] = providers.trustlessGateway
-    const unknownProviders: any[] = providers.other
-
-    Object.entries(providers.bitswap).forEach(([PeerID, Multiaddrs]) => {
-      bitswapProviders.push({
-        PeerID,
-        Multiaddrs
-      })
-    })
-
     providersMessage = (
       <>
         <Terminal>
           These providers were found but did not return the requested data:
-          {bitswapProviders.length > 0 ? '\n\nBitswap:\n\n' + JSON.stringify(bitswapProviders, null, 2) : ''}
-          {trustlessGatewayProviders.length > 0 ? '\n\nTrustless Gateways:\n\n' + JSON.stringify(trustlessGatewayProviders, null, 2) : ''}
-          {unknownProviders.length > 0 ? `\n\nUnknown Routing(s) (${providers.other.length}/${providers.otherCount}):\n\n` + JSON.stringify(unknownProviders, null, 2) : ''}
+
+          {'\n\n' + JSON.stringify(providers.providers, null, 2)}
         </Terminal>
       </>
     )

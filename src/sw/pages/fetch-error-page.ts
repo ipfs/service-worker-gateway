@@ -1,7 +1,6 @@
 import { APP_NAME, APP_VERSION, GIT_REVISION } from '../../version.ts'
 import { htmlPage } from './page.ts'
 import type { ContentURI } from '../../lib/parse-request.ts'
-import type { Providers as ErrorPageProviders } from '../../ui/pages/fetch-error.tsx'
 import type { Providers } from '../index.ts'
 
 declare let self: ServiceWorkerGlobalScope
@@ -37,22 +36,6 @@ function getServiceWorkerDetails (firstInstallTime: number): ServiceWorkerDetail
     version: APP_VERSION,
     commit: GIT_REVISION
   }
-}
-
-function toErrorPageProviders (providers: Providers): ErrorPageProviders {
-  const output: ErrorPageProviders = {
-    total: providers.total,
-    other: providers.other,
-    otherCount: providers.otherCount,
-    trustlessGateway: [...providers.trustlessGateway],
-    bitswap: {}
-  }
-
-  for (const [key, addresses] of providers.bitswap) {
-    output.bitswap[key] = [...addresses]
-  }
-
-  return output
 }
 
 export interface RequestDetails {
@@ -117,7 +100,7 @@ export function fetchErrorPageResponse (request: ContentURI, requestInit: Reques
     request: getRequestDetails(request, requestInit),
     response: responseDetails,
     config: getServiceWorkerDetails(installTime),
-    providers: toErrorPageProviders(providers),
+    providers,
     title: `${responseDetails.status} ${responseDetails.statusText}`,
     logs
   }
