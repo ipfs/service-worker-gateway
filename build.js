@@ -106,7 +106,7 @@ const injectHtmlPages = async (metafile, revision) => {
 
     // only inject CSS for non-index.html files, or if explicitly requested
     if (htmlContent.includes('<%= CSS_STYLES %>')) {
-       if (cssFile != null) {
+      if (cssFile != null) {
         const cssTag = `<link rel="stylesheet" href="/${path.basename(cssFile)}">`
         htmlContent = htmlContent.replace(/<%= CSS_STYLES %>/g, cssTag)
         console.log(`Injected ${path.basename(cssFile)} into ${path.relative(process.cwd(), htmlFilePath)}.`)
