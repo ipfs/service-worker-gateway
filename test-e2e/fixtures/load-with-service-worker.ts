@@ -105,9 +105,6 @@ export async function loadWithServiceWorker (page: Page, resource: string, optio
         url = url.replaceAll('*', '%2A')
       }
 
-      // console.info('expect', expected)
-      // console.info('got', url)
-
       // ignore responses from the UI
       // if (!response.fromServiceWorker()) { <-- does not work in Firefox :(
       if (response.headers()['server']?.includes('@helia/service-worker-gateway') !== true) {
