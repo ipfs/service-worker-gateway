@@ -159,16 +159,6 @@ function App (): React.ReactElement {
 }
 
 async function renderUi (): Promise<void> {
-  try {
-    // @ts-expect-error - css config is generated at build time
-    // eslint-disable-next-line import-x/no-absolute-path
-    const { CSS_FILENAME } = await import('/ipfs-sw-css-config.js')
-    injectCSS(CSS_FILENAME)
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn('Failed to load CSS config, UI will render without styles:', err)
-  }
-
   const loadingIndicator = document.querySelector('.loading-indicator-js')
 
   if (loadingIndicator != null) {
