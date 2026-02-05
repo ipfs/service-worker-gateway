@@ -4,7 +4,6 @@ import './index.css'
 import { FaInfoCircle, FaGithub, FaExclamationTriangle, FaExclamationCircle, FaHome, FaListAlt } from 'react-icons/fa'
 import { HashRouter, Route, Routes, NavLink } from 'react-router-dom'
 import { HASH_FRAGMENTS } from '../lib/constants.ts'
-import { injectCSS } from '../lib/css-injector.ts'
 import { ErrorBoundary } from './components/error-boundary.tsx'
 import ipfsLogo from './ipfs-logo.svg'
 import AboutPage from './pages/about.tsx'
@@ -159,16 +158,6 @@ function App (): React.ReactElement {
 }
 
 async function renderUi (): Promise<void> {
-  try {
-    // @ts-expect-error - css config is generated at build time
-    // eslint-disable-next-line import-x/no-absolute-path
-    const { CSS_FILENAME } = await import('/ipfs-sw-css-config.js')
-    injectCSS(CSS_FILENAME)
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn('Failed to load CSS config, UI will render without styles:', err)
-  }
-
   const loadingIndicator = document.querySelector('.loading-indicator-js')
 
   if (loadingIndicator != null) {
