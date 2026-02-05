@@ -51,7 +51,8 @@ const args = parseArgs({
 
 const servers = await startServers({
   loadFixtures: toBoolean(args.values['load-fixtures'], false),
-  startFrontend: toBoolean(args.values['start-frontend'], true)
+  startFrontend: toBoolean(args.values['start-frontend'], true),
+  startSecondaryGateway: true
 })
 
 const info = await servers.kubo.info()
@@ -61,6 +62,13 @@ console.info('Kubo RPC API:', info.api)
 
 if (servers.serviceWorker != null) {
   console.info('HTTP server:', `http://localhost:${getPort(servers.serviceWorker)}`)
+}
+
+const gateway = await servers.gateway?.info()
+
+if (gateway != null) {
+  console.info('Secondary Kubo gateway:', gateway.gateway)
+  console.info('Secondary Kubo RPC API:', gateway.api)
 }
 
 let build: ResultPromise | undefined

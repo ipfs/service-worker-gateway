@@ -114,7 +114,6 @@ export async function updateVerifiedFetch (): Promise<void> {
       bitswap(),
       trustlessGateway({
         allowLocal: true
-
       })
     ],
     hashers,

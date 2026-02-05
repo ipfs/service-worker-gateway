@@ -7,6 +7,7 @@ import { base36 } from 'multiformats/bases/base36'
 import { base58btc } from 'multiformats/bases/base58'
 import { CID } from 'multiformats/cid'
 import { dnsLinkLabelDecoder, dnsLinkLabelEncoder, isInlinedDnsLink } from './dns-link-labels.ts'
+import { createSearch } from './query-helpers.ts'
 import type { PeerId } from '@libp2p/interface'
 import type { MultibaseDecoder } from 'multiformats/cid'
 
@@ -19,7 +20,7 @@ export interface IPFSURI {
   protocol: 'ipfs'
   type: 'subdomain' | 'path' | 'native'
   cid: CID
-  gateway?: URL
+  gateways?: URL[]
   subdomainURL: URL
   pathURL: URL
   nativeURL: URL
@@ -72,7 +73,7 @@ export type ResolvableURI = IPFSURI | IPNSURI | DNSLinkURI | InternalURI | Exter
 const SUBDOMAIN_IPFS = '.ipfs.'
 const SUBDOMAIN_IPNS = '.ipns.'
 
-function toIPFSURI (type: 'subdomain' | 'path' | 'native', cidStr: string, host: string, pathname: string, search: string, hash: string, root: URL): IPFSURI | undefined {
+function toIPFSURI (type: 'subdomain' | 'path' | 'native', cidStr: string, gateways: URL[], host: string, pathname: string, search: string, hash: string, root: URL): IPFSURI | undefined {
   if (cidStr == null || cidStr === '') {
     return
   }
@@ -91,21 +92,29 @@ function toIPFSURI (type: 'subdomain' | 'path' | 'native', cidStr: string, host:
     return
   }
 
+  const gatewayHints = new Set<string>(
+    gateways.map(url => url.toString())
+  )
+
+  if (host != null && host !== '' && host !== root.host) {
+    gatewayHints.add(`${root.protocol}//${host}/`)
+  }
+
+  // add gateways to search string
+  search = createSearch(new URLSearchParams(search), {
+    params: {
+      gateway: [...gatewayHints]
+    }
+  })
+
   const output: IPFSURI = {
     type,
     protocol: 'ipfs',
     cid,
     subdomainURL: new URL(`${root.protocol}//${cid.toV1().toString(base32)}.ipfs.${root.host}${pathname}${search}${hash}`),
     pathURL: new URL(`${root.protocol}//${root.host}/ipfs/${cidStr}${pathname}${search}${hash}`),
-    nativeURL: new URL(`ipfs://${cidStr}${pathname}${search}${hash}`)
-  }
-
-  if (host != null && host !== '') {
-    const gateway = new URL(`${root.protocol}//${host}`)
-
-    if (gateway.host !== root.host) {
-      output.gateway = gateway
-    }
+    nativeURL: new URL(`ipfs://${cidStr}${pathname}${search}${hash}`),
+    gateways: [...gatewayHints].map(gateway => new URL(gateway))
   }
 
   return output
@@ -164,6 +173,14 @@ function asSubdomainMatch (url: URL, root: URL): ResolvableURI | undefined {
     return toIPFSURI(
       'subdomain',
       cidStr,
+      url.searchParams.getAll('gateway')
+        .map(str => {
+          try {
+            return new URL(str)
+          } catch {}
+          return undefined
+        })
+        .filter(val => val != null),
       host,
       url.pathname,
       url.search,
@@ -213,11 +230,6 @@ function asPathMatch (url: URL, root: URL): ResolvableURI | undefined {
     return
   }
 
-  // only domains
-  if (isIP(url.hostname)) {
-    return
-  }
-
   if (url.pathname.startsWith('/ipfs')) {
     const [
       ,, cidStr, ...rest
@@ -226,6 +238,14 @@ function asPathMatch (url: URL, root: URL): ResolvableURI | undefined {
     return toIPFSURI(
       'path',
       cidStr,
+      url.searchParams.getAll('gateway')
+        .map(str => {
+          try {
+            return new URL(str)
+          } catch {}
+          return undefined
+        })
+        .filter(val => val != null),
       url.host,
       `/${rest.join('/')}`,
       url.search,
@@ -267,6 +287,14 @@ function asNativeMatch (url: URL, root: URL): ResolvableURI | undefined {
     return toIPFSURI(
       'native',
       url.hostname,
+      url.searchParams.getAll('gateway')
+        .map(str => {
+          try {
+            return new URL(str)
+          } catch {}
+          return undefined
+        })
+        .filter(val => val != null),
       '',
       url.pathname,
       url.search,
@@ -365,6 +393,14 @@ export function parseRequest (url: URL | string, root: URL): ResolvableURI {
     } else {
       url = new URL(url)
     }
+  }
+
+  if (root.host.includes(SUBDOMAIN_IPFS)) {
+    root = new URL(`${root.protocol}//${root.host.split(SUBDOMAIN_IPFS).pop()}`)
+  }
+
+  if (root.host.includes(SUBDOMAIN_IPNS)) {
+    root = new URL(`${root.protocol}//${root.host.split(SUBDOMAIN_IPNS).pop()}`)
   }
 
   return asSubdomainMatch(url, root) ?? asPathMatch(url, root) ?? asNativeMatch(url, root) ?? asInternalOrExternalURI(url, root)

@@ -9,16 +9,15 @@ import type { ReactElement, MouseEvent } from 'react'
 
 export interface DownloadFormProps {
   handleSubmit(e: React.FormEvent): void
-  requestPath: string
-  setRequestPath(path: string): void
-
+  input: string
+  setInput(download: string): void
+  setSubdomainURL(url: URL): void
   download: string
   setDownload(download: string): void
   filename: string
   setFilename(filename: string): void
   format: string
   setFormat(format: string): void
-
   dagScope: string
   setDagScope(dagScope: string): void
   entityBytesFrom: string
@@ -34,9 +33,10 @@ export interface DownloadFormProps {
 }
 
 export default function DownloadForm ({
+  input,
+  setInput,
   handleSubmit,
-  requestPath,
-  setRequestPath,
+  setSubdomainURL,
   download,
   setDownload,
   filename,
@@ -204,8 +204,9 @@ export default function DownloadForm ({
     <>
       <form id='add-file' onSubmit={handleSubmit}>
         <CIDInput
-          requestPath={requestPath}
-          setRequestPath={setRequestPath}
+          input={input}
+          setInput={setInput}
+          setSubdomainURL={setSubdomainURL}
           setInvalid={(res) => {
             setInvalid({
               ...invalid,

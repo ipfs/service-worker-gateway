@@ -5,9 +5,18 @@
  * `application/x-www-form-urlencoded` encoding which encodes " " as "+" and
  * not "%20" so use encodeURIComponent instead
  */
-export function formatSearch (params: Record<string, string>): string {
+export function formatSearch (params: Record<string, string | string[]>): string {
   const search = [...Object.entries(params)]
-    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`).join('&')
+    .map(([key, value]) => {
+      if (!Array.isArray(value)) {
+        value = [value]
+      }
+
+      return value
+        .map(val => `${encodeURIComponent(key)}=${encodeURIComponent(val)}`)
+        .join('&')
+    })
+    .join('&')
 
   if (search === '') {
     return search
@@ -27,7 +36,7 @@ export function parseQuery (url: URL): Record<string, string> {
 }
 
 export interface CreateSearchOptions {
-  params?: Record<string, string>
+  params?: Record<string, string | string[]>
   filter?(key: string, value: string): boolean
 }
 
@@ -37,7 +46,7 @@ export interface CreateSearchOptions {
  * Extra key/value pairs can be added or omitted by passing options.
  */
 export function createSearch (searchParams: URLSearchParams, options?: CreateSearchOptions): string {
-  const params: Record<string, string> = {}
+  const params: Record<string, string | string[]> = {}
 
   for (const [key, value] of searchParams) {
     if (options?.filter?.(key, value) === false) {
@@ -50,6 +59,10 @@ export function createSearch (searchParams: URLSearchParams, options?: CreateSea
   // set passed params
   if (options?.params != null) {
     for (const [key, value] of Object.entries(options?.params)) {
+      if (Array.isArray(value) && value.length === 0) {
+        continue
+      }
+
       params[key] = value
     }
   }

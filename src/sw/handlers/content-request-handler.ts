@@ -1,5 +1,6 @@
 import { MEDIA_TYPE_CAR, MEDIA_TYPE_CBOR, MEDIA_TYPE_DAG_CBOR, MEDIA_TYPE_DAG_JSON, MEDIA_TYPE_DAG_PB, MEDIA_TYPE_IPNS_RECORD, MEDIA_TYPE_JSON, MEDIA_TYPE_RAW, MEDIA_TYPE_TAR } from '@helia/verified-fetch'
 import { AbortError, setMaxListeners, TimeoutError } from '@libp2p/interface'
+import { uriToMultiaddr } from '@multiformats/uri-to-multiaddr'
 import { anySignal } from 'any-signal'
 import { config } from '../../config/index.ts'
 import { CURRENT_CACHES } from '../../constants.ts'
@@ -7,6 +8,7 @@ import { errorToObject } from '../../lib/error-to-object.ts'
 import { getSubdomainParts } from '../../lib/get-subdomain-parts.ts'
 import { getSwLogger } from '../../lib/logger.ts'
 import { isBitswapProvider, isTrustlessGatewayProvider } from '../../lib/providers.ts'
+import { createSearch } from '../../lib/query-helpers.ts'
 import { APP_NAME, APP_VERSION, GIT_REVISION } from '../../version.ts'
 import { getInstallTime } from '../lib/install-time.ts'
 import { getVerifiedFetch } from '../lib/verified-fetch.ts'
@@ -16,6 +18,7 @@ import type { Handler } from './index.ts'
 import type { ContentURI } from '../../lib/parse-request.ts'
 import type { Providers } from '../index.ts'
 import type { VerifiedFetchInit } from '@helia/verified-fetch'
+import type { Multiaddr } from '@multiformats/multiaddr'
 
 const FORMAT_TO_MEDIA_TYPE: Record<string, string> = {
   raw: 'application/vnd.ipld.raw',
@@ -209,6 +212,20 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
   ])
   setMaxListeners(Infinity, signal)
 
+  // pre-fill session with gateways if present
+  const gateways: Multiaddr[] = []
+  if (request.protocol === 'ipfs' && request.gateways != null) {
+    gateways.push(
+      ...request.gateways.map(url => {
+        const ma = uriToMultiaddr(url.toString())
+
+        log('adding session gateway %a', ma)
+
+        return ma
+      })
+    )
+  }
+
   const init: VerifiedFetchInit = {
     signal,
     headers,
@@ -236,7 +253,9 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
       }
     },
     supportDirectoryIndexes: resource.searchParams.get('download') !== 'false',
-    supportWebRedirects: resource.searchParams.get('download') !== 'false'
+    supportWebRedirects: resource.searchParams.get('download') !== 'false',
+    session: true,
+    providers: gateways
   }
 
   try {
@@ -251,6 +270,26 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
 
     const response = await verifiedFetch(resource, init)
     response.headers.set('server', `${APP_NAME}/${APP_VERSION}#${GIT_REVISION}`)
+
+    // now that the root block has been fetched and the blockstore session
+    // created, if a gateway hint was present we need to redirect the user to
+    // a bare URL that removes the hint. this makes it harder (though not
+    // impossible) for users to share URLs with baked-in routing information
+    // that may become stale over time
+    if (response.ok && request.subdomainURL.searchParams.has('gateway')) {
+      const search = createSearch(request.subdomainURL.searchParams, {
+        filter: (key) => key !== 'gateway'
+      })
+
+      const location = `${request.subdomainURL.protocol}//${request.subdomainURL.host}${request.subdomainURL.pathname}${search}${request.subdomainURL.hash}`
+
+      return new Response('', {
+        status: 302,
+        headers: {
+          location
+        }
+      })
+    }
 
     log('response')
     log('HTTP/1.1 %d %s', response.status, response.statusText)
@@ -336,6 +375,8 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
         }
       }), JSON.stringify(errorToObject(new AbortError(`Timed out after ${Date.now() - start}ms`)), null, 2), providers, firstInstallTime, logs)
     }
+
+    abortController.abort(new Error('Nope'))
 
     log.error('error during request - %e', err)
 
