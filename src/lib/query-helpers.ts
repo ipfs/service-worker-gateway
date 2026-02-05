@@ -36,7 +36,7 @@ export function parseQuery (url: URL): Record<string, string> {
 }
 
 export interface CreateSearchOptions {
-  params?: Record<string, string>
+  params?: Record<string, string | string[]>
   filter?(key: string, value: string): boolean
 }
 
@@ -46,7 +46,7 @@ export interface CreateSearchOptions {
  * Extra key/value pairs can be added or omitted by passing options.
  */
 export function createSearch (searchParams: URLSearchParams, options?: CreateSearchOptions): string {
-  const params: Record<string, string> = {}
+  const params: Record<string, string | string[]> = {}
 
   for (const [key, value] of searchParams) {
     if (options?.filter?.(key, value) === false) {
@@ -59,6 +59,10 @@ export function createSearch (searchParams: URLSearchParams, options?: CreateSea
   // set passed params
   if (options?.params != null) {
     for (const [key, value] of Object.entries(options?.params)) {
+      if (Array.isArray(value) && value.length === 0) {
+        continue
+      }
+
       params[key] = value
     }
   }

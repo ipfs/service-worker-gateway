@@ -40,6 +40,37 @@ describe('parse-request', () => {
       })
     })
 
+    it('should parse IPFS request in service worker', () => {
+      const cid = 'bafyaaaa'
+
+      expect(parseRequest(new URL(`http://${cid}.ipfs.localhost:3000`), new URL(`http://${cid}.ipfs.localhost:3000/ipfs-sw-sw.js`))).to.deep.equal({
+        protocol: 'ipfs',
+        type: 'subdomain',
+        cid: CID.parse(cid),
+        gateways: [],
+        subdomainURL: new URL(`http://${cid}.ipfs.localhost:3000`),
+        pathURL: new URL(`http://localhost:3000/ipfs/${cid}/`),
+        nativeURL: new URL(`ipfs://${cid}/`)
+      })
+    })
+
+    it('should parse IPFS request in service worker with a gateway hint', () => {
+      const cid = 'bafyaaaa'
+      const gateway = new URL('http://127.0.0.1:1234')
+
+      expect(parseRequest(new URL(`http://${cid}.ipfs.localhost:3000/?gateway=${encodeURIComponent(gateway.toString())}`), new URL(`http://${cid}.ipfs.localhost:3000/ipfs-sw-sw.js`))).to.deep.equal({
+        protocol: 'ipfs',
+        type: 'subdomain',
+        cid: CID.parse(cid),
+        gateways: [
+          gateway
+        ],
+        subdomainURL: new URL(`http://${cid}.ipfs.localhost:3000/?gateway=${encodeURIComponent(gateway.toString())}`),
+        pathURL: new URL(`http://localhost:3000/ipfs/${cid}/?gateway=${encodeURIComponent(gateway.toString())}`),
+        nativeURL: new URL(`ipfs://${cid}/?gateway=${encodeURIComponent(gateway.toString())}`)
+      })
+    })
+
     it('should parse IPFS request with gateway in the URL', () => {
       const cid = 'bafyaaaa'
       const gateway = 'http://example.com:8000/'

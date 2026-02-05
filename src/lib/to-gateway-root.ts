@@ -15,7 +15,7 @@ export function toGatewayRoot (hash: string): string {
  * If we are on a subdomain gateway, return the parent domain without the path.
  */
 export function getGatewayRoot (): string {
-  const url = new URL(globalThis.location.href)
+  const url = new URL(globalThis?.location?.href)
 
   if (url.host.includes('.ipfs.')) {
     return `${url.protocol}//${url.host.split('.ipfs.').pop()}`

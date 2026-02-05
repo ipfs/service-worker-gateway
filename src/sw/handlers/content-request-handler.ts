@@ -8,6 +8,7 @@ import { errorToObject } from '../../lib/error-to-object.ts'
 import { getSubdomainParts } from '../../lib/get-subdomain-parts.ts'
 import { getSwLogger } from '../../lib/logger.ts'
 import { isBitswapProvider, isTrustlessGatewayProvider } from '../../lib/providers.ts'
+import { createSearch } from '../../lib/query-helpers.ts'
 import { APP_NAME, APP_VERSION, GIT_REVISION } from '../../version.ts'
 import { getInstallTime } from '../lib/install-time.ts'
 import { getVerifiedFetch } from '../lib/verified-fetch.ts'
@@ -269,6 +270,26 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
 
     const response = await verifiedFetch(resource, init)
     response.headers.set('server', `${APP_NAME}/${APP_VERSION}#${GIT_REVISION}`)
+
+    // now that the root block has been fetched and the blockstore session
+    // created, if a gateway hint was present we need to redirect the user to
+    // a bare URL that removes the hint. this makes it harder (though not
+    // impossible) for users to share URLs with baked-in routing information
+    // that may become stale over time
+    if (response.ok && request.subdomainURL.searchParams.has('gateway')) {
+      const search = createSearch(request.subdomainURL.searchParams, {
+        filter: (key) => key !== 'gateway'
+      })
+
+      const location = `${request.subdomainURL.protocol}//${request.subdomainURL.host}${request.subdomainURL.pathname}${search}${request.subdomainURL.hash}`
+
+      return new Response('', {
+        status: 302,
+        headers: {
+          location
+        }
+      })
+    }
 
     log('response')
     log('HTTP/1.1 %d %s', response.status, response.statusText)

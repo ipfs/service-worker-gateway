@@ -1,5 +1,3 @@
-/* eslint-disable max-depth */
-
 import { isIP } from '@chainsafe/is-ip'
 import { InvalidParametersError } from '@libp2p/interface'
 import { peerIdFromCID, peerIdFromString } from '@libp2p/peer-id'
@@ -9,7 +7,7 @@ import { base36 } from 'multiformats/bases/base36'
 import { base58btc } from 'multiformats/bases/base58'
 import { CID } from 'multiformats/cid'
 import { dnsLinkLabelDecoder, dnsLinkLabelEncoder, isInlinedDnsLink } from './dns-link-labels.ts'
-import { formatSearch } from './query-helpers.ts'
+import { createSearch } from './query-helpers.ts'
 import type { PeerId } from '@libp2p/interface'
 import type { MultibaseDecoder } from 'multiformats/cid'
 
@@ -99,31 +97,15 @@ function toIPFSURI (type: 'subdomain' | 'path' | 'native', cidStr: string, gatew
   )
 
   if (host != null && host !== '' && host !== root.host) {
-    gatewayHints.add(`${root.protocol}//${host}`)
+    gatewayHints.add(`${root.protocol}//${host}/`)
   }
 
   // add gateways to search string
-  if (gatewayHints.size > 0) {
-    const opts: Record<string, string | string[]> = {
+  search = createSearch(new URLSearchParams(search), {
+    params: {
       gateway: [...gatewayHints]
     }
-
-    for (const [key, value] of new URLSearchParams(search).entries()) {
-      if (opts[key] != null) {
-        if (Array.isArray(opts[key])) {
-          if (!opts[key].includes(value)) {
-            opts[key].push(value)
-          }
-        } else {
-          opts[key] = [opts[key], value]
-        }
-      } else {
-        opts[key] = value
-      }
-    }
-
-    search = formatSearch(opts)
-  }
+  })
 
   const output: IPFSURI = {
     type,
@@ -411,6 +393,14 @@ export function parseRequest (url: URL | string, root: URL): ResolvableURI {
     } else {
       url = new URL(url)
     }
+  }
+
+  if (root.host.includes(SUBDOMAIN_IPFS)) {
+    root = new URL(`${root.protocol}//${root.host.split(SUBDOMAIN_IPFS).pop()}`)
+  }
+
+  if (root.host.includes(SUBDOMAIN_IPNS)) {
+    root = new URL(`${root.protocol}//${root.host.split(SUBDOMAIN_IPNS).pop()}`)
   }
 
   return asSubdomainMatch(url, root) ?? asPathMatch(url, root) ?? asNativeMatch(url, root) ?? asInternalOrExternalURI(url, root)
