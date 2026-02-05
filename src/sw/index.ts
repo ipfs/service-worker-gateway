@@ -15,17 +15,19 @@ import type { Handler } from './handlers/index.ts'
 
 weald.enable(config.debug)
 
+export interface Provider {
+  type: string
+  routing: string
+  provider: any
+}
+
 /**
  * These are block/car providers that were used while downloading data
  */
 export interface Providers {
   total: number
-  bitswap: Map<string, Set<string>>
-  trustlessGateway: Set<string>
-
-  // this is limited to 5x entries to prevent new routing systems causing OOMs
-  other: any[]
-  otherCount: number
+  // this is limited to 10x entries to prevent new routing systems causing OOMs
+  providers: Provider[]
 }
 
 declare let self: ServiceWorkerGlobalScope

@@ -173,10 +173,7 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
 
   const providers: Providers = {
     total: 0,
-    bitswap: new Map(),
-    trustlessGateway: new Set(),
-    other: [],
-    otherCount: 0
+    providers: []
   }
 
   const resource = request.nativeURL
@@ -234,21 +231,34 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
       if (evt.type.endsWith(':found-provider')) {
         providers.total++
 
-        if (isBitswapProvider(evt.detail)) {
-          // store deduplicated peer multiaddrs
-          const mas = providers.bitswap.get(evt.detail.provider.id.toString()) ?? new Set()
-          evt.detail.provider.multiaddrs.forEach(ma => mas.add(ma.toString()))
-          providers.bitswap.set(evt.detail.provider.id.toString(), mas)
-        } else if (isTrustlessGatewayProvider(evt.detail)) {
-          providers.trustlessGateway.add(evt.detail.url)
-        } else {
-          providers.other.push(evt.detail)
-          providers.otherCount++
+        log('got found-provider event %s %j %e', evt.type, evt.detail, new Error('where'))
 
-          // truncate unknown routing providers if there are too many
-          if (providers.other.length > 5) {
-            providers.other.length = 5
-          }
+        if (isBitswapProvider(evt.detail)) {
+          providers.providers.push({
+            type: evt.detail.type,
+            routing: evt.detail.routing,
+            provider: evt.detail.provider
+          })
+        } else if (isTrustlessGatewayProvider(evt.detail)) {
+          providers.providers.push({
+            type: evt.detail.type,
+            routing: evt.detail.routing,
+            provider: evt.detail.url
+          })
+        } else {
+          providers.providers.push({
+            type: 'unknown',
+            // @ts-expect-error cannot derive type
+            routing: evt.detail?.routing ?? 'unknown',
+            provider: evt.detail
+          })
+        }
+
+        providers.total++
+
+        // truncate providers if there are too many
+        if (providers.providers.length > 10) {
+          providers.providers.length = 10
         }
       }
     },
