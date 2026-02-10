@@ -4,8 +4,7 @@ import { startServers } from './serve/index.ts'
 export default async function globalSetup (config: Record<string, any> = {}): Promise<void> {
   const servers = await startServers({
     loadFixtures: true,
-    startFrontend: process.env.SHOULD_SERVE !== 'false',
-    startSecondaryGateway: true
+    startFrontend: process.env.SHOULD_SERVE !== 'false'
   })
 
   const kuboInfo = await servers.kubo.info()
@@ -17,10 +16,6 @@ export default async function globalSetup (config: Record<string, any> = {}): Pr
 
   process.env.DNS_JSON_SERVER = `http://127.0.0.1:${getPort(servers.dnsJsonServer)}/dns-query`
   process.env.TEST_API_SERVER = `http://127.0.0.1:${getPort(servers.dnsJsonServer)}`
-
-  const gatewayInfo = await servers.gateway?.info()
-  process.env.SECONDARY_GATEWAY = gatewayInfo?.gateway
-  process.env.SECONDARY_GATEWAY_RPC = gatewayInfo?.api
 
   config.userData = servers
 }

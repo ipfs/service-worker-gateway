@@ -7,7 +7,6 @@ import { base36 } from 'multiformats/bases/base36'
 import { base58btc } from 'multiformats/bases/base58'
 import { CID } from 'multiformats/cid'
 import { dnsLinkLabelDecoder, dnsLinkLabelEncoder, isInlinedDnsLink } from './dns-link-labels.ts'
-import { createSearch } from './query-helpers.ts'
 import type { PeerId } from '@libp2p/interface'
 import type { MultibaseDecoder } from 'multiformats/cid'
 
@@ -20,7 +19,6 @@ export interface IPFSURI {
   protocol: 'ipfs'
   type: 'subdomain' | 'path' | 'native'
   cid: CID
-  gateways?: URL[]
   subdomainURL: URL
   pathURL: URL
   nativeURL: URL
@@ -73,7 +71,7 @@ export type ResolvableURI = IPFSURI | IPNSURI | DNSLinkURI | InternalURI | Exter
 const SUBDOMAIN_IPFS = '.ipfs.'
 const SUBDOMAIN_IPNS = '.ipns.'
 
-function toIPFSURI (type: 'subdomain' | 'path' | 'native', cidStr: string, gateways: URL[], host: string, pathname: string, search: string, hash: string, root: URL): IPFSURI | undefined {
+function toIPFSURI (type: 'subdomain' | 'path' | 'native', cidStr: string, host: string, pathname: string, search: string, hash: string, root: URL): IPFSURI | undefined {
   if (cidStr == null || cidStr === '') {
     return
   }
@@ -92,29 +90,13 @@ function toIPFSURI (type: 'subdomain' | 'path' | 'native', cidStr: string, gatew
     return
   }
 
-  const gatewayHints = new Set<string>(
-    gateways.map(url => url.toString())
-  )
-
-  if (host != null && host !== '' && host !== root.host) {
-    gatewayHints.add(`${root.protocol}//${host}/`)
-  }
-
-  // add gateways to search string
-  search = createSearch(new URLSearchParams(search), {
-    params: {
-      gateway: [...gatewayHints]
-    }
-  })
-
   const output: IPFSURI = {
     type,
     protocol: 'ipfs',
     cid,
     subdomainURL: new URL(`${root.protocol}//${cid.toV1().toString(base32)}.ipfs.${root.host}${pathname}${search}${hash}`),
     pathURL: new URL(`${root.protocol}//${root.host}/ipfs/${cidStr}${pathname}${search}${hash}`),
-    nativeURL: new URL(`ipfs://${cidStr}${pathname}${search}${hash}`),
-    gateways: [...gatewayHints].map(gateway => new URL(gateway))
+    nativeURL: new URL(`ipfs://${cidStr}${pathname}${search}${hash}`)
   }
 
   return output
@@ -173,14 +155,6 @@ function asSubdomainMatch (url: URL, root: URL): ResolvableURI | undefined {
     return toIPFSURI(
       'subdomain',
       cidStr,
-      url.searchParams.getAll('gateway')
-        .map(str => {
-          try {
-            return new URL(str)
-          } catch {}
-          return undefined
-        })
-        .filter(val => val != null),
       host,
       url.pathname,
       url.search,
@@ -238,14 +212,6 @@ function asPathMatch (url: URL, root: URL): ResolvableURI | undefined {
     return toIPFSURI(
       'path',
       cidStr,
-      url.searchParams.getAll('gateway')
-        .map(str => {
-          try {
-            return new URL(str)
-          } catch {}
-          return undefined
-        })
-        .filter(val => val != null),
       url.host,
       `/${rest.join('/')}`,
       url.search,
@@ -287,14 +253,6 @@ function asNativeMatch (url: URL, root: URL): ResolvableURI | undefined {
     return toIPFSURI(
       'native',
       url.hostname,
-      url.searchParams.getAll('gateway')
-        .map(str => {
-          try {
-            return new URL(str)
-          } catch {}
-          return undefined
-        })
-        .filter(val => val != null),
       '',
       url.pathname,
       url.search,
