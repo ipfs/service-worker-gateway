@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.1](https://github.com/ipfs/service-worker-gateway/compare/v3.0.0...v3.0.1) (2026-02-13)
+
+
+### Bug Fixes
+
+* remove support for gateway hints ([#973](https://github.com/ipfs/service-worker-gateway/issues/973)) ([43e4e8c](https://github.com/ipfs/service-worker-gateway/commit/43e4e8cdd2a4a8684472f183b6ebe3bd316d0b98)), closes [#972](https://github.com/ipfs/service-worker-gateway/issues/972)
+
 ## [3.0.0](https://github.com/ipfs/service-worker-gateway/compare/v2.2.0...v3.0.0) (2026-02-05)
 
 
