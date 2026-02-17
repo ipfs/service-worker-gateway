@@ -251,6 +251,15 @@ function tooManyRedirects (storageKey: string, maxRedirects = 5, period = 5_000)
   return recent.length > maxRedirects
 }
 
+// only register PWA manifest on root domain, not on CID subdomains
+// where it causes unnecessary background DNS lookups
+if (!location.hostname.includes('.ipfs.') && !location.hostname.includes('.ipns.')) {
+  const manifest = document.createElement('link')
+  manifest.rel = 'manifest'
+  manifest.href = '/ipfs-sw-manifest.json'
+  document.head.appendChild(manifest)
+}
+
 main()
   .catch((err) => {
     // eslint-disable-next-line no-console
