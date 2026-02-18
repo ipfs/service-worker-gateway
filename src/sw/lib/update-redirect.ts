@@ -1,34 +1,34 @@
 import { parseRequest } from '../../lib/parse-request.ts'
-import { getGatewayRoot } from '../../lib/to-gateway-root.ts'
 
 /**
  * If the response has a location header with an ipfs/ipns URL, translate it
  * into a HTTP URL that a browser can use
  */
-export function updateRedirect (resource: URL, response: Response): Response {
-  let location = response.headers.get('location')
+export function updateRedirect (origin: URL, gatewayRoot: URL, response: Response): Response {
+  let location = response.headers.get('location')?.trim()
 
-  if (location == null || location.trim() === '') {
+  if (location == null || location === '') {
     return response
   }
 
   if (location.startsWith('?') || location.startsWith('/') || location.startsWith('#')) {
     // partial location, prefix with current origin
-    location = `${resource.href}${location}`
+    location = `${origin.href}${location}`
   }
 
-  const url = new URL(location)
-
-  if (url.protocol.startsWith('http')) {
-    return response
-  }
-
-  const request = parseRequest(url, new URL(getGatewayRoot()))
+  let redirect = new URL(location)
+  const request = parseRequest(redirect, gatewayRoot)
 
   if (request.type === 'subdomain' || request.type === 'path' || request.type === 'native') {
-    location = request.subdomainURL.href
+    redirect = request.subdomainURL
   } else if (request.type === 'internal' || request.type === 'external') {
-    location = request.url.href
+    redirect = request.url
+  }
+
+  if (redirect.host === origin.host) {
+    location = redirect.pathname
+  } else {
+    location = redirect.toString()
   }
 
   response.headers.set('location', location)

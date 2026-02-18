@@ -351,7 +351,7 @@ console.info('Detected versions', pkg.name, pkg.version, rev)
  */
 export const buildOptions = {
   define: {
-    'process.env.NODE_ENV': '"production"',
+    'process.env.NODE_ENV': `"${process.env.NODE_ENV ?? 'production'}"`,
     'process.env.APP_NAME': `'${pkg.name}'`,
     'process.env.APP_VERSION': `'${pkg.version}'`,
     'process.env.GIT_REVISION': `'${rev}'`

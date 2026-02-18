@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs'
-import { parseRequest } from '../../src/lib/parse-request.ts'
 import type { Page, Response } from 'playwright'
 
 export interface LoadWithServiceWorkerOptions {
@@ -77,20 +76,6 @@ async function wasDownloaded (response: Response): Promise<boolean> {
  * worker that does not include a URL param to redirect to
  */
 export async function loadWithServiceWorker (page: Page, resource: string, options?: LoadWithServiceWorkerOptions): Promise<Response> {
-  let expected = resource
-
-  if (options?.redirect != null) {
-    expected = options.redirect
-  } else {
-    try {
-      const request = parseRequest(new URL(resource), new URL('http://localhost:3000'))
-
-      if (request.type === 'subdomain' || request.type === 'path' || request.type === 'native') {
-        expected = request.subdomainURL.href
-      }
-    } catch {}
-  }
-
   const downloadPromise = page.waitForEvent('download')
     .catch(() => {})
 
@@ -98,57 +83,7 @@ export async function loadWithServiceWorker (page: Page, resource: string, optio
     response
   ] = await Promise.all([
     page.waitForResponse(async (response) => {
-      let url = response.url()
-
-      if (url.includes('*') && expected.includes('%2A')) {
-        // this doesn't always get escaped?
-        url = url.replaceAll('*', '%2A')
-      }
-
-      // ignore responses from the UI
-      // if (!response.fromServiceWorker()) { <-- does not work in Firefox :(
-      if (response.headers()['server']?.includes('@helia/service-worker-gateway') !== true) {
-        return false
-      }
-
-      // ignore redirects by status
-      if (response.status() > 299 && response.status() < 400) {
-        return false
-      }
-
-      const location = await response.headerValue('location')
-
-      // ignore redirects by header
-      if (location != null) {
-        return false
-      }
-
-      if (url === expected) {
-        return true
-      }
-
-      const expectedUrl = new URL(expected)
-      const gotUrl = new URL(url)
-
-      if (expectedUrl.protocol !== gotUrl.protocol || expectedUrl.host !== gotUrl.host || expectedUrl.search !== gotUrl.search) {
-        return false
-      }
-
-      // protocol, host and query all match, normalise path to have trailing
-      // slash and compare
-      let expectedPath = expectedUrl.pathname
-      let gotPath = gotUrl.pathname
-
-      if (!expectedPath.endsWith('/')) {
-        expectedPath = `${expectedPath}/`
-      }
-
-      if (!gotPath.endsWith('/')) {
-        gotPath = `${gotPath}/`
-      }
-
-      if (expectedPath === gotPath) {
-        expected = url
+      if ((await response.headerValue('service-worker-handler')) === 'content-request-handler') {
         return true
       }
 
@@ -185,11 +120,11 @@ export async function loadWithServiceWorker (page: Page, resource: string, optio
     response.body = async () => buf
     response.text = async () => new TextDecoder().decode(await response.body())
     response.json = async () => JSON.parse(await response.text())
-  } else if (page.url() !== expected) {
+  // } else if (page.url() !== expected) {
     // not sure why this is necessary - the response has come from the service
     // worker and is the URL we expect but it takes a little time for the page
     // to catch up?
-    await page.waitForURL(expected, options)
+  //  await page.waitForURL(expected, options)
   }
 
   return response

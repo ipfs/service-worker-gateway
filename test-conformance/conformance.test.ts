@@ -141,18 +141,24 @@ test.describe('@helia/service-worker-gateway - gateway conformance', () => {
               res.statusCode = response.status()
               res.statusMessage = response.statusText()
 
-              console.info('RESPONSE', id, req.method, url.toString(), res.statusCode, await response.allHeaders())
-              const body = await response.body()
+              let body: Buffer | undefined
+
+              // playwright will throw if we attempt to access the response body
+              // of redirect responses
+              if (response.status() < 300 || response.status() > 399) {
+                body = await response.body()
+              }
 
               if (response.status() === 500) {
                 console.info('RESPONSE', id, new TextDecoder().decode(body))
+              } else {
+                console.info('RESPONSE', id, req.method, url.toString(), res.statusCode, await response.allHeaders())
               }
 
               for (const [key, value] of Object.entries(await response.allHeaders())) {
                 res.setHeader(key, value)
               }
 
-              // res.end(await response.body())
               res.end(body)
 
               await context.close()
