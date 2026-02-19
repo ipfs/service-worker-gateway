@@ -11,7 +11,7 @@
     "clean": "aegir clean dist dist-tsc test-e2e/fixtures/data/gateway-conformance-fixtures",
     "dep-check": "aegir dep-check",
     "lint": "aegir lint",
-    "build": "node build.js && go build -o service-worker-gateway main.go",
+    "build": "node --experimental-strip-types build.js && go build -o service-worker-gateway main.go",
     "build:test": "cross-env NODE_ENV=test npm run build",
     "start": "cross-env NODE_ENV=development node --experimental-strip-types ./serve.ts --load-fixtures --watch",
     "test": "cross-env NODE_ENV=test aegir test -f test/**/*.spec.ts -- --experimental-strip-types",

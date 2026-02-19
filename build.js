@@ -4,6 +4,17 @@ import { readFileSync } from 'node:fs'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import esbuild from 'esbuild'
+import { isIP } from '@chainsafe/is-ip'
+
+function toUrl (str) {
+  const url = new URL(str)
+  return `${url.protocol}//${url.host}`
+}
+
+function onlyDomains (str) {
+  const url = new URL(str)
+  return !isIP(url.hostname)
+}
 
 const copyPublicFiles = async () => {
   const srcDir = path.resolve('public')
@@ -72,6 +83,16 @@ const injectHtmlPages = async (metafile, revision) => {
 
   // htmlFilePaths.push(path.resolve('dist/index.html'))
 
+  let configFile = './src/config/index.ts'
+
+  if (process.env.NODE_ENV === 'test') {
+    configFile = './src/config/index-test.ts'
+  } else if (process.env.NODE_ENV === 'development') {
+    configFile = './src/config/index-development.ts'
+  }
+
+  const { config } = await import(configFile)
+
   for (const htmlFilePath of htmlFilePaths) {
     const baseName = path.basename(htmlFilePath, '.html')
     let jsFile = Object.keys(metafile.outputs).filter(file => file.endsWith('.js') && (file.includes(baseName) || file.includes('index')))
@@ -131,6 +152,21 @@ const injectHtmlPages = async (metafile, revision) => {
 
     htmlContent = htmlContent.replace(/<%= GIT_VERSION %>/g, revision)
     console.log(`Added git revision (${revision}) to ${path.relative(process.cwd(), htmlFilePath)}.`)
+
+    let preconnect = [...new Set([
+      ...config.routers.map(toUrl),
+      ...Object.values(config.dnsResolvers).map(toUrl)
+    ])].map(url => `<link rel="preconnect" href="${url}" />`).join('\n    ')
+
+    let dnsPrefetch = [...new Set([
+      ...config.routers.map(toUrl),
+      ...Object.values(config.dnsResolvers).map(toUrl)
+    ])]
+      .filter(onlyDomains)
+      .map(url => `<link rel="dns-prefetch" href="${url}" />`).join('\n    ')
+
+    htmlContent = htmlContent.replace(/<%= PRECONNECT_HINTS %>/g, preconnect)
+    htmlContent = htmlContent.replace(/<%= DNS_PREFETCH_HINTS %>/g, dnsPrefetch)
 
     await fs.writeFile(htmlFilePath, htmlContent)
   }
@@ -281,8 +317,7 @@ const configFilePlugin = {
         contents: fileReplacementContent,
         loader: 'default'
       }
-    }
-    )
+    })
   }
 }
 
