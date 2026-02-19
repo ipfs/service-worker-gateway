@@ -40,6 +40,9 @@ export function getWontFixTests (): string[] {
     'TestRedirectsFileSupport/invalid_file:_request_for_$INVALID_REDIRECTS_DIR_HOSTNAME%2Fnot-found_returns_error_about_invalid_redirects_file',
     'TestRedirectsFileSupport/invalid_file:_request_for_$TOO_LARGE_REDIRECTS_DIR_HOSTNAME%2Fnot-found_returns_error_about_too_large_redirects_file',
 
+    // cannot skip the tests that require reporting unrelated errors
+    'TestRedirectsFileSupport',
+
     // this test makes HTTP requests to non-localhost domains
     // https://github.com/ipfs/gateway-conformance/issues/270
     'TestRedirectsFileWithIfNoneMatchHeader',
