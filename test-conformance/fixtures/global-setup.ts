@@ -29,8 +29,14 @@ export default async function globalSetup (): Promise<void> {
 
   // set up DNS JSON server
   const dnsJsonServer = createServer((req, res) => {
+    let incomingUrl = req.url ?? ''
+
+    if (incomingUrl.startsWith('/')) {
+      incomingUrl = `http://localhost${incomingUrl}`
+    }
+
     // https://developers.cloudflare.com/1.1.1.1/encryption/dns-over-https/make-api-requests/dns-json/
-    const url = new URL(req.url ?? '')
+    const url = new URL(incomingUrl)
     const name = url.searchParams.get('name')
     const type = url.searchParams.get('type') ?? 'A'
 

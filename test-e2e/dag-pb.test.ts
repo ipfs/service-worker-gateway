@@ -2,6 +2,7 @@ import { stop } from '@libp2p/interface'
 import { createKuboRPCClient } from 'kubo-rpc-client'
 import { test, expect } from './fixtures/config-test-fixtures.ts'
 import { loadWithServiceWorker } from './fixtures/load-with-service-worker.ts'
+import { makeFetchRequest } from './fixtures/make-range-request.ts'
 import type { KuboRPCClient } from 'kubo-rpc-client'
 
 test.describe('dag-pb', () => {
@@ -61,5 +62,41 @@ test.describe('dag-pb', () => {
       'bafybeiawdvhmjcz65x5egzx4iukxc72hg4woks6v6fvgyupiyt3oczk5ja',
       'bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q'
     ].join(','))
+  })
+
+  test('should 406 for dag-json format', async ({ page, baseURL }) => {
+    const cid = 'bafkreialihlqnf5uwo4byh4n3cmwlntwqzxxs2fg5vanqdi3d7tb2l5xkm'
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=dag-json`)
+
+    expect(response.status()).toBe(406)
+  })
+
+  test('should 406 for dag-json accept', async ({ page, baseURL }) => {
+    const cid = 'bafkreialihlqnf5uwo4byh4n3cmwlntwqzxxs2fg5vanqdi3d7tb2l5xkm'
+    const response = await makeFetchRequest(page, `${baseURL}/ipfs/${cid}`, {
+      headers: {
+        accept: 'application/vnd.ipld.dag-json'
+      }
+    })
+
+    expect(response.status()).toBe(406)
+  })
+
+  test('should 406 for dag-cbor format', async ({ page, baseURL }) => {
+    const cid = 'bafkreialihlqnf5uwo4byh4n3cmwlntwqzxxs2fg5vanqdi3d7tb2l5xkm'
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=dag-cbor`)
+
+    expect(response.status()).toBe(406)
+  })
+
+  test('should 406 for dag-cbor accept', async ({ page, baseURL }) => {
+    const cid = 'bafkreialihlqnf5uwo4byh4n3cmwlntwqzxxs2fg5vanqdi3d7tb2l5xkm'
+    const response = await makeFetchRequest(page, `${baseURL}/ipfs/${cid}`, {
+      headers: {
+        accept: 'application/vnd.ipld.dag-cbor'
+      }
+    })
+
+    expect(response.status()).toBe(406)
   })
 })

@@ -1,5 +1,5 @@
 import { MEDIA_TYPE_CAR, MEDIA_TYPE_CBOR, MEDIA_TYPE_DAG_CBOR, MEDIA_TYPE_DAG_JSON, MEDIA_TYPE_DAG_PB, MEDIA_TYPE_IPNS_RECORD, MEDIA_TYPE_JSON, MEDIA_TYPE_RAW, MEDIA_TYPE_TAR } from '@helia/verified-fetch'
-import { AbortError, setMaxListeners, TimeoutError } from '@libp2p/interface'
+import { setMaxListeners, TimeoutError } from '@libp2p/interface'
 import { anySignal } from 'any-signal'
 import { config } from '../../config/index.ts'
 import { CURRENT_CACHES } from '../../constants.ts'
@@ -7,8 +7,6 @@ import { errorToObject } from '../../lib/error-to-object.ts'
 import { getSubdomainParts } from '../../lib/get-subdomain-parts.ts'
 import { getSwLogger } from '../../lib/logger.ts'
 import { isBitswapProvider, isTrustlessGatewayProvider } from '../../lib/providers.ts'
-import { createSearch } from '../../lib/query-helpers.ts'
-import { APP_NAME, APP_VERSION, GIT_REVISION } from '../../version.ts'
 import { getInstallTime } from '../lib/install-time.ts'
 import { getVerifiedFetch } from '../lib/verified-fetch.ts'
 import { fetchErrorPageResponse } from '../pages/fetch-error-page.ts'
@@ -41,6 +39,7 @@ interface FetchHandlerArg {
 }
 
 const ONE_HOUR_IN_SECONDS = 3600
+const MAX_REDIRECTS = 5
 
 function getCacheKey (resource: ContentURI, headers: Headers, renderHtml: boolean): string {
   return `${resource.subdomainURL}-${headers.get('accept')}-html-${renderHtml}-match-${headers.get('if-none-match')}`
@@ -174,9 +173,8 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
     providers: []
   }
 
-  const resource = request.nativeURL
+  let resource = request.nativeURL
   const firstInstallTime = await getInstallTime()
-  const start = Date.now()
 
   let ifNoneMatch = headers.get('if-none-match')
 
@@ -192,7 +190,7 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
   // make the timeout apply to receiving the response headers, then to each
   // chunk of the body
   const abortController = new AbortController()
-  let timeout = setTimeout(() => {
+  const timeout = setTimeout(() => {
     abortController.abort(new TimeoutError('Timed out'))
   }, config.fetchTimeout)
 
@@ -260,26 +258,45 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
       log('%s: %s', key, value)
     }
 
-    const response = await verifiedFetch(resource, init)
-    response.headers.set('server', `${APP_NAME}/${APP_VERSION}#${GIT_REVISION}`)
+    let response: Response | undefined
+    let redirectStatus: number | undefined
 
-    // now that the root block has been fetched and the blockstore session
-    // created, if a gateway hint was present we need to redirect the user to
-    // a bare URL that removes the hint. this makes it harder (though not
-    // impossible) for users to share URLs with baked-in routing information
-    // that may become stale over time
-    if (response.ok && request.subdomainURL.searchParams.has('gateway')) {
-      const search = createSearch(request.subdomainURL.searchParams, {
-        filter: (key) => key !== 'gateway'
-      })
+    // when we follow redirects in `_redirects` file, ensure we don't loop forever
+    for (let i = 0; i < MAX_REDIRECTS; i++) {
+      response = await verifiedFetch(resource, init)
 
-      const location = `${request.subdomainURL.protocol}//${request.subdomainURL.host}${request.subdomainURL.pathname}${search}${request.subdomainURL.hash}`
+      if (isManualRedirect(response)) {
+        // a non-30x with a location header should be treated as a rewrite not a
+        // redirect so we need to follow the location header internally
+        // @see https://specs.ipfs.tech/http-gateways/web-redirects-file/#status
+        log('rewrite %s to %s', resource, response.headers.get('location'))
+        resource = new URL(response.headers.get('location') ?? '')
 
-      return new Response('', {
-        status: 302,
-        headers: {
-          location
+        // use the original status code
+        if (redirectStatus == null) {
+          redirectStatus = response.status
         }
+      } else {
+        break
+      }
+    }
+
+    if (response == null) {
+      throw new Error('Failed to fetch')
+    }
+
+    if (isManualRedirect(response)) {
+      // manual redirects occur when an entry in the _redirects file was used
+      throw new Error('Too many redirects')
+    }
+
+    if (redirectStatus != null) {
+      // if we are here, it's because the user defined status codes in a
+      // _redirects file so just return the response instead of showing UI
+      return new Response(bodyWithTimeout(response, abortController), {
+        status: redirectStatus,
+        headers: response.headers,
+        statusText: response.statusText
       })
     }
 
@@ -332,27 +349,12 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
       }
     }
 
-    // this passthrough body stream resets the inactivity timer on every chunk
-    const body = response.body?.pipeThrough(new TransformStream({
-      transform (chunk, controller) {
-        clearTimeout(timeout)
-        timeout = setTimeout(() => {
-          abortController.abort(new TimeoutError('Timed out'))
-        }, config.fetchTimeout)
-
-        controller.enqueue(chunk)
-      },
-      flush () {
-        clearTimeout(timeout)
-      }
-    }))
-
     // Create a completely new response object with the same body, status,
     // statusText, and headers.
     //
     // This is necessary to work around a bug with Safari not rendering
     // content correctly.
-    return new Response(body, {
+    return new Response(bodyWithTimeout(response, abortController), {
       status: response.status,
       headers: response.headers,
       statusText: response.statusText
@@ -365,10 +367,10 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
         headers: {
           'content-type': 'application/json'
         }
-      }), JSON.stringify(errorToObject(new AbortError(`Timed out after ${Date.now() - start}ms`)), null, 2), providers, firstInstallTime, logs)
+      }), JSON.stringify(errorToObject(abortController.signal.reason), null, 2), providers, firstInstallTime, logs)
     }
 
-    abortController.abort(new Error('Nope'))
+    abortController.abort(err)
 
     log.error('error during request - %e', err)
 
@@ -476,16 +478,40 @@ function createHeaders (event: FetchEvent): Headers {
   const headers = new Headers(event.request.headers)
   const url = new URL(event.request.url)
 
+  const accept = headers.get('accept')
+  let defaultVersion = '1'
+  let defaultOrder = 'unk'
+  let defaultDups = 'y'
+
+  if (accept?.includes('application/vnd.ipld.car')) {
+    accept.split(';')
+      .forEach(part => {
+        const [key, value] = part.split('=').map(s => s.trim())
+
+        if (key === 'version' && (value === '1' || value === '2')) {
+          defaultVersion = value
+        }
+
+        if (key === 'order' && (value === 'dfs' || value === 'unk')) {
+          defaultOrder = value
+        }
+
+        if (key === 'dups' && (value === 'y' || value === 'n')) {
+          defaultDups = value
+        }
+      })
+  }
+
   // override the Accept header if the format param is present
   // https://specs.ipfs.tech/http-gateways/path-gateway/#format-request-query-parameter
   const format = url.searchParams.get('format')
   if (isCarRequest(url)) {
     const accept = `application/vnd.ipld.car; version=${
-      url.searchParams.get('car-version') ?? '1'
+      url.searchParams.get('car-version') ?? defaultVersion
     }; order=${
-      url.searchParams.get('car-order') ?? 'unk'
+      url.searchParams.get('car-order') ?? defaultOrder
     }; dups=${
-      url.searchParams.get('car-dups') ?? 'y'
+      url.searchParams.get('car-dups') ?? defaultDups
     }`
 
     headers.set('accept', accept)
@@ -547,4 +573,33 @@ function isCarRequest (url: URL): boolean {
     url.searchParams.has('car-order') ||
     url.searchParams.has('car-dups') ||
     url.searchParams.has('car-version')
+}
+
+function isManualRedirect (response: Response): boolean {
+  if (response.status > 299 && response.status < 400) {
+    return false
+  }
+
+  return response.headers.has('location')
+}
+
+/**
+ * A passthrough body stream resets the inactivity timer on every chunk
+ */
+function bodyWithTimeout (response: Response, abortController: AbortController): BodyInit | undefined {
+  let timeout: ReturnType<typeof setTimeout>
+
+  return response.body?.pipeThrough(new TransformStream({
+    transform (chunk, controller) {
+      clearTimeout(timeout)
+      timeout = setTimeout(() => {
+        abortController.abort(new TimeoutError('Timed out'))
+      }, config.fetchTimeout)
+
+      controller.enqueue(chunk)
+    },
+    flush () {
+      clearTimeout(timeout)
+    }
+  }))
 }

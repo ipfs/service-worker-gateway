@@ -5,6 +5,7 @@ import { logEmitter } from '../lib/collecting-logger.ts'
 import { QUERY_PARAMS } from '../lib/constants.ts'
 import { getSwLogger } from '../lib/logger.ts'
 import { parseRequest } from '../lib/parse-request.ts'
+import { getGatewayRoot } from '../lib/to-gateway-root.ts'
 import { APP_NAME, APP_VERSION, GIT_REVISION } from '../version.ts'
 import { handlers } from './handlers/index.ts'
 import { getInstallTime, setInstallTime } from './lib/install-time.ts'
@@ -118,6 +119,10 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     handleFetch(request, event, handler, logs)
       .then(async response => {
+        if (response.body?.locked) {
+          throw new Error('Body was locked after handleFetch')
+        }
+
         // maybe uninstall service worker after request has finished
         // TODO: remove this, it breaks offline installations after the TTL
         // has expired
@@ -131,9 +136,17 @@ self.addEventListener('fetch', (event) => {
           )
         }
 
+        if (response.body?.locked) {
+          throw new Error('Body was locked before updating redirect')
+        }
+
         // if verified-fetch has redirected us, update the location header in
         // the response to be a HTTP location not ipfs/ipns
-        updateRedirect(url, response)
+        updateRedirect(url, new URL(getGatewayRoot()), response)
+
+        if (response.body?.locked) {
+          throw new Error('Body was locked after updating redirect')
+        }
 
         // add the server header to the response so we can be sure this response
         // came from the service worker - sometimes these are read-only so we
@@ -158,7 +171,27 @@ self.addEventListener('fetch', (event) => {
 
 async function handleFetch (request: ResolvableURI, event: FetchEvent, handler: Handler, logs: string[]): Promise<Response> {
   try {
-    return await handler.handle(request, event, logs)
+    const response = await handler.handle(request, event, logs)
+
+    if (response.body?.locked) {
+      throw new Error('Body was locked after handler ' + handler.name)
+    }
+
+    // if running tests, inform the runner which handler served this response
+    // this allows the load-with-service-worker function to only return the
+    // final response and not an interstitial or forwarding page
+    if (process.env.NODE_ENV === 'test') {
+      try {
+        if (response.headers.get('service-worker-handler') == null) {
+          response.headers.set('service-worker-handler', handler.name)
+        }
+      } catch {
+        // cached responses are immutable so ignore any failure to set the
+        // handler header
+      }
+    }
+
+    return response
   } catch (err) {
     // ensure we only reject, never throw
     return Promise.reject(err)

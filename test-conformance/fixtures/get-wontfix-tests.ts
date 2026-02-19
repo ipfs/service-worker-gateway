@@ -3,6 +3,7 @@ export function getWontFixTests (): string[] {
     // these tests make HTTP requests to hosts that are not supported by the
     // service worker gateway
     'TestDNSLinkGatewayUnixFSDirectoryListing',
+    'TestRedirectsFileSupportWithDNSLink',
 
     // these tests want to ignore the format arg and return a text/html
     // content-type which is not in the spec?
@@ -34,10 +35,25 @@ export function getWontFixTests (): string[] {
     // https://github.com/ipfs/gateway-conformance/issues/261
     'TestGatewayCache/GET_for_%2Fipfs%2F_dir_listing_with_matching_weak_Etag_in_If-None-Match_returns_304_Not_Modified',
 
-    // redirects file isn't supported yet
+    // this test requires reporting an unrelated error
+    // https://github.com/ipfs/gateway-conformance/issues/269
+    'TestRedirectsFileSupport/invalid_file:_request_for_$INVALID_REDIRECTS_DIR_HOSTNAME%2Fnot-found_returns_error_about_invalid_redirects_file',
+    'TestRedirectsFileSupport/invalid_file:_request_for_$TOO_LARGE_REDIRECTS_DIR_HOSTNAME%2Fnot-found_returns_error_about_too_large_redirects_file',
+
+    // cannot skip the tests that require reporting unrelated errors
     'TestRedirectsFileSupport',
-    'TestRedirectsFileSupportWithDNSLink',
+
+    // this test makes HTTP requests to non-localhost domains
+    // https://github.com/ipfs/gateway-conformance/issues/270
     'TestRedirectsFileWithIfNoneMatchHeader',
+
+    // playwright cannot intercept redirects so we cannot assert 301/302 status
+    // codes were received
+    'TestRedirectsFileSupport/request_for_%7Bcid%7D.ipfs.example.com%2Fredirect-one_redirects_with_default_of_301%2C_per__redirects_file',
+    'TestRedirectsFileSupport/request_for_%7Bcid%7D.ipfs.example.com%2F301-redirect-one_redirects_with_301%2C_per__redirects_file',
+    'TestRedirectsFileSupport/request_for_%7Bcid%7D.ipfs.example.com%2Fposts%2F:year%2F:month%2F:day%2F:title_redirects_with_301_and_placeholders%2C_per__redirects_file',
+    'TestRedirectsFileSupport/request_for_%7Bcid%7D.ipfs.example.com%2Fsplat%2Fone.html_redirects_with_301_and_splat_placeholder%2C_per__redirects_file',
+    'TestRedirectsFileSupport/newline:_request_for_$NEWLINE_REDIRECTS_DIR_HOSTNAME%2Fredirect-one_redirects_with_default_of_301%2C_per__redirects_file',
 
     // these test that responses are redirects - redirects are followed by
     // browsers automatically so we can't intercept the redirect
