@@ -6,14 +6,42 @@ import path from 'node:path'
 import esbuild from 'esbuild'
 import { isIP } from '@chainsafe/is-ip'
 
+/**
+ * @param {string | string[]} str
+ * @returns {string[]}
+ */
+function toArray (str) {
+  if (Array.isArray(str)) {
+    return str
+  }
+
+  return [str]
+}
+
+/**
+ * @param {string} str
+ * @returns {string}
+ */
 function toUrl (str) {
   const url = new URL(str)
   return `${url.protocol}//${url.host}`
 }
 
+/**
+ * @param {string} str
+ * @returns {boolean}
+ */
 function onlyDomains (str) {
   const url = new URL(str)
   return !isIP(url.hostname)
+}
+
+/**
+ * @param {Set} set
+ * @returns boolean
+ */
+function notIn (set) {
+  return (str) => !set.has(str)
 }
 
 const copyPublicFiles = async () => {
@@ -153,20 +181,25 @@ const injectHtmlPages = async (metafile, revision) => {
     htmlContent = htmlContent.replace(/<%= GIT_VERSION %>/g, revision)
     console.log(`Added git revision (${revision}) to ${path.relative(process.cwd(), htmlFilePath)}.`)
 
-    let preconnect = [...new Set([
-      ...config.routers.map(toUrl),
-      ...Object.values(config.dnsResolvers).map(toUrl)
-    ])].map(url => `<link rel="preconnect" href="${url}" />`).join('\n    ')
+    // preconnect to routers as we will probably need to use them to find provs
+    let preconnect = new Set([
+      ...config.routers.map(toUrl)
+    ])
 
-    let dnsPrefetch = [...new Set([
-      ...config.routers.map(toUrl),
-      ...Object.values(config.dnsResolvers).map(toUrl)
-    ])]
+    // only resolve DNS for gateways and DNS resolvers as we may use them
+    let dnsPrefetch = new Set([
+      ...config.gateways.map(toUrl),
+      ...Object.values(config.dnsResolvers).map(toArray).map(toUrl)
+    ])
+
+    htmlContent = htmlContent.replace(/<%= PRECONNECT_HINTS %>/g, [...preconnect]
+      .map(url => `<link rel="preconnect" href="${url}" />`).join('\n    ')
+    )
+    htmlContent = htmlContent.replace(/<%= DNS_PREFETCH_HINTS %>/g, [...dnsPrefetch]
       .filter(onlyDomains)
+      .filter(notIn(preconnect))
       .map(url => `<link rel="dns-prefetch" href="${url}" />`).join('\n    ')
-
-    htmlContent = htmlContent.replace(/<%= PRECONNECT_HINTS %>/g, preconnect)
-    htmlContent = htmlContent.replace(/<%= DNS_PREFETCH_HINTS %>/g, dnsPrefetch)
+    )
 
     await fs.writeFile(htmlFilePath, htmlContent)
   }
