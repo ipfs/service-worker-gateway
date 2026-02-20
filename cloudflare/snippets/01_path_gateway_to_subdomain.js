@@ -301,12 +301,7 @@ export default {
       const parsed = parseCID(identifier)
       if (!parsed) return fetch(request)
 
-      let v1
-      if (parsed.version === 0) {
-        v1 = cidV1Bytes(0x70, parsed.multihash) // dag-pb
-      } else {
-        v1 = parsed.raw
-      }
+      const v1 = parsed.version === 0 ? cidV1Bytes(0x70, parsed.multihash) : parsed.raw
       subdomain = 'b' + base32Encode(v1)
     } else if (namespace === 'ipns') {
       if (identifier.includes('.')) {
@@ -316,12 +311,7 @@ export default {
         const parsed = parseCID(identifier)
         if (!parsed) return fetch(request)
 
-        let v1
-        if (parsed.version === 0) {
-          v1 = cidV1Bytes(0x72, parsed.multihash) // libp2p-key
-        } else {
-          v1 = parsed.raw
-        }
+        const v1 = parsed.version === 0 ? cidV1Bytes(0x72, parsed.multihash) : parsed.raw
         subdomain = 'k' + base36Encode(v1)
       }
     }

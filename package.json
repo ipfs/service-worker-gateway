@@ -25,7 +25,7 @@
     "postinstall": "patch-package",
     "generate-fixtures": "node --experimental-strip-types ./test-e2e/fixtures/data/generate.ts",
     "benchmark": "playwright test -c ./benchmark/playwright.config.js --project chromium",
-    "test:cloudflare": "node --test docs/cloudflare/*.test.js"
+    "test:cloudflare": "node --test cloudflare/snippets/*.test.js"
   },
   "browser": "./dist/src/index.js",
   "browserslist": [

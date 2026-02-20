@@ -1,12 +1,12 @@
-// Tests for path-gateway-to-subdomain.js Cloudflare Snippet
+// Tests for 01_path_gateway_to_subdomain.js Cloudflare Snippet
 //
-// Run: node docs/cloudflare/path-gateway-to-subdomain.test.js
+// Run: node cloudflare/snippets/01_path_gateway_to_subdomain.test.js
 //
 // These tests verify the multibase encode/decode, CID parsing, DNSLink
 // encoding, and the actual fetch handler without any npm dependencies.
 
-import { readFileSync } from 'node:fs'
 import { strict as assert } from 'node:assert'
+import { readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
 
 // Provide a global fetch stub so the snippet's passthrough calls don't throw.
@@ -17,7 +17,7 @@ globalThis.fetch = () => Promise.resolve(Object.assign(new Response(null, { stat
 // Load snippet and expose internals for testing.
 // The snippet uses `export default { ... }` which we replace with a local var
 // so we can eval it and access internal functions.
-const snippetPath = new URL('./path-gateway-to-subdomain.js', import.meta.url).pathname
+const snippetPath = new URL('./01_path_gateway_to_subdomain.js', import.meta.url).pathname
 const code = readFileSync(snippetPath, 'utf8')
 const wrapped = code.replace('export default', 'const _handler =')
 // eslint-disable-next-line no-new-func
@@ -359,6 +359,22 @@ describe('fetch handler', () => {
     assert.equal(
       await fetchRedirect(`https://dweb.link/ipfs/${zCid}`),
       'https://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi.ipfs.dweb.link/'
+    )
+  })
+
+  it('/ipfs/ with uppercase F base16 CIDv1 redirects to base32 subdomain', async () => {
+    const knownBytes = base32Decode('bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi'.substring(1))
+    const hexCid = 'F' + toHex(knownBytes)
+    assert.equal(
+      await fetchRedirect(`https://dweb.link/ipfs/${hexCid}`),
+      'https://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi.ipfs.dweb.link/'
+    )
+  })
+
+  it('/ipns/ with DNSLink domain preserves sub-path and query params', async () => {
+    assert.equal(
+      await fetchRedirect('https://inbrowser.link/ipns/en.wikipedia-on-ipfs.org/wiki/Foo?query=val'),
+      'https://en-wikipedia--on--ipfs-org.ipns.inbrowser.link/wiki/Foo?query=val'
     )
   })
 

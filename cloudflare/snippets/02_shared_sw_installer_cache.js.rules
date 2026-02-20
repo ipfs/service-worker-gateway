@@ -1,0 +1,1 @@
+(ends_with(http.host, "inbrowser.dev") or ends_with(http.host, "inbrowser.link"))

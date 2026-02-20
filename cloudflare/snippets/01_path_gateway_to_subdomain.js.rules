@@ -1,0 +1,1 @@
+(starts_with(http.request.uri.path, "/ipfs/") or starts_with(http.request.uri.path, "/ipns/")) and (http.host eq "inbrowser.dev" or http.host eq "inbrowser.link")
