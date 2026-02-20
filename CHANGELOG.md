@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.1](https://github.com/ipfs/service-worker-gateway/compare/v3.1.0...v3.1.1) (2026-02-20)
+
+
+### Bug Fixes
+
+* remove double render ([#987](https://github.com/ipfs/service-worker-gateway/issues/987)) ([87a0a2e](https://github.com/ipfs/service-worker-gateway/commit/87a0a2e51312e7af1d2272290fd8c069a16691ee))
+
 ## [3.1.0](https://github.com/ipfs/service-worker-gateway/compare/v3.0.1...v3.1.0) (2026-02-20)
 
 
