@@ -3,8 +3,8 @@ import { execSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import esbuild from 'esbuild'
 import { isIP } from '@chainsafe/is-ip'
+import esbuild from 'esbuild'
 
 /**
  * @param {string | string[]} str
@@ -182,12 +182,12 @@ const injectHtmlPages = async (metafile, revision) => {
     console.log(`Added git revision (${revision}) to ${path.relative(process.cwd(), htmlFilePath)}.`)
 
     // preconnect to routers as we will probably need to use them to find provs
-    let preconnect = new Set([
+    const preconnect = new Set([
       ...config.routers.map(toUrl)
     ])
 
     // only resolve DNS for gateways and DNS resolvers as we may use them
-    let dnsPrefetch = new Set([
+    const dnsPrefetch = new Set([
       ...config.gateways.map(toUrl),
       ...Object.values(config.dnsResolvers).map(toArray).map(toUrl)
     ])
