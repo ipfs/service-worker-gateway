@@ -19,7 +19,7 @@ test.describe('@helia/service-worker-gateway - benchmark', () => {
     name: 'inbrowser.dev (subdomain gateway)',
     url: (cid: string): string => `https://${cid}.ipfs.inbrowser.dev/`
   }, {
-    name: 'inbrowser.dev (path gateway',
+    name: 'inbrowser.dev (path gateway)',
     url: (cid: string): string => `https://inbrowser.dev/ipfs/${cid}/`
   }]
 
