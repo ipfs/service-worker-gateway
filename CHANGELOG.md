@@ -1,5 +1,20 @@
 # Changelog
 
+## [3.1.0](https://github.com/ipfs/service-worker-gateway/compare/v3.0.1...v3.1.0) (2026-02-20)
+
+
+### Features
+
+* pre-connect to routers and resolve gateway dns ([#984](https://github.com/ipfs/service-worker-gateway/issues/984)) ([9b05c43](https://github.com/ipfs/service-worker-gateway/commit/9b05c438a11b15ed0aefbbf9a388cc2d2a44a791))
+* support _redirects file ([#978](https://github.com/ipfs/service-worker-gateway/issues/978)) ([e906aaa](https://github.com/ipfs/service-worker-gateway/commit/e906aaac143ebf2d5ae48a8f30fa30e911f53f28))
+
+
+### Bug Fixes
+
+* handle hard refresh ([#983](https://github.com/ipfs/service-worker-gateway/issues/983)) ([4ce0b09](https://github.com/ipfs/service-worker-gateway/commit/4ce0b0940bb338eb68f81c9d81698370ac5fd78f))
+* load CSS dynamically ([#986](https://github.com/ipfs/service-worker-gateway/issues/986)) ([d263589](https://github.com/ipfs/service-worker-gateway/commit/d26358969c79172ce3a5cacc32f3e41c886686fb))
+* skip PWA manifest on CID subdomains ([#975](https://github.com/ipfs/service-worker-gateway/issues/975)) ([67ad16d](https://github.com/ipfs/service-worker-gateway/commit/67ad16d5b7fc82c41a45510c6ed563b6131ba25e))
+
 ## [3.0.1](https://github.com/ipfs/service-worker-gateway/compare/v3.0.0...v3.0.1) (2026-02-13)
 
 
