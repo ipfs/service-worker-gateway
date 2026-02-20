@@ -162,12 +162,11 @@ async function main (): Promise<void> {
         // install the service worker on the root path of this domain, either
         // path or subdomain gateway
         await registerServiceWorker()
-
-        // service worker is now installed so redirect to path or subdomain for
-        // data so it can intercept the request
-        window.location.href = url.toString()
-        return
       }
+
+      // reload so the subdomain request is handled by the service worker
+      window.location.href = url.toString()
+      return
     }
   } catch (err: any) {
     // error during initialization, show an error message
