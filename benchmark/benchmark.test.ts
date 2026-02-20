@@ -11,20 +11,16 @@ const CID = 'bafybeigocr7lc57bjw3b7jkv2y3mtggcvfiebs5wq5b7epfwtb5wgwgzm4'
 test.describe('@helia/service-worker-gateway - benchmark', () => {
   const tests = [{
     name: 'inbrowser.link (subdomain gateway)',
-    url: (cid: string): string => `https://${cid}.ipfs.inbrowser.link/`,
-    redirect: (cid: string): string => `https://${cid}.ipfs.inbrowser.link/`
+    url: (cid: string): string => `https://${cid}.ipfs.inbrowser.link/`
   }, {
     name: 'inbrowser.link (path gateway)',
-    url: (cid: string): string => `https://inbrowser.link/ipfs/${cid}/`,
-    redirect: (cid: string): string => `https://${cid}.ipfs.inbrowser.link/`
+    url: (cid: string): string => `https://inbrowser.link/ipfs/${cid}/`
   }, {
     name: 'inbrowser.dev (subdomain gateway)',
-    url: (cid: string): string => `https://${cid}.ipfs.inbrowser.dev/`,
-    redirect: (cid: string): string => `https://${cid}.ipfs.inbrowser.dev/`
+    url: (cid: string): string => `https://${cid}.ipfs.inbrowser.dev/`
   }, {
     name: 'inbrowser.dev (path gateway',
-    url: (cid: string): string => `https://inbrowser.dev/ipfs/${cid}/`,
-    redirect: (cid: string): string => `https://${cid}.ipfs.inbrowser.dev/`
+    url: (cid: string): string => `https://inbrowser.dev/ipfs/${cid}/`
   }]
 
   tests.forEach(t => {
