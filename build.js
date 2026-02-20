@@ -106,7 +106,11 @@ const injectHtmlPages = async (metafile, revision) => {
 
     // only inject CSS for non-index.html files, or if explicitly requested
     if (htmlContent.includes('<%= CSS_STYLES %>')) {
-      if (cssFile != null) {
+      if (baseName === 'index') {
+        // for index.html, don't inject CSS - it will be injected dynamically by JavaScript
+        htmlContent = htmlContent.replace(/<%= CSS_STYLES %>/g, '')
+        console.log(`Removed CSS injection from ${path.relative(process.cwd(), htmlFilePath)} - will be injected dynamically.`)
+      } else if (cssFile != null) {
         const cssTag = `<link rel="stylesheet" href="/${path.basename(cssFile)}">`
         htmlContent = htmlContent.replace(/<%= CSS_STYLES %>/g, cssTag)
         console.log(`Injected ${path.basename(cssFile)} into ${path.relative(process.cwd(), htmlFilePath)}.`)
@@ -319,6 +323,15 @@ const modifyBuiltFiles = {
           const appConfigContent = `export const APP_FILENAME = '${path.basename(file)}'`
           await fs.writeFile(path.resolve('dist/ipfs-sw-app-config.js'), appConfigContent)
           console.log(`Created dist/ipfs-sw-app-config.js with app chunk filename: ${path.basename(file)}`)
+        }
+
+        // create a CSS config file we will use to get the proper CSS filename
+        // TODO: this is too fragile, it only works because there is a only one
+        // css file in the output
+        if (file.endsWith('.css')) {
+          const cssConfigContent = `export const CSS_FILENAME = '${path.basename(file)}'`
+          await fs.writeFile(path.resolve('dist/ipfs-sw-css-config.js'), cssConfigContent)
+          console.log(`Created dist/ipfs-sw-css-config.js with CSS filename: ${path.basename(file)}`)
         }
       }
     })
