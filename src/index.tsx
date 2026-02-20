@@ -151,8 +151,6 @@ async function main (): Promise<void> {
           }
         }
       }
-
-      await renderUi()
     } else {
       // we are on a subdomain, ensure the service worker is installed
       const registration = await navigator.serviceWorker.getRegistration()
