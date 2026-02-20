@@ -1,6 +1,4 @@
-import { peerIdFromString } from '@libp2p/peer-id'
 import { CID } from 'multiformats'
-import { base36 } from 'multiformats/bases/base36'
 import { identity } from 'multiformats/hashes/identity'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { CODE_RAW } from '../src/ui/pages/multicodec-table.ts'
@@ -39,12 +37,7 @@ test.describe('ipns', () => {
   test('should redirect b58 IPNS name in path gateway to CIDv1 b36 libp2p key', async ({ page, baseURL, protocol, host }) => {
     // @see TestRedirectCanonicalIPNS/GET_for_%2Fipns%2F%7Bb58-multihash-of-ed25519-key%7D_redirects_to_%2Fipns%2F%7Bcidv1-libp2p-key-base36%7D
     const name = '12D3KooWRBy97UB99e3J6hiPesre1MZeuNQvfan4gBziswrRJsNK'
-    const peerId = peerIdFromString(name)
-    const key = peerId.toCID().toString(base36)
-
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${name}/root2`, {
-      redirect: `${protocol}//${key}.ipns.${host}/root2`
-    })
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${name}/root2`)
 
     // performed redirect to re-encoded IPNS name but we can't resolve record so
     // expect a 504

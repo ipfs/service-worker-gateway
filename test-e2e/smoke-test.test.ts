@@ -86,9 +86,7 @@ test.describe('smoke test', () => {
     const cid = 'bafkqablimvwgy3y'
     const asBase16 = CID.parse(cid).toString(base16)
 
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${asBase16}`, {
-      redirect: `${protocol}//${cid}.ipfs.${host}/`
-    })
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${asBase16}`)
     expect(response.status()).toBe(200)
     expect(await response.text()).toContain('hello')
   })
@@ -97,9 +95,7 @@ test.describe('smoke test', () => {
     const name = 'k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam'
     const asBase16 = peerIdFromString(name).toCID().toString(base16)
 
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${asBase16}`, {
-      redirect: `${protocol}//${name}.ipns.${host}/`
-    })
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${asBase16}`)
     expect(response.status()).toBe(200)
     expect(await response.text()).toContain('hello')
   })
@@ -151,9 +147,7 @@ test.describe('smoke test', () => {
 
     const uri = new URL(`ipfs://${cid}`)
 
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/?uri=${encodeURIComponent(uri.toString())}`, {
-      redirect: `${protocol}//${cid}.ipfs.${host}/`
-    })
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/?uri=${encodeURIComponent(uri.toString())}`)
 
     expect(response?.status()).toBe(200)
     expect(await response?.headerValue('x-ipfs-path')).toBe(`/ipfs/${cid}`)
@@ -164,9 +158,7 @@ test.describe('smoke test', () => {
       format: 'raw'
     })
 
-    await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid2}`, {
-      redirect: `${protocol}//${cid2}.ipfs.${host}/`
-    })
+    await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid2}`)
 
     await page.locator('a').click()
 

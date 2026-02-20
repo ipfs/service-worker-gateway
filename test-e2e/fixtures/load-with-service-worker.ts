@@ -3,11 +3,6 @@ import type { Page, Response } from 'playwright'
 
 export interface LoadWithServiceWorkerOptions {
   /**
-   * Specify the final URL here, if different to `resource`
-   */
-  redirect?: string
-
-  /**
    * See Playwright Page.goto args
    *
    * @see {Page.goto}
@@ -83,7 +78,15 @@ export async function loadWithServiceWorker (page: Page, resource: string, optio
     response
   ] = await Promise.all([
     page.waitForResponse(async (response) => {
+      // used when process.env.NODE_ENV === 'test'
       if ((await response.headerValue('service-worker-handler')) === 'content-request-handler') {
+        return true
+      }
+
+      // used when benchmarking prod/dev service worker gateway in chrome -
+      // cannot use this for e2e tests because `fromServiceWorker` is broken in
+      // firefox
+      if ((response.url().includes('.ipfs.') || response.url().includes('.ipns.')) && response.fromServiceWorker()) {
         return true
       }
 
@@ -120,11 +123,6 @@ export async function loadWithServiceWorker (page: Page, resource: string, optio
     response.body = async () => buf
     response.text = async () => new TextDecoder().decode(await response.body())
     response.json = async () => JSON.parse(await response.text())
-  // } else if (page.url() !== expected) {
-    // not sure why this is necessary - the response has come from the service
-    // worker and is the URL we expect but it takes a little time for the page
-    // to catch up?
-  //  await page.waitForURL(expected, options)
   }
 
   return response
