@@ -7,18 +7,6 @@ import { isIP } from '@chainsafe/is-ip'
 import esbuild from 'esbuild'
 
 /**
- * @param {string | string[]} str
- * @returns {string[]}
- */
-function toArray (str) {
-  if (Array.isArray(str)) {
-    return str
-  }
-
-  return [str]
-}
-
-/**
  * @param {string} str
  * @returns {string}
  */
@@ -189,7 +177,7 @@ const injectHtmlPages = async (metafile, revision) => {
     // only resolve DNS for gateways and DNS resolvers as we may use them
     const dnsPrefetch = new Set([
       ...config.gateways.map(toUrl),
-      ...Object.values(config.dnsResolvers).map(toArray).map(toUrl)
+      ...Object.values(config.dnsResolvers).flat().map(toUrl)
     ])
 
     htmlContent = htmlContent.replace(/<%= PRECONNECT_HINTS %>/g, [...preconnect]
