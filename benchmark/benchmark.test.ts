@@ -47,8 +47,7 @@ test.describe('@helia/service-worker-gateway - benchmark', () => {
         const response = await loadWithServiceWorker(page, t.url(CID), {
           // 'commit' means the response headers have been received and the page
           // is starting to load
-          waitUntil: 'commit',
-          redirect: t.redirect(CID)
+          waitUntil: 'commit'
         })
         time += (Date.now() - start)
         process.stdout.write('.')
