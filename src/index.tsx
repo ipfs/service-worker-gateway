@@ -5,6 +5,7 @@ import { config } from './config/index.ts'
 import { QUERY_PARAMS } from './lib/constants.ts'
 import { parseRequest } from './lib/parse-request.ts'
 import { isSafeOrigin } from './lib/path-or-subdomain.ts'
+import { prewarmContentRequest } from './lib/prewarm-content.ts'
 import { registerServiceWorker } from './lib/register-service-worker.ts'
 import type { ResolvableURI } from './lib/parse-request.ts'
 
@@ -159,6 +160,8 @@ async function main (): Promise<void> {
       const hasActiveWorker = registration?.active != null
 
       if (!hasActiveWorker) {
+        prewarmContentRequest(request, config)
+
         // install the service worker on the root path of this domain, either
         // path or subdomain gateway
         await registerServiceWorker()

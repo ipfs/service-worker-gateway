@@ -5,6 +5,29 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import esbuild from 'esbuild'
 
+const getConfigFilePath = () => {
+  if (process.env.NODE_ENV === 'test') {
+    return path.resolve('src/config/index-test.ts')
+  }
+
+  if (process.env.NODE_ENV === 'development') {
+    return path.resolve('src/config/index-development.ts')
+  }
+
+  return path.resolve('src/config/index.ts')
+}
+
+const connectionHintTags = async () => {
+  const configPath = getConfigFilePath()
+  const content = await fs.readFile(configPath, 'utf8')
+  const matches = content.match(/https?:\/\/[^'"\s]+/g) ?? []
+  const origins = [...new Set(matches.map(url => new URL(url).origin))]
+
+  return origins
+    .map(origin => `<link rel="preconnect" href="${origin}"${origin.startsWith('https://') ? ' crossorigin' : ''} />`)
+    .join('\n    ')
+}
+
 const copyPublicFiles = async () => {
   const srcDir = path.resolve('public')
   const destDir = path.resolve('dist')
@@ -66,6 +89,7 @@ function gitRevision () {
  * @param {string} revision - Pre-computed Git revision string
  */
 const injectHtmlPages = async (metafile, revision) => {
+  const hints = await connectionHintTags()
   const htmlFilePaths = await fs.readdir(path.resolve('dist'), { withFileTypes: true })
     .then(files => files.filter(file => file.isFile() && file.name.endsWith('.html')))
     .then(files => files.map(file => path.resolve('dist', file.name)))
@@ -122,6 +146,11 @@ const injectHtmlPages = async (metafile, revision) => {
       } else {
         throw new Error(`Could not find the logo file to include in ${path.relative(process.cwd(), htmlFilePath)}.`)
       }
+    }
+
+    if (htmlContent.includes('<%= CONNECTION_HINTS %>')) {
+      htmlContent = htmlContent.replace(/<%= CONNECTION_HINTS %>/g, hints)
+      console.log(`Injected connection hints into ${path.relative(process.cwd(), htmlFilePath)}.`)
     }
 
     if (!htmlContent.includes('<%= GIT_VERSION %>')) {
