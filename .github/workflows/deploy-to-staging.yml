@@ -10,6 +10,14 @@ on:
 
 permissions: {}
 
+# CF Pages API returns logs for the entire project (not per-branch),
+# so we match deployments by commit SHA in chronological order.
+# prevent staging and production deploys from overlapping to avoid
+# picking up the wrong deployment's logs.
+concurrency:
+  group: cloudflare-pages-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
     uses: ./.github/workflows/deploy.yml
@@ -34,9 +42,18 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Wait for Cloudflare Pages build to complete
+        timeout-minutes: 9
         run: |
           # check Pages origin directly (bypasses CDN cache)
           ./.github/scripts/wait-for-deploy.sh https://staging.ipfs-service-worker-gateway.pages.dev ${{ inputs.tag }}
+      - name: Fetch Cloudflare Pages build logs
+        if: success() || failure()
+        run: ./.github/scripts/fetch-cf-pages-logs.sh
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_PAGES_PROJECT: ipfs-service-worker-gateway
+          CF_PAGES_READ_TOKEN: ${{ secrets.CF_PAGES_READ_TOKEN }}
+          DEPLOY_COMMIT: ${{ inputs.tag }}
       - name: Purge Cloudflare cache for inbrowser.dev
         run: |
           curl --fail --request POST \
