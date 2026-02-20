@@ -42,12 +42,26 @@ jobs:
       - name: Purge Cloudflare cache for inbrowser.link
         run: |
           curl --fail --request POST \
-            --url "https://api.cloudflare.com/client/v4/zones/3cf6893c26dde38efa39910a57798a59/purge_cache" \
+            --url "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/purge_cache" \
             -H 'Content-Type: application/json' \
             -H "Authorization: Bearer $CF_TOKEN" \
             --data '{"purge_everything": true}'
         env:
+          CF_ZONE_ID: ${{ secrets.CF_ZONE_ID_PRODUCTION }}
           CF_TOKEN: ${{ secrets.CF_CACHE_PURGE_TOKEN_PRODUCTION }}
       - name: Wait for new version to be served via inbrowser.link
         run: |
           ./.github/scripts/wait-for-deploy.sh https://inbrowser.link ${{ inputs.tag }}
+  deploy-snippets:
+    needs: deploy
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag }}
+      - name: Deploy Cloudflare Snippets
+        run: .github/scripts/deploy-snippets.sh
+        env:
+          CF_ZONE_ID: ${{ secrets.CF_ZONE_ID_PRODUCTION }}
+          CF_SNIPPETS_TOKEN: ${{ secrets.CF_SNIPPETS_TOKEN_PRODUCTION }}

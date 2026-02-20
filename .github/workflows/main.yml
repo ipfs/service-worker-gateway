@@ -38,6 +38,15 @@ jobs:
     - run: npm run --if-present dep-check
     - run: npm run --if-present doc-check
 
+  test-cloudflare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+      - run: npm run --if-present test:cloudflare
+
   test-iso:
     needs: build
     runs-on: ubuntu-latest
@@ -274,6 +283,7 @@ jobs:
     if: (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.ref == 'refs/heads/main'
     needs: [
       check,
+      test-cloudflare,
       test-iso,
       test-node,
       test-chrome,
