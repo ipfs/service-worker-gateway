@@ -1,3 +1,10 @@
+# Reusable workflow: builds the site in GitHub Actions and deploys
+# the pre-built dist/ to Cloudflare Pages via wrangler.
+#
+# Called by deploy-to-staging.yml and deploy-to-production.yml.
+# The --branch flag passed to wrangler determines which CF Pages
+# environment (staging or production) receives the deployment.
+
 name: Deploy
 
 on:
@@ -8,15 +15,15 @@ on:
         required: true
         type: string
       environment:
-        description: 'Environment to deploy to'
+        description: 'Environment to deploy to (staging or production)'
         required: true
         type: string
     secrets:
-      DEPLOYMENT_GITHUB_TOKEN:
-        description: |
-          A GitHub token with the following permissions:
-          contents: write (required; to be able to push to the environment branch)
-          workflows: write (required; to be able to modify .github/workflows)
+      CF_PAGES_TOKEN:
+        description: 'Cloudflare API token with Pages:Edit permission'
+        required: true
+      CF_ACCOUNT_ID:
+        description: 'Cloudflare account ID'
         required: true
 
 permissions: {}
@@ -32,11 +39,6 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          token: ${{ secrets.DEPLOYMENT_GITHUB_TOKEN }}
-      - name: Set up git config
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: Verify tag
         env:
           TAG: ${{ inputs.tag }}
@@ -46,15 +48,32 @@ jobs:
             echo "Tag $TAG is not present in the history of main"
             exit 1
           fi
-      - name: Checkout environment branch
-        env:
-          ENVIRONMENT: ${{ inputs.environment }}
-        run: git checkout $ENVIRONMENT
-      - name: Reset environment branch to tag
+      - name: Resolve commit SHA
+        id: sha
         env:
           TAG: ${{ inputs.tag }}
-        run: git reset --hard $TAG
-      - name: Force push environment branch
+        run: |
+          SHA=$(git rev-parse "$TAG")
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+      - name: Checkout tag
         env:
-          ENVIRONMENT: ${{ inputs.environment }}
-        run: git push -f origin $ENVIRONMENT
+          TAG: ${{ inputs.tag }}
+        run: git checkout "$TAG"
+      - uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+      - uses: ipfs/aegir/actions/cache-node-modules@main
+      # always rebuild from the checked-out tag to ensure dist/ is correct
+      # (aegir cache action skips the build on cache hit)
+      - run: npm run build
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CF_PAGES_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          command: >-
+            pages deploy ./dist
+            --project-name=ipfs-service-worker-gateway
+            --branch=${{ inputs.environment }}
+            --commit-hash=${{ steps.sha.outputs.sha }}
+            --commit-dirty=true

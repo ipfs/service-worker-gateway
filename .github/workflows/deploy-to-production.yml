@@ -1,3 +1,15 @@
+# Deploy to Production
+#
+# How it works:
+# 1. Calls the reusable deploy.yml workflow which builds the site
+#    in GitHub Actions and deploys pre-built dist/ to Cloudflare Pages
+#    via wrangler (--branch=production targets the production environment).
+# 2. Verifies the deployment is live on the CF Pages origin URL.
+# 3. Fetches any CF Pages deployment logs for debugging.
+# 4. Purges Cloudflare CDN cache for inbrowser.link and verifies
+#    the new version is served.
+# 5. Deploys Cloudflare Snippets to the production zone.
+
 name: Deploy to Production
 
 on:
@@ -25,7 +37,8 @@ jobs:
       tag: ${{ inputs.tag }}
       environment: production
     secrets:
-      DEPLOYMENT_GITHUB_TOKEN: ${{ secrets.UCI_GITHUB_TOKEN || github.token }}
+      CF_PAGES_TOKEN: ${{ secrets.CF_PAGES_TOKEN }}
+      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
   # Cloudflare caching setup (configured via Cache Rules in the dashboard):
   # - Edge TTL and Browser TTL are set to 24h for faster cold cache hits
   # - cache key uses resolved host (not request host) and ignores query params,
@@ -41,14 +54,14 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
-      - name: Wait for Cloudflare Pages build to complete
+      - name: Wait for deployment to be live on CF Pages origin
         timeout-minutes: 9
         run: |
           # fetch the tag to ensure it's available
           git fetch origin tag ${{ inputs.tag }} --no-tags
           # check Pages origin directly (bypasses CDN cache)
           ./.github/scripts/wait-for-deploy.sh https://ipfs-service-worker-gateway.pages.dev ${{ inputs.tag }}
-      - name: Fetch Cloudflare Pages build logs
+      - name: Fetch Cloudflare Pages deployment logs
         if: success() || failure()
         run: ./.github/scripts/fetch-cf-pages-logs.sh
         env:
