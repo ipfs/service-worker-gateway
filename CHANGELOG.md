@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.1.2](https://github.com/ipfs/service-worker-gateway/compare/v3.1.1...v3.1.2) (2026-02-24)
+
+
+### Bug Fixes
+
+* **ci:** use CF_PAGES_TOKEN for deployment log fetching ([7ee6077](https://github.com/ipfs/service-worker-gateway/commit/7ee607775ba92cafc24fa12036e0048fe5b9211e))
+* resolve DNSLink records that point to IPNS names ([#994](https://github.com/ipfs/service-worker-gateway/issues/994)) ([7b5a54a](https://github.com/ipfs/service-worker-gateway/commit/7b5a54a91e7d06c74e40385a9b0b3098bf2b6de2)), closes [#991](https://github.com/ipfs/service-worker-gateway/issues/991)
+
 ## [3.1.1](https://github.com/ipfs/service-worker-gateway/compare/v3.1.0...v3.1.1) (2026-02-20)
 
 
