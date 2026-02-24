@@ -60,7 +60,7 @@ console.info('Kubo gateway:', info.gateway)
 console.info('Kubo RPC API:', info.api)
 
 if (servers.serviceWorker != null) {
-  console.info('HTTP server:', `http://localhost:${getPort(servers.serviceWorker)}`)
+  console.info('👉️ service-worker-gateway:', `http://localhost:${getPort(servers.serviceWorker)}`)
 }
 
 let build: ResultPromise | undefined
