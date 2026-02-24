@@ -7,12 +7,12 @@
 # Required environment variables:
 #   CF_ACCOUNT_ID         - Cloudflare account ID
 #   CF_PAGES_PROJECT      - Cloudflare Pages project name
-#   CF_PAGES_READ_TOKEN   - API token with Cloudflare Pages:Read permission
+#   CF_PAGES_TOKEN        - API token with Cloudflare Pages:Edit permission
 #   DEPLOY_COMMIT         - full or short commit SHA to match
 
 set -euo pipefail
 
-for var in CF_ACCOUNT_ID CF_PAGES_PROJECT CF_PAGES_READ_TOKEN DEPLOY_COMMIT; do
+for var in CF_ACCOUNT_ID CF_PAGES_PROJECT CF_PAGES_TOKEN DEPLOY_COMMIT; do
   if [ -z "${!var:-}" ]; then
     echo "ERROR: $var is not set"
     exit 1
@@ -22,7 +22,7 @@ done
 API_BASE="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/pages/projects/${CF_PAGES_PROJECT}"
 
 cf_api() {
-  curl -sf -H "Authorization: Bearer ${CF_PAGES_READ_TOKEN}" "$@"
+  curl -sf -H "Authorization: Bearer ${CF_PAGES_TOKEN}" "$@"
 }
 
 # Resolve tag to short SHA if needed (same logic as wait-for-deploy.sh)

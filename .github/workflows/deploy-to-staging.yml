@@ -65,7 +65,7 @@ jobs:
         env:
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CF_PAGES_PROJECT: ipfs-service-worker-gateway
-          CF_PAGES_READ_TOKEN: ${{ secrets.CF_PAGES_READ_TOKEN }}
+          CF_PAGES_TOKEN: ${{ secrets.CF_PAGES_TOKEN }}
           DEPLOY_COMMIT: ${{ inputs.tag }}
       - name: Purge Cloudflare cache for inbrowser.dev
         run: |
