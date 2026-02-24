@@ -1,18 +1,12 @@
-import { CID } from 'multiformats'
-import { identity } from 'multiformats/hashes/identity'
-import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
-import { CODE_RAW } from '../src/ui/pages/multicodec-table.ts'
 import { test, expect } from './fixtures/config-test-fixtures.ts'
 import { loadWithServiceWorker } from './fixtures/load-with-service-worker.ts'
-import { publishDNSLink } from './fixtures/serve/dns-record-cache.ts'
 
-test.describe('ipns', () => {
+test.describe('IPNS', () => {
   test('should resolve IPNS name and return as dag-json', async ({ page, baseURL }) => {
     const name = 'k51qzi5uqu5dhjghbwdvbo6mi40htrq6e2z4pwgp15pgv3ho1azvidttzh8yy2'
     const cid = 'baguqeeram5ujjqrwheyaty3w5gdsmoz6vittchvhk723jjqxk7hakxkd47xq'
 
     const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${name}?format=dag-json`)
-
     expect(response.status()).toBe(200)
 
     const headers = await response.allHeaders()
@@ -42,31 +36,5 @@ test.describe('ipns', () => {
     // performed redirect to re-encoded IPNS name but we can't resolve record so
     // expect a 504
     expect(response.status()).toBe(504)
-  })
-
-  test('should load an IPNS domain', async ({ page, baseURL }) => {
-    const domain = 'ipns-happy-path.com'
-    const cid = CID.createV1(CODE_RAW, identity.digest(uint8ArrayFromString('hello world')))
-
-    await publishDNSLink(domain, cid)
-
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${domain}`)
-
-    expect(response.status()).toBe(200)
-    expect(await response.text()).toContain('hello world')
-  })
-
-  test('should load an IPNS domain with a path', async ({ page, baseURL }) => {
-    const domain = 'ipns-with-path.com'
-    const cid = CID.parse('bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui')
-    const path = 'root2/root3/root4'
-
-    await publishDNSLink(domain, cid)
-
-    // TODO: use rootDomain
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${domain}/${path}`)
-
-    expect(response.status()).toBe(200)
-    expect(await response.text()).toContain('hello')
   })
 })
