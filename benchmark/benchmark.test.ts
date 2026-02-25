@@ -40,11 +40,15 @@ test.describe('@helia/service-worker-gateway - benchmark', () => {
 
         // start recording
         const start = Date.now()
+
+        // 'commit' means the response headers have been received
         const response = await loadWithServiceWorker(page, t.url(CID), {
-          // 'commit' means the response headers have been received and the page
-          // is starting to load
           waitUntil: 'commit'
         })
+
+        // download whole response
+        await response.body()
+
         time += (Date.now() - start)
         process.stdout.write('.')
 
