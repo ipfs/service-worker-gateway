@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.3](https://github.com/ipfs/service-worker-gateway/compare/v3.1.2...v3.1.3) (2026-02-25)
+
+
+### Bug Fixes
+
+* update verified-fetch to handle paths in IPNS records correctly ([#997](https://github.com/ipfs/service-worker-gateway/issues/997)) ([87d493c](https://github.com/ipfs/service-worker-gateway/commit/87d493cf2d8e41e664231e68ba6fbfff5d453948))
+
 ## [3.1.2](https://github.com/ipfs/service-worker-gateway/compare/v3.1.1...v3.1.2) (2026-02-24)
 
 
