@@ -27,7 +27,19 @@ test.describe('DNSLink', () => {
 
     await publishDNSLink(domain, cid)
 
-    // TODO: use rootDomain
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${domain}/${path}`)
+
+    expect(response.status()).toBe(200)
+    expect(await response.text()).toContain('hello')
+  })
+
+  test('should load a DNSLink record that contains a path', async ({ page, baseURL }) => {
+    const domain = 'ipns-with-path.com'
+    const cid = CID.parse('bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui')
+    const path = 'root3/root4'
+
+    await publishDNSLink(domain, `/ipfs/${cid}/root2`)
+
     const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${domain}/${path}`)
 
     expect(response.status()).toBe(200)
