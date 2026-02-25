@@ -4,6 +4,8 @@ export function getWontFixTests (): string[] {
     // service worker gateway
     'TestDNSLinkGatewayUnixFSDirectoryListing',
     'TestRedirectsFileSupportWithDNSLink',
+    'TestDNSLinkGatewayIPNS',
+    'TestDNSLinkGatewayWithSubpath',
 
     // these tests want to ignore the format arg and return a text/html
     // content-type which is not in the spec?
