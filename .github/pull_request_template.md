@@ -3,8 +3,8 @@
 <!---
 The title of the PR will be the commit message of the merge commit, so please make sure it is descriptive enough.
 We utilize the Conventional Commits specification for our commit messages. See <https://www.conventionalcommits.org/en/v1.0.0/#specification> for more information.
-The commit tag types can be of one of the following: feat, fix, deps, refactor, chore, docs. See <https://github.com/ipfs/helia/blob/main/.github/workflows/main.yml#L184-L192>
-The title must also be fewer than 72 characters long or it will fail the Semantic PR check. See <https://github.com/ipfs/helia/blob/main/.github/workflows/semantic-pull-request.yml>
+The commit tag types can be of one of the following: feat, fix, deps, refactor, chore, docs. See <https://github.com/ipfs/service-worker-gateway/blob/main/.github/workflows/main.yml>
+The title must also be fewer than 72 characters long or it will fail the Semantic PR check. See <https://github.com/ipfs/service-worker-gateway/blob/main/.github/workflows/semantic-pull-request.yml>
 --->
 
 ## Description
@@ -12,8 +12,8 @@ The title must also be fewer than 72 characters long or it will fail the Semanti
 <!--
 Please write a summary of your changes and why you made them.
 Please include any relevant issues in here, for example:
-Related https://github.com/ipfs/helia/issues/ABCD.
-Fixes https://github.com/ipfs/helia/issues/XYZ.
+Related https://github.com/ipfs/service-worker-gateway/issues/ABCD.
+Fixes https://github.com/ipfs/service-worker-gateway/issues/XYZ.
 -->
 
 ## Notes & open questions

@@ -65,45 +65,39 @@ The main goals of this project are:
 
 ### Feature Set
 
-- 🚧 **WIP:** Web interface for adjusting routing and retrieval settings.
-- 🚧 **WIP:** [Trustless](https://docs.ipfs.tech/reference/http/gateway/#trustless-verifiable-retrieval) content retrieval from multiple HTTP gateways.
-- 🚧 **WIP:** Support for [Web Gateway](https://specs.ipfs.tech/http-gateways/) feature set for website hosting (`index.html`, [web pathing](https://github.com/ipfs/specs/issues/432), `_redirects`).
-- 🚧 **Future:** [HTTP Routing V1](https://specs.ipfs.tech/routing/http-routing-v1/) (`/routing/v1`) client for discovering additional direct content providers.
-- 🚧 **Future:** [Denylist](https://specs.ipfs.tech/compact-denylist-format/) support for operators of public nodes.
+- 🔒 [Trustless Retrieval](https://specs.ipfs.tech/http-gateways/trustless-gateway/) client that fetches content directly from providers over HTTPS, Secure WebSockets, and other browser-compatible transports, falling back to HTTPS gateway proxy/relay via `trustless-gateway.link` when direct retrieval is not possible.
+- 🌐 Service Worker running as a [Web Gateway](https://specs.ipfs.tech/http-gateways/) for website hosting (`index.html`, [web pathing](https://github.com/ipfs/specs/issues/432), `_redirects`).
+- 🧭 [HTTP Routing V1](https://specs.ipfs.tech/routing/http-routing-v1/) (`/routing/v1`) client for discovering content providers (via `delegated-ipfs.dev`).
+- 📡 [DNSLink](https://dnslink.dev/) resolution via [DNS-over-HTTPS](https://en.wikipedia.org/wiki/DNS_over_HTTPS) (DoH).
+
+Compliance with [IPFS HTTP Gateway specifications](https://specs.ipfs.tech/http-gateways/) is tested using the [gateway-conformance](https://github.com/ipfs/gateway-conformance) test suite (the same suite used by [Kubo](https://github.com/ipfs/kubo) and [Rainbow](https://github.com/ipfs/rainbow)).
 
 ## Usage
 
 ### Running locally
 
-You can build and run the project locally:
+You can run the project locally:
 
 ```console
-> npm i
-> npm run build
+> npm install
 > npm start
 ```
 
 Now open your browser and go to `http://localhost:3000`
 
-As you type in a content path, you will be redirected to appropriate URL
-using [subdomain style resolution](https://docs.ipfs.tech/how-to/gateway-best-practices/#use-subdomain-gateway-resolution-for-origin-isolation).
+The gateway runs exclusively in [subdomain mode](https://specs.ipfs.tech/http-gateways/subdomain-gateway/) -- as you type in a content path, you will be redirected to an appropriate subdomain URL with [Origin isolation](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway).
 
-For more information about local development setup, see [/docs/DEVELOPMENT.md](/docs/DEVELOPMENT.md).
+For more information about local development setup, see [./docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md).
 
 ### Try hosted instance
 
-We provide a public good instance of this projct configured to run in[subdomain mode](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway),
+We provide a public good instance of this project configured to run in [subdomain mode](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway),
 aiming to be a drop-in replacement for `dweb.link`:
 
-- 🚧 **WIP: alpha quality** https://inbrowser.link hosts the `release` branch, with a stable [release](https://github.com/ipfs/service-worker-gateway/releases)
-- 🚧 **WIP: alpha quality** https://inbrowser.dev hosts the `staging` branch with development / testing version
+- https://inbrowser.link -- production, deployed from tagged [releases](https://github.com/ipfs/service-worker-gateway/releases)
+- https://inbrowser.dev -- staging, deployed from tagged pre-releases
 
-#### Deploying to `production` and `staging`
-
-Deploying to [production](https://github.com/ipfs/service-worker-gateway/actions/workflows/deploy-to-production.yml)
-and [staging](https://github.com/ipfs/service-worker-gateway/actions/workflows/deploy-to-staging.yml)
-is done by manually running the deployment action and passing the release
-version to the action.
+For deployment details, see [docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md#deploying).
 
 ## Manual Service Worker Deregistration
 
@@ -119,9 +113,6 @@ For example, if the service worker is active for `https://example.com`,
 navigating to `https://example.com/?ipfs-sw-unregister=true` will cause the
 service worker to unregister itself and attempt to reload all controlled clients
 (browser tabs).
-
-This option is also available via a button on the service worker's configuration
-page (`#/ipfs-sw-config`).
 
 ## License
 
