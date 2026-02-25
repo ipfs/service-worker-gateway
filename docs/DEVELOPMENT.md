@@ -30,7 +30,7 @@ Access via `http://localhost:3000` -- as you type in a content path, you will be
 redirected to an appropriate subdomain URL with [Origin isolation](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway).
 
 > [!WARNING]
-> Deployment of this service worker on environments that don't enable subdomain pathing is not recommended. Path-only gateways do not provide [Origin isolation](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway). NEVER use path-only gateways for loading dapps with sensitive information such as keys, passwords, wallets.
+> Deployment of this service worker on environments that don't enable subdomain pathing is not recommended. Path-only gateways do not provide [Origin isolation](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway). NEVER use path-only gateways for loading dapps with sensitive information such as keys, passwords, or wallets.
 
 ## Demo links
 
