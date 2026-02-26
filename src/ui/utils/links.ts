@@ -1,4 +1,5 @@
 import { CID } from 'multiformats/cid'
+import { dnsLinkLabelEncoder } from '../../lib/dns-link-labels.ts'
 import { createSearch } from '../../lib/query-helpers.ts'
 
 interface CreateLinkOptions {
@@ -34,6 +35,6 @@ export function createLink ({ ipfsPath, params, hash }: CreateLinkOptions): stri
   try {
     return `${url.protocol}//${CID.parse(cid).toV1()}.ipfs.${host}${path === '/' ? '' : path}${search}${hash ?? url.hash}`
   } catch {
-    return `${url.protocol}//${cid}.ipns.${host}${path === '/' ? '' : path}${search}${hash ?? url.hash}`
+    return `${url.protocol}//${dnsLinkLabelEncoder(cid)}.ipns.${host}${path === '/' ? '' : path}${search}${hash ?? url.hash}`
   }
 }

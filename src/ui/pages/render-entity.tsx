@@ -151,9 +151,11 @@ interface UnixFSDirectoryProps {
 function UnixFSDirectory ({ cid, ipfsPath, directory }: UnixFSDirectoryProps): ReactElement {
   const title = (
     <>
-      <div>Index of <UnixFSPath ipfsPath={ipfsPath} /></div>
-      <code className='black-40 db mt2'>{cid.toString()}</code>
-      <CIDDetails ipfsPath={ipfsPath} cid={cid} className='mt0 black-40' buttonClassName='black-40' />
+      <span id='directory-index'>
+        <div>Index of <UnixFSPath ipfsPath={ipfsPath} /></div>
+        <code className='black-40 db mt2'>{cid.toString()}</code>
+        <CIDDetails ipfsPath={ipfsPath} cid={cid} className='mt0 black-40' buttonClassName='black-40' />
+      </span>
     </>
   )
 
@@ -173,16 +175,11 @@ function UnixFSDirectory ({ cid, ipfsPath, directory }: UnixFSDirectoryProps): R
   let uplink = <></>
 
   if (linkParts.length > 3) {
-    while (linkParts[linkParts.length - 1] === '') {
-      linkParts.pop()
-    }
-
-    linkParts.pop()
-
     function upLink (): void {
       const url = new URL(window.location.href)
+      const pathname = url.pathname.split('/').filter(Boolean).slice(0, -1).join('/')
 
-      window.location.href = `${url.protocol}//${url.host}${encodeURI(`${linkParts.join('/')}`)}${url.search}${url.hash}`
+      window.location.href = `${url.protocol}//${url.host}/${pathname}${url.search}${url.hash}`
     }
 
     uplink = (
@@ -190,7 +187,7 @@ function UnixFSDirectory ({ cid, ipfsPath, directory }: UnixFSDirectoryProps): R
         className='striped--entity-props striped--entity-props-hover'
         onClick={() => upLink()}
       >
-        <td className='ph3 tl pointer icon-cell' style={{ width: 50, paddingTop: 24, paddingBottom: 24 }} onClick={() => upLink()}><FaRegFile /></td>
+        <td id='to-parent-directory' className='ph3 tl pointer icon-cell' style={{ width: 50, paddingTop: 24, paddingBottom: 24 }} onClick={() => upLink()}><FaRegFile /></td>
         <td className='pv2 ph3 tl pointer truncate name-cell' onClick={() => upLink()} colSpan={3}>..</td>
       </tr>
     )
@@ -225,13 +222,14 @@ function UnixFSDirectoryRow ({ viewLink, ipfsPath, value }: UnixFSDirectoryRowPr
     <>
       <tr
         className='striped--entity-props striped--entity-props-hover'
+        id={`row-${value.Hash.toV1()}`}
         onClick={() => viewLink(value.Name)}
       >
         <td className='pv2 ph3 tl pointer icon-cell' style={{ width: 50 }} onClick={() => viewLink(value.Name)}><FaRegFile /></td>
         <td className='pv2 ph3 tl pointer truncate name-cell' onClick={() => viewLink(value.Name)}>{value.Name?.toString()}</td>
         <td className='pv2 ph3 tl pointer truncate w-30 hash-cell' onClick={() => viewLink(value.Name)}>
           <code>{value.Hash.toString()}</code>
-          <CIDDetails ipfsPath={`${ipfsPath}/${value.Name}`} cid={value.Hash} className='black-40 mt1' buttonClassName='black-40' />
+          <CIDDetails ipfsPath={`/${[ipfsPath, value.Name].join('/').split('/').filter(Boolean).join('/')}`} cid={value.Hash} className='black-40 mt1' buttonClassName='black-40' />
         </td>
         <td className='pv2 ph3 tl w-10 pointer truncate size-cell' onClick={() => viewLink(value.Name)}>{prettyBytes(value.Tsize ?? 0)}</td>
       </tr>
