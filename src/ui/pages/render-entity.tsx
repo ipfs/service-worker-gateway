@@ -14,9 +14,7 @@ import { getGatewayRoot, toGatewayRoot } from '../../lib/to-gateway-root.ts'
 import { CIDDetails } from '../components/cid-details.tsx'
 import ContentBox from '../components/content-box.tsx'
 import { HexViewer } from '../components/hex-viewer.tsx'
-import { Link } from '../components/link.tsx'
 import './render-entity.css'
-import { createLink } from '../utils/links.ts'
 import type { ReactElement } from 'react'
 
 declare global {
@@ -111,22 +109,10 @@ export function RenderEntityPage ({ cid, ipfsPath, entity, contentType }: Render
     </>
   )
 
-  const conversion = (
-    <>
-      <p className='lh-copy ma2 mt3 ml3 pa0'>You can download this block as:</p>
-      <ul className='lh-copy ma2 ml5 mb3 pa0'>
-        <li><a href={createLink({ params: { format: 'raw', download: 'true' } })} className='link'>Raw Block</a> (no conversion)</li>
-        <li><a href={createLink({ params: { format: 'dag-json', download: 'true' } })} className='link'>DAG-JSON</a> (specs at <Link href='https://ipld.io/specs/codecs/dag-json/spec/'>IPLD</Link> and <Link href='https://www.iana.org/assignments/media-types/application/vnd.ipld.dag-json'>IANA</Link>)</li>
-        <li><a href={createLink({ params: { format: 'dag-cbor', download: 'true' } })} className='link'>DAG-CBOR</a> (specs at <Link href='https://ipld.io/specs/codecs/dag-cbor/spec/'>IPLD</Link> and <Link href='https://www.iana.org/assignments/media-types/application/vnd.ipld.dag-cbor'>IANA</Link>)</li>
-      </ul>
-    </>
-  )
-
   return (
     <>
       <ContentBox title={title}>
         <>
-          {conversion}
           {renderer}
         </>
       </ContentBox>
@@ -325,13 +311,13 @@ function renderValue (codec: string, key: string, value: any, ipfsPath: string, 
   }
 
   if (value instanceof Uint8Array) {
-    return renderBuffer(value, ipfsPath)
+    return renderBuffer(value)
   }
 
   return renderObject(codec, value, ipfsPath, parent)
 }
 
-function renderBuffer (obj: Uint8Array, ipfsPath: string): ReactElement {
+function renderBuffer (obj: Uint8Array): ReactElement {
   return (
     <>
       <HexViewer bytes={obj} />
