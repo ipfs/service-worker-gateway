@@ -20,13 +20,13 @@ export function CIDDetails ({ cid, ipfsPath, className, buttonClassName }: CIDDe
       <code className='mt1'>
         CIDv{cid.version} {MULTICODECS[cid.code].name} {MULTICODECS[cid.multihash.code].name}
       </code>
-      <CopyCidButton cid={cid} className={`ml1 ${buttonClassName ?? ''}`}>
+      <CopyCidButton cid={cid} className={`ml1 copy-cid-button ${buttonClassName ?? ''}`}>
         <FaCopy />
       </CopyCidButton>
-      <DownloadBlockButton ipfsPath={ipfsPath} className={`ml1 ${buttonClassName ?? ''}`}>
+      <DownloadBlockButton ipfsPath={ipfsPath} className={`ml1 download-block-button ${buttonClassName ?? ''}`}>
         <FaFileDownload />
       </DownloadBlockButton>
-      <ViewBlockButton ipfsPath={ipfsPath} className={`ml1 ${buttonClassName ?? ''}`}>
+      <ViewBlockButton ipfsPath={ipfsPath} className={`ml1 view-block-button ${buttonClassName ?? ''}`}>
         <FaFileCode />
       </ViewBlockButton>
     </div>
