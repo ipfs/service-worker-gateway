@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.1.4](https://github.com/ipfs/service-worker-gateway/compare/v3.1.3...v3.1.4) (2026-02-26)
+
+
+### Bug Fixes
+
+* handle DNSLink in directory listing links correctly ([#1003](https://github.com/ipfs/service-worker-gateway/issues/1003)) ([2b7c053](https://github.com/ipfs/service-worker-gateway/commit/2b7c053d5ad7c22a6e814cedc7434adb4e07b309))
+* remove conversion links ([#1001](https://github.com/ipfs/service-worker-gateway/issues/1001)) ([08915a7](https://github.com/ipfs/service-worker-gateway/commit/08915a7058ddea622bd512211be08d63b4038caf)), closes [#1000](https://github.com/ipfs/service-worker-gateway/issues/1000)
+
 ## [3.1.3](https://github.com/ipfs/service-worker-gateway/compare/v3.1.2...v3.1.3) (2026-02-25)
 
 
