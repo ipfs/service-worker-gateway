@@ -14,7 +14,6 @@ export function htmlPage (title: string, key: string, value: any): string {
     <title>${title}</title>
     <link rel="icon" href="/ipfs-sw-favicon.ico" type="image/ico"/>
     <link rel="shortcut icon" href="/ipfs-sw-favicon.ico" type="image/x-icon"/>
-    <link rel="stylesheet" href="<%-- src/ui/index.css --%>">
     <script type="module">
 globalThis.${key} = ${JSON.stringify(value, null, 2)}
     </script>

@@ -12,7 +12,6 @@ export type URIType = 'subdomain' | 'path' | 'native' | 'internal' | 'external'
 export interface IPFSURI {
   protocol: 'ipfs'
   type: 'subdomain' | 'path' | 'native'
-  cid: CID
   subdomainURL: URL
   pathURL: URL
   nativeURL: URL
@@ -24,7 +23,6 @@ export interface IPFSURI {
 export interface IPNSURI {
   protocol: 'ipns'
   type: 'subdomain' | 'path' | 'native'
-  peerId: string
   subdomainURL: URL
   pathURL: URL
   nativeURL: URL
@@ -70,10 +68,11 @@ function toIPFSURI (type: 'subdomain' | 'path' | 'native', cidStr: string, host:
     return
   }
 
-  let cid: CID
+  let cid: string
 
   try {
-    cid = parseCID(cidStr)
+    const parsed = parseCID(cidStr)
+    cid = `b${base32Encode(parsed.raw)}`
   } catch (err) {
     // e.g. throw if url was http://localhost/ipfs/invalid but not if it was
     // http://example.com/ipfs/invalid
@@ -87,8 +86,7 @@ function toIPFSURI (type: 'subdomain' | 'path' | 'native', cidStr: string, host:
   const output: IPFSURI = {
     type,
     protocol: 'ipfs',
-    cid,
-    subdomainURL: new URL(`${root.protocol}//${base32Encode(cid.raw)}.ipfs.${root.host}${pathname}${search}${hash}`),
+    subdomainURL: new URL(`${root.protocol}//${cid}.ipfs.${root.host}${pathname}${search}${hash}`),
     pathURL: new URL(`${root.protocol}//${root.host}/ipfs/${cidStr}${pathname}${search}${hash}`),
     nativeURL: new URL(`ipfs://${cidStr}${pathname}${search}${hash}`)
   }
@@ -105,7 +103,6 @@ function toIPNSURI (type: 'subdomain' | 'path' | 'native', peerIdStr: string, pa
   const output: IPNSURI = {
     type,
     protocol: 'ipns',
-    peerId,
     subdomainURL: new URL(`${root.protocol}//${peerId}.ipns.${root.host}${pathname}${search}${hash}`),
     pathURL: new URL(`${root.protocol}//${root.host}/ipns/${peerIdStr}${pathname}${search}${hash}`),
     nativeURL: new URL(`ipns://${peerIdStr}${pathname}${search}${hash}`)

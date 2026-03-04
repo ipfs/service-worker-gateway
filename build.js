@@ -141,21 +141,6 @@ const injectHtmlPages = async (metafile, revision) => {
       }
     }
 
-    // only inject CSS for non-index.html files, or if explicitly requested
-    if (htmlContent.includes('<%= CSS_STYLES %>')) {
-      if (baseName === 'index') {
-        // for index.html, don't inject CSS - it will be injected dynamically by JavaScript
-        htmlContent = htmlContent.replace(/<%= CSS_STYLES %>/g, '')
-        console.log(`Removed CSS injection from ${path.relative(process.cwd(), htmlFilePath)} - will be injected dynamically.`)
-      } else if (cssFile != null) {
-        const cssTag = `<link rel="stylesheet" href="/${path.basename(cssFile)}">`
-        htmlContent = htmlContent.replace(/<%= CSS_STYLES %>/g, cssTag)
-        console.log(`Injected ${path.basename(cssFile)} into ${path.relative(process.cwd(), htmlFilePath)}.`)
-      } else {
-        throw new Error(`Could not find an index.css file to include in ${path.relative(process.cwd(), htmlFilePath)}.`)
-      }
-    }
-
     if (htmlContent.includes('<%= IPFS_LOGO_PATH %>')) {
       if (logoFile != null) {
         htmlContent = htmlContent.replace(/<%= IPFS_LOGO_PATH %>/g, path.basename(logoFile))
