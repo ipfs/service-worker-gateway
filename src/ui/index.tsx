@@ -160,10 +160,7 @@ function App (): React.ReactElement {
 
 async function renderUi (): Promise<void> {
   try {
-    // @ts-expect-error - css config is generated at build time
-    // eslint-disable-next-line import-x/no-absolute-path
-    const { CSS_FILENAME } = await import('/ipfs-sw-css-config.js')
-    await injectCSS(CSS_FILENAME)
+    await injectCSS('<%-- src/ui/index.css --%>')
   } catch (err) {
     // eslint-disable-next-line no-console
     console.warn('Failed to load CSS config, UI will render without styles:', err)
@@ -217,3 +214,12 @@ renderUi().catch(err => {
   // eslint-disable-next-line no-console
   console.error('Failed to render UI:', err)
 })
+
+// only register PWA manifest on root domain, not on CID subdomains
+// where it causes unnecessary background DNS lookups
+if (!location.hostname.includes('.ipfs.') && !location.hostname.includes('.ipns.')) {
+  const manifest = document.createElement('link')
+  manifest.rel = 'manifest'
+  manifest.href = '/ipfs-sw-manifest.json'
+  document.head.appendChild(manifest)
+}

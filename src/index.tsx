@@ -3,10 +3,10 @@
 import weald from 'weald'
 import { config } from './config/index.ts'
 import { QUERY_PARAMS } from './lib/constants.ts'
-import { parseRequest } from './lib/parse-request.ts'
+import { parseRequest } from './lib/parse-request-cheap.ts'
 import { isSafeOrigin } from './lib/path-or-subdomain.ts'
 import { registerServiceWorker } from './lib/register-service-worker.ts'
-import type { ResolvableURI } from './lib/parse-request.ts'
+import type { ResolvableURI } from './lib/parse-request-cheap.ts'
 
 weald.enable(config.debug)
 
@@ -195,12 +195,9 @@ async function main (): Promise<void> {
 async function renderUi (): Promise<void> {
   // dynamically load the app chunk using the correct filename
   try {
-    // @ts-expect-error - App config is generated at build time
-    // eslint-disable-next-line import-x/no-absolute-path
-    const { APP_FILENAME } = await import('/ipfs-sw-app-config.js')
     const script = document.createElement('script')
     script.type = 'module'
-    script.src = `/${APP_FILENAME}`
+    script.src = '<%-- src/ui/index.tsx --%>'
     document.body.appendChild(script)
   } catch (err) {
     // eslint-disable-next-line no-console
@@ -246,15 +243,6 @@ function tooManyRedirects (storageKey: string, maxRedirects = 5, period = 5_000)
   localStorage.setItem(storageKey, JSON.stringify(recent))
 
   return recent.length > maxRedirects
-}
-
-// only register PWA manifest on root domain, not on CID subdomains
-// where it causes unnecessary background DNS lookups
-if (!location.hostname.includes('.ipfs.') && !location.hostname.includes('.ipns.')) {
-  const manifest = document.createElement('link')
-  manifest.rel = 'manifest'
-  manifest.href = '/ipfs-sw-manifest.json'
-  document.head.appendChild(manifest)
 }
 
 main()

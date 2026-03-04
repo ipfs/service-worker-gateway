@@ -10,7 +10,7 @@
 #        CF_SNIPPETS_TOKEN - API token with Zone > Snippets > Edit
 set -euo pipefail
 
-SNIPPET_DIR="cloudflare/snippets"
+SNIPPET_DIR="dist/cloudflare/snippets"
 API_BASE="https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/snippets"
 
 # Upload each snippet

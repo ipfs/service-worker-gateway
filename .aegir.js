@@ -1,6 +1,10 @@
 /** @type {import('aegir').PartialOptions} */
 export default {
-  test: { },
+  test: {
+    files: [
+      'test/**/*.spec.ts'
+    ]
+  },
   lint: {
     files: [
       'src/**/*.[jt]s',

@@ -4,7 +4,11 @@
     "outDir": "dist-tsc",
     "jsx": "preserve",
     "strictNullChecks": true,
-    "ignoreDeprecations": "5.0" // needed due to deprecated usage in tsconfig.aegir.json
+    "ignoreDeprecations": "5.0", // needed due to deprecated usage in tsconfig.aegir.json
+    "types": [
+      "@cloudflare/workers-types",
+      "@types/mocha"
+    ]
   },
   "include": [
     "src",
@@ -14,6 +18,8 @@
     "test-conformance/fixtures/*.json",
     "test-e2e",
     "playwright.config.js",
-    "serve.ts"
+    "serve.ts",
+    "cloudflare/snippets/02_shared_sw_installer_cache.js",
+    "cloudflare/snippets/01_path_gateway_to_subdomain.js"
   ]
 }
