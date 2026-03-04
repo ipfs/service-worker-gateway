@@ -36,7 +36,10 @@ export default {
       'wait-on',
 
       // used in scripts
-      'cross-env'
+      'cross-env',
+
+      // used in cloudflare snippets
+      '@cloudflare/workers-types'
     ],
     productionIgnorePatterns: [
       'webpack.config.js',
