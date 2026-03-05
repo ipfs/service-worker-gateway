@@ -45,7 +45,8 @@ describe('01_path_gateway_to_subdomain', () => {
 
   it('/ipfs/ with base32 CIDv1 redirects to subdomain', async () => {
     expect(
-      await fetchRedirect('https://dweb.link/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi'),
+      await fetchRedirect('https://dweb.link/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi')
+    ).to.equal(
       'https://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi.ipfs.dweb.link/'
     )
   })
@@ -60,21 +61,24 @@ describe('01_path_gateway_to_subdomain', () => {
 
   it('/ipns/ with DNSLink domain redirects to encoded subdomain', async () => {
     expect(
-      await fetchRedirect('https://dweb.link/ipns/en.wikipedia-on-ipfs.org/wiki'),
+      await fetchRedirect('https://dweb.link/ipns/en.wikipedia-on-ipfs.org/wiki')
+    ).to.equal(
       'https://en-wikipedia--on--ipfs-org.ipns.dweb.link/wiki'
     )
   })
 
   it('preserves query parameters', async () => {
     expect(
-      await fetchRedirect('https://dweb.link/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi?format=car&dag-scope=all'),
+      await fetchRedirect('https://dweb.link/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi?format=car&dag-scope=all')
+    ).to.equal(
       'https://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi.ipfs.dweb.link/?format=car&dag-scope=all'
     )
   })
 
   it('preserves port numbers', async () => {
     expect(
-      await fetchRedirect('http://localhost:8080/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi/file'),
+      await fetchRedirect('http://localhost:8080/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi/file')
+    ).to.equal(
       'http://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi.ipfs.localhost:8080/file'
     )
   })
@@ -95,7 +99,8 @@ describe('01_path_gateway_to_subdomain', () => {
     const knownBytes = base32Decode('bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi'.substring(1))
     const hexCid = 'f' + base16Encode(knownBytes)
     expect(
-      await fetchRedirect(`https://dweb.link/ipfs/${hexCid}`),
+      await fetchRedirect(`https://dweb.link/ipfs/${hexCid}`)
+    ).to.equal(
       'https://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi.ipfs.dweb.link/'
     )
   })
@@ -104,7 +109,8 @@ describe('01_path_gateway_to_subdomain', () => {
     const knownBytes = base32Decode('bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi'.substring(1))
     const b64Cid = 'u' + base64urlEncode(knownBytes)
     expect(
-      await fetchRedirect(`https://dweb.link/ipfs/${b64Cid}`),
+      await fetchRedirect(`https://dweb.link/ipfs/${b64Cid}`)
+    ).to.equal(
       'https://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi.ipfs.dweb.link/'
     )
   })
@@ -113,7 +119,8 @@ describe('01_path_gateway_to_subdomain', () => {
     const knownBytes = base32Decode('bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi'.substring(1))
     const zCid = 'z' + base58Encode(knownBytes)
     expect(
-      await fetchRedirect(`https://dweb.link/ipfs/${zCid}`),
+      await fetchRedirect(`https://dweb.link/ipfs/${zCid}`)
+    ).to.equal(
       'https://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi.ipfs.dweb.link/'
     )
   })
@@ -122,14 +129,16 @@ describe('01_path_gateway_to_subdomain', () => {
     const knownBytes = base32Decode('bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi'.substring(1))
     const hexCid = 'F' + base16Encode(knownBytes)
     expect(
-      await fetchRedirect(`https://dweb.link/ipfs/${hexCid}`),
+      await fetchRedirect(`https://dweb.link/ipfs/${hexCid}`)
+    ).to.equal(
       'https://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi.ipfs.dweb.link/'
     )
   })
 
   it('/ipns/ with DNSLink domain preserves sub-path and query params', async () => {
     expect(
-      await fetchRedirect('https://inbrowser.link/ipns/en.wikipedia-on-ipfs.org/wiki/Foo?query=val'),
+      await fetchRedirect('https://inbrowser.link/ipns/en.wikipedia-on-ipfs.org/wiki/Foo?query=val')
+    ).to.equal(
       'https://en-wikipedia--on--ipfs-org.ipns.inbrowser.link/wiki/Foo?query=val'
     )
   })
@@ -139,7 +148,19 @@ describe('01_path_gateway_to_subdomain', () => {
     const ipnsBytes = base36Decode(key.substring(1))
     const bareB58 = base58Encode(ipnsBytes)
     expect(
-      await fetchRedirect(`https://dweb.link/ipns/${bareB58}/path`),
+      await fetchRedirect(`https://dweb.link/ipns/${bareB58}/path`)
+    ).to.equal(
+      `https://${key}.ipns.dweb.link/path`
+    )
+  })
+
+  it('/ipns/ with base58btc peer ID redirects to base36 subdomain', async () => {
+    const key = 'k51qzi5uqu5dlvj2baxnqndepeb86cbk3ng7n3i46uzyxzyqj2xjonzllnv0v8'
+    const b58btc = '12D3KooWRBy97UB99e3J6hiPesre1MZeuNQvfan4gBziswrRJsNK'
+
+    expect(
+      await fetchRedirect(`https://dweb.link/ipns/${b58btc}/path`)
+    ).to.equal(
       `https://${key}.ipns.dweb.link/path`
     )
   })

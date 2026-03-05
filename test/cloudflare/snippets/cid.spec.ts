@@ -86,14 +86,16 @@ describe('parseCID', () => {
     expect(parsed.codec).to.equal(0x72, 'codec should be libp2p-key')
   })
 
-  it('returns null for invalid input', () => {
-    expect(parseCID('')).to.equal(null)
-    expect(parseCID('x')).to.equal(null)
-    expect(parseCID('not-a-cid')).to.equal(null)
+  it('should reject invalid input', () => {
+    expect(() => parseCID('')).to.throw()
+    expect(() => parseCID('x')).to.throw()
+    expect(() => parseCID('not-a-cid')).to.throw()
+    expect(() => parseCID('ipns-with-path.com')).to.throw()
+    expect(() => parseCID('bafkqablimvwgy3yasdfasdff32')).to.throw()
   })
 
-  it('returns null for short input', () => {
-    expect(parseCID('Q')).to.equal(null)
+  it('should reject short input', () => {
+    expect(() => parseCID('Q')).to.throw()
   })
 })
 

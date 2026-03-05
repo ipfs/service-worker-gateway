@@ -1,3 +1,4 @@
+import { CODE_DAG_PB, CODE_LIBP2P_KEY } from '../../ui/pages/multicodec-table.ts'
 import { base16Decode, base32Decode, base36Decode, base58Decode, base64urlDecode, varintDecode, varintEncode } from './codec.ts'
 
 export interface CID {
@@ -10,52 +11,89 @@ export interface CID {
 /**
  * CID parsing
  */
-export function parseCID (str: string): CID | null {
-  if (str.length < 2) { return null }
+export function parseCID (str: string): CID {
+  if (str.length < 2) {
+    throw new Error('Could not parse CID: input too short')
+  }
 
-  try {
-    let bytes
+  if (str.includes('.')) {
+    throw new Error('Could not parse CID: probably a domain name')
+  }
 
-    // CIDv0: bare base58btc multihash starting with Qm
-    if (str.length === 46 && str.startsWith('Qm')) {
-      bytes = base58Decode(str)
-      return { version: 0, codec: 0x70, multihash: bytes, raw: bytes }
+  let bytes
+
+  // CIDv0: bare base58btc multihash starting with Qm
+  if (str.length === 46 && str.startsWith('Qm')) {
+    bytes = base58Decode(str)
+
+    return {
+      version: 0,
+      codec: CODE_DAG_PB, // could also be RSA peer id
+      multihash: bytes,
+      raw: bytes
     }
+  }
 
-    // CIDv1 with multibase prefix
-    const prefix = str[0]
-    const rest = str.substring(1)
+  // CIDv1 with multibase prefix
+  const prefix = str[0]
+  const rest = str.substring(1)
+  let offset = 0
 
-    if (prefix === 'b') {
-      bytes = base32Decode(rest)
-    } else if (prefix === 'k') {
-      bytes = base36Decode(rest)
-    } else if (prefix === 'z') {
-      bytes = base58Decode(rest)
-    } else if (prefix === 'f' || prefix === 'F') {
-      bytes = base16Decode(rest)
-    } else if (prefix === 'u') {
-      bytes = base64urlDecode(rest)
-    } else {
-      // try bare base58btc (handles 12D3K... peer IDs)
-      bytes = base58Decode(str)
-      const [ver] = varintDecode(bytes, 0)
-      if (ver !== 1) { return null }
+  if (prefix === 'b') {
+    bytes = base32Decode(rest)
+  } else if (prefix === 'k') {
+    bytes = base36Decode(rest)
+  } else if (prefix === 'z') {
+    bytes = base58Decode(rest)
+  } else if (prefix === 'f' || prefix === 'F') {
+    bytes = base16Decode(rest)
+  } else if (prefix === 'u') {
+    bytes = base64urlDecode(rest)
+  } else {
+    // try bare base58btc (handles 12D3K... peer IDs)
+    bytes = base58Decode(str)
+  }
+
+  if (str.startsWith('12D3K')) {
+    return {
+      version: 0,
+      codec: CODE_LIBP2P_KEY,
+      multihash: bytes,
+      raw: bytes
     }
+  }
 
-    // parse CIDv1 structure: version varint + codec varint + multihash
-    let offset = 0
-    const [version, vLen] = varintDecode(bytes, offset)
-    offset += vLen
-    if (version !== 1) { return null }
+  // parse CIDv1 structure: version varint + codec varint + multihash
+  const versionDecode = varintDecode(bytes, offset)
+  const version = versionDecode[0]
+  offset += versionDecode[1]
 
-    const [codec, cLen] = varintDecode(bytes, offset)
-    offset += cLen
+  if (version !== 1) {
+    throw new Error(`Could not parse CID: unsupported version ${version}`)
+  }
 
-    const multihash = bytes.slice(offset)
-    return { version: 1, codec, multihash, raw: bytes }
-  } catch {
-    return null
+  const codecDecode = varintDecode(bytes, offset)
+  const codec = codecDecode[0]
+  offset += codecDecode[1]
+
+  const multihash = bytes.slice(offset)
+
+  const multihashCodecDecode = varintDecode(bytes, offset)
+  offset += multihashCodecDecode[1]
+
+  const multihashValueDecode = varintDecode(bytes, offset)
+  offset += multihashValueDecode[1]
+  const multihashValue = bytes.slice(offset)
+
+  if (multihashValue.byteLength !== multihashValueDecode[0]) {
+    throw new Error(`Could not parse CID: invalid multihash length - expected ${multihashValueDecode[0]} got ${multihashValue.byteLength}`)
+  }
+
+  return {
+    version,
+    codec,
+    multihash,
+    raw: bytes
   }
 }
 
