@@ -14,7 +14,7 @@
 //     effect within 5 minutes of a CID being blocked
 
 export default {
-  async fetch (request) {
+  async fetch (request: Request): Promise<Response> {
     const url = new URL(request.url)
 
     if (url.pathname.startsWith('/ipfs-sw-')) {

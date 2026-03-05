@@ -34,7 +34,7 @@ test.describe('DNSLink', () => {
   })
 
   test('should load a DNSLink record that contains a path', async ({ page, baseURL }) => {
-    const domain = 'ipns-with-path.com'
+    const domain = 'ipns-contains-path.com'
     const cid = CID.parse('bafybeib3ffl2teiqdncv3mkz4r23b5ctrwkzrrhctdbne6iboayxuxk5ui')
     const path = 'root3/root4'
 

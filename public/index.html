@@ -27,7 +27,6 @@
     <link rel="shortcut icon" href="/ipfs-sw-favicon.ico" type="image/x-icon"/>
     <%= PRECONNECT_HINTS %>
     <%= DNS_PREFETCH_HINTS %>
-    <%= CSS_STYLES %>
     <style>
       .loading-container {
         position: fixed;
@@ -39,73 +38,34 @@
         pointer-events: none;
       }
 
-      .loading-animation {
-        position: fixed;
-        background-image: url('/ipfs-sw-icon.png');
-        width: 10rem;
-        height: 10rem;
-        -webkit-animation: heartbeat 1.5s ease-in-out 0s infinite normal both;
-        animation: heartbeat 1.5s ease-in-out 0s infinite normal both;
-        -webkit-transform-origin: center center;
-        transform-origin: center center;
-        margin: auto;
-        background-size: cover;
-        filter: drop-shadow(0 0 0 #378085);
-      }
-
-      @keyframes heartbeat {
-        0% {
-          animation-timing-function: ease-out;
-          transform: scale(1);
-          transform-origin: center center;
-          filter: drop-shadow(0 0 0 #378085);
-        }
-
-        45% {
-          animation-timing-function: ease-in;
-          transform: scale(1);
-          filter: drop-shadow(0 0 0rem #378085);
-        }
-
-        50% {
-          animation-timing-function: ease-in;
-          transform: scale(1);
-          filter: drop-shadow(0 0 0.5rem #378085);
-        }
-
-        55% {
-          animation-timing-function: ease-out;
-          transform: scale(1);
-          /* Size should be increased on drop-shadow so when scaling down, drop-shadow compensates for size reduction, and we don't get any visual artifacts */
-          filter: drop-shadow(0 0 1rem #378085);
-        }
-
-        67% {
-          animation-timing-function: ease-in;
-          transform: scale(1.13);
-          filter: drop-shadow(0 0 0.75rem #378085);
-        }
-
-        83% {
-          animation-timing-function: ease-out;
-          transform: scale(1.02);
-          filter: drop-shadow(0 0 0.50rem #378085);
-        }
-
-        90% {
-          animation-timing-function: ease-in;
-          transform: scale(1.09);
-          filter: drop-shadow(0 0 0.75rem #378085);
-        }
-      }
       .hidden {
         display: none;
       }
     </style>
+    <script>
+const a = ['/','—','\\','|','/','—','\\','|']
+let i = 0
+
+const interval = setInterval(() => {
+  const el = document.querySelector('.loading-indicator-js')
+  if (el == null) {
+    return
+  }
+  if (el.classList.contains('hidden')) {
+    clearInterval(interval)
+    return
+  }
+  i++
+  if (i === a.length) {
+    i = 0
+  }
+  el.innerText = a[i]
+}, 150)
+    </script>
   </head>
   <body>
-    <div class="loading-container loading-indicator-js">
-      <div class="loading-animation"></div>
+    <div class="loading-container">
+      <div class="loading-indicator-js"></div>
     </div>
     <div id="root" class="sans-serif charcoal f5"></div>
     <%= JS_SCRIPT_TAG %>

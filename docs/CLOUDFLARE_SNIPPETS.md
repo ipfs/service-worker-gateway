@@ -8,12 +8,6 @@
 - `snippet_name.js.rules` -- [Cloudflare expression](https://developers.cloudflare.com/ruleset-engine/rules-language/expressions/) that controls when the snippet runs
 - `snippet_name.test.js` -- tests (`node:test`, zero external deps)
 
-## Testing
-
-```console
-$ npm run test:cloudflare
-```
-
 ## Deployment
 
 Automatic via CI on staging/production deploy (see `.github/scripts/deploy-snippets.sh`).

@@ -14,18 +14,17 @@
     "build": "node --experimental-strip-types build.js && go build -o service-worker-gateway main.go",
     "build:test": "cross-env NODE_ENV=test npm run build",
     "start": "cross-env NODE_ENV=development node --experimental-strip-types ./serve.ts --load-fixtures --watch",
-    "test": "cross-env NODE_ENV=test aegir test -f test/**/*.spec.ts -- --experimental-strip-types",
+    "test": "cross-env NODE_ENV=test aegir test -- --experimental-strip-types",
     "test:chrome": "npm run build:test && playwright test -c playwright.config.js --project chromium",
     "test:firefox": "npm run build:test && playwright test -c playwright.config.js --project firefox no-service-worker",
     "test:safari": "npm run build:test && playwright test -c playwright.config.js --project safari",
     "test:local-binary": "npm run build:test && concurrently -k --success first -n \"binary,tests\" \"./service-worker-gateway\" \"cross-env SHOULD_BUILD=false SHOULD_SERVE=false playwright test -c playwright.config.js --project deployed no-service-worker\"",
-    "test:node": "cross-env NODE_ENV=test aegir test -t node -f test/*/*/*.spec.ts -f test/*/*.spec.ts -f test/*.spec.ts -- --experimental-strip-types",
+    "test:node": "cross-env NODE_ENV=test aegir test -t node -- --experimental-strip-types",
     "test:conformance": "npm run build:test && playwright test -c ./test-conformance/playwright.config.js --project chromium",
     "update-conformance": "node --experimental-strip-types ./test-conformance/fixtures/update-expected-tests.ts",
     "postinstall": "patch-package",
     "generate-fixtures": "node --experimental-strip-types ./test-e2e/fixtures/data/generate.ts",
-    "benchmark": "playwright test -c ./benchmark/playwright.config.js --project chromium",
-    "test:cloudflare": "node --test cloudflare/snippets/*.test.js"
+    "benchmark": "playwright test -c ./benchmark/playwright.config.js --project chromium"
   },
   "browser": "./dist/src/index.js",
   "browserslist": [
@@ -83,6 +82,7 @@
     "@babel/preset-env": "^7.28.0",
     "@babel/preset-react": "^7.27.1",
     "@babel/preset-typescript": "^7.27.1",
+    "@cloudflare/workers-types": "^4.20260301.1",
     "@helia/car": "^5.3.0",
     "@helia/dag-cbor": "^5.0.3",
     "@helia/dag-json": "^5.0.3",
@@ -120,6 +120,7 @@
     "playwright": "^1.45.3",
     "polka": "^0.5.2",
     "rimraf": "^6.0.1",
+    "sinon": "^21.0.2",
     "tar": "^7.5.2",
     "wait-on": "^9.0.1"
   },

@@ -1,6 +1,10 @@
 /** @type {import('aegir').PartialOptions} */
 export default {
-  test: { },
+  test: {
+    files: [
+      'test/**/*.spec.ts'
+    ]
+  },
   lint: {
     files: [
       'src/**/*.[jt]s',
@@ -32,7 +36,10 @@ export default {
       'wait-on',
 
       // used in scripts
-      'cross-env'
+      'cross-env',
+
+      // used in cloudflare snippets
+      '@cloudflare/workers-types'
     ],
     productionIgnorePatterns: [
       'webpack.config.js',

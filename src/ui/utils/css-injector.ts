@@ -13,7 +13,7 @@ export async function injectCSS (cssFilename: string): Promise<void> {
 
   const link = document.createElement('link')
   link.rel = 'stylesheet'
-  link.href = `/${cssFilename}`
+  link.href = `${cssFilename}`
   link.type = 'text/css'
 
   return new Promise<void>(resolve => {

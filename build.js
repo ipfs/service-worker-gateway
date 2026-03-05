@@ -141,21 +141,6 @@ const injectHtmlPages = async (metafile, revision) => {
       }
     }
 
-    // only inject CSS for non-index.html files, or if explicitly requested
-    if (htmlContent.includes('<%= CSS_STYLES %>')) {
-      if (baseName === 'index') {
-        // for index.html, don't inject CSS - it will be injected dynamically by JavaScript
-        htmlContent = htmlContent.replace(/<%= CSS_STYLES %>/g, '')
-        console.log(`Removed CSS injection from ${path.relative(process.cwd(), htmlFilePath)} - will be injected dynamically.`)
-      } else if (cssFile != null) {
-        const cssTag = `<link rel="stylesheet" href="/${path.basename(cssFile)}">`
-        htmlContent = htmlContent.replace(/<%= CSS_STYLES %>/g, cssTag)
-        console.log(`Injected ${path.basename(cssFile)} into ${path.relative(process.cwd(), htmlFilePath)}.`)
-      } else {
-        throw new Error(`Could not find an index.css file to include in ${path.relative(process.cwd(), htmlFilePath)}.`)
-      }
-    }
-
     if (htmlContent.includes('<%= IPFS_LOGO_PATH %>')) {
       if (logoFile != null) {
         htmlContent = htmlContent.replace(/<%= IPFS_LOGO_PATH %>/g, path.basename(logoFile))
@@ -367,29 +352,6 @@ const modifyBuiltFiles = {
 
       // Modify the redirects file last
       await modifyRedirects()
-
-      for (const [file, meta] of Object.entries(metafile.outputs)) {
-        if (meta.entryPoint != null) {
-          console.info(meta.entryPoint, '->', file)
-        }
-
-        // create an app chunk config file we will use to get the proper app
-        // chunk filename for importing all the UI dynamically
-        if (meta.entryPoint === 'src/ui/index.tsx') {
-          const appConfigContent = `export const APP_FILENAME = '${path.basename(file)}'`
-          await fs.writeFile(path.resolve('dist/ipfs-sw-app-config.js'), appConfigContent)
-          console.log(`Created dist/ipfs-sw-app-config.js with app chunk filename: ${path.basename(file)}`)
-        }
-
-        // create a CSS config file we will use to get the proper CSS filename
-        // TODO: this is too fragile, it only works because there is a only one
-        // css file in the output
-        if (file.endsWith('.css')) {
-          const cssConfigContent = `export const CSS_FILENAME = '${path.basename(file)}'`
-          await fs.writeFile(path.resolve('dist/ipfs-sw-css-config.js'), cssConfigContent)
-          console.log(`Created dist/ipfs-sw-css-config.js with CSS filename: ${path.basename(file)}`)
-        }
-      }
     })
   }
 }
@@ -414,6 +376,27 @@ const excludeFilesPlugin = (extensions) => ({
 const pkg = JSON.parse(readFileSync(path.resolve('package.json'), 'utf-8'))
 const rev = gitRevision()
 console.info('Detected versions', pkg.name, pkg.version, rev)
+
+// build cloudflare
+const cloudflareResult = await esbuild.build({
+  entryPoints: [
+    'src/cloudflare/snippets/01_path_gateway_to_subdomain.ts',
+    'src/cloudflare/snippets/02_shared_sw_installer_cache.ts'
+  ],
+  bundle: true,
+  outdir: 'dist/cloudflare/snippets',
+  minify: process.env.NODE_ENV !== 'test' && process.env.NODE_ENV !== 'development',
+  metafile: true,
+  splitting: false,
+  target: ['es2020'],
+  format: 'esm'
+})
+
+// built cloudflare, write meta file
+await fs.writeFile('dist/cloudflare/snippets/meta.json', JSON.stringify(cloudflareResult.metafile))
+// copy rules
+await fs.copyFile('src/cloudflare/snippets/01_path_gateway_to_subdomain.js.rules', 'dist/cloudflare/snippets/01_path_gateway_to_subdomain.js.rules')
+await fs.copyFile('src/cloudflare/snippets/02_shared_sw_installer_cache.js.rules', 'dist/cloudflare/snippets/02_shared_sw_installer_cache.js.rules')
 
 /**
  * @type {esbuild.BuildOptions}
