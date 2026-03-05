@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.5](https://github.com/ipfs/service-worker-gateway/compare/v3.1.4...v3.1.5) (2026-03-05)
+
+
+### Bug Fixes
+
+* reduce initial bundle size and improve load order ([#1006](https://github.com/ipfs/service-worker-gateway/issues/1006)) ([16e5051](https://github.com/ipfs/service-worker-gateway/commit/16e50510ac6ae333d19b372e3d79d123439de87c))
+
 ## [3.1.4](https://github.com/ipfs/service-worker-gateway/compare/v3.1.3...v3.1.4) (2026-02-26)
 
 
