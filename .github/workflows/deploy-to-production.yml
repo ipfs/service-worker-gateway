@@ -90,6 +90,11 @@ jobs:
       - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.tag }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+      - uses: ipfs/aegir/actions/cache-node-modules@main
+      - run: npm run --if-present build
       - name: Deploy Cloudflare Snippets
         run: .github/scripts/deploy-snippets.sh
         env:
