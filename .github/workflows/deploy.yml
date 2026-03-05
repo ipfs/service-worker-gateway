@@ -39,15 +39,15 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      # - name: Verify tag
-      #   env:
-      #     TAG: ${{ inputs.tag }}
-      #   run: |
-      #     git merge-base --is-ancestor $TAG origin/main
-      #     if [ $? -ne 0 ]; then
-      #       echo "Tag $TAG is not present in the history of main"
-      #       exit 1
-      #     fi
+      - name: Verify tag
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          git merge-base --is-ancestor $TAG origin/main
+          if [ $? -ne 0 ]; then
+            echo "Tag $TAG is not present in the history of main"
+            exit 1
+          fi
       - name: Resolve commit SHA
         id: sha
         env:
