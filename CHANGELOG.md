@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.7](https://github.com/ipfs/service-worker-gateway/compare/v3.1.6...v3.1.7) (2026-04-09)
+
+
+### Bug Fixes
+
+* include server-timing header on abort ([#1023](https://github.com/ipfs/service-worker-gateway/issues/1023)) ([2f8961b](https://github.com/ipfs/service-worker-gateway/commit/2f8961b7be08b2f1bc73e69b16b4dc30729e7d7a))
+
 ## [3.1.6](https://github.com/ipfs/service-worker-gateway/compare/v3.1.5...v3.1.6) (2026-04-09)
 
 
