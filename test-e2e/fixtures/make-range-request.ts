@@ -133,7 +133,7 @@ export async function makeFetchRequest (page: Page, url: URL | string, init?: Re
     url () {
       return result.url
     },
-    async httpVersion() {
+    async httpVersion () {
       return 'HTTP/1.1'
     }
   }
