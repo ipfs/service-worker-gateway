@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.1.6](https://github.com/ipfs/service-worker-gateway/compare/v3.1.5...v3.1.6) (2026-04-09)
+
+
+### Bug Fixes
+
+* improve error message when streaming fails ([#1021](https://github.com/ipfs/service-worker-gateway/issues/1021)) ([d1a6c67](https://github.com/ipfs/service-worker-gateway/commit/d1a6c674a61a0bf049104c4564a2595fec6a3793))
+* restore logo ([#1012](https://github.com/ipfs/service-worker-gateway/issues/1012)) ([b90b2ff](https://github.com/ipfs/service-worker-gateway/commit/b90b2ffe97f42f01339f1bc58ae97170c780d9ed))
+* update deps to support server-timing header ([#1020](https://github.com/ipfs/service-worker-gateway/issues/1020)) ([5c62280](https://github.com/ipfs/service-worker-gateway/commit/5c6228024b1bcfb01407e320ca352408a8700bda)), closes [#956](https://github.com/ipfs/service-worker-gateway/issues/956)
+* update helia deps ([#1010](https://github.com/ipfs/service-worker-gateway/issues/1010)) ([94116b2](https://github.com/ipfs/service-worker-gateway/commit/94116b29757d4ccb8087c83fce805cdf5c8eb23a))
+
 ## [3.1.5](https://github.com/ipfs/service-worker-gateway/compare/v3.1.4...v3.1.5) (2026-03-05)
 
 
