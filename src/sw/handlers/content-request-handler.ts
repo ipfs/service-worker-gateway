@@ -1,4 +1,4 @@
-import { MEDIA_TYPE_CAR, MEDIA_TYPE_CBOR, MEDIA_TYPE_DAG_CBOR, MEDIA_TYPE_DAG_JSON, MEDIA_TYPE_DAG_PB, MEDIA_TYPE_IPNS_RECORD, MEDIA_TYPE_JSON, MEDIA_TYPE_RAW, MEDIA_TYPE_TAR } from '@helia/verified-fetch'
+import { isAbortWithServerTimingError, MEDIA_TYPE_CAR, MEDIA_TYPE_CBOR, MEDIA_TYPE_DAG_CBOR, MEDIA_TYPE_DAG_JSON, MEDIA_TYPE_DAG_PB, MEDIA_TYPE_IPNS_RECORD, MEDIA_TYPE_JSON, MEDIA_TYPE_RAW, MEDIA_TYPE_TAR } from '@helia/verified-fetch'
 import { setMaxListeners, TimeoutError } from '@libp2p/interface'
 import { anySignal } from 'any-signal'
 import { config } from '../../config/index.ts'
@@ -360,28 +360,40 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
       statusText: response.statusText
     })
   } catch (err: any) {
+    let response: Response
+    let responseBody: string
+
     if (abortController.signal.aborted) {
-      return fetchErrorPageResponse(request, init, new Response('', {
+      response = new Response('', {
         status: 504,
         statusText: 'Gateway Timeout',
         headers: {
           'content-type': 'application/json'
         }
-      }), JSON.stringify(errorToObject(abortController.signal.reason), null, 2), providers, firstInstallTime, logs)
+      })
+
+      responseBody = JSON.stringify(errorToObject(abortController.signal.reason), null, 2)
+    } else {
+      abortController.abort(err)
+      log.error('error during request - %e', err)
+
+      response = new Response('', {
+        status: 500,
+        statusText: 'Internal Server Error',
+        headers: {
+          'content-type': 'application/json',
+          'x-error-message': btoa(err.message)
+        }
+      })
+
+      responseBody = JSON.stringify(errorToObject(err), null, 2)
     }
 
-    abortController.abort(err)
+    if (isAbortWithServerTimingError(err)) {
+      response.headers.set('server-timing', err.serverTiming)
+    }
 
-    log.error('error during request - %e', err)
-
-    return fetchErrorPageResponse(request, init, new Response('', {
-      status: 500,
-      statusText: 'Internal Server Error',
-      headers: {
-        'content-type': 'application/json',
-        'x-error-message': btoa(err.message)
-      }
-    }), JSON.stringify(errorToObject(err), null, 2), providers, firstInstallTime, logs)
+    return fetchErrorPageResponse(request, init, response, responseBody, providers, firstInstallTime, logs)
   } finally {
     signal.clear()
     clearTimeout(timeout)
