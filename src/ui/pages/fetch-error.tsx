@@ -233,15 +233,19 @@ export function FetchErrorPage ({ request, response, logs, providers }: FetchErr
     message = (
       <>
         <p className='f5 ma3 fw4 db'>This gateway encountered content it did not know how to handle.</p>
+        {providersMessage}
         {openIssueLink}
       </>
     )
   } else if (response.status === 502) {
     message = (
       <>
-        <p className='f5 ma3 fw4 db'>The content was loaded but could not be processed.</p>
-        <p className='f5 ma3 fw4 db'>This may mean that a recursive gateway failed to fetch the content on our behalf.</p>
+        <p className='f5 ma3 fw4 db'>An error occurred while streaming the content.</p>
+        {providers.total > 0 ? (
+          <p className='f5 ma3 fw4 db'>This may mean that a recursive gateway claimed to have the content but then failed to actually fetch it on our behalf.</p>
+        ) : ''}
         <Terminal>{response.body}</Terminal>
+        {providersMessage}
         {whatNextMessage}
       </>
     )
