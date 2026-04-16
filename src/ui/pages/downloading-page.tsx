@@ -1,5 +1,4 @@
 import React from 'react'
-import { parseRequest } from '../../lib/parse-request.ts'
 import { removeRootHashIfPresent } from '../../lib/remove-root-hash.ts'
 import { toGatewayRoot } from '../../lib/to-gateway-root.ts'
 import { Button } from '../components/button.tsx'
@@ -11,17 +10,6 @@ declare global {
   var downloadingPage: {
     request: ResolvableURI
   }
-}
-
-function findCid (): string | void {
-  try {
-    const url = new URL(globalThis.location.href)
-    const req = parseRequest(url, url)
-
-    if ((req.type === 'subdomain' || req.type === 'path' || req.type === 'native') && req.protocol === 'ipfs') {
-      return req.cid.toString()
-    }
-  } catch {}
 }
 
 export interface DownloadingPageProps {
