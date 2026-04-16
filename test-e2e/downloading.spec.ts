@@ -29,22 +29,6 @@ test.describe('downloading page', () => {
     expect(text).toContain('Your download should begin shortly')
   })
 
-  test('should allow previewing a block', async ({ page }) => {
-    const downloadPromise = page.waitForEvent('download')
-
-    await page.fill('#inputContent', '/ipfs/bafkqaddimvwgy3zao5xxe3debi')
-    await page.click('#show-advanced')
-    await page.selectOption('#download', 'true')
-    await page.click('#load-directly')
-
-    download = await downloadPromise
-
-    await delay(2_000)
-
-    const text = await page.textContent('body')
-    expect(text).toContain('Preview block')
-  })
-
   test('should allow retrying', async ({ page }) => {
     const downloadPromise = page.waitForEvent('download')
 

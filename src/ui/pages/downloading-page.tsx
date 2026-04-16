@@ -1,10 +1,8 @@
 import React from 'react'
-import { parseRequest } from '../../lib/parse-request.ts'
 import { removeRootHashIfPresent } from '../../lib/remove-root-hash.ts'
 import { toGatewayRoot } from '../../lib/to-gateway-root.ts'
 import { Button } from '../components/button.tsx'
 import ContentBox from '../components/content-box.tsx'
-import { createLink } from '../utils/links.ts'
 import type { ResolvableURI } from '../../lib/parse-request-cheap.ts'
 import type { ReactElement } from 'react'
 
@@ -12,17 +10,6 @@ declare global {
   var downloadingPage: {
     request: ResolvableURI
   }
-}
-
-function findCid (): string | void {
-  try {
-    const url = new URL(globalThis.location.href)
-    const req = parseRequest(url, url)
-
-    if ((req.type === 'subdomain' || req.type === 'path' || req.type === 'native') && req.protocol === 'ipfs') {
-      return req.cid.toString()
-    }
-  } catch {}
 }
 
 export interface DownloadingPageProps {
@@ -41,7 +28,6 @@ export function DownloadingPage ({ request }: DownloadingPageProps): ReactElemen
   }
 
   removeRootHashIfPresent()
-  const cid = findCid()
 
   function retry (): void {
     // remove any UI-added navigation info
@@ -51,28 +37,6 @@ export function DownloadingPage ({ request }: DownloadingPageProps): ReactElemen
     window.location.reload(true)
   }
 
-  let viewPreviewBlockButton = <></>
-
-  if (viewPreviewBlockButton && cid != null) {
-    viewPreviewBlockButton = (
-      <>
-        <Button
-          className='bg-navy-muted' onClick={(evt: MouseEvent) => {
-            evt.preventDefault()
-            evt.stopPropagation()
-
-            window.location.href = createLink({
-              params: {
-                download: 'false'
-              }
-            })
-          }}
-        >Preview block
-        </Button>
-      </>
-    )
-  }
-
   return (
     <>
       <ContentBox title='Download'>
@@ -80,7 +44,6 @@ export function DownloadingPage ({ request }: DownloadingPageProps): ReactElemen
           <p className='f5 ma3 fw4 db'>Your download should begin shortly. If it does not, please retry.</p>
           <p className='ma3'>
             <Button className='bg-teal' onClick={retry}>Retry</Button>
-            {viewPreviewBlockButton}
           </p>
         </>
       </ContentBox>
