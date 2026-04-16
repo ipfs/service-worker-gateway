@@ -103,9 +103,10 @@ async function main (): Promise<void> {
   }
 
   try {
-    if (request?.type === 'path' || request?.type === 'native') {
+    if (request.type === 'path' || request.type === 'native') {
       // redirect to subdomain
       window.location.href = request.subdomainURL.href
+      showUIAfterDelay(request)
       return
     }
 
@@ -129,6 +130,7 @@ async function main (): Promise<void> {
 
           if (request.type === 'subdomain' || request.type === 'path' || request.type === 'native') {
             window.location.href = request.subdomainURL.href
+            showUIAfterDelay(request)
             return
           }
           return
@@ -164,6 +166,7 @@ async function main (): Promise<void> {
 
       // reload so the subdomain request is handled by the service worker
       window.location.href = url.toString()
+      showUIAfterDelay(request)
       return
     }
   } catch (err: any) {
@@ -243,6 +246,21 @@ function tooManyRedirects (storageKey: string, maxRedirects = 5, period = 5_000)
   localStorage.setItem(storageKey, JSON.stringify(recent))
 
   return recent.length > maxRedirects
+}
+
+/**
+ * If the requested URL triggers a download, the currently displayed page will
+ * not change so show the user something, otherwise it looks like they are stuck
+ * on a loading page
+ */
+function showUIAfterDelay (request: ResolvableURI): void {
+  setTimeout(() => {
+    globalThis.downloadingPage = {
+      request
+    }
+
+    renderUi()
+  }, 500)
 }
 
 main()
