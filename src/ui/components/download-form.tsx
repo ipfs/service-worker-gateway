@@ -169,10 +169,6 @@ export default function DownloadForm ({
           <option value='raw'>Raw</option>
           <option value='car'>CAR</option>
           <option value='tar'>TAR</option>
-          <option value='dag-json'>DAG-JSON</option>
-          <option value='dag-cbor'>DAG-CBOR</option>
-          <option value='json'>JSON</option>
-          <option value='cbor'>CBOR</option>
           <option value='ipns-record'>IPNS Record</option>
         </InputSelect>
 
