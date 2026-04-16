@@ -54,7 +54,7 @@ test.describe('dag-json', () => {
     expect(dagJson.decode(await response?.body())).toStrictEqual(object)
   })
 
-  test(`should return dag-json block as json`, async ({ page, baseURL }) => {
+  test('should return dag-json block as json', async ({ page, baseURL }) => {
     const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=json&download=true`)
     expect(response.status()).toBe(200)
 

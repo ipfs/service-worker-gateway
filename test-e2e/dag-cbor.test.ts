@@ -50,7 +50,7 @@ test.describe('dag-cbor', () => {
     expect(dagCbor.decode(await response?.body())).toStrictEqual(object)
   })
 
-  test(`should return dag-cbor block as cbor`, async ({ page, baseURL }) => {
+  test('should return dag-cbor block as cbor', async ({ page, baseURL }) => {
     const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=cbor&download=true`)
     expect(response.status()).toBe(200)
 
