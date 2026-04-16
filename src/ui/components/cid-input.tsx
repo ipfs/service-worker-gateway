@@ -60,6 +60,23 @@ export interface CIDInputProps {
   setInvalid(invalid: boolean): void
 }
 
+export function parseSubdomain (val: string): URL | undefined {
+  // it may be just a CID
+  try {
+    CID.parse(val)
+
+    val = `/ipfs/${val}`
+  } catch {
+    // ignore
+  }
+
+  const request = parseRequest(val, new URL(globalThis.location.href))
+
+  if (request.type === 'subdomain' || request.type === 'path' || request.type === 'native') {
+    return request.subdomainURL
+  }
+}
+
 export function CIDInput ({ input, setInput, setSubdomainURL, setInvalid }: CIDInputProps): ReactElement {
   let initialErrorElement: ReactElement | undefined
 
@@ -68,32 +85,13 @@ export function CIDInput ({ input, setInput, setSubdomainURL, setInvalid }: CIDI
   function validate (val: string): void {
     setInput(val)
 
-    // it may be just a CID
     try {
-      CID.parse(val)
+      const subdomainURL = parseSubdomain(val)
 
-      val = `/ipfs/${val}`
-    } catch {
-      // ignore
-    }
-
-    try {
-      const request = parseRequest(val, new URL(globalThis.location.href))
-
-      if (request.type === 'subdomain' || request.type === 'path' || request.type === 'native') {
-        if (request.protocol === 'ipfs') {
-          setSubdomainURL(request.subdomainURL)
-          setInvalid(false)
-          return
-        } else if (request.protocol === 'ipns') {
-          setSubdomainURL(request.subdomainURL)
-          setInvalid(false)
-          return
-        } else if (request.protocol === 'dnslink') {
-          setSubdomainURL(request.subdomainURL)
-          setInvalid(false)
-          return
-        }
+      if (subdomainURL != null) {
+        setSubdomainURL(subdomainURL)
+        setInvalid(false)
+        return
       }
     } catch (err) {
       setErrorElement(<FormatHelp />)

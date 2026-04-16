@@ -678,4 +678,23 @@ test.describe('download form', () => {
     expect(decoded.validityType).toEqual('EOL')
     expect(decoded.validity).toEqual('2123-04-12T13:44:59.801728Z')
   })
+
+  test('should reload the page and submit the form', async ({ page }) => {
+    const downloadPromise = page.waitForEvent('download')
+
+    await page.fill('#inputContent', '/ipfs/bafkqaddimvwgy3zao5xxe3debi')
+    await page.reload()
+
+    await page.click('#show-advanced')
+    await page.selectOption('#download', 'true')
+    await page.click('#load-directly')
+
+    download = await downloadPromise
+
+    const file = await fsp.readFile(await download.path(), {
+      encoding: 'utf-8'
+    })
+
+    expect(file).toBe('hello world\n')
+  })
 })
