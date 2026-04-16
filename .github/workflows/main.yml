@@ -242,6 +242,7 @@ jobs:
           restore-keys: |
             playwright-${{ runner.os }}-
       - run: npx playwright install --with-deps
+        timeout-minutes: 10 # should take no longer than 2min
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
