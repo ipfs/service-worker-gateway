@@ -241,9 +241,11 @@ export function FetchErrorPage ({ request, response, logs, providers }: FetchErr
     message = (
       <>
         <p className='f5 ma3 fw4 db'>An error occurred while streaming the content.</p>
-        {providers.total > 0 ? (
-          <p className='f5 ma3 fw4 db'>This may mean that a recursive gateway claimed to have the content but then failed to actually fetch it on our behalf.</p>
-        ) : ''}
+        {providers.total > 0
+          ? (
+            <p className='f5 ma3 fw4 db'>This may mean that a recursive gateway claimed to have the content but then failed to actually fetch it on our behalf.</p>
+            )
+          : ''}
         <Terminal>{response.body}</Terminal>
         {providersMessage}
         {whatNextMessage}
