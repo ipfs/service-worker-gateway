@@ -13,7 +13,7 @@ import * as tar from 'tar'
 import { test, expect } from './fixtures/config-test-fixtures.ts'
 import type { Download, Page, Response } from 'playwright'
 
-function captureDownloadResponse (page: Page, cid: string, host: string): Promise<Response> {
+export function captureDownloadResponse (page: Page, cid: string, host: string): Promise<Response> {
   const responsePromise = Promise.withResolvers<Response>()
 
   page.on('response', (response) => {
