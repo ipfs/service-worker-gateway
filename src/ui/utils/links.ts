@@ -1,5 +1,6 @@
 import { CID } from 'multiformats/cid'
 import { dnsLinkLabelEncoder } from '../../lib/dns-link-labels.ts'
+import { parseRequest } from '../../lib/parse-request-cheap.ts'
 import { createSearch } from '../../lib/query-helpers.ts'
 
 interface CreateLinkOptions {
@@ -13,28 +14,36 @@ interface CreateLinkOptions {
  * any existing params or fragment
  */
 export function createLink ({ ipfsPath, params, hash }: CreateLinkOptions): string {
-  const url = new URL(window.location.href)
-  const search = createSearch(url.searchParams, {
+  const currentPage = new URL(window.location.href)
+  const request = parseRequest(currentPage, currentPage)
+
+  if (request.type === 'external' || request.type === 'internal') {
+    throw new Error(`Could not parse subdomain from ${request.type ?? 'unknown'} url`)
+  }
+
+  const subdomainURL = request.subdomainURL
+
+  const search = createSearch(subdomainURL.searchParams, {
     params
   })
 
   // if no pathname passed, detect from the current URL
   if (ipfsPath == null) {
-    if (url.hostname.includes('.ipns.')) {
-      ipfsPath = `/ipns/${url.hostname.split('.ipns.')[0]}${url.pathname === '/' ? '' : url.pathname}`
+    if (subdomainURL.hostname.includes('.ipns.')) {
+      ipfsPath = `/ipns/${subdomainURL.hostname.split('.ipns.')[0]}${subdomainURL.pathname === '/' ? '' : subdomainURL.pathname}`
     } else {
-      ipfsPath = `/ipfs/${url.hostname.split('.ipfs.')[0]}${url.pathname === '/' ? '' : url.pathname}`
+      ipfsPath = `/ipfs/${subdomainURL.hostname.split('.ipfs.')[0]}${subdomainURL.pathname === '/' ? '' : subdomainURL.pathname}`
     }
   }
 
   const [,, cid, ...rest] = ipfsPath.split('/')
   const path = '/' + rest.filter(segment => segment.trim() !== '').join('/')
 
-  const host = (url.host.includes('.ipfs.') ? url.host.split('.ipfs.') : url.host.split('.ipns.'))[1]
+  const host = (subdomainURL.host.includes('.ipfs.') ? subdomainURL.host.split('.ipfs.') : subdomainURL.host.split('.ipns.'))[1]
 
   try {
-    return `${url.protocol}//${CID.parse(cid).toV1()}.ipfs.${host}${path === '/' ? '' : path}${search}${hash ?? url.hash}`
+    return `${subdomainURL.protocol}//${CID.parse(cid).toV1()}.ipfs.${host}${path === '/' ? '' : path}${search}${hash ?? subdomainURL.hash}`
   } catch {
-    return `${url.protocol}//${dnsLinkLabelEncoder(cid)}.ipns.${host}${path === '/' ? '' : path}${search}${hash ?? url.hash}`
+    return `${subdomainURL.protocol}//${dnsLinkLabelEncoder(cid)}.ipns.${host}${path === '/' ? '' : path}${search}${hash ?? subdomainURL.hash}`
   }
 }

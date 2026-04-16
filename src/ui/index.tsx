@@ -1,12 +1,13 @@
 import React from 'react'
 import ReactDOMClient from 'react-dom/client'
 import './index.css'
-import { FaInfoCircle, FaGithub, FaExclamationTriangle, FaExclamationCircle, FaHome, FaListAlt } from 'react-icons/fa'
+import { FaInfoCircle, FaGithub, FaExclamationTriangle, FaExclamationCircle, FaHome, FaListAlt, FaFileDownload } from 'react-icons/fa'
 import { HashRouter, Route, Routes, NavLink } from 'react-router-dom'
 import { HASH_FRAGMENTS } from '../lib/constants.ts'
 import { ErrorBoundary } from './components/error-boundary.tsx'
 import ipfsLogo from './ipfs-logo.svg'
 import AboutPage from './pages/about.tsx'
+import { DownloadingPage } from './pages/downloading-page.tsx'
 import { FetchErrorPage } from './pages/fetch-error.tsx'
 import HomePage from './pages/home.tsx'
 import NoServiceWorkerErrorPage from './pages/no-service-worker.tsx'
@@ -74,6 +75,14 @@ function Header (): React.ReactElement {
     )
   }
 
+  if (globalThis.downloadingPage != null) {
+    errorPageLink = (
+      <NavLink to='/' className={({ isActive }) => (isActive || globalThis.location.hash === '') ? 'white' : 'aqua'} onClickCapture={doNothingIfClickedOnRoot}>
+        <FaFileDownload className='ml2 f3' />
+      </NavLink>
+    )
+  }
+
   return (
     <header className='e2e-header flex items-center pa2 bg-navy bb bw3 b--aqua tc justify-between'>
       <div>
@@ -124,6 +133,12 @@ function getIndexRoute (): React.ReactElement {
   if (globalThis.renderEntity != null && globalThis.location.hash === '') {
     return (
       <Route element={<RenderEntityPage />} index />
+    )
+  }
+
+  if (globalThis.downloadingPage != null) {
+    return (
+      <Route element={<DownloadingPage />} index />
     )
   }
 
