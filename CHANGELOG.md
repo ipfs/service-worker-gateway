@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.2.0](https://github.com/ipfs/service-worker-gateway/compare/v3.1.7...v3.2.0) (2026-04-21)
+
+
+### Features
+
+* show ui after download ([#1031](https://github.com/ipfs/service-worker-gateway/issues/1031)) ([4470da0](https://github.com/ipfs/service-worker-gateway/commit/4470da04e3a7cee68641263cb28fc0a6e9874a52)), closes [#1025](https://github.com/ipfs/service-worker-gateway/issues/1025)
+
+
+### Bug Fixes
+
+* improve 502 error message when streaming fails ([#1033](https://github.com/ipfs/service-worker-gateway/issues/1033)) ([5bbfc70](https://github.com/ipfs/service-worker-gateway/commit/5bbfc701dcc7e3662e4af025f6b390f8a0d9dbd4))
+* remove invalid conversions ([#1029](https://github.com/ipfs/service-worker-gateway/issues/1029)) ([d2e08ca](https://github.com/ipfs/service-worker-gateway/commit/d2e08ca4410c6d143a363d238948d2acdcb95dc5))
+* remove preview link on downloading page ([#1034](https://github.com/ipfs/service-worker-gateway/issues/1034)) ([706f274](https://github.com/ipfs/service-worker-gateway/commit/706f274706152b1a7eb2961480ca3edf9e456dcc))
+* set subdomain url from stored form input ([#1030](https://github.com/ipfs/service-worker-gateway/issues/1030)) ([b0caf3d](https://github.com/ipfs/service-worker-gateway/commit/b0caf3d3c94456ba14ed9784b4cf67b434a48cd9))
+* update about page text ([#1028](https://github.com/ipfs/service-worker-gateway/issues/1028)) ([26ead6d](https://github.com/ipfs/service-worker-gateway/commit/26ead6d639032f9d477a5b1594bfa453b4a33456))
+
 ## [3.1.7](https://github.com/ipfs/service-worker-gateway/compare/v3.1.6...v3.1.7) (2026-04-09)
 
 
