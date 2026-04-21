@@ -95,6 +95,7 @@
     "@types/polka": "^0.5.8",
     "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.9",
+    "@types/sinon": "^21.0.1",
     "@types/wait-on": "^5.3.4",
     "aegir": "^47.0.24",
     "body-parser": "^2.2.2",
