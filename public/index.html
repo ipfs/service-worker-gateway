@@ -1,27 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <meta charset="UTF-8" />
     <!--
 
-      This HTML page initializes IPFS Service Worker Gateway.
+      IPFS Service Worker Gateway
       Build: <%= GIT_VERSION %>
 
-      The HTTP server behind this HTTP URL does not host this website.
-      Instead, it sends basic website code along with JavaScript. The JS sets
-      up a tool called IPFS Service Worker Gateway in the user's browser and
-      uses https://www.npmjs.com/package/@helia/verified-fetch to get IPFS blocks
-      from content providers.
+      Your browser fetches and verifies this content, not this server.
 
-      CID hash verification and data assembly happens in the browser.
+      This server only ships a small JavaScript bootstrap. The
+      bootstrap installs a Service Worker that uses @helia/verified-fetch
+      to pull IPFS blocks directly from peers, check every block against
+      its CID, and assemble the response locally.
 
-      Learn more about it here: https://github.com/ipfs/service-worker-gateway
+      Source:  https://github.com/ipfs/service-worker-gateway
+      Library: https://www.npmjs.com/package/@helia/verified-fetch
+
+
+      RUN YOUR OWN IPFS NODE
+
+      This gateway is a convenience, not a replacement. Run your own
+      node for better performance, offline access, and to help keep
+      content available on the peer-to-peer network:
+
+        https://docs.ipfs.tech/install/
+
+
+      KNOWN ISSUE: "Save As" saves this HTML page instead of the file
+
+      Clicking "Save As" on a raw file (image, JSON, video, ...) saves
+      this bootstrap HTML instead of the actual bytes. This is an
+      upstream Chrome / Chromium bug that this project cannot fix.
+
+      Upstream: https://issues.chromium.org/issues/40410035
+
+      If this affects you, star the Chromium issue to help the Chrome
+      team prioritize a fix.
 
     -->
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0B3A53" />
     <title>IPFS Service Worker Gateway | <%= GIT_VERSION %></title>
-    <meta name="description" content="A static HTML page that initializes an instance of IPFS Service Worker Gateway" />
+    <meta name="description" content="Static HTML page that bootstraps a verifiable IPFS gateway in your browser. Every block is fetched from peers and verified against its CID." />
     <meta name="robots" content="noindex" />
     <link rel="icon" href="/ipfs-sw-favicon.ico" type="image/ico"/>
     <link rel="shortcut icon" href="/ipfs-sw-favicon.ico" type="image/x-icon"/>
