@@ -261,6 +261,11 @@ async function assertWrapperResponse (response: Awaited<ReturnType<typeof loadWi
 }
 
 async function readWrapperProps (page: Page): Promise<typeof globalThis.renderMedia> {
+  // Firefox's `page.goto` sometimes resolves before the wrapper's iframe
+  // settles, and a `page.evaluate` running into that pending navigation
+  // throws "Execution context was destroyed". Wait for the SW-injected
+  // global to be present before reading it.
+  await page.waitForFunction(() => globalThis.renderMedia != null)
   return page.evaluate(() => globalThis.renderMedia)
 }
 

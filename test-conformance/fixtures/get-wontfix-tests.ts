@@ -105,7 +105,7 @@ export function getWontFixTests (): string[] {
     'TestPlainCodec/GET_plain_JSON_codec_without_Accept_or_format=_has_expected_%22json%22_Content-Type_and_body_as-is_-_full_request/Check_0/Header_Content-Disposition',
     'TestPlainCodec/GET_plain_JSON_codec_without_Accept_or_format=_has_expected_%22json%22_Content-Type_and_body_as-is_-_full_request/Check_1/Body',
     'TestPathGatewayMiscellaneous/GET_for_%2Fipfs%2F_file_whose_filename_contains_percentage-encoded_characters_works/Body',
-    'TestGatewayIPNSPath/GET_for_%2Fipns%2Fname_with_valid_V1+V2_signatures_succeeds/Body',
+    'TestGatewayIPNSPath/GET_for_%2Fipns%2Fname_with_valid_V1\\+V2_signatures_succeeds/Body',
     'TestGatewayIPNSPath/GET_for_%2Fipns%2Fname_with_valid_V2_and_broken_V1_signature_succeeds/Body',
     'TestGatewayIPNSPath/GET_for_%2Fipns%2Fname_with_valid_V2-only_signature_succeeds/Body',
     'TestGatewayUnixFSFileRanges/GET_for_%2Fipfs%2F_file_includes_Accept-Ranges_header/Body'
