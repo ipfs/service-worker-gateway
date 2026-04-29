@@ -65,7 +65,11 @@ export function renderMediaViewerPageResponse (request: ContentURI, response: Re
   // `ipfsPath` contains non-ASCII characters. Pre-existing pattern; kept
   // for parity with `renderEntityPageResponse`.
   mergedHeaders.set('content-length', `${page.length}`)
-  mergedHeaders.set('etag', `"MediaViewer-${cid}-${info.kind}"`)
+  // Encode the path so different files under the same CID
+  // (`/cid/a.png` vs `/cid/b.png`) get distinct etags, and any quote bytes
+  // can't break the header syntax. Content length is folded in too because
+  // a different body length means a different response.
+  mergedHeaders.set('etag', `"MediaViewer-${cid}-${info.kind}-${encodeURIComponent(ipfsPath)}-${props.contentLength ?? 'na'}"`)
 
   return new Response(page, {
     status: response.status,
