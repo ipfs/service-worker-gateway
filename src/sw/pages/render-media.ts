@@ -6,6 +6,19 @@ import type { ContentURI } from '../../lib/parse-request.ts'
 import type { MediaTypeInfo } from '../lib/media-viewer-types.ts'
 
 /**
+ * `decodeURI` raises `URIError` on malformed `%`-sequences. Without this
+ * guard a stray `%` in a navigation URL turns into a 500 error page; we'd
+ * rather render the viewer with the raw header value than blow up.
+ */
+function safeDecodeURI (s: string): string {
+  try {
+    return decodeURI(s)
+  } catch {
+    return s
+  }
+}
+
+/**
  * Build the HTML "media viewer" wrapper for top-level navigations to
  * renderable content. Workaround for
  * https://github.com/ipfs/service-worker-gateway/issues/574 (Chromium SW
@@ -26,7 +39,7 @@ export function renderMediaViewerPageResponse (request: ContentURI, response: Re
   mergedHeaders.set('cache-control', GENERATED_HTML_CACHE_CONTROL)
 
   const cid = mergedHeaders.get('x-ipfs-roots')?.split(',').pop() ?? ''
-  const ipfsPath = decodeURI(mergedHeaders.get('x-ipfs-path') ?? '')
+  const ipfsPath = safeDecodeURI(mergedHeaders.get('x-ipfs-path') ?? '')
   const { displayName, filename } = deriveViewerNames(ipfsPath, cid, info)
   const contentType = response.headers.get('content-type') ?? ''
   const contentLengthHeader = response.headers.get('content-length')
