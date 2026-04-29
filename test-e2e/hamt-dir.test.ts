@@ -1,12 +1,12 @@
 import { test, expect } from './fixtures/config-test-fixtures.ts'
-import { loadWithServiceWorker } from './fixtures/load-with-service-worker.ts'
+import { loadBypassingMediaViewer } from './fixtures/media-viewer.ts'
 
 test.describe('hamt-dir', () => {
   test('can open UnixFS file from HAMT-sharded directory', async ({ page, baseURL }) => {
     const cid = 'bafybeidbclfqleg2uojchspzd4bob56dqetqjsj27gy2cq3klkkgxtpn4i'
     const path = '685.txt'
 
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}/${path}`)
+    const response = await loadBypassingMediaViewer(page, `${baseURL}/ipfs/${cid}/${path}`)
 
     expect(response.status()).toBe(200)
 
