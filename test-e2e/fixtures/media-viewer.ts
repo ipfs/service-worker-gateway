@@ -1,4 +1,5 @@
-import { loadWithServiceWorker, type LoadWithServiceWorkerOptions } from './load-with-service-worker.ts'
+import { loadWithServiceWorker } from './load-with-service-worker.ts'
+import type { LoadWithServiceWorkerOptions } from './load-with-service-worker.ts'
 import type { FrameLocator, Locator, Page, Response } from 'playwright'
 
 /**
