@@ -30,15 +30,15 @@ describe('/sw/lib/media-viewer-types', () => {
     })
 
     it('returns undefined for non-renderable types so the caller falls through', () => {
-      expect(getMediaTypeInfo('text/html')).to.be.undefined
-      expect(getMediaTypeInfo('text/css')).to.be.undefined
-      expect(getMediaTypeInfo('application/javascript')).to.be.undefined
-      expect(getMediaTypeInfo('application/octet-stream')).to.be.undefined
+      expect(getMediaTypeInfo('text/html')).to.equal(undefined)
+      expect(getMediaTypeInfo('text/css')).to.equal(undefined)
+      expect(getMediaTypeInfo('application/javascript')).to.equal(undefined)
+      expect(getMediaTypeInfo('application/octet-stream')).to.equal(undefined)
     })
 
     it('returns undefined for null or empty input', () => {
-      expect(getMediaTypeInfo(null)).to.be.undefined
-      expect(getMediaTypeInfo('')).to.be.undefined
+      expect(getMediaTypeInfo(null)).to.equal(undefined)
+      expect(getMediaTypeInfo('')).to.equal(undefined)
     })
   })
 

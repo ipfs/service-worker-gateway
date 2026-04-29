@@ -82,6 +82,20 @@ export function getWontFixTests (): string[] {
     'TestTrustlessCarEntityBytes/GET_CAR_with_entity-bytes_succeeds_even_if_the_gateway_is_missing_a_block_before_the_requested_range_%28Accept_Header%29/Body',
     'TestTrustlessCarEntityBytes/GET_CAR_with_entity-bytes_succeeds_even_if_the_gateway_is_missing_a_block_before_the_requested_range_%28format=car%29/Body',
     'TestTrustlessCarEntityBytes/GET_CAR_with_entity-bytes_succeeds_even_if_the_gateway_is_missing_a_block_after_the_requested_range_%28Accept_Header%29/Body',
-    'TestTrustlessCarEntityBytes/GET_CAR_with_entity-bytes_succeeds_even_if_the_gateway_is_missing_a_block_after_the_requested_range_%28format=car%29/Body'
+    'TestTrustlessCarEntityBytes/GET_CAR_with_entity-bytes_succeeds_even_if_the_gateway_is_missing_a_block_after_the_requested_range_%28format=car%29/Body',
+
+    // Media-viewer wrapper for top-level navigations to renderable content
+    // (workaround for the Chromium "Save As" bug,
+    // https://github.com/ipfs/service-worker-gateway/issues/574). Top-level
+    // navigation to a JSON CID now returns the wrapper page (text/html) with
+    // the JSON embedded in an iframe; the conformance suite expects the bare
+    // `application/json` Content-Type on the navigation response. The bytes
+    // are still served correctly to subresource fetches and to
+    // `?download=true` requests; only the document-level content-type
+    // changes.
+    'TestGatewayJsonCbor/GET_UnixFS_file_with_JSON_bytes_is_returned_with_application%2Fjson_Content-Type_-_without_headers',
+    'TestNativeDag/GET_plain_JSON_codec_with_format=json_returns_same_payload_as_format=dag-json_but_with_plain_Content-Type',
+    'TestPlainCodec/GET_plain_JSON_codec_with_%3Fformat=_has_expected_json_Content-Type_and_body_as-is_-_full_request',
+    'TestPlainCodec/GET_plain_JSON_codec_without_Accept_or_format=_has_expected_%22json%22_Content-Type_and_body_as-is_-_full_request'
   ]
 }
