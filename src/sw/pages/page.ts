@@ -1,12 +1,30 @@
 /**
+ * HTML-escape a string for safe interpolation into element content
+ * (e.g. between `<title>...</title>`). Replaces `&`, `<`, `>` with their
+ * named entities; that is sufficient for element content. Attribute
+ * interpolation would also need `"` and `'` escapes.
+ */
+function escapeHtml (s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+/**
  * Returns HTML that makes up a page with a title and a value injected into
  * `globalThis` with the passed key.
  *
+ * `title` is HTML-escaped before interpolation: it lands inside `<title>` and
+ * may carry user-controlled bytes (e.g. an IPFS path segment routed through
+ * `displayName`). Without escaping, a path containing `</title><script>...`
+ * would close the title element and inject script.
+ *
  * The `.replace(/</g, '\\u003c')` on the JSON output prevents `</script>`
- * (or `<!--`, `<![CDATA[`, etc.) from terminating the script tag if any
- * prop value contains those sequences. `JSON.stringify` does not escape
- * `<` by default, so without this any user-controlled string in `value`
- * (e.g. an IPFS path segment) could break out of the script context.
+ * (or `<!--`, `<![CDATA[`, etc.) from terminating the script tag if any prop
+ * value contains those sequences. `JSON.stringify` does not escape `<` by
+ * default, so without this any user-controlled string in `value` could break
+ * out of the script context.
  */
 export function htmlPage (title: string, key: string, value: any): string {
   return `<!DOCTYPE html>
@@ -17,7 +35,7 @@ export function htmlPage (title: string, key: string, value: any): string {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex" />
     <link rel='shortcut icon' href='data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlo89/56ZQ/8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACUjDu1lo89/6mhTP+zrVP/nplD/5+aRK8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHNiIS6Wjz3/ubFY/761W/+vp1D/urRZ/8vDZf/GvmH/nplD/1BNIm8AAAAAAAAAAAAAAAAAAAAAAAAAAJaPPf+knEj/vrVb/761W/++tVv/r6dQ/7q0Wf/Lw2X/y8Nl/8vDZf+tpk7/nplD/wAAAAAAAAAAAAAAAJaPPf+2rVX/vrVb/761W/++tVv/vrVb/6+nUP+6tFn/y8Nl/8vDZf/Lw2X/y8Nl/8G6Xv+emUP/AAAAAAAAAACWjz3/vrVb/761W/++tVv/vrVb/761W/+vp1D/urRZ/8vDZf/Lw2X/y8Nl/8vDZf/Lw2X/nplD/wAAAAAAAAAAlo89/761W/++tVv/vrVb/761W/++tVv/r6dQ/7q0Wf/Lw2X/y8Nl/8vDZf/Lw2X/y8Nl/56ZQ/8AAAAAAAAAAJaPPf++tVv/vrVb/761W/++tVv/vbRa/5aPPf+emUP/y8Nl/8vDZf/Lw2X/y8Nl/8vDZf+emUP/AAAAAAAAAACWjz3/vrVb/761W/++tVv/vrVb/5qTQP+inkb/op5G/6KdRv/Lw2X/y8Nl/8vDZf/Lw2X/nplD/wAAAAAAAAAAlo89/761W/++tVv/sqlS/56ZQ//LxWb/0Mlp/9DJaf/Kw2X/oJtE/7+3XP/Lw2X/y8Nl/56ZQ/8AAAAAAAAAAJaPPf+9tFr/mJE+/7GsUv/Rymr/0cpq/9HKav/Rymr/0cpq/9HKav+xrFL/nplD/8vDZf+emUP/AAAAAAAAAACWjz3/op5G/9HKav/Rymr/0cpq/9HKav/Rymr/0cpq/9HKav/Rymr/0cpq/9HKav+inkb/nplD/wAAAAAAAAAAAAAAAKKeRv+3slb/0cpq/9HKav/Rymr/0cpq/9HKav/Rymr/0cpq/9HKav+1sFX/op5G/wAAAAAAAAAAAAAAAAAAAAAAAAAAop5GUKKeRv/Nxmf/0cpq/9HKav/Rymr/0cpq/83GZ/+inkb/op5GSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAop5G16KeRv/LxWb/y8Vm/6KeRv+inkaPAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAop5G/6KeRtcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/n8AAPgfAADwDwAAwAMAAIABAACAAQAAgAEAAIABAACAAQAAgAEAAIABAACAAQAAwAMAAPAPAAD4HwAA/n8AAA==' />
-    <title>${title}</title>
+    <title>${escapeHtml(title)}</title>
     <link rel="icon" href="/ipfs-sw-favicon.ico" type="image/ico"/>
     <link rel="shortcut icon" href="/ipfs-sw-favicon.ico" type="image/x-icon"/>
     <script type="module">
