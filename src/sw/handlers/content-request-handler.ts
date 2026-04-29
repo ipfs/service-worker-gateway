@@ -8,6 +8,7 @@ import { getSubdomainParts } from '../../lib/get-subdomain-parts.ts'
 import { getSwLogger } from '../../lib/logger.ts'
 import { isBitswapProvider, isTrustlessGatewayProvider } from '../../lib/providers.ts'
 import { getInstallTime } from '../lib/install-time.ts'
+import { sniffRawContentType } from '../lib/sniff-raw-content-type.ts'
 import { getVerifiedFetch } from '../lib/verified-fetch.ts'
 import { fetchErrorPageResponse } from '../pages/fetch-error-page.ts'
 import { renderEntityPageResponse } from '../pages/render-entity.ts'
@@ -310,6 +311,16 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
     for (const [key, value] of response.headers.entries()) {
       log('%s: %s', key, value)
     }
+
+    // Workaround for verified-fetch's `plugin-handle-raw` not honouring
+    // the path-gateway spec's content-type sniffing requirement. Without
+    // this, raw-codec single-block CIDs (`bafkrei…`, the default for
+    // helia/unixfs content that fits in one block) come back as
+    // `application/vnd.ipld.raw` even when the bytes carry recognisable
+    // PDF / PNG / MP4 magic. Running the override here means the wrapper
+    // decision below sees the sniffed type and the sniffed response is
+    // what gets cached.
+    response = await sniffRawContentType(response, accept)
 
     // render previews for UnixFS directories
     if (response.headers.get('content-type') === MEDIA_TYPE_DAG_PB) {

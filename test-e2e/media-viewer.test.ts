@@ -217,53 +217,42 @@ test.describe('media-viewer wrapper', () => {
     expect(href).toBe(`?download=true&filename=${encodeURIComponent('readme.txt')}`)
   })
 
-  /*
-   * TODO: re-enable once `plugin-handle-raw` in verified-fetch sniffs the
-   * content-type for raw-codec single-block files instead of returning
-   * `application/vnd.ipld.raw`.
-   *
-   * Modern IPFS tooling (Kubo with `--cid-version=1`, helia/unixfs's
-   * default `rawLeaves: true`) emits raw-codec single-block files for any
-   * content that fits in one block. The HTTP path-gateway spec requires
-   * sniffing the content-type when no Accept or format hint arrives, but
-   * `plugin-handle-raw` short-circuits to `application/vnd.ipld.raw`, so
-   * the bytes carry recognisable PDF / PNG / MP4 magic and the wrapper
-   * never fires.
-   *
-   * Each test below pins a raw-codec CID emitted by `generate.ts`. The
-   * CAR is already in the fixture store, so the tests run as soon as the
-   * block is uncommented.
-   *
-   *   const pngFileRaw = 'bafkreifc2is7poqxkllbmnfmk4vqq5mabebokzmztuh5yvmgyiyc37d2ve'
-   *   const mp4FileRaw = 'bafkreib352b43e2xtocqj5qqfi7kk6xuhurqxx7p2yfmyi44dgfoxmqtnu'
-   *   const pdfFileRaw = 'bafkreic2qodhqbmpnxrxl2ddlnps72shuts7a7frvcbkisyq6only3zu74'
-   *
-   *   test.describe('bare CID (raw codec)', () => {
-   *     test('PNG sniffs as image/png and triggers wrapper', async ({ page, baseURL }) => {
-   *       const response = await loadWithMediaViewer(page, `${baseURL}/ipfs/${pngFileRaw}`)
-   *       await assertWrapperResponse(response)
-   *       const props = await readWrapperProps(page)
-   *       expect(props?.kind).toBe('image')
-   *       expect(props?.contentType).toBe('image/png')
-   *     })
-   *
-   *     test('MP4 sniffs as video/mp4 and triggers wrapper', async ({ page, baseURL }) => {
-   *       const response = await loadWithMediaViewer(page, `${baseURL}/ipfs/${mp4FileRaw}`)
-   *       await assertWrapperResponse(response)
-   *       const props = await readWrapperProps(page)
-   *       expect(props?.kind).toBe('video')
-   *       expect(props?.contentType).toBe('video/mp4')
-   *     })
-   *
-   *     test('PDF sniffs as application/pdf and triggers wrapper', async ({ page, baseURL }) => {
-   *       const response = await loadWithMediaViewer(page, `${baseURL}/ipfs/${pdfFileRaw}`)
-   *       await assertWrapperResponse(response)
-   *       const props = await readWrapperProps(page)
-   *       expect(props?.kind).toBe('pdf')
-   *       expect(props?.contentType).toBe('application/pdf')
-   *     })
-   *   })
-   */
+  // Raw-codec single-block CIDs (`bafkrei…`, what helia/unixfs emits by
+  // default for content that fits in one block). verified-fetch's
+  // `plugin-handle-raw` returns `application/vnd.ipld.raw` for these
+  // without sniffing the bytes, breaking the path-gateway spec. We work
+  // around it locally in `src/sw/lib/sniff-raw-content-type.ts` by
+  // re-running file-type after the response arrives. These tests cover
+  // that workaround.
+  test.describe('bare CID (raw codec)', () => {
+    const pngFileRaw = 'bafkreifc2is7poqxkllbmnfmk4vqq5mabebokzmztuh5yvmgyiyc37d2ve'
+    const mp4FileRaw = 'bafkreib352b43e2xtocqj5qqfi7kk6xuhurqxx7p2yfmyi44dgfoxmqtnu'
+    const pdfFileRaw = 'bafkreic2qodhqbmpnxrxl2ddlnps72shuts7a7frvcbkisyq6only3zu74'
+
+    test('PNG sniffs as image/png and triggers wrapper', async ({ page, baseURL }) => {
+      const response = await loadWithMediaViewer(page, `${baseURL}/ipfs/${pngFileRaw}`)
+      await assertWrapperResponse(response)
+      const props = await readWrapperProps(page)
+      expect(props?.kind).toBe('image')
+      expect(props?.contentType).toBe('image/png')
+    })
+
+    test('MP4 sniffs as video/mp4 and triggers wrapper', async ({ page, baseURL }) => {
+      const response = await loadWithMediaViewer(page, `${baseURL}/ipfs/${mp4FileRaw}`)
+      await assertWrapperResponse(response)
+      const props = await readWrapperProps(page)
+      expect(props?.kind).toBe('video')
+      expect(props?.contentType).toBe('video/mp4')
+    })
+
+    test('PDF sniffs as application/pdf and triggers wrapper', async ({ page, baseURL }) => {
+      const response = await loadWithMediaViewer(page, `${baseURL}/ipfs/${pdfFileRaw}`)
+      await assertWrapperResponse(response)
+      const props = await readWrapperProps(page)
+      expect(props?.kind).toBe('pdf')
+      expect(props?.contentType).toBe('application/pdf')
+    })
+  })
 })
 
 async function assertWrapperResponse (response: Awaited<ReturnType<typeof loadWithMediaViewer>>): Promise<void> {
