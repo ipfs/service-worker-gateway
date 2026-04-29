@@ -1,6 +1,12 @@
 /**
  * Returns HTML that makes up a page with a title and a value injected into
  * `globalThis` with the passed key.
+ *
+ * The `.replace(/</g, '\\u003c')` on the JSON output prevents `</script>`
+ * (or `<!--`, `<![CDATA[`, etc.) from terminating the script tag if any
+ * prop value contains those sequences. `JSON.stringify` does not escape
+ * `<` by default, so without this any user-controlled string in `value`
+ * (e.g. an IPFS path segment) could break out of the script context.
  */
 export function htmlPage (title: string, key: string, value: any): string {
   return `<!DOCTYPE html>
@@ -15,7 +21,7 @@ export function htmlPage (title: string, key: string, value: any): string {
     <link rel="icon" href="/ipfs-sw-favicon.ico" type="image/ico"/>
     <link rel="shortcut icon" href="/ipfs-sw-favicon.ico" type="image/x-icon"/>
     <script type="module">
-globalThis.${key} = ${JSON.stringify(value, null, 2)}
+globalThis.${key} = ${JSON.stringify(value, null, 2).replace(/</g, '\\u003c')}
     </script>
   </head>
   <body>

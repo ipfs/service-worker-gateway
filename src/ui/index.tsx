@@ -13,6 +13,7 @@ import HomePage from './pages/home.tsx'
 import NoServiceWorkerErrorPage from './pages/no-service-worker.tsx'
 import OriginIsolationWarningPage from './pages/origin-isolation-warning.tsx'
 import { RenderEntityPage } from './pages/render-entity.tsx'
+import { RenderMediaPage } from './pages/render-media.tsx'
 import { ServerErrorPage } from './pages/server-error.tsx'
 import { injectCSS } from './utils/css-injector.ts'
 
@@ -156,6 +157,13 @@ function getIndexRoute (): React.ReactElement {
  * 4. The user needs to accept the origin isolation warning
  */
 function App (): React.ReactElement {
+  // Media viewer pages render without the global Header / HashRouter chrome
+  // so the sticky top bar in RenderMediaPage is the only navigation surface.
+  // See https://github.com/ipfs/service-worker-gateway/issues/574
+  if (globalThis.renderMedia != null) {
+    return <RenderMediaPage />
+  }
+
   return (
     <HashRouter>
       <Header />
