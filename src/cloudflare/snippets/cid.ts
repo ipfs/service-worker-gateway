@@ -1,5 +1,15 @@
 import { CODE_DAG_PB, CODE_LIBP2P_KEY } from '../../ui/pages/multicodec-table.ts'
-import { base16Decode, base32Decode, base36Decode, base58Decode, base64urlDecode, varintDecode, varintEncode } from './codec.ts'
+import {
+  base2Decode,
+  base16Decode, base16UpperDecode,
+  base32Decode, base32UpperDecode, base32PadDecode, base32PadUpperDecode,
+  base32HexDecode, base32HexUpperDecode, base32HexPadDecode, base32HexPadUpperDecode,
+  base36Decode, base36UpperDecode,
+  base58Decode, base58FlickrDecode,
+  base64Decode, base64PadDecode, base64urlDecode, base64UrlPadDecode,
+  base256EmojiDecode, B256EMOJI_PREFIX_CP,
+  varintDecode, varintEncode
+} from './codec.ts'
 
 export interface CID {
   version: number
@@ -39,16 +49,52 @@ export function parseCID (str: string): CID {
   const rest = str.substring(1)
   let offset = 0
 
+  // Multibase prefix dispatch. Mirrors `ipfs multibase list`
+  // (https://github.com/multiformats/multibase/blob/master/multibase.csv).
+  // 'b' (base32) and 'k' (base36) run first: they are the canonical
+  // subdomain labels for /ipfs/ and /ipns/ and cover the hot path.
+  // base256emoji runs next: its 🚀 prefix is U+1F680, two UTF-16 code
+  // units, so the single-char checks below would not see it.
   if (prefix === 'b') {
     bytes = base32Decode(rest)
   } else if (prefix === 'k') {
     bytes = base36Decode(rest)
+  } else if (str.codePointAt(0) === B256EMOJI_PREFIX_CP) {
+    bytes = base256EmojiDecode(str.slice(2))
+  } else if (prefix === '0') {
+    bytes = base2Decode(rest)
+  } else if (prefix === 'B') {
+    bytes = base32UpperDecode(rest)
+  } else if (prefix === 'c') {
+    bytes = base32PadDecode(rest)
+  } else if (prefix === 'C') {
+    bytes = base32PadUpperDecode(rest)
+  } else if (prefix === 'v') {
+    bytes = base32HexDecode(rest)
+  } else if (prefix === 'V') {
+    bytes = base32HexUpperDecode(rest)
+  } else if (prefix === 't') {
+    bytes = base32HexPadDecode(rest)
+  } else if (prefix === 'T') {
+    bytes = base32HexPadUpperDecode(rest)
+  } else if (prefix === 'K') {
+    bytes = base36UpperDecode(rest)
   } else if (prefix === 'z') {
     bytes = base58Decode(rest)
-  } else if (prefix === 'f' || prefix === 'F') {
+  } else if (prefix === 'Z') {
+    bytes = base58FlickrDecode(rest)
+  } else if (prefix === 'f') {
     bytes = base16Decode(rest)
+  } else if (prefix === 'F') {
+    bytes = base16UpperDecode(rest)
+  } else if (prefix === 'm') {
+    bytes = base64Decode(rest)
+  } else if (prefix === 'M') {
+    bytes = base64PadDecode(rest)
   } else if (prefix === 'u') {
     bytes = base64urlDecode(rest)
+  } else if (prefix === 'U') {
+    bytes = base64UrlPadDecode(rest)
   } else {
     // try bare base58btc (handles 12D3K... peer IDs)
     bytes = base58Decode(str)
