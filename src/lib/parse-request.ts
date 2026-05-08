@@ -2,13 +2,25 @@ import { isIP } from '@chainsafe/is-ip'
 import { InvalidParametersError } from '@libp2p/interface'
 import { peerIdFromCID, peerIdFromString } from '@libp2p/peer-id'
 import { base16, base16upper } from 'multiformats/bases/base16'
-import { base32 } from 'multiformats/bases/base32'
-import { base36 } from 'multiformats/bases/base36'
-import { base58btc } from 'multiformats/bases/base58'
+import { base2 } from 'multiformats/bases/base2'
+import { base256emoji } from 'multiformats/bases/base256emoji'
+import { base32, base32hex, base32hexpad, base32hexpadupper, base32hexupper, base32pad, base32padupper, base32upper } from 'multiformats/bases/base32'
+import { base36, base36upper } from 'multiformats/bases/base36'
+import { base58btc, base58flickr } from 'multiformats/bases/base58'
+import { base64, base64pad, base64url, base64urlpad } from 'multiformats/bases/base64'
 import { CID } from 'multiformats/cid'
 import { dnsLinkLabelDecoder, dnsLinkLabelEncoder, isInlinedDnsLink } from './dns-link-labels.ts'
 import type { PeerId } from '@libp2p/interface'
 import type { MultibaseDecoder } from 'multiformats/cid'
+
+// 🚀 (U+1F680) is the base256emoji prefix. JS strings store it as a surrogate
+// pair, so a `str[0]` lookup never matches; check the codepoint instead.
+const BASE256_EMOJI_PREFIX_CP = 0x1F680
+
+// Browsers percent-encode 🚀 (and the rest of the emoji alphabet) when it
+// appears in a URL path. We watch for this exact prefix so we can decode
+// only the emoji case and leave every ASCII base alone.
+const BASE256_EMOJI_PREFIX_PCT = '%F0%9F%9A%80'
 
 export type URIType = 'subdomain' | 'path' | 'native' | 'internal' | 'external'
 
@@ -301,6 +313,16 @@ function parseCID (str: string): CID<any, any, any, 1> {
       return CID.parse(str)
     }
 
+    // base256emoji CIDs can arrive in two shapes:
+    //   - raw 🚀… , when the caller already holds a decoded string
+    //   - %F0%9F%9A%80… , when the URL parser percent-encoded the path
+    // The raw form needs no work; findMultibaseDecoder picks it up via
+    // codePointAt below. Decode only the percent form so ASCII bases
+    // stay on the zero-decode hot path.
+    if (str.startsWith(BASE256_EMOJI_PREFIX_PCT)) {
+      str = decodeURIComponent(str)
+    }
+
     return CID.parse(str, findMultibaseDecoder(str))
   } catch (err: any) {
     throw new InvalidParametersError(`Could not parse CID from string "${str}" - ${err.message}`)
@@ -323,22 +345,39 @@ function parsePeerId (str: string): PeerId {
   }
 }
 
+// Map the multibase prefix character to its decoder. Covers every base in
+// `ipfs multibase list` minus identity. base32 (`b`) and base36 (`k`) come
+// first as the canonical subdomain labels for /ipfs/ and /ipns/.
 function findMultibaseDecoder (str: string): MultibaseDecoder<string> | undefined {
-  const prefix = str.substring(0, 1)
-
-  switch (prefix) {
-    case 'b':
-      return base32
-    case 'k':
-      return base36
-    case 'f':
-      return base16
-    case 'F':
-      return base16upper
-    case 'z':
-      return base58btc
+  switch (str.substring(0, 1)) {
+    case 'b': return base32
+    case 'k': return base36
+    case '0': return base2
+    case 'B': return base32upper
+    case 'c': return base32pad
+    case 'C': return base32padupper
+    case 'v': return base32hex
+    case 'V': return base32hexupper
+    case 't': return base32hexpad
+    case 'T': return base32hexpadupper
+    case 'K': return base36upper
+    case 'z': return base58btc
+    case 'Z': return base58flickr
+    case 'f': return base16
+    case 'F': return base16upper
+    case 'm': return base64
+    case 'M': return base64pad
+    case 'u': return base64url
+    case 'U': return base64urlpad
     default:
-      // do nothing
+      // fall through to the codepoint check below
+  }
+
+  // 🚀 (base256emoji) is two UTF-16 code units, so str.substring(0, 1) above
+  // returns just the high surrogate and never matches a case. Check the
+  // codepoint here as a last step so the ASCII switch stays the hot path.
+  if (str.codePointAt(0) === BASE256_EMOJI_PREFIX_CP) {
+    return base256emoji
   }
 }
 

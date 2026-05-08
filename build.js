@@ -398,6 +398,32 @@ await fs.writeFile('dist/cloudflare/snippets/meta.json', JSON.stringify(cloudfla
 await fs.copyFile('src/cloudflare/snippets/01_path_gateway_to_subdomain.js.rules', 'dist/cloudflare/snippets/01_path_gateway_to_subdomain.js.rules')
 await fs.copyFile('src/cloudflare/snippets/02_shared_sw_installer_cache.js.rules', 'dist/cloudflare/snippets/02_shared_sw_installer_cache.js.rules')
 
+// Cloudflare Snippets cap each bundle at 32 KiB. Print every output's size
+// so a regression is visible in CI logs, and fail the build if any one
+// crosses the cap. Skip the check for non-minified dev/test builds where
+// the size is not representative of the deployed artifact.
+const CF_SNIPPET_MAX_BYTES = 32 * 1024
+if (process.env.NODE_ENV !== 'test' && process.env.NODE_ENV !== 'development') {
+  const oversized = []
+  for (const [outPath, info] of Object.entries(cloudflareResult.metafile.outputs)) {
+    if (!outPath.endsWith('.js')) {
+      continue
+    }
+    const pct = ((info.bytes / CF_SNIPPET_MAX_BYTES) * 100).toFixed(0)
+    console.info(`  ${outPath}: ${(info.bytes / 1024).toFixed(1)} KiB (${pct}% of CF 32 KiB cap)`)
+    if (info.bytes > CF_SNIPPET_MAX_BYTES) {
+      oversized.push({ path: outPath, bytes: info.bytes })
+    }
+  }
+  if (oversized.length > 0) {
+    console.error('\nERROR: snippet bundle(s) exceed Cloudflare 32 KiB limit:')
+    for (const { path: p, bytes } of oversized) {
+      console.error(`  ${p}: ${bytes} bytes (${bytes - CF_SNIPPET_MAX_BYTES} over the cap)`)
+    }
+    process.exit(1)
+  }
+}
+
 /**
  * @type {esbuild.BuildOptions}
  */
