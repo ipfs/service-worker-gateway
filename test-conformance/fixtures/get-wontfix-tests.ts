@@ -82,6 +82,32 @@ export function getWontFixTests (): string[] {
     'TestTrustlessCarEntityBytes/GET_CAR_with_entity-bytes_succeeds_even_if_the_gateway_is_missing_a_block_before_the_requested_range_%28Accept_Header%29/Body',
     'TestTrustlessCarEntityBytes/GET_CAR_with_entity-bytes_succeeds_even_if_the_gateway_is_missing_a_block_before_the_requested_range_%28format=car%29/Body',
     'TestTrustlessCarEntityBytes/GET_CAR_with_entity-bytes_succeeds_even_if_the_gateway_is_missing_a_block_after_the_requested_range_%28Accept_Header%29/Body',
-    'TestTrustlessCarEntityBytes/GET_CAR_with_entity-bytes_succeeds_even_if_the_gateway_is_missing_a_block_after_the_requested_range_%28format=car%29/Body'
+    'TestTrustlessCarEntityBytes/GET_CAR_with_entity-bytes_succeeds_even_if_the_gateway_is_missing_a_block_after_the_requested_range_%28format=car%29/Body',
+
+    // Media-viewer wrapper for top-level navigations to renderable content
+    // (workaround for the Chromium "Save As" bug,
+    // https://github.com/ipfs/service-worker-gateway/issues/574). Top-level
+    // navigation to JSON / text / other renderable content now returns the
+    // wrapper page (text/html) with the resource embedded in an iframe;
+    // the conformance suite expects the bare content-type and body bytes
+    // on the navigation response. The bytes are still served correctly to
+    // subresource fetches and to `?download=true` requests; only the
+    // document-level content-type and body change.
+    //
+    // Each entry is scoped to the specific failing leaf assertion so that
+    // sibling sub-tests (status codes, range headers, etc.) keep running.
+    'TestGatewayJsonCbor/GET_UnixFS_file_with_JSON_bytes_is_returned_with_application%2Fjson_Content-Type_-_without_headers/Header_Content-Type',
+    'TestGatewayJsonCbor/GET_UnixFS_file_with_JSON_bytes_is_returned_with_application%2Fjson_Content-Type_-_without_headers/Body',
+    'TestNativeDag/GET_plain_JSON_codec_with_format=json_returns_same_payload_as_format=dag-json_but_with_plain_Content-Type/Header_Content-Type',
+    'TestNativeDag/GET_plain_JSON_codec_with_format=json_returns_same_payload_as_format=dag-json_but_with_plain_Content-Type/Body',
+    'TestPlainCodec/GET_plain_JSON_codec_with_%3Fformat=_has_expected_json_Content-Type_and_body_as-is_-_full_request/Check_0/Header_Content-Disposition',
+    'TestPlainCodec/GET_plain_JSON_codec_with_%3Fformat=_has_expected_json_Content-Type_and_body_as-is_-_full_request/Check_1/Body',
+    'TestPlainCodec/GET_plain_JSON_codec_without_Accept_or_format=_has_expected_%22json%22_Content-Type_and_body_as-is_-_full_request/Check_0/Header_Content-Disposition',
+    'TestPlainCodec/GET_plain_JSON_codec_without_Accept_or_format=_has_expected_%22json%22_Content-Type_and_body_as-is_-_full_request/Check_1/Body',
+    'TestPathGatewayMiscellaneous/GET_for_%2Fipfs%2F_file_whose_filename_contains_percentage-encoded_characters_works/Body',
+    'TestGatewayIPNSPath/GET_for_%2Fipns%2Fname_with_valid_V1\\+V2_signatures_succeeds/Body',
+    'TestGatewayIPNSPath/GET_for_%2Fipns%2Fname_with_valid_V2_and_broken_V1_signature_succeeds/Body',
+    'TestGatewayIPNSPath/GET_for_%2Fipns%2Fname_with_valid_V2-only_signature_succeeds/Body',
+    'TestGatewayUnixFSFileRanges/GET_for_%2Fipfs%2F_file_includes_Accept-Ranges_header/Body'
   ]
 }

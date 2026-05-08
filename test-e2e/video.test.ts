@@ -8,24 +8,31 @@ const cid = 'bafybeie4vcqkutumw7s26ob2bwqwqi44m6lrssjmiirlhrzhs2akdqmkw4'
 
 test.describe('video', () => {
   /**
-   * We want to load the video fixture and ensure it starts playing.
+   * We want to load the video fixture and ensure it plays once started.
+   *
+   * The media viewer wrapper (#574) intentionally does not autoplay video,
+   * so the test starts playback explicitly via `<video>.play()` and then
+   * waits for the playing state to settle.
    */
-  test('starts playing automatically', async ({ page, baseURL }) => {
+  test('plays once started', async ({ page, baseURL }) => {
     const response = await page.goto(`${baseURL}/ipfs/${cid}`, {
       waitUntil: test.info().project.name === 'firefox' ? 'networkidle' : 'commit'
     })
-    const start = performance.now()
 
     expect(response?.status()).toBe(200)
 
-    // expect a video player
+    // wait for the wrapper's video element
     await page.waitForSelector('video')
     const video = await page.$('video')
     if (video == null) {
       throw new Error('video element not found')
     }
 
-    // continuously check if the video is playing
+    // start playback (browsers block unattended autoplay; the wrapper
+    // intentionally leaves it to the user)
+    const start = performance.now()
+    await video.evaluate((v: HTMLVideoElement) => v.play())
+
     await page.waitForFunction((video) => {
       return video.currentTime > 0 && !video.paused && !video.ended && video.readyState > 2
     }, video)

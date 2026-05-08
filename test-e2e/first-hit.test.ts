@@ -5,6 +5,7 @@ import { identity } from 'multiformats/hashes/identity'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { CODE_RAW } from '../src/ui/pages/multicodec-table.ts'
 import { test, expect } from './fixtures/config-test-fixtures.ts'
+import { mediaViewerFrame } from './fixtures/media-viewer.ts'
 import { swScopeVerification } from './fixtures/sw-scope-verification.ts'
 
 test.afterEach(async ({ page }) => {
@@ -37,8 +38,9 @@ test.describe('first-hit ipfs-hosted', () => {
       // wait for loading page to finish '.loading-page' to be removed
       await page.waitForSelector('.loading-page', { state: 'detached' })
 
-      // and we verify the content was returned
-      await page.waitForSelector('text=hello', {
+      // The media-viewer wrapper (#574) embeds the text content in an
+      // iframe so we look for "hello" inside the wrapper's iframe.
+      await mediaViewerFrame(page).getByText('hello').waitFor({
         timeout: 25_000
       })
     })
@@ -51,8 +53,9 @@ test.describe('first-hit ipfs-hosted', () => {
       // first loads the root page
       expect(response?.status()).toBe(200)
 
-      // wait for redirect
-      await page.waitForSelector('text=hello', {
+      // wait for redirect; "hello" lives inside the media-viewer wrapper's
+      // iframe (#574)
+      await mediaViewerFrame(page).getByText('hello').waitFor({
         timeout: 25_000
       })
 
@@ -100,8 +103,9 @@ test.describe('first-hit direct-hosted', () => {
         state: 'detached'
       })
 
-      // and we verify the content was returned
-      await page.waitForSelector('text=hello', {
+      // The media-viewer wrapper (#574) embeds the text content in an
+      // iframe so we look for "hello" inside the wrapper's iframe.
+      await mediaViewerFrame(page).getByText('hello').waitFor({
         timeout: 25_000
       })
     })

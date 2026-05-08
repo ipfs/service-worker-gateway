@@ -3,6 +3,7 @@ import { createKuboRPCClient } from 'kubo-rpc-client'
 import { test, expect } from './fixtures/config-test-fixtures.ts'
 import { loadWithServiceWorker } from './fixtures/load-with-service-worker.ts'
 import { makeFetchRequest } from './fixtures/make-range-request.ts'
+import { loadBypassingMediaViewer } from './fixtures/media-viewer.ts'
 import type { KuboRPCClient } from 'kubo-rpc-client'
 
 test.describe('dag-pb', () => {
@@ -19,7 +20,7 @@ test.describe('dag-pb', () => {
   test('should load path with percent encoded path', async ({ page, baseURL }) => {
     const cid = 'bafybeig675grnxcmshiuzdaz2xalm6ef4thxxds6o6ypakpghm5kghpc34'
     const path = 'Portugal%252C+Espa%C3%B1a=Peninsula%20Ib%C3%A9rica.txt'
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}/${path}`)
+    const response = await loadBypassingMediaViewer(page, `${baseURL}/ipfs/${cid}/${path}`)
 
     expect(response.status()).toBe(200)
 

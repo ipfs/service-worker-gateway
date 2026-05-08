@@ -138,6 +138,81 @@ async function generateCBOR ({ car, dagCbor }: Context): Promise<void> {
   await fs.writeFile(`${__dirname}/${cid}.car`, car.export(cid))
 }
 
+/**
+ * Smallest byte sequences each content-type sniffer recognises.
+ * `test-e2e/media-viewer.test.ts` uses these to exercise the media-viewer
+ * wrapper (#574) without runtime network IO.
+ *
+ * - PNG: 67-byte 1x1 fully transparent image, the canonical minimum.
+ * - MP4: a single `ftyp mp42` box; file-type sniffs the magic at offset 4.
+ * - PDF: `%PDF-` magic plus a trivial trailer; file-type sniffs the prefix.
+ * - TXT / JSON: file-type leaves text formats alone, so verified-fetch
+ * reads the content-type from the wrapping directory's filename
+ * extension.
+ */
+async function generateMediaViewerFixtures ({ car, unixfs }: Context): Promise<void> {
+  const fixtures: Array<{ name: string, content: Uint8Array, label: string }> = [
+    {
+      name: 'pixel.png',
+      label: '1x1 PNG',
+      content: new Uint8Array([
+        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
+        0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+        0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4, 0x89, 0x00, 0x00, 0x00,
+        0x0D, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x62, 0x60, 0x01, 0x00, 0x00,
+        0x00, 0x05, 0x00, 0x01, 0xAA, 0xEE, 0xC4, 0x22, 0x00, 0x00, 0x00, 0x00,
+        0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82
+      ])
+    },
+    {
+      name: 'tiny.mp4',
+      label: 'minimal MP4 (ftyp box only)',
+      content: new Uint8Array([
+        0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x6D, 0x70, 0x34, 0x32,
+        0x00, 0x00, 0x00, 0x00, 0x6D, 0x70, 0x34, 0x32, 0x69, 0x73, 0x6F, 0x6D
+      ])
+    },
+    {
+      name: 'tiny.pdf',
+      label: 'minimal PDF',
+      content: new TextEncoder().encode('%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n')
+    },
+    {
+      name: 'readme.txt',
+      label: 'plain text',
+      content: new TextEncoder().encode('hello from a text file\n')
+    },
+    {
+      name: 'data.json',
+      label: 'plain JSON',
+      content: new TextEncoder().encode('{"hello":"world"}\n')
+    }
+  ]
+
+  for (const { name, content, label } of fixtures) {
+    // dag-pb encoding (`rawLeaves: false`) is the canonical form for the
+    // active media-viewer tests: `plugin-handle-unixfs` sniffs the bytes,
+    // so `/ipfs/<dir>/<name>` and `/ipfs/<file>` both serve the file with
+    // the right content-type.
+    const dagPbFile = await unixfs.addBytes(content, { rawLeaves: false })
+    const emptyDir = await unixfs.addDirectory()
+    const dir = await unixfs.cp(dagPbFile, emptyDir, name)
+    console.info(`Media viewer fixture (dag-pb): ${label} dir=${dir} file=${dagPbFile} path=/ipfs/${dir}/${name}`)
+    await fs.writeFile(`${__dirname}/${dir}.car`, car.export(dir))
+
+    // raw-codec single-block encoding (`rawLeaves: true`, the unixfs
+    // default for content that fits in one block) is what Kubo and most
+    // modern IPFS tooling emit. `plugin-handle-raw` serves these CIDs
+    // with `Content-Type: application/vnd.ipld.raw` today instead of
+    // sniffing the bytes (verified-fetch bug; see the TODO block in
+    // `test-e2e/media-viewer.test.ts`). Export the CAR anyway so the
+    // commented-out tests run as soon as upstream lands a fix.
+    const rawFile = await unixfs.addBytes(content)
+    console.info(`Media viewer fixture (raw): ${label} file=${rawFile}`)
+    await fs.writeFile(`${__dirname}/${rawFile}.car`, car.export(rawFile))
+  }
+}
+
 const helia = await createHelia({
   codecs: [{
     name: 'cbor',
@@ -164,6 +239,7 @@ try {
   await generateDAGJSON(context)
   await generateDAGCBOR(context)
   await generateCBOR(context)
+  await generateMediaViewerFixtures(context)
 } finally {
   await helia.stop()
 }

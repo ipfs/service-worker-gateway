@@ -5,6 +5,7 @@ import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { CODE_RAW } from '../src/ui/pages/multicodec-table.ts'
 import { test, expect } from './fixtures/config-test-fixtures.ts'
 import { loadWithServiceWorker } from './fixtures/load-with-service-worker.ts'
+import { loadBypassingMediaViewer } from './fixtures/media-viewer.ts'
 import { publishDNSLink } from './fixtures/serve/dns-record-cache.ts'
 
 test.describe('DNSLink', () => {
@@ -14,7 +15,7 @@ test.describe('DNSLink', () => {
 
     await publishDNSLink(domain, cid)
 
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${domain}`)
+    const response = await loadBypassingMediaViewer(page, `${baseURL}/ipns/${domain}`)
 
     expect(response.status()).toBe(200)
     expect(await response.text()).toContain('hello world')
