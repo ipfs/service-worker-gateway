@@ -290,7 +290,7 @@ jobs:
       contents: write # to create release
       pull-requests: write # to create release PR
     steps:
-      - uses: googleapis/release-please-action@16a9c90856f42705d54a6fda1823352bdc62cf38 # v4.4.0
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
           release-type: node
           # Use a token for creating the release-pr and git tags so that the `deploy` workflow can be triggered by them
