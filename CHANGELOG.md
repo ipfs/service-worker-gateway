@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.3.1](https://github.com/ipfs/service-worker-gateway/compare/v3.3.0...v3.3.1) (2026-05-11)
+
+
+### Bug Fixes
+
+* update benchmark ([3c7cdba](https://github.com/ipfs/service-worker-gateway/commit/3c7cdbabb4b3a5207e62b0a0485f2e3dd82087b4))
+
 ## [3.3.0](https://github.com/ipfs/service-worker-gateway/compare/v3.2.0...v3.3.0) (2026-05-08)
 
 
