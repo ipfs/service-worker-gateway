@@ -33,7 +33,12 @@ export function renderEntityPageResponse (request: ContentURI, headers: Headers,
     }
   }
 
-  const page = htmlPage(props.cid ?? '', 'renderEntity', props)
+  // For UnixFS directory listings, use the content path as the page title
+  // (e.g. `/ipns/dist.ipfs.tech/kubo/`) to match Kubo's gateway behavior.
+  // `htmlPage` HTML-escapes the title, so user-controlled path segments are
+  // safe to interpolate. Other entity previews keep the bare CID.
+  const title = contentType === MEDIA_TYPE_DAG_PB && props.ipfsPath !== '' ? props.ipfsPath : (props.cid ?? '')
+  const page = htmlPage(title, 'renderEntity', props)
   // `page.length` is UTF-16 code-unit count, not the UTF-8 byte length the
   // header is supposed to advertise. Inaccurate when injected props contain
   // non-ASCII characters (e.g. a non-ASCII path segment).
