@@ -11,16 +11,13 @@ export default function NoServiceWorkerErrorPage (): ReactElement {
           <line x1='12' y1='9' x2='12' y2='13' />
           <line x1='12' y1='17' x2='12.01' y2='17' />
         </svg>
-        <h1 className='ma0 f3'>Warning: Service Workers Are Not Supported</h1>
+        <h1 className='ma0 f3'>Service Worker Required</h1>
       </div>
       <p>
-        This page requires support for <Link href='https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API'>service workers</Link>.
+        This gateway uses a <Link href='https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API'>Service Worker</Link> to verify and load IPFS content in your browser, but your browser does not have one available.
       </p>
       <p>
-        Please ensure that your browser has support and that it is enabled (ie. navigator.serviceWorker is present).
-      </p>
-      <p>
-        If you are using Firefox, please note that <Link href='https://bugzilla.mozilla.org/show_bug.cgi?id=1320796'>service workers are disabled in private browsing mode</Link> - please try again in a regular browsing window.
+        This is most common in Tor Browser, which is <Link href='https://gitlab.torproject.org/tpo/applications/tor-browser/-/work_items/43873'>work-in-progress</Link>. To reach IPFS content there, use a <Link href='https://ipfs.github.io/public-gateway-checker/'>community-run Onion gateway</Link> instead.
       </p>
     </main>
   )
