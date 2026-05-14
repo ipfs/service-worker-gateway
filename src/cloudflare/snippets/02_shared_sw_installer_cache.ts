@@ -18,6 +18,12 @@
 // entry referencing fresh JS (or vice versa) could mismatch and break
 // the installer.
 //
+// Cache hardening: cache only 2xx. The origin _redirects rule rewrites
+// every SPA route to a 200, so any 3xx, 4xx, or 5xx response here is
+// anomalous. The 4xx/5xx exclusion also keeps Cloudflare's own Managed
+// Challenge response (403 with cf-mitigated: challenge) out of the
+// normalized installer cache.
+//
 // Strip __cf_* query params at the edge: after a visitor passes a Managed
 // Challenge, Cloudflare lands them on a URL carrying a single-use token
 // (__cf_chl_tk, __cf_chl_f_tk, __cf_chl_rt_tk). If that token survives
@@ -81,10 +87,13 @@ export default {
         cacheEverything: true,
         cacheKey,
         cacheTtlByStatus: {
-          '200-399': EDGE_CACHE_TTL_S,
-          // Do not cache errors. A transient failure must not be stuck
-          // in cache for the full TTL.
-          '400-599': 0
+          '200-299': EDGE_CACHE_TTL_S,
+          // Cache only 2xx. Origin returns 200 for every SPA route via
+          // the _redirects rewrite, so 3xx here is anomalous. The
+          // 4xx/5xx exclusion also keeps Cloudflare's Managed Challenge
+          // response (403 with cf-mitigated: challenge) out of this
+          // cache key.
+          '300-599': 0
         }
       }
     })
