@@ -1,5 +1,24 @@
 # Changelog
 
+## [3.3.1](https://github.com/ipfs/service-worker-gateway/compare/v3.3.0...v3.3.1) (2026-05-11)
+
+
+### Bug Fixes
+
+* update benchmark ([3c7cdba](https://github.com/ipfs/service-worker-gateway/commit/3c7cdbabb4b3a5207e62b0a0485f2e3dd82087b4))
+
+## [3.3.0](https://github.com/ipfs/service-worker-gateway/compare/v3.2.0...v3.3.0) (2026-05-08)
+
+
+### Features
+
+* multibase parity with Kubo / Rainbow ([#1040](https://github.com/ipfs/service-worker-gateway/issues/1040)) ([405560b](https://github.com/ipfs/service-worker-gateway/commit/405560bcaefd56a9aa21829e2101b3887f4a2de4))
+
+
+### Bug Fixes
+
+* wrap renderable media in viewer page ([#1039](https://github.com/ipfs/service-worker-gateway/issues/1039)) ([f230fcb](https://github.com/ipfs/service-worker-gateway/commit/f230fcb38712f95a07b61d52e13d0f47bd749973))
+
 ## [3.2.0](https://github.com/ipfs/service-worker-gateway/compare/v3.1.7...v3.2.0) (2026-04-21)
 
 
