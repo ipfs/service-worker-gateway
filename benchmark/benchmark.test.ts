@@ -54,8 +54,8 @@ test.describe('@helia/service-worker-gateway - benchmark', () => {
 
         // check response
         expect(response.status()).toBe(200)
-        expect(response.headers()['content-length']).toBe('8895')
-        expect(response.headers()['content-type']).toBe('image/jpeg')
+        expect(response.headers()['content-length']).toBe('2805')
+        expect(response.headers()['content-type']).toBe('text/html; charset=utf-8')
 
         // should have service worker(s)
         expect(context.serviceWorkers().length).not.toBe(0)

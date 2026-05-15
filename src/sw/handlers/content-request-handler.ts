@@ -1,4 +1,4 @@
-import { MEDIA_TYPE_CAR, MEDIA_TYPE_CBOR, MEDIA_TYPE_DAG_CBOR, MEDIA_TYPE_DAG_JSON, MEDIA_TYPE_DAG_PB, MEDIA_TYPE_IPNS_RECORD, MEDIA_TYPE_JSON, MEDIA_TYPE_RAW, MEDIA_TYPE_TAR } from '@helia/verified-fetch'
+import { isAbortWithServerTimingError, MEDIA_TYPE_CAR, MEDIA_TYPE_CBOR, MEDIA_TYPE_DAG_CBOR, MEDIA_TYPE_DAG_JSON, MEDIA_TYPE_DAG_PB, MEDIA_TYPE_IPNS_RECORD, MEDIA_TYPE_JSON, MEDIA_TYPE_RAW, MEDIA_TYPE_TAR } from '@helia/verified-fetch'
 import { setMaxListeners, TimeoutError } from '@libp2p/interface'
 import { anySignal } from 'any-signal'
 import { config } from '../../config/index.ts'
@@ -8,9 +8,11 @@ import { getSubdomainParts } from '../../lib/get-subdomain-parts.ts'
 import { getSwLogger } from '../../lib/logger.ts'
 import { isBitswapProvider, isTrustlessGatewayProvider } from '../../lib/providers.ts'
 import { getInstallTime } from '../lib/install-time.ts'
+import { sniffRawContentType } from '../lib/sniff-raw-content-type.ts'
 import { getVerifiedFetch } from '../lib/verified-fetch.ts'
 import { fetchErrorPageResponse } from '../pages/fetch-error-page.ts'
 import { renderEntityPageResponse } from '../pages/render-entity.ts'
+import { tryRenderMediaViewer } from '../pages/render-media.ts'
 import type { Handler } from './index.ts'
 import type { ContentURI } from '../../lib/parse-request.ts'
 import type { Providers } from '../index.ts'
@@ -41,8 +43,11 @@ interface FetchHandlerArg {
 const ONE_HOUR_IN_SECONDS = 3600
 const MAX_REDIRECTS = 5
 
-function getCacheKey (resource: ContentURI, headers: Headers, renderHtml: boolean): string {
-  return `${resource.subdomainURL}-${headers.get('accept')}-html-${renderHtml}-match-${headers.get('if-none-match')}`
+function getCacheKey (resource: ContentURI, headers: Headers, renderHtml: boolean, destination: RequestDestination): string {
+  // Include `destination` so a cached media-viewer wrapper (top-level
+  // navigation) does not collide with a subresource `<img>`/`<video>`
+  // re-fetch of the same URL that needs the raw bytes.
+  return `${resource.subdomainURL}-${headers.get('accept')}-html-${renderHtml}-dest-${destination}-match-${headers.get('if-none-match')}`
 }
 
 async function getResponseFromCacheOrFetch (args: FetchHandlerArg): Promise<Response> {
@@ -319,6 +324,16 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
       log('%s: %s', key, value)
     }
 
+    // Workaround for verified-fetch's `plugin-handle-raw` not honouring
+    // the path-gateway spec's content-type sniffing requirement. Without
+    // this, raw-codec single-block CIDs (`bafkrei…`, the default for
+    // helia/unixfs content that fits in one block) come back as
+    // `application/vnd.ipld.raw` even when the bytes carry recognisable
+    // PDF / PNG / MP4 magic. Running the override here means the wrapper
+    // decision below sees the sniffed type and the sniffed response is
+    // what gets cached.
+    response = await sniffRawContentType(response, accept)
+
     // render previews for UnixFS directories
     if (response.headers.get('content-type') === MEDIA_TYPE_DAG_PB) {
       renderHtml = shouldRenderDirectory(resource, accept)
@@ -329,6 +344,25 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
     }
 
     if (response.status > 199 && response.status < 300) {
+      // Wrap top-level navigations to renderable media (image/video/audio/
+      // pdf/text/json) in a viewer page that exposes an explicit Download
+      // button. Workaround for the Chromium SW "Save As" bug — see
+      // https://github.com/ipfs/service-worker-gateway/issues/574 and
+      // https://issues.chromium.org/issues/400455011. Subresource fetches
+      // arrive with `destination !== 'document'`, so they skip the wrapper
+      // and avoid recursion.
+      const wrapped = tryRenderMediaViewer(
+        request,
+        response,
+        event.request.destination,
+        renderHtml,
+        resource.searchParams.get('download')
+      )
+
+      if (wrapped != null) {
+        return wrapped
+      }
+
       if (renderHtml) {
         try {
           return renderEntityPageResponse(request, headers, response, await response.arrayBuffer())
@@ -372,28 +406,40 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
       statusText: response.statusText
     })
   } catch (err: any) {
+    let response: Response
+    let responseBody: string
+
     if (abortController.signal.aborted) {
-      return fetchErrorPageResponse(request, init, new Response('', {
+      response = new Response('', {
         status: 504,
         statusText: 'Gateway Timeout',
         headers: {
           'content-type': 'application/json'
         }
-      }), JSON.stringify(errorToObject(abortController.signal.reason), null, 2), providers, firstInstallTime, logs)
+      })
+
+      responseBody = JSON.stringify(errorToObject(abortController.signal.reason), null, 2)
+    } else {
+      abortController.abort(err)
+      log.error('error during request - %e', err)
+
+      response = new Response('', {
+        status: 500,
+        statusText: 'Internal Server Error',
+        headers: {
+          'content-type': 'application/json',
+          'x-error-message': btoa(err.message)
+        }
+      })
+
+      responseBody = JSON.stringify(errorToObject(err), null, 2)
     }
 
-    abortController.abort(err)
+    if (isAbortWithServerTimingError(err)) {
+      response.headers.set('server-timing', err.serverTiming)
+    }
 
-    log.error('error during request - %e', err)
-
-    return fetchErrorPageResponse(request, init, new Response('', {
-      status: 500,
-      statusText: 'Internal Server Error',
-      headers: {
-        'content-type': 'application/json',
-        'x-error-message': btoa(err.message)
-      }
-    }), JSON.stringify(errorToObject(err), null, 2), providers, firstInstallTime, logs)
+    return fetchErrorPageResponse(request, init, response, responseBody, providers, firstInstallTime, logs)
   } finally {
     signal.clear()
     clearTimeout(timeout)
@@ -476,7 +522,7 @@ export const contentRequestHandler: Handler = {
       request,
       headers,
       logs,
-      cacheKey: getCacheKey(request, headers, renderHtml),
+      cacheKey: getCacheKey(request, headers, renderHtml, event.request.destination),
       isMutable: urlParts.protocol === 'ipns',
       renderHtml,
       accept

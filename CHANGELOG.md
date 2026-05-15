@@ -1,5 +1,57 @@
 # Changelog
 
+## [3.3.1](https://github.com/ipfs/service-worker-gateway/compare/v3.3.0...v3.3.1) (2026-05-11)
+
+
+### Bug Fixes
+
+* update benchmark ([3c7cdba](https://github.com/ipfs/service-worker-gateway/commit/3c7cdbabb4b3a5207e62b0a0485f2e3dd82087b4))
+
+## [3.3.0](https://github.com/ipfs/service-worker-gateway/compare/v3.2.0...v3.3.0) (2026-05-08)
+
+
+### Features
+
+* multibase parity with Kubo / Rainbow ([#1040](https://github.com/ipfs/service-worker-gateway/issues/1040)) ([405560b](https://github.com/ipfs/service-worker-gateway/commit/405560bcaefd56a9aa21829e2101b3887f4a2de4))
+
+
+### Bug Fixes
+
+* wrap renderable media in viewer page ([#1039](https://github.com/ipfs/service-worker-gateway/issues/1039)) ([f230fcb](https://github.com/ipfs/service-worker-gateway/commit/f230fcb38712f95a07b61d52e13d0f47bd749973))
+
+## [3.2.0](https://github.com/ipfs/service-worker-gateway/compare/v3.1.7...v3.2.0) (2026-04-21)
+
+
+### Features
+
+* show ui after download ([#1031](https://github.com/ipfs/service-worker-gateway/issues/1031)) ([4470da0](https://github.com/ipfs/service-worker-gateway/commit/4470da04e3a7cee68641263cb28fc0a6e9874a52)), closes [#1025](https://github.com/ipfs/service-worker-gateway/issues/1025)
+
+
+### Bug Fixes
+
+* improve 502 error message when streaming fails ([#1033](https://github.com/ipfs/service-worker-gateway/issues/1033)) ([5bbfc70](https://github.com/ipfs/service-worker-gateway/commit/5bbfc701dcc7e3662e4af025f6b390f8a0d9dbd4))
+* remove invalid conversions ([#1029](https://github.com/ipfs/service-worker-gateway/issues/1029)) ([d2e08ca](https://github.com/ipfs/service-worker-gateway/commit/d2e08ca4410c6d143a363d238948d2acdcb95dc5))
+* remove preview link on downloading page ([#1034](https://github.com/ipfs/service-worker-gateway/issues/1034)) ([706f274](https://github.com/ipfs/service-worker-gateway/commit/706f274706152b1a7eb2961480ca3edf9e456dcc))
+* set subdomain url from stored form input ([#1030](https://github.com/ipfs/service-worker-gateway/issues/1030)) ([b0caf3d](https://github.com/ipfs/service-worker-gateway/commit/b0caf3d3c94456ba14ed9784b4cf67b434a48cd9))
+* update about page text ([#1028](https://github.com/ipfs/service-worker-gateway/issues/1028)) ([26ead6d](https://github.com/ipfs/service-worker-gateway/commit/26ead6d639032f9d477a5b1594bfa453b4a33456))
+
+## [3.1.7](https://github.com/ipfs/service-worker-gateway/compare/v3.1.6...v3.1.7) (2026-04-09)
+
+
+### Bug Fixes
+
+* include server-timing header on abort ([#1023](https://github.com/ipfs/service-worker-gateway/issues/1023)) ([2f8961b](https://github.com/ipfs/service-worker-gateway/commit/2f8961b7be08b2f1bc73e69b16b4dc30729e7d7a))
+
+## [3.1.6](https://github.com/ipfs/service-worker-gateway/compare/v3.1.5...v3.1.6) (2026-04-09)
+
+
+### Bug Fixes
+
+* improve error message when streaming fails ([#1021](https://github.com/ipfs/service-worker-gateway/issues/1021)) ([d1a6c67](https://github.com/ipfs/service-worker-gateway/commit/d1a6c674a61a0bf049104c4564a2595fec6a3793))
+* restore logo ([#1012](https://github.com/ipfs/service-worker-gateway/issues/1012)) ([b90b2ff](https://github.com/ipfs/service-worker-gateway/commit/b90b2ffe97f42f01339f1bc58ae97170c780d9ed))
+* update deps to support server-timing header ([#1020](https://github.com/ipfs/service-worker-gateway/issues/1020)) ([5c62280](https://github.com/ipfs/service-worker-gateway/commit/5c6228024b1bcfb01407e320ca352408a8700bda)), closes [#956](https://github.com/ipfs/service-worker-gateway/issues/956)
+* update helia deps ([#1010](https://github.com/ipfs/service-worker-gateway/issues/1010)) ([94116b2](https://github.com/ipfs/service-worker-gateway/commit/94116b29757d4ccb8087c83fce805cdf5c8eb23a))
+
 ## [3.1.5](https://github.com/ipfs/service-worker-gateway/compare/v3.1.4...v3.1.5) (2026-03-05)
 
 

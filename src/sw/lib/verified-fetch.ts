@@ -39,8 +39,9 @@ async function libp2pDefaults (): Promise<Libp2pOptions> {
     webSockets()
   ]
 
-  // WebTransport only works reliably in Firefox at the time of writing
-  if (navigator?.userAgent?.toLowerCase().includes('firefox') === true) {
+  // Enable WebTransport when the browser exposes the API.
+  // Baseline as of 2026-03 (Safari 26.4); also Chrome 97+, Edge 98+, Firefox 114+.
+  if ('WebTransport' in globalThis) {
     transports.push(webTransport())
     filterAddrs.push('webtransport')
   }

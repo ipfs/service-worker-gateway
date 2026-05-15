@@ -1,26 +1,30 @@
 // Cloudflare Snippet: shared service worker installer cache
 //
-// Controls edge and browser caching for the service worker gateway.
-// All subdomains serve the same HTML+JS service worker installer, so
-// versioned SW assets can share a single cache entry across subdomains.
+// Controls edge caching for the service worker gateway. Every subdomain
+// serves the same installer HTML and the same versioned JS/CSS.
 //
-// /ipfs-sw-* paths (versioned SW assets):
-//   - normalized cache key (base domain) so subdomains share edge cache
-//   - 24h edge TTL (assets only change on deploy)
+// /ipfs-sw-* (versioned SW assets):
+//   Cache key normalized to base domain. Identical bytes across all
+//   subdomains share one edge entry.
 //
-// Everything else:
-//   - default cache key (per-subdomain, so badbits 410s are per-CID)
-//   - 5-minute edge TTL so badbits enforcement at the origin takes
-//     effect within 5 minutes of a CID being blocked
+// Everything else (SPA fallback to index.html at origin):
+//   Cache key normalized per subdomain. Origin returns the same installer
+//   HTML for any non-asset path, so the long tail of arbitrary URLs
+//   collapses to one entry per hostname. Badbits enforcement uses a manual
+//   purge of the whole subdomain, so edge TTL does not gate how fast a
+//   blocked CID stops being served.
+//
+// HTML and versioned JS/CSS share the same TTL on purpose: a stale HTML
+// entry referencing fresh JS (or vice versa) could mismatch and break
+// the installer.
+
+const EDGE_CACHE_TTL_S = 86400 // 24h
 
 export default {
   async fetch (request: Request): Promise<Response> {
     const url = new URL(request.url)
 
     if (url.pathname.startsWith('/ipfs-sw-')) {
-      // Versioned service worker assets are identical across all subdomains.
-      // Normalize cache key to base domain so they share a single edge cache
-      // entry, and cache for 24h (86400s) since they only change on deploy.
       const baseDomain = url.hostname.split('.').slice(-2).join('.')
       const cacheKey = `https://${baseDomain}${url.pathname}`
 
@@ -29,27 +33,25 @@ export default {
           cacheEverything: true,
           cacheKey,
           cacheTtlByStatus: {
-            '200-299': 86400,
-            // Do not cache errors for SW assets -- a transient failure
-            // should not be stuck in cache for 24h.
+            '200-299': EDGE_CACHE_TTL_S,
+            // Do not cache errors. A transient failure must not be stuck
+            // in cache for the full TTL.
             '300-599': 0
           }
         }
       })
     }
 
-    // Everything else: use default cache key (includes full hostname, so
-    // each subdomain caches independently). Use 5-minute TTL (300s) so
-    // badbits enforcement at the origin takes effect within 5 minutes
-    // of a CID being blocked. Caching 300s is fine here -- these are
-    // redirects from path_gateway_to_subdomain snippet or the origin.
+    const cacheKey = `https://${url.hostname}/__sw_installer_html`
+
     return fetch(request, {
       cf: {
         cacheEverything: true,
+        cacheKey,
         cacheTtlByStatus: {
-          '200-399': 300,
-          // Do not cache client/server errors -- a transient failure
-          // should not be stuck in cache.
+          '200-399': EDGE_CACHE_TTL_S,
+          // Do not cache errors. A transient failure must not be stuck
+          // in cache for the full TTL.
           '400-599': 0
         }
       }

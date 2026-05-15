@@ -10,12 +10,13 @@ import { CODE_RAW } from '../src/ui/pages/multicodec-table.ts'
 import { test, expect } from './fixtures/config-test-fixtures.ts'
 import { hasCacheEntry } from './fixtures/has-cache-entry.ts'
 import { loadWithServiceWorker } from './fixtures/load-with-service-worker.ts'
+import { loadBypassingMediaViewer } from './fixtures/media-viewer.ts'
 
 test.describe('smoke test', () => {
   test('loads a jpeg', async ({ page, baseURL }) => {
     const cid = 'bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi'
 
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}`)
+    const response = await loadBypassingMediaViewer(page, `${baseURL}/ipfs/${cid}`)
     expect(response?.status()).toBe(200)
     expect(response?.headers()['content-type']).toBe('image/jpeg')
     expect(response?.headers()['cache-control']).toBe('public, max-age=29030400, immutable')
@@ -73,7 +74,7 @@ test.describe('smoke test', () => {
     expect(await hasCacheEntry(page, CURRENT_CACHES.mutable, name)).toBeFalsy()
     expect(await hasCacheEntry(page, CURRENT_CACHES.immutable, name)).toBeFalsy()
 
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${name}`)
+    const response = await loadBypassingMediaViewer(page, `${baseURL}/ipns/${name}`)
     expect(response.status()).toBe(200)
     expect(await response.text()).toContain('hello')
 
@@ -86,7 +87,7 @@ test.describe('smoke test', () => {
     const cid = 'bafkqablimvwgy3y'
     const asBase16 = CID.parse(cid).toString(base16)
 
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${asBase16}`)
+    const response = await loadBypassingMediaViewer(page, `${baseURL}/ipfs/${asBase16}`)
     expect(response.status()).toBe(200)
     expect(await response.text()).toContain('hello')
   })
@@ -95,7 +96,7 @@ test.describe('smoke test', () => {
     const name = 'k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam'
     const asBase16 = peerIdFromString(name).toCID().toString(base16)
 
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${asBase16}`)
+    const response = await loadBypassingMediaViewer(page, `${baseURL}/ipns/${asBase16}`)
     expect(response.status()).toBe(200)
     expect(await response.text()).toContain('hello')
   })
@@ -116,7 +117,7 @@ test.describe('smoke test', () => {
     // this is sha2-512-half
     const cid = CID.parse('bafkrgihhyivzstcz3hhswshfjgy6ertgmnqeleynhwt4dlfsthi4hn7zge')
 
-    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}`)
+    const response = await loadBypassingMediaViewer(page, `${baseURL}/ipfs/${cid}`)
     expect(response.status()).toBe(200)
     expect(await response.text()).toContain('hello')
   })
@@ -133,8 +134,10 @@ test.describe('smoke test', () => {
     expect(await rawResponse.headerValue('content-type')).toBe('application/vnd.ipld.raw')
     expect(new Uint8Array(await rawResponse.body())).toStrictEqual(buf)
 
-    // sending a different format should cause a response cache miss
-    const jsonResponse = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}?format=json`)
+    // sending a different format should cause a response cache miss; the
+    // bypass here keeps the `application/json` content-type that the
+    // media-viewer wrapper (#574) would otherwise replace.
+    const jsonResponse = await loadBypassingMediaViewer(page, `${baseURL}/ipfs/${cid}?format=json`)
     expect(jsonResponse.status()).toBe(200)
     expect(await jsonResponse.headerValue('content-type')).toBe('application/json')
     expect(await jsonResponse.json()).toStrictEqual(obj)

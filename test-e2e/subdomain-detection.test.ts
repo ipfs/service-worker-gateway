@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures/config-test-fixtures.ts'
+import { mediaViewerBody } from './fixtures/media-viewer.ts'
 import { waitForServiceWorker } from './fixtures/wait-for-service-worker.ts'
 
 test.describe('subdomain-detection', () => {
@@ -19,8 +20,9 @@ test.describe('subdomain-detection', () => {
 
     await waitForServiceWorker(page)
 
-    const bodyTextLocator = page.locator('body')
-    await expect(bodyTextLocator).toContainText('hello')
+    // The media-viewer wrapper (#574) embeds the text content in an iframe;
+    // assert "hello" landed inside the iframe.
+    await expect(mediaViewerBody(page)).toContainText('hello')
   })
 })
 
@@ -30,8 +32,8 @@ test.describe('subdomain-detection auto fixture', () => {
       waitUntil: 'networkidle'
     })
 
-    const bodyTextLocator = page.locator('body')
-
-    await expect(bodyTextLocator).toContainText('hello')
+    // The media-viewer wrapper (#574) embeds the text content in an iframe;
+    // assert "hello" landed inside the iframe.
+    await expect(mediaViewerBody(page)).toContainText('hello')
   })
 })

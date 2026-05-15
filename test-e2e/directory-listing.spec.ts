@@ -7,6 +7,7 @@ import { equals as uint8ArrayEquals } from 'uint8arrays/equals'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { test, expect } from './fixtures/config-test-fixtures.ts'
 import { loadWithServiceWorker } from './fixtures/load-with-service-worker.ts'
+import { mediaViewerFrame } from './fixtures/media-viewer.ts'
 import { publishDNSLink } from './fixtures/serve/dns-record-cache.ts'
 import type { AddResult, KuboRPCClient } from 'kubo-rpc-client'
 
@@ -47,7 +48,9 @@ test.describe('directory-listing', () => {
 
     await page.click(`#row-${file.cid.toV1()} .name-cell`)
 
-    await expect(page.getByText('hello world')).toBeVisible()
+    // The media-viewer wrapper (#574) embeds the .txt content in an
+    // iframe, so the body text lives inside the wrapper's iframe.
+    await expect(mediaViewerFrame(page).getByText('hello world')).toBeVisible()
     expect(page.url().endsWith('/hello-world.txt')).toBeTruthy()
   })
 

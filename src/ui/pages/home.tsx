@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { LOCAL_STORAGE_KEYS } from '../../lib/local-storage.ts'
 import { removeRootHashIfPresent } from '../../lib/remove-root-hash.ts'
+import { parseSubdomain } from '../components/cid-input.tsx'
 import DownloadForm from '../components/download-form.tsx'
 import './default-page-styles.css'
 import type { ReactElement } from 'react'
@@ -8,10 +9,23 @@ import type { ReactElement } from 'react'
 function LoadContent (): ReactElement {
   removeRootHashIfPresent()
 
-  const initialInput = localStorage.getItem(LOCAL_STORAGE_KEYS.forms.requestPath) ?? ''
+  let initialInput = localStorage.getItem(LOCAL_STORAGE_KEYS.forms.requestPath) ?? ''
+  let initialSubdomainUrl
+
+  if (initialInput !== '') {
+    try {
+      initialSubdomainUrl = parseSubdomain(initialInput)
+
+      if (initialSubdomainUrl == null) {
+        initialInput = ''
+      }
+    } catch (err) {
+      initialInput = ''
+    }
+  }
 
   const [input, setInput] = useState(initialInput)
-  const [subdomainURL, setSubdomainURL] = useState<URL | undefined>()
+  const [subdomainURL, setSubdomainURL] = useState<URL | undefined>(initialSubdomainUrl)
   const [download, setDownload] = useState('')
   const [format, setFormat] = useState('')
   const [filename, setFilename] = useState('')
@@ -26,7 +40,7 @@ function LoadContent (): ReactElement {
     localStorage.setItem(LOCAL_STORAGE_KEYS.forms.requestPath, input)
   }, [input])
 
-  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
+  const handleSubmit = async (e: React.SubmitEvent): Promise<void> => {
     e.stopPropagation()
     e.preventDefault()
 

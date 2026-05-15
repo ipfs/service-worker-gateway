@@ -1,5 +1,6 @@
 import { MEDIA_TYPE_DAG_PB } from '@helia/verified-fetch'
 import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
+import { GENERATED_HTML_CACHE_CONTROL } from '../../constants.ts'
 import { headersToObject } from '../../lib/headers-to-object.ts'
 import { APP_NAME, APP_VERSION, GIT_REVISION } from '../../version.ts'
 import { htmlPage } from './page.ts'
@@ -15,7 +16,7 @@ export function renderEntityPageResponse (request: ContentURI, headers: Headers,
   mergedHeaders.set('content-type', 'text/html; charset=utf-8')
   mergedHeaders.set('server', `${APP_NAME}/${APP_VERSION}#${GIT_REVISION}`)
   mergedHeaders.delete('content-disposition')
-  mergedHeaders.set('cache-control', 'public, max-age=604800, stale-while-revalidate=2678400')
+  mergedHeaders.set('cache-control', GENERATED_HTML_CACHE_CONTROL)
 
   const props = {
     cid: mergedHeaders.get('x-ipfs-roots')?.split(',').pop() ?? '',
@@ -32,7 +33,15 @@ export function renderEntityPageResponse (request: ContentURI, headers: Headers,
     }
   }
 
-  const page = htmlPage(props.cid ?? '', 'renderEntity', props)
+  // For UnixFS directory listings, use the content path as the page title
+  // (e.g. `/ipns/dist.ipfs.tech/kubo/`) to match Kubo's gateway behavior.
+  // `htmlPage` HTML-escapes the title, so user-controlled path segments are
+  // safe to interpolate. Other entity previews keep the bare CID.
+  const title = contentType === MEDIA_TYPE_DAG_PB && props.ipfsPath !== '' ? props.ipfsPath : (props.cid ?? '')
+  const page = htmlPage(title, 'renderEntity', props)
+  // `page.length` is UTF-16 code-unit count, not the UTF-8 byte length the
+  // header is supposed to advertise. Inaccurate when injected props contain
+  // non-ASCII characters (e.g. a non-ASCII path segment).
   mergedHeaders.set('content-length', `${page.length}`)
 
   if (contentType === MEDIA_TYPE_DAG_PB) {

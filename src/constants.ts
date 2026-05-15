@@ -32,3 +32,11 @@ export const CURRENT_CACHES = Object.freeze({
   immutable: `immutable-cache-v${CACHE_VERSION}`,
   swAssets: `sw-assets-v${CACHE_VERSION}`
 })
+
+/**
+ * `Cache-Control` header for HTML pages the service worker generates itself:
+ * UnixFS directory listings, the IPLD entity inspector, and the media viewer
+ * wrapper. One week fresh + one month stale-while-revalidate — the value the
+ * directory listing has long shipped with.
+ */
+export const GENERATED_HTML_CACHE_CONTROL = 'public, max-age=604800, stale-while-revalidate=2678400'

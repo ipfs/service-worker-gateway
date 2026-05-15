@@ -1,19 +1,15 @@
 import fs from 'node:fs'
 import fsp from 'node:fs/promises'
 import { CarReader } from '@ipld/car'
-import * as dagCbor from '@ipld/dag-cbor'
-import * as dagJson from '@ipld/dag-json'
-import * as cbor from 'cborg'
 import { unmarshalIPNSRecord } from 'ipns'
 import all from 'it-all'
 import toBuffer from 'it-to-buffer'
 import { CID } from 'multiformats/cid'
-import * as json from 'multiformats/codecs/json'
 import * as tar from 'tar'
 import { test, expect } from './fixtures/config-test-fixtures.ts'
 import type { Download, Page, Response } from 'playwright'
 
-function captureDownloadResponse (page: Page, cid: string, host: string): Promise<Response> {
+export function captureDownloadResponse (page: Page, cid: string, host: string): Promise<Response> {
   const responsePromise = Promise.withResolvers<Response>()
 
   page.on('response', (response) => {
@@ -584,84 +580,6 @@ test.describe('download form', () => {
     expect(new TextDecoder().decode(files['bafkqaddimvwgy3zao5xxe3debi'])).toBe('hello world\n')
   })
 
-  test('should download a block and specify DAG-JSON format', async ({ page }) => {
-    const obj = {
-      hello: CID.parse('bafkqaddimvwgy3zao5xxe3debi')
-    }
-
-    const downloadPromise = page.waitForEvent('download')
-    await page.fill('#inputContent', '/ipfs/baguqeerasfd64cjvzypw23uldj56sxclylkk264h2t76cks4vl7g5ilca3aq')
-    await page.click('#show-advanced')
-    await page.selectOption('#download', 'true')
-    await page.selectOption('#format', 'dag-json')
-    await page.click('#load-directly')
-
-    download = await downloadPromise
-
-    const file = await fsp.readFile(await download.path())
-    const decoded = dagJson.decode(file)
-    expect(decoded).toStrictEqual(obj)
-  })
-
-  test('should download a block and specify DAG-CBOR format', async ({ page }) => {
-    const obj = {
-      hello: CID.parse('bafkqaddimvwgy3zao5xxe3debi')
-    }
-
-    const downloadPromise = page.waitForEvent('download')
-    await page.fill('#inputContent', '/ipfs/bafyreicqloxaaoq4f5ykqits4iktnmvab62i7nqanv4uce55ep4f6omnvm')
-    await page.click('#show-advanced')
-    await page.selectOption('#download', 'true')
-    await page.selectOption('#format', 'dag-cbor')
-    await page.click('#load-directly')
-
-    download = await downloadPromise
-
-    const file = await fsp.readFile(await download.path())
-    const decoded = dagCbor.decode(file)
-    expect(decoded).toStrictEqual(obj)
-  })
-
-  test('should download a block and specify JSON format', async ({ page }) => {
-    const obj = {
-      hello: {
-        '/': 'bafkqaddimvwgy3zao5xxe3debi'
-      }
-    }
-
-    const downloadPromise = page.waitForEvent('download')
-    await page.fill('#inputContent', '/ipfs/baguqeerasfd64cjvzypw23uldj56sxclylkk264h2t76cks4vl7g5ilca3aq')
-    await page.click('#show-advanced')
-    await page.selectOption('#download', 'true')
-    await page.selectOption('#format', 'json')
-    await page.click('#load-directly')
-
-    download = await downloadPromise
-
-    const file = await fsp.readFile(await download.path())
-    const decoded = json.decode(file)
-    expect(decoded).toStrictEqual(obj)
-  })
-
-  test('should download a block and specify CBOR format', async ({ page }) => {
-    const obj = {
-      hello: 'world'
-    }
-
-    const downloadPromise = page.waitForEvent('download')
-    await page.fill('#inputContent', '/ipfs/bafireidykglsfhoixmivffc5uwhcgshx4j465xwqntbmu43nb2dzqwfvae')
-    await page.click('#show-advanced')
-    await page.selectOption('#download', 'true')
-    await page.selectOption('#format', 'cbor')
-    await page.click('#load-directly')
-
-    download = await downloadPromise
-
-    const file = await fsp.readFile(await download.path())
-    const decoded = cbor.decode(file)
-    expect(decoded).toStrictEqual(obj)
-  })
-
   test('should download a block and specify IPNS Record format', async ({ page }) => {
     const downloadPromise = page.waitForEvent('download')
     await page.fill('#inputContent', '/ipns/k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam')
@@ -677,5 +595,24 @@ test.describe('download form', () => {
     expect(decoded.value).toEqual('/ipfs/bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am')
     expect(decoded.validityType).toEqual('EOL')
     expect(decoded.validity).toEqual('2123-04-12T13:44:59.801728Z')
+  })
+
+  test('should reload the page and submit the form', async ({ page }) => {
+    const downloadPromise = page.waitForEvent('download')
+
+    await page.fill('#inputContent', '/ipfs/bafkqaddimvwgy3zao5xxe3debi')
+    await page.reload()
+
+    await page.click('#show-advanced')
+    await page.selectOption('#download', 'true')
+    await page.click('#load-directly')
+
+    download = await downloadPromise
+
+    const file = await fsp.readFile(await download.path(), {
+      encoding: 'utf-8'
+    })
+
+    expect(file).toBe('hello world\n')
   })
 })
