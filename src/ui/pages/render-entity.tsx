@@ -218,6 +218,14 @@ interface UnixFSDirectoryRowProps {
   index: number
 }
 
+function formatSize (link: dagPb.PBLink): string {
+  if (link?.Tsize == null) {
+    return ''
+  }
+
+  return prettyBytes(link.Tsize)
+}
+
 function UnixFSDirectoryRow ({ viewLink, ipfsPath, value, index }: UnixFSDirectoryRowProps): ReactElement {
   return (
     <>
@@ -232,7 +240,7 @@ function UnixFSDirectoryRow ({ viewLink, ipfsPath, value, index }: UnixFSDirecto
           <code>{value.Hash.toString()}</code>
           <CIDDetails ipfsPath={`/${[ipfsPath, value.Name].join('/').split('/').filter(Boolean).join('/')}`} cid={value.Hash} className='black-40 mt1' buttonClassName='black-40' />
         </td>
-        <td className='pv2 ph3 tl w-10 pointer truncate size-cell' onClick={() => viewLink(value.Name)}>{prettyBytes(value.Tsize ?? 0)}</td>
+        <td className='pv2 ph3 tl w-10 pointer truncate size-cell' onClick={() => viewLink(value.Name)}>{formatSize(value)}</td>
       </tr>
     </>
   )
