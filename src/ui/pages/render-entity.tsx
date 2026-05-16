@@ -201,7 +201,7 @@ function UnixFSDirectory ({ cid, ipfsPath, directory }: UnixFSDirectoryProps): R
           {
             [...Object.entries(directory.Links)].map(([key, value], index) => {
               return (
-                <UnixFSDirectoryRow key={`prop-${index}`} ipfsPath={ipfsPath} value={value} viewLink={viewLink} />
+                <UnixFSDirectoryRow key={`prop-${index}`} ipfsPath={ipfsPath} value={value} index={index} viewLink={viewLink} />
               )
             })
           }
@@ -215,14 +215,15 @@ interface UnixFSDirectoryRowProps {
   viewLink(name?: string): void
   ipfsPath: string
   value: dagPb.PBLink
+  index: number
 }
 
-function UnixFSDirectoryRow ({ viewLink, ipfsPath, value }: UnixFSDirectoryRowProps): ReactElement {
+function UnixFSDirectoryRow ({ viewLink, ipfsPath, value, index }: UnixFSDirectoryRowProps): ReactElement {
   return (
     <>
       <tr
         className='striped--entity-props striped--entity-props-hover'
-        id={`row-${value.Hash.toV1()}`}
+        id={`row-${value.Hash.toV1()}-${index}`}
         onClick={() => viewLink(value.Name)}
       >
         <td className='pv2 ph3 tl pointer icon-cell' style={{ width: 50 }} onClick={() => viewLink(value.Name)}><FaRegFile /></td>
