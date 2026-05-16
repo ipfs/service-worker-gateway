@@ -37,7 +37,10 @@ export function createLink ({ ipfsPath, params, hash }: CreateLinkOptions): stri
   }
 
   const [,, cid, ...rest] = ipfsPath.split('/')
-  const path = '/' + rest.filter(segment => segment.trim() !== '').join('/')
+  const path = '/' + rest
+    .filter(segment => segment.trim() !== '')
+    .map(segment => encodeURIComponent(segment))
+    .join('/')
 
   const host = (subdomainURL.host.includes('.ipfs.') ? subdomainURL.host.split('.ipfs.') : subdomainURL.host.split('.ipns.'))[1]
 

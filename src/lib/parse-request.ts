@@ -381,12 +381,18 @@ function findMultibaseDecoder (str: string): MultibaseDecoder<string> | undefine
   }
 }
 
+function encodePathComponents (str: string): string {
+  return str.split('/')
+    .map(component => encodeURIComponent(component))
+    .join('/')
+}
+
 export function parseRequest (url: URL | string, root: URL): ResolvableURI {
   if (url instanceof String || typeof url === 'string') {
     if (url.startsWith('/ipfs/')) {
-      url = new URL(`ipfs://${url.substring('/ipfs/'.length)}`)
+      url = new URL(`ipfs://${encodePathComponents(url.substring('/ipfs/'.length))}`)
     } else if (url.startsWith('/ipns/')) {
-      url = new URL(`ipns://${url.substring('/ipns/'.length)}`)
+      url = new URL(`ipns://${encodePathComponents(url.substring('/ipns/'.length))}`)
     } else {
       url = new URL(url)
     }

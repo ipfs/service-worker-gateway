@@ -8,7 +8,7 @@ import { InputSelect } from './input-select.tsx'
 import type { ReactElement, MouseEvent } from 'react'
 
 export interface DownloadFormProps {
-  handleSubmit(e: React.FormEvent): void
+  handleSubmit(e: React.SyntheticEvent): void
   input: string
   setInput(download: string): void
   setSubdomainURL(url: URL): void
