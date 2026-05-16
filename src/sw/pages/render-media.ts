@@ -1,22 +1,10 @@
 import { GENERATED_HTML_CACHE_CONTROL } from '../../constants.ts'
 import { APP_NAME, APP_VERSION, GIT_REVISION } from '../../version.ts'
 import { deriveViewerNames, getMediaTypeInfo } from '../lib/media-viewer-types.ts'
+import { safeDecodeURI } from '../lib/safe-decode-uri.ts'
 import { htmlPage } from './page.ts'
 import type { ContentURI } from '../../lib/parse-request.ts'
 import type { MediaTypeInfo } from '../lib/media-viewer-types.ts'
-
-/**
- * `decodeURI` raises `URIError` on malformed `%`-sequences. Without this
- * guard a stray `%` in a navigation URL turns into a 500 error page; we'd
- * rather render the viewer with the raw header value than blow up.
- */
-function safeDecodeURI (s: string): string {
-  try {
-    return decodeURI(s)
-  } catch {
-    return s
-  }
-}
 
 /**
  * Build the HTML "media viewer" wrapper for top-level navigations to

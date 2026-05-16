@@ -3,6 +3,7 @@ import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
 import { GENERATED_HTML_CACHE_CONTROL } from '../../constants.ts'
 import { headersToObject } from '../../lib/headers-to-object.ts'
 import { APP_NAME, APP_VERSION, GIT_REVISION } from '../../version.ts'
+import { safeDecodeURI } from '../lib/safe-decode-uri.ts'
 import { htmlPage } from './page.ts'
 import type { ContentURI } from '../../lib/parse-request.ts'
 
@@ -20,7 +21,7 @@ export function renderEntityPageResponse (request: ContentURI, headers: Headers,
 
   const props = {
     cid: mergedHeaders.get('x-ipfs-roots')?.split(',').pop() ?? '',
-    ipfsPath: mergedHeaders.get('x-ipfs-path') ?? '',
+    ipfsPath: safeDecodeURI(mergedHeaders.get('x-ipfs-path') ?? ''),
     entity: uint8ArrayToString(new Uint8Array(entity, 0, entity.byteLength), 'base64'),
     contentType,
     request: {
