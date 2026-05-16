@@ -10,6 +10,9 @@ import { loadWithServiceWorker } from './fixtures/load-with-service-worker.ts'
 import { mediaViewerFrame } from './fixtures/media-viewer.ts'
 import { publishDNSLink } from './fixtures/serve/dns-record-cache.ts'
 import type { AddResult, KuboRPCClient } from 'kubo-rpc-client'
+import * as dagPb from '@ipld/dag-pb'
+import { UnixFS } from 'ipfs-unixfs'
+import delay from 'delay'
 
 test.describe('directory-listing', () => {
   let kubo: KuboRPCClient
@@ -46,7 +49,7 @@ test.describe('directory-listing', () => {
     const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${domain}`)
     expect(response.status()).toBe(200)
 
-    await page.click(`#row-${file.cid.toV1()} .name-cell`)
+    await page.click(`#row-${file.cid.toV1()}-0 .name-cell`)
 
     // The media-viewer wrapper (#574) embeds the .txt content in an
     // iframe, so the body text lives inside the wrapper's iframe.
@@ -59,7 +62,7 @@ test.describe('directory-listing', () => {
     expect(response.status()).toBe(200)
 
     const downloadPromise = page.waitForEvent('download')
-    await page.click(`#row-${file.cid.toV1()} .download-block-button`)
+    await page.click(`#row-${file.cid.toV1()}-0 .download-block-button`)
     const download = await downloadPromise
 
     const downloadPath = path.join(os.tmpdir(), download.suggestedFilename())
@@ -72,7 +75,7 @@ test.describe('directory-listing', () => {
     const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${domain}`)
     expect(response.status()).toBe(200)
 
-    await page.click(`#row-${file.cid.toV1()} .view-block-button`)
+    await page.click(`#row-${file.cid.toV1()}-0 .view-block-button`)
 
     await expect(page.getByText('Raw Preview')).toBeVisible()
   })
@@ -81,7 +84,7 @@ test.describe('directory-listing', () => {
     const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${domain}`)
     expect(response.status()).toBe(200)
 
-    await page.click(`#row-${subDir.cid.toV1()}`)
+    await page.click(`#row-${subDir.cid.toV1()}-1`)
     await expect(page.getByText(path.basename(subDirFile.path))).toBeVisible()
   })
 
@@ -89,7 +92,7 @@ test.describe('directory-listing', () => {
     const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${domain}`)
     expect(response.status()).toBe(200)
 
-    await page.click(`#row-${subDir.cid.toV1()}`)
+    await page.click(`#row-${subDir.cid.toV1()}-1`)
     await expect(page.getByText(path.basename(subDirFile.path))).toBeVisible()
 
     await page.click('#to-parent-directory')
@@ -133,8 +136,8 @@ test.describe('directory-listing', () => {
     const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${directory.cid}`)
     expect(response.status()).toBe(200)
 
-    await expect(page.locator(`#row-${file.cid.toV1()} .name-cell`)).toContainText(fileName)
-    await page.click(`#row-${file.cid.toV1()} .name-cell`)
+    await expect(page.locator(`#row-${file.cid.toV1()}-0 .name-cell`)).toContainText(fileName)
+    await page.click(`#row-${file.cid.toV1()}-0 .name-cell`)
 
     await expect(mediaViewerFrame(page).getByText('hello world')).toBeVisible()
     await expect(page.locator('.display-name')).toContainText(fileName)
@@ -155,7 +158,7 @@ test.describe('directory-listing', () => {
     expect(response.status()).toBe(200)
 
     const downloadPromise = page.waitForEvent('download')
-    await page.click(`#row-${file.cid.toV1()} .download-block-button`)
+    await page.click(`#row-${file.cid.toV1()}-0 .download-block-button`)
     const download = await downloadPromise
 
     const downloadPath = path.join(os.tmpdir(), download.suggestedFilename())
@@ -178,8 +181,38 @@ test.describe('directory-listing', () => {
     const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${directory.cid}`)
     expect(response.status()).toBe(200)
 
-    await page.click(`#row-${file.cid.toV1()} .view-block-button`)
+    await page.click(`#row-${file.cid.toV1()}-0 .view-block-button`)
 
     await expect(page.getByText('Raw Preview')).toBeVisible()
+  })
+
+  test('should list the contents of a HAMT sharded directory', async ({ page, baseURL }) => {
+    const files = new Array(2_000).fill(0).map((_, index) => ({
+      path: `/${new Array(100).fill('a').join('')}-${index}.txt`,
+      content: uint8ArrayFromString('hello world\n')
+    }))
+
+    const results = await all(kubo.addAll(files, {
+      wrapWithDirectory: true,
+      rawLeaves: true
+    }))
+
+    const directory = results[results.length - 1]
+
+    const block = await kubo.block.get(directory.cid)
+    const dag = dagPb.decode(block)
+    const unixfs = UnixFS.unmarshal(dag.Data!)
+
+    // ensure is shard
+    await expect(unixfs.type).toBe('hamt-sharded-directory')
+
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${directory.cid}`)
+    expect(response.status()).toBe(200)
+
+    // should contain translated filename
+    await expect(page.locator(`#row-bafkreifjjcie6lypi6ny7amxnfftagclbuxndqonfipmb64f2km2devei4-0 .name-cell`)).toContainText('aaaaaaaaaaaaaaaa')
+
+    // should not contain sharded filename
+    await expect(page.locator(`#row-bafkreifjjcie6lypi6ny7amxnfftagclbuxndqonfipmb64f2km2devei4-0 .name-cell`)).not.toContainText('01aaaaaaaaaaaaaaaa')
   })
 })
