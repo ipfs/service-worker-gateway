@@ -1,6 +1,8 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import * as dagPb from '@ipld/dag-pb'
+import { UnixFS } from 'ipfs-unixfs'
 import all from 'it-all'
 import { createKuboRPCClient } from 'kubo-rpc-client'
 import { equals as uint8ArrayEquals } from 'uint8arrays/equals'
@@ -10,9 +12,6 @@ import { loadWithServiceWorker } from './fixtures/load-with-service-worker.ts'
 import { mediaViewerFrame } from './fixtures/media-viewer.ts'
 import { publishDNSLink } from './fixtures/serve/dns-record-cache.ts'
 import type { AddResult, KuboRPCClient } from 'kubo-rpc-client'
-import * as dagPb from '@ipld/dag-pb'
-import { UnixFS } from 'ipfs-unixfs'
-import delay from 'delay'
 
 test.describe('directory-listing', () => {
   let kubo: KuboRPCClient
@@ -204,15 +203,15 @@ test.describe('directory-listing', () => {
     const unixfs = UnixFS.unmarshal(dag.Data!)
 
     // ensure is shard
-    await expect(unixfs.type).toBe('hamt-sharded-directory')
+    expect(unixfs.type).toBe('hamt-sharded-directory')
 
     const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${directory.cid}`)
     expect(response.status()).toBe(200)
 
-    // should contain translated filename
-    await expect(page.locator(`#row-bafkreifjjcie6lypi6ny7amxnfftagclbuxndqonfipmb64f2km2devei4-0 .name-cell`)).toContainText('aaaaaaaaaaaaaaaa')
+    // should contain translat --ed filename
+    await expect(page.locator('#row-bafkreifjjcie6lypi6ny7amxnfftagclbuxndqonfipmb64f2km2devei4-0 .name-cell')).toContainText('aaaaaaaaaaaaaaaa')
 
     // should not contain sharded filename
-    await expect(page.locator(`#row-bafkreifjjcie6lypi6ny7amxnfftagclbuxndqonfipmb64f2km2devei4-0 .name-cell`)).not.toContainText('01aaaaaaaaaaaaaaaa')
+    await expect(page.locator('#row-bafkreifjjcie6lypi6ny7amxnfftagclbuxndqonfipmb64f2km2devei4-0 .name-cell')).not.toContainText('01aaaaaaaaaaaaaaaa')
   })
 })
