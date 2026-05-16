@@ -168,7 +168,7 @@ function UnixFSDirectory ({ cid, ipfsPath, directory }: UnixFSDirectoryProps): R
   function viewLink (name: string): void {
     const url = new URL(window.location.href)
 
-    window.location.href = `${url.protocol}//${url.host}${url.pathname}${encodeURI(name)}${url.search}${url.hash}`
+    window.location.href = `${url.protocol}//${url.host}${url.pathname}${encodeURIComponent(name)}${url.search}${url.hash}`
   }
 
   const linkParts = ipfsPath.split('/')
