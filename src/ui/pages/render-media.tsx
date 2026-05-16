@@ -69,9 +69,9 @@ export function RenderMediaPage (): ReactElement {
       <header className='flex items-center bg-navy white ph3 sans-serif f6' style={topBarStyle}>
         <a href={toGatewayRoot('/')} className='white no-underline b' title='IPFS Service Worker Gateway'>ipfs</a>
         <span className='mh2 white-50'>{'\u25b8'}</span>
-        <span className='truncate b' title={props.displayName}>{props.displayName}</span>
+        <span className='truncate b display-name' title={props.displayName}>{props.displayName}</span>
         <span className='mh2 white-50'>{'\u25b8'}</span>
-        <span className='white-70 truncate'>{props.contentType}</span>
+        <span className='white-70 truncate content-type'>{props.contentType}</span>
         {sizeLabel != null && (
           <>
             <span className='mh2 white-50'>{'\u2022'}</span>

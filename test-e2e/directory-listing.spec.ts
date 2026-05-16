@@ -118,4 +118,25 @@ test.describe('directory-listing', () => {
 
     await expect(page.getByText('Raw Preview')).toBeVisible()
   })
+
+  test('should follow link for file with special characters in the name', async ({ page, baseURL }) => {
+    const fileName = 'h#e£l%l?o@-:w~o`rld.txt'
+
+    ;[file, directory] = await all(kubo.addAll([{
+      path: `/${fileName}`,
+      content: uint8ArrayFromString('hello world\n')
+    }], {
+      wrapWithDirectory: true,
+      rawLeaves: true
+    }))
+
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${directory.cid}`)
+    expect(response.status()).toBe(200)
+
+    await expect(page.locator(`#row-${file.cid} .name-cell`)).toContainText(fileName)
+    await page.click(`#row-${file.cid} .name-cell`)
+
+    await expect(mediaViewerFrame(page).getByText('hello world')).toBeVisible()
+    await expect(page.locator('.display-name')).toContainText(fileName)
+  })
 })
