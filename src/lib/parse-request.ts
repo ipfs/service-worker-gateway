@@ -10,6 +10,7 @@ import { base58btc, base58flickr } from 'multiformats/bases/base58'
 import { base64, base64pad, base64url, base64urlpad } from 'multiformats/bases/base64'
 import { CID } from 'multiformats/cid'
 import { dnsLinkLabelDecoder, dnsLinkLabelEncoder, isInlinedDnsLink } from './dns-link-labels.ts'
+import { encodePathComponents } from './encode-path-components.ts'
 import type { PeerId } from '@libp2p/interface'
 import type { MultibaseDecoder } from 'multiformats/cid'
 
@@ -379,12 +380,6 @@ function findMultibaseDecoder (str: string): MultibaseDecoder<string> | undefine
   if (str.codePointAt(0) === BASE256_EMOJI_PREFIX_CP) {
     return base256emoji
   }
-}
-
-function encodePathComponents (str: string): string {
-  return str.split('/')
-    .map(component => encodeURIComponent(component))
-    .join('/')
 }
 
 export function parseRequest (url: URL | string, root: URL): ResolvableURI {
