@@ -14,6 +14,7 @@
     "build": "node --experimental-strip-types build.js && go build -o service-worker-gateway main.go",
     "build:test": "cross-env NODE_ENV=test npm run build",
     "start": "cross-env NODE_ENV=development node --experimental-strip-types ./serve.ts --load-fixtures --watch",
+    "debug:ens": "cross-env NODE_ENV=development node --experimental-strip-types ./debug-ens.ts",
     "test": "cross-env NODE_ENV=test aegir test -- --experimental-strip-types",
     "test:chrome": "npm run build:test && playwright test -c playwright.config.js --project chromium",
     "test:firefox": "npm run build:test && playwright test -c playwright.config.js --project firefox no-service-worker",
