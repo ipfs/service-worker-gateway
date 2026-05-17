@@ -15,5 +15,14 @@ export const config: Config = {
   },
   fetchTimeout: 1_000,
   serviceWorkerTTL: 86_400_000,
-  debug: '*,*:trace'
+  debug: '*,*:trace',
+  ens: {
+    // Pointed at the local test fixture server
+    primaryRpc: 'http://127.0.0.1:3336',
+    witnessRpcs: [
+      'http://127.0.0.1:3337',
+      'http://127.0.0.1:3338'
+    ],
+    maxSafeBlockAgeMs: 60 * 60 * 24 * 365 * 1_000 // never stale in tests
+  }
 }

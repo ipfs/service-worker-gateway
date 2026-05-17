@@ -12,6 +12,7 @@
   },
   "include": [
     "src",
+    "packages/gateway-url-helper/src",
     "types",
     "test",
     "test-conformance",

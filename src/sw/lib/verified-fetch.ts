@@ -23,6 +23,7 @@ import { sha1 } from 'multiformats/hashes/sha1'
 import { config } from '../../config/index.ts'
 import { collectingLogger } from '../../lib/collecting-logger.ts'
 import { blake3 } from './blake3.ts'
+import { createEnsDnsResolver } from './ens-resolver.ts'
 import type { VerifiedFetch } from '@helia/verified-fetch'
 import type { Libp2pOptions } from 'libp2p'
 
@@ -81,6 +82,8 @@ export async function updateVerifiedFetch (): Promise<void> {
   const logger = collectingLogger()
 
   const resolvers: Record<string, any> = {}
+
+  resolvers.eth = createEnsDnsResolver()
 
   for (const [key, resolver] of Object.entries(config.dnsResolvers)) {
     resolvers[key] = Array.isArray(resolver) ? resolver.map(r => dnsJsonOverHttps(r)) : dnsJsonOverHttps(resolver)
