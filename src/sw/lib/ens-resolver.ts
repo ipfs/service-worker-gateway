@@ -16,6 +16,8 @@ import {
   createQuorumTrustedBlockSelector,
   createVerifiedTransport
 } from '@ipshipyard/verified-eth-provider'
+import { config } from '../../config/index.ts'
+import { getSwLogger } from '../../lib/logger.ts'
 import type {
   TrustedBlock,
   TrustedBlockProvider,
@@ -23,8 +25,6 @@ import type {
 } from '@ipshipyard/verified-eth-provider'
 import type { DNSResponse, QueryOptions, RecordType } from '@multiformats/dns'
 import type { DNSResolver } from '@multiformats/dns/resolvers'
-import { config } from '../../config/index.ts'
-import { getSwLogger } from '../../lib/logger.ts'
 
 const log = getSwLogger('ens-resolver')
 const ENS_DNSLINK_TTL_SECONDS = 60

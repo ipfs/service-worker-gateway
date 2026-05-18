@@ -42,7 +42,6 @@
     "@chainsafe/is-ip": "^2.1.0",
     "@chainsafe/libp2p-noise": "^17.0.0",
     "@chainsafe/libp2p-yamux": "^8.0.1",
-    "@ensdomains/content-hash": "^3.0.0",
     "@ensdomains/ensjs": "^4.2.2",
     "@helia/block-brokers": "^5.2.1",
     "@helia/delegated-routing-v1-http-api-client": "^6.0.1",
