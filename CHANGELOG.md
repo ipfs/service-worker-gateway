@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.4.1](https://github.com/ipfs/service-worker-gateway/compare/v3.4.0...v3.4.1) (2026-05-18)
+
+
+### Bug Fixes
+
+* set up go before node ([#1076](https://github.com/ipfs/service-worker-gateway/issues/1076)) ([c94c120](https://github.com/ipfs/service-worker-gateway/commit/c94c1203944f3688085bff4234bb57b87ab03963))
+
 ## [3.4.0](https://github.com/ipfs/service-worker-gateway/compare/v3.3.1...v3.4.0) (2026-05-16)
 
 
