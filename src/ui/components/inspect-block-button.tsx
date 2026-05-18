@@ -3,13 +3,13 @@ import { createLink } from '../utils/links.ts'
 import { IconButton } from './icon-button.tsx'
 import type { PropsWithChildren, ReactElement } from 'react'
 
-export interface ViewRawBlockButtonProps extends PropsWithChildren {
+export interface InspectBlockButtonProps extends PropsWithChildren {
   ipfsPath: string
   className?: string
 }
 
-export function ViewBlockButton ({ ipfsPath, children, className }: ViewRawBlockButtonProps): ReactElement {
-  function viewBlock (evt: MouseEvent): void {
+export function InspectBlockButton ({ ipfsPath, children, className }: InspectBlockButtonProps): ReactElement {
+  function inspectBlock (evt: MouseEvent): void {
     evt.preventDefault()
     evt.stopPropagation()
 
@@ -23,7 +23,7 @@ export function ViewBlockButton ({ ipfsPath, children, className }: ViewRawBlock
   }
 
   return (
-    <IconButton className={className} onClick={viewBlock} title='View block'>
+    <IconButton className={className} onClick={inspectBlock} title='Inspect block'>
       {children}
     </IconButton>
   )
