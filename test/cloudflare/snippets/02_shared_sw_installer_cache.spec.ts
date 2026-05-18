@@ -147,7 +147,7 @@ describe('02_shared_sw_installer_cache', () => {
     })
 
     it('rewrites HEAD to HEAD "/" and shares the GET cache key', async () => {
-      const { request: gReq, cf: gCf } = await callHandler('https://bafyxxx.ipfs.inbrowser.dev/page')
+      const { cf: gCf } = await callHandler('https://bafyxxx.ipfs.inbrowser.dev/page')
       const { request: hReq, cf: hCf } = await callHandler('https://bafyxxx.ipfs.inbrowser.dev/page', { method: 'HEAD' })
       expect(hReq!.method).to.equal('HEAD')
       expect(hReq!.url).to.equal('https://bafyxxx.ipfs.inbrowser.dev/')
