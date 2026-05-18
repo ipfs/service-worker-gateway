@@ -84,11 +84,16 @@ describe('02_shared_sw_installer_cache', () => {
       expect(cf.cacheTtlByStatus['300-599']).to.equal(0)
     })
 
-    it('forwards the original request unchanged', async () => {
+    it('forwards URL and method unchanged', async () => {
       const { request } = await callHandler('https://inbrowser.dev/ipfs-sw-main.js')
       expect(request).to.not.equal(null)
       expect(request!.url).to.equal('https://inbrowser.dev/ipfs-sw-main.js')
       expect(request!.method).to.equal('GET')
+    })
+
+    it('uses redirect: manual so an origin 3xx cannot poison the asset cache key', async () => {
+      const { request } = await callHandler('https://inbrowser.dev/ipfs-sw-main.js')
+      expect(request!.redirect).to.equal('manual')
     })
   })
 

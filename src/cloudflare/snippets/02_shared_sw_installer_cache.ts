@@ -56,7 +56,15 @@ export default {
       const baseDomain = url.hostname.split('.').slice(-2).join('.')
       const cacheKey = `https://${baseDomain}${url.pathname}`
 
-      return fetch(request, {
+      // redirect: manual matches the installer branch. With the
+      // default redirect: follow, an origin 3xx on an asset path
+      // would be followed and the target's 2xx body would land in
+      // cache under the asset cacheKey, serving wrong content.
+      // cacheTtlByStatus 300-599: 0 only drops the 3xx itself,
+      // not the followed 2xx.
+      const assetReq = new Request(request, { redirect: 'manual' })
+
+      return fetch(assetReq, {
         cf: {
           cacheEverything: true,
           cacheKey,
