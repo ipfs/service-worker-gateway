@@ -17,12 +17,50 @@
 // HTML and versioned JS/CSS share the same TTL on purpose: a stale HTML
 // entry referencing fresh JS (or vice versa) could mismatch and break
 // the installer.
+//
+// Cache hardening: cache only 2xx. The origin _redirects rule rewrites
+// every SPA route to a 200, so any 3xx, 4xx, or 5xx response here is
+// anomalous. The 4xx/5xx exclusion also keeps Cloudflare's own Managed
+// Challenge response (403 with cf-mitigated: challenge) out of the
+// normalized installer cache.
+//
+// Strip __cf_* query params at the edge: after a visitor passes a Managed
+// Challenge, Cloudflare lands them on a URL carrying a single-use token
+// (__cf_chl_tk, __cf_chl_f_tk, __cf_chl_rt_tk). If that token survives
+// into the SW installer reload, Cloudflare sees it replayed and issues a
+// fresh challenge, looping forever. We strip every __cf_* param and 302
+// to the clean URL, so the browser address bar never carries challenge
+// state. The prefix match covers today's names and any future Cloudflare
+// additions in the same namespace.
 
 const EDGE_CACHE_TTL_S = 86400 // 24h
+const CF_QUERY_PARAM_PREFIX = '__cf_'
 
 export default {
   async fetch (request: Request): Promise<Response> {
     const url = new URL(request.url)
+
+    // Strip __cf_* params before any cache lookup so the per-visitor URL
+    // never becomes a cache key and the address bar never persists a
+    // single-use token.
+    let strippedCfParam = false
+    for (const key of [...url.searchParams.keys()]) {
+      if (key.startsWith(CF_QUERY_PARAM_PREFIX)) {
+        url.searchParams.delete(key)
+        strippedCfParam = true
+      }
+    }
+    if (strippedCfParam) {
+      return new Response(null, {
+        status: 302,
+        headers: {
+          Location: url.toString(),
+          // The source URL holds a single-use, per-visitor token. Do not
+          // cache the redirect anywhere.
+          'Cache-Control': 'no-store'
+        }
+      })
+    }
 
     if (url.pathname.startsWith('/ipfs-sw-')) {
       const baseDomain = url.hostname.split('.').slice(-2).join('.')
@@ -49,10 +87,13 @@ export default {
         cacheEverything: true,
         cacheKey,
         cacheTtlByStatus: {
-          '200-399': EDGE_CACHE_TTL_S,
-          // Do not cache errors. A transient failure must not be stuck
-          // in cache for the full TTL.
-          '400-599': 0
+          '200-299': EDGE_CACHE_TTL_S,
+          // Cache only 2xx. Origin returns 200 for every SPA route via
+          // the _redirects rewrite, so 3xx here is anomalous. The
+          // 4xx/5xx exclusion also keeps Cloudflare's Managed Challenge
+          // response (403 with cf-mitigated: challenge) out of this
+          // cache key.
+          '300-599': 0
         }
       }
     })
