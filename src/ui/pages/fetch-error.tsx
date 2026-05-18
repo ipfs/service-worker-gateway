@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import { parseRequest } from '../../lib/parse-request.ts'
-import { isTrustlessGatewayProvider } from '../../lib/providers.ts'
 import { removeRootHashIfPresent } from '../../lib/remove-root-hash.ts'
 import { toGatewayRoot } from '../../lib/to-gateway-root.ts'
 import { Button } from '../components/button.tsx'
