@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { parseRequest } from '../../lib/parse-request.ts'
+import { isTrustlessGatewayProvider } from '../../lib/providers.ts'
 import { removeRootHashIfPresent } from '../../lib/remove-root-hash.ts'
 import { toGatewayRoot } from '../../lib/to-gateway-root.ts'
 import { Button } from '../components/button.tsx'
@@ -214,6 +215,9 @@ export function FetchErrorPage ({ request, response, logs, providers }: FetchErr
     </>
   )
 
+  let showInspectBlock = false
+  let showRetry = false
+
   let message = (
     <>
       <p className='f5 ma3 fw4 db'>An error occurred in the service worker gateway.</p>
@@ -230,6 +234,7 @@ export function FetchErrorPage ({ request, response, logs, providers }: FetchErr
       </>
     )
   } else if (response.status === 501) {
+    showInspectBlock = true
     message = (
       <>
         <p className='f5 ma3 fw4 db'>This gateway encountered content it did not know how to handle.</p>
@@ -241,9 +246,14 @@ export function FetchErrorPage ({ request, response, logs, providers }: FetchErr
     message = (
       <>
         <p className='f5 ma3 fw4 db'>An error occurred while streaming the content.</p>
+        {providers.total === 0
+          ? (
+            <p className='f5 ma3 fw4 db'>This means that no providers with browser-compatible transports were found, and that proxy fallback at trustless-gateway.link failed to to find TCP or QUIC providers.</p>
+            )
+          : ''}
         {providers.total > 0
           ? (
-            <p className='f5 ma3 fw4 db'>This may mean that a recursive gateway claimed to have the content but then failed to actually fetch it on our behalf.</p>
+            <p className='f5 ma3 fw4 db'>This means that one or more providers claimed to have the content but then failed to send the data.</p>
             )
           : ''}
         <Terminal>{response.body}</Terminal>
@@ -252,6 +262,7 @@ export function FetchErrorPage ({ request, response, logs, providers }: FetchErr
       </>
     )
   } else if (response.status === 504) {
+    showRetry = true
     message = (
       <>
         <p className='db pt1 lh-copy ma3'>Fetching your content from the <Link href='https://docs.ipfs.tech/concepts/glossary/#mainnet'>public IPFS network</Link> failed.</p>
@@ -289,15 +300,15 @@ export function FetchErrorPage ({ request, response, logs, providers }: FetchErr
   if (showCheckAvailability && cid != null) {
     checkAvailabilityButton = (
       <>
-        <Button className='bg-navy-muted' onClick={() => checkAvailability(cid)}>Check CID availability</Button>
+        <Button className='bg-teal' onClick={() => checkAvailability(cid)}>Check CID availability</Button>
       </>
     )
   }
 
-  let viewRawBlockButton = <></>
+  let inspectBlockButton = <></>
 
-  if (viewRawBlockButton && cid != null) {
-    viewRawBlockButton = (
+  if (inspectBlockButton && cid != null && showInspectBlock) {
+    inspectBlockButton = (
       <>
         <Button
           className='bg-navy-muted' onClick={(evt: MouseEvent) => {
@@ -311,8 +322,18 @@ export function FetchErrorPage ({ request, response, logs, providers }: FetchErr
               }
             })
           }}
-        >View raw block
+        >Inspect block
         </Button>
+      </>
+    )
+  }
+
+  let retryButton = <></>
+
+  if (showRetry) {
+    retryButton = (
+      <>
+        <Button className='bg-navy-muted' onClick={retry}>Retry</Button>
       </>
     )
   }
@@ -323,11 +344,11 @@ export function FetchErrorPage ({ request, response, logs, providers }: FetchErr
         <>
           {message}
           <p className='ma3'>
-            <Button className='bg-teal' onClick={retry}>Retry</Button>
+            {checkAvailabilityButton}
+            {retryButton}
             <Button className='bg-navy-muted' onClick={goBack}>Go back</Button>
             <Button className='bg-navy-muted' onClick={toggleDebugInfo}>{showDebugInfo ? 'Hide' : 'Show'} debug info</Button>
-            {checkAvailabilityButton}
-            {viewRawBlockButton}
+            {inspectBlockButton}
           </p>
           {showDebugInfo && <DebugInfo request={request} response={response} logs={logs} />}
         </>
