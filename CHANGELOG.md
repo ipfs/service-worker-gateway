@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.4.2](https://github.com/ipfs/service-worker-gateway/compare/v3.4.1...v3.4.2) (2026-05-18)
+
+
+### Bug Fixes
+
+* improve 502 error messaging ([#1078](https://github.com/ipfs/service-worker-gateway/issues/1078)) ([73210cd](https://github.com/ipfs/service-worker-gateway/commit/73210cdfa3ae13bb354296ac183b402aa0e78603)), closes [#1070](https://github.com/ipfs/service-worker-gateway/issues/1070)
+* make download block button download dag ([#1079](https://github.com/ipfs/service-worker-gateway/issues/1079)) ([bd318ec](https://github.com/ipfs/service-worker-gateway/commit/bd318ec7eefd4b7be58e7d2512b72470f0611cc6))
+
 ## [3.4.1](https://github.com/ipfs/service-worker-gateway/compare/v3.4.0...v3.4.1) (2026-05-18)
 
 
