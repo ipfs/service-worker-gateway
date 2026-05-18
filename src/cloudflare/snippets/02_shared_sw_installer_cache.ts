@@ -70,6 +70,8 @@ export default {
           cacheKey,
           cacheTtlByStatus: {
             '200-299': EDGE_CACHE_TTL_S,
+            // Do not cache errors. A transient failure must not be stuck
+            // in cache for the full TTL.
             '300-599': 0
           }
         }
@@ -103,6 +105,8 @@ export default {
         cacheKey: `https://${url.hostname}/__sw_installer_html`,
         cacheTtlByStatus: {
           '200-299': EDGE_CACHE_TTL_S,
+          // Do not cache errors. A transient failure must not be stuck
+          // in cache for the full TTL.
           '300-599': 0
         }
       }
