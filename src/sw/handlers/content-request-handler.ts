@@ -6,7 +6,7 @@ import { CURRENT_CACHES } from '../../constants.ts'
 import { errorToObject } from '../../lib/error-to-object.ts'
 import { getSubdomainParts } from '../../lib/get-subdomain-parts.ts'
 import { getSwLogger } from '../../lib/logger.ts'
-import { isBitswapProvider, isTrustlessGatewayProvider } from '../../lib/providers.ts'
+import { isBitswapProvider, isFallbackTrustlessGatewayProvider, isTrustlessGatewayProvider } from '../../lib/providers.ts'
 import { getInstallTime } from '../lib/install-time.ts'
 import { sniffRawContentType } from '../lib/sniff-raw-content-type.ts'
 import { getVerifiedFetch } from '../lib/verified-fetch.ts'
@@ -216,7 +216,11 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
     redirect: 'manual',
     onProgress: (evt) => {
       if (evt.type.endsWith(':found-provider')) {
-        providers.total++
+        if (isFallbackTrustlessGatewayProvider(evt.detail)) {
+          // do not include fallback trustless gateways in provider list since
+          // they aren't really providers in the IPFS sense
+          return
+        }
 
         log('got found-provider event %s %j', evt.type, evt.detail)
 
