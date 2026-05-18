@@ -4,9 +4,12 @@ import { CarReader } from '@ipld/car'
 import { unmarshalIPNSRecord } from 'ipns'
 import all from 'it-all'
 import toBuffer from 'it-to-buffer'
+import { createKuboRPCClient } from 'kubo-rpc-client'
 import { CID } from 'multiformats/cid'
 import * as tar from 'tar'
+import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { test, expect } from './fixtures/config-test-fixtures.ts'
+import type { KuboRPCClient } from 'kubo-rpc-client'
 import type { Download, Page, Response } from 'playwright'
 
 export function captureDownloadResponse (page: Page, cid: string, host: string): Promise<Response> {
@@ -35,6 +38,15 @@ export function captureDownloadResponse (page: Page, cid: string, host: string):
 
 test.describe('download form', () => {
   let download: Download
+  let kubo: KuboRPCClient
+
+  test.beforeEach(async () => {
+    if (process.env.KUBO_GATEWAY == null || process.env.KUBO_GATEWAY === '') {
+      throw new Error('KUBO_GATEWAY not set')
+    }
+
+    kubo = createKuboRPCClient(process.env.KUBO_RPC)
+  })
 
   test.afterEach(async () => {
     try {
@@ -603,6 +615,32 @@ test.describe('download form', () => {
     await page.fill('#inputContent', '/ipfs/bafkqaddimvwgy3zao5xxe3debi')
     await page.reload()
 
+    await page.click('#show-advanced')
+    await page.selectOption('#download', 'true')
+    await page.click('#load-directly')
+
+    download = await downloadPromise
+
+    const file = await fsp.readFile(await download.path(), {
+      encoding: 'utf-8'
+    })
+
+    expect(file).toBe('hello world\n')
+  })
+
+  test('should download file with special characters in the name', async ({ page }) => {
+    const fileName = 'h#e£l%l?o@-:w~o`rld.txt'
+    const [, directory] = await all(kubo.addAll([{
+      path: `/${fileName}`,
+      content: uint8ArrayFromString('hello world\n')
+    }], {
+      wrapWithDirectory: true,
+      rawLeaves: true
+    }))
+
+    const downloadPromise = page.waitForEvent('download')
+
+    await page.fill('#inputContent', `/ipfs/${directory.cid}/${fileName}`)
     await page.click('#show-advanced')
     await page.selectOption('#download', 'true')
     await page.click('#load-directly')

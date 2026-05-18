@@ -168,7 +168,7 @@ function UnixFSDirectory ({ cid, ipfsPath, directory }: UnixFSDirectoryProps): R
   function viewLink (name: string): void {
     const url = new URL(window.location.href)
 
-    window.location.href = `${url.protocol}//${url.host}${url.pathname}${encodeURI(name)}${url.search}${url.hash}`
+    window.location.href = `${url.protocol}//${url.host}${url.pathname}${encodeURIComponent(name)}${url.search}${url.hash}`
   }
 
   const linkParts = ipfsPath.split('/')
@@ -201,7 +201,7 @@ function UnixFSDirectory ({ cid, ipfsPath, directory }: UnixFSDirectoryProps): R
           {
             [...Object.entries(directory.Links)].map(([key, value], index) => {
               return (
-                <UnixFSDirectoryRow key={`prop-${index}`} ipfsPath={ipfsPath} value={value} viewLink={viewLink} />
+                <UnixFSDirectoryRow key={`prop-${index}`} ipfsPath={ipfsPath} value={value} index={index} viewLink={viewLink} />
               )
             })
           }
@@ -215,14 +215,23 @@ interface UnixFSDirectoryRowProps {
   viewLink(name?: string): void
   ipfsPath: string
   value: dagPb.PBLink
+  index: number
 }
 
-function UnixFSDirectoryRow ({ viewLink, ipfsPath, value }: UnixFSDirectoryRowProps): ReactElement {
+function formatSize (link: dagPb.PBLink): string {
+  if (link?.Tsize == null) {
+    return ''
+  }
+
+  return prettyBytes(link.Tsize)
+}
+
+function UnixFSDirectoryRow ({ viewLink, ipfsPath, value, index }: UnixFSDirectoryRowProps): ReactElement {
   return (
     <>
       <tr
         className='striped--entity-props striped--entity-props-hover'
-        id={`row-${value.Hash.toV1()}`}
+        id={`row-${value.Hash.toV1()}-${index}`}
         onClick={() => viewLink(value.Name)}
       >
         <td className='pv2 ph3 tl pointer icon-cell' style={{ width: 50 }} onClick={() => viewLink(value.Name)}><FaRegFile /></td>
@@ -231,7 +240,7 @@ function UnixFSDirectoryRow ({ viewLink, ipfsPath, value }: UnixFSDirectoryRowPr
           <code>{value.Hash.toString()}</code>
           <CIDDetails ipfsPath={`/${[ipfsPath, value.Name].join('/').split('/').filter(Boolean).join('/')}`} cid={value.Hash} className='black-40 mt1' buttonClassName='black-40' />
         </td>
-        <td className='pv2 ph3 tl w-10 pointer truncate size-cell' onClick={() => viewLink(value.Name)}>{prettyBytes(value.Tsize ?? 0)}</td>
+        <td className='pv2 ph3 tl w-10 pointer truncate size-cell' onClick={() => viewLink(value.Name)}>{formatSize(value)}</td>
       </tr>
     </>
   )

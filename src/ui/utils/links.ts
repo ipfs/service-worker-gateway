@@ -1,5 +1,6 @@
 import { CID } from 'multiformats/cid'
 import { dnsLinkLabelEncoder } from '../../lib/dns-link-labels.ts'
+import { encodePathComponents } from '../../lib/encode-path-components.ts'
 import { parseRequest } from '../../lib/parse-request-cheap.ts'
 import { createSearch } from '../../lib/query-helpers.ts'
 
@@ -37,7 +38,7 @@ export function createLink ({ ipfsPath, params, hash }: CreateLinkOptions): stri
   }
 
   const [,, cid, ...rest] = ipfsPath.split('/')
-  const path = '/' + rest.filter(segment => segment.trim() !== '').join('/')
+  const path = '/' + encodePathComponents(rest)
 
   const host = (subdomainURL.host.includes('.ipfs.') ? subdomainURL.host.split('.ipfs.') : subdomainURL.host.split('.ipns.'))[1]
 

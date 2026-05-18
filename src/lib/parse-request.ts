@@ -10,6 +10,7 @@ import { base58btc, base58flickr } from 'multiformats/bases/base58'
 import { base64, base64pad, base64url, base64urlpad } from 'multiformats/bases/base64'
 import { CID } from 'multiformats/cid'
 import { dnsLinkLabelDecoder, dnsLinkLabelEncoder, isInlinedDnsLink } from './dns-link-labels.ts'
+import { encodePathComponents } from './encode-path-components.ts'
 import type { PeerId } from '@libp2p/interface'
 import type { MultibaseDecoder } from 'multiformats/cid'
 
@@ -384,9 +385,9 @@ function findMultibaseDecoder (str: string): MultibaseDecoder<string> | undefine
 export function parseRequest (url: URL | string, root: URL): ResolvableURI {
   if (url instanceof String || typeof url === 'string') {
     if (url.startsWith('/ipfs/')) {
-      url = new URL(`ipfs://${url.substring('/ipfs/'.length)}`)
+      url = new URL(`ipfs://${encodePathComponents(url.substring('/ipfs/'.length))}`)
     } else if (url.startsWith('/ipns/')) {
-      url = new URL(`ipns://${url.substring('/ipns/'.length)}`)
+      url = new URL(`ipns://${encodePathComponents(url.substring('/ipns/'.length))}`)
     } else {
       url = new URL(url)
     }

@@ -1,5 +1,29 @@
 # Changelog
 
+## [3.4.1](https://github.com/ipfs/service-worker-gateway/compare/v3.4.0...v3.4.1) (2026-05-18)
+
+
+### Bug Fixes
+
+* set up go before node ([#1076](https://github.com/ipfs/service-worker-gateway/issues/1076)) ([c94c120](https://github.com/ipfs/service-worker-gateway/commit/c94c1203944f3688085bff4234bb57b87ab03963))
+
+## [3.4.0](https://github.com/ipfs/service-worker-gateway/compare/v3.3.1...v3.4.0) (2026-05-16)
+
+
+### Features
+
+* enable webtransport on all supporting browsers ([#1064](https://github.com/ipfs/service-worker-gateway/issues/1064)) ([f0cb785](https://github.com/ipfs/service-worker-gateway/commit/f0cb785ac08780843bbb71eeb484cff7b663d241))
+
+
+### Bug Fixes
+
+* display translated hamt shard entries ([#1074](https://github.com/ipfs/service-worker-gateway/issues/1074)) ([16b8cf4](https://github.com/ipfs/service-worker-gateway/commit/16b8cf45d926e149d3efbb2624c123bbd3e9403e)), closes [#1066](https://github.com/ipfs/service-worker-gateway/issues/1066)
+* encode filename in url as uri component ([#1071](https://github.com/ipfs/service-worker-gateway/issues/1071)) ([25ee418](https://github.com/ipfs/service-worker-gateway/commit/25ee4183a0f467258200cbc3d9f446b971f72f58))
+* escape download form input and block download/preview links ([#1073](https://github.com/ipfs/service-worker-gateway/issues/1073)) ([9172fe2](https://github.com/ipfs/service-worker-gateway/commit/9172fe2d8506e89410f82c894de659f4c7e093ae))
+* only show size if defined ([6300c2b](https://github.com/ipfs/service-worker-gateway/commit/6300c2b8f736b1ed2e737b758b06cca869c974fc))
+* share edge cache across SPA paths per subdomain ([#1061](https://github.com/ipfs/service-worker-gateway/issues/1061)) ([cbd5cd6](https://github.com/ipfs/service-worker-gateway/commit/cbd5cd606f7d30ee34061758956b71604e97fabc))
+* use ipfs path as title of dir listing ([#1049](https://github.com/ipfs/service-worker-gateway/issues/1049)) ([60ee8f7](https://github.com/ipfs/service-worker-gateway/commit/60ee8f7d2ebbf1d9176a01e03e55a48afb2b9d95))
+
 ## [3.3.1](https://github.com/ipfs/service-worker-gateway/compare/v3.3.0...v3.3.1) (2026-05-11)
 
 

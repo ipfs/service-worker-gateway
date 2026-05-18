@@ -218,7 +218,7 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
       if (evt.type.endsWith(':found-provider')) {
         providers.total++
 
-        log('got found-provider event %s %j %e', evt.type, evt.detail, new Error('where'))
+        log('got found-provider event %s %j', evt.type, evt.detail)
 
         if (isBitswapProvider(evt.detail)) {
           providers.providers.push({
