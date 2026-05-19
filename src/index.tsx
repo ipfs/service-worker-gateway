@@ -255,8 +255,19 @@ function tooManyRedirects (storageKey: string, maxRedirects = 5, period = 5_000)
  */
 function showUIAfterDelay (request: ResolvableURI): void {
   setTimeout(() => {
+    let cid: string | undefined
+
+    if (request.type === 'native' && request.protocol === 'ipfs') {
+      cid = request.nativeURL.hostname
+    } else if (request.type === 'path' && request.protocol === 'ipfs') {
+      cid = request.pathURL.pathname.split('/')[2]
+    } else if (request.type === 'subdomain' && request.protocol === 'ipfs') {
+      cid = request.subdomainURL.hostname.split('.ipfs.')[0]
+    }
+
     globalThis.downloadingPage = {
-      request
+      request,
+      cid
     }
 
     renderUi()

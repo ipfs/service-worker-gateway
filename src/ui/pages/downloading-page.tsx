@@ -9,21 +9,38 @@ import type { ReactElement } from 'react'
 declare global {
   var downloadingPage: {
     request: ResolvableURI
+    cid?: string
   }
+}
+
+function checkAvailability (cid: string): void {
+  window.open(`https://check.ipfs.network/?cid=${cid}`)
 }
 
 export interface DownloadingPageProps {
   request?: ResolvableURI
+  cid?: string
 }
 
-export function DownloadingPage ({ request }: DownloadingPageProps): ReactElement {
+export function DownloadingPage ({ request, cid }: DownloadingPageProps): ReactElement {
   request = request ?? globalThis.downloadingPage?.request
+  cid = cid ?? globalThis.downloadingPage?.cid
 
   if (request == null) {
     globalThis.location.href = toGatewayRoot('/')
 
     return (
       <></>
+    )
+  }
+
+  let checkAvailabilityButton = <></>
+
+  if (cid != null) {
+    checkAvailabilityButton = (
+      <>
+        <Button className='bg-teal' onClick={() => checkAvailability(cid)}>Check CID availability</Button>
+      </>
     )
   }
 
@@ -43,7 +60,8 @@ export function DownloadingPage ({ request }: DownloadingPageProps): ReactElemen
         <>
           <p className='f5 ma3 fw4 db'>Your download should begin shortly. If it does not, please retry.</p>
           <p className='ma3'>
-            <Button className='bg-teal' onClick={retry}>Retry</Button>
+            {checkAvailabilityButton}
+            <Button className={cid == null ? 'bg-teal' : 'bg-navy-muted'} onClick={retry}>Retry</Button>
           </p>
         </>
       </ContentBox>
