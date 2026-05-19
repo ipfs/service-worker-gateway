@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.4.3](https://github.com/ipfs/service-worker-gateway/compare/v3.4.2...v3.4.3) (2026-05-19)
+
+
+### Bug Fixes
+
+* show "Check CID Availability" button on downloading page ([#1085](https://github.com/ipfs/service-worker-gateway/issues/1085)) ([de23da1](https://github.com/ipfs/service-worker-gateway/commit/de23da167a451eacdd054cd25a09e6b6de926688))
+* **snippets:** installer cache poisoning ([#1081](https://github.com/ipfs/service-worker-gateway/issues/1081)) ([b9ffe7d](https://github.com/ipfs/service-worker-gateway/commit/b9ffe7d45289457bda8982ea9d4e57e17e5052a8))
+
 ## [3.4.2](https://github.com/ipfs/service-worker-gateway/compare/v3.4.1...v3.4.2) (2026-05-18)
 
 
