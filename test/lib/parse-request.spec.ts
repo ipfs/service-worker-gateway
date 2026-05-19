@@ -156,6 +156,20 @@ describe('parse-request', () => {
         nativeURL: new URL(`ipns://${domain}${path}`)
       })
     })
+
+    it('should parse .eth DNSLink as DNSLink protocol', async () => {
+      const domain = 'vitalik.eth'
+      const path = '/about'
+
+      expect(parseRequest(new URL(`http://${dnsLinkLabelEncoder(domain)}.ipns.localhost:3000${path}`), new URL('http://localhost:3000'))).to.deep.equal({
+        protocol: 'dnslink',
+        type: 'subdomain',
+        domain,
+        subdomainURL: new URL(`http://${dnsLinkLabelEncoder(domain)}.ipns.localhost:3000${path}`),
+        pathURL: new URL(`http://localhost:3000/ipns/${domain}${path}`),
+        nativeURL: new URL(`ipns://${domain}${path}`)
+      })
+    })
   })
 
   describe('path gateway requests', () => {

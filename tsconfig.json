@@ -12,6 +12,7 @@
   },
   "include": [
     "src",
+    "packages/gateway-url-helper/src",
     "types",
     "test",
     "test-conformance",
@@ -19,6 +20,7 @@
     "test-e2e",
     "playwright.config.js",
     "serve.ts",
+    "debug-ens.ts",
     "cloudflare/snippets/02_shared_sw_installer_cache.js",
     "cloudflare/snippets/01_path_gateway_to_subdomain.js"
   ]
