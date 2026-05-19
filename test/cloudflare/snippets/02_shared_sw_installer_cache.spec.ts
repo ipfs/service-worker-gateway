@@ -1,9 +1,10 @@
-// Tests for 02_shared_sw_installer_cache.js Cloudflare Snippet
-//
-// Run: node cloudflare/snippets/02_shared_sw_installer_cache.test.js
+// Tests for 02_shared_sw_installer_cache.ts Cloudflare Snippet
 //
 // These tests verify caching behavior: cache key normalization for SW assets,
-// TTL differentiation, and Cache-Control passthrough.
+// TTL differentiation, Cache-Control passthrough, and the installer branch
+// upstream rewrite (path → "/", Accept: text/html, redirect: manual,
+// GET/HEAD only) that prevents path-specific origin responses from poisoning
+// the collapsed per-subdomain cache entry.
 
 import { expect } from 'aegir/chai'
 import Sinon from 'sinon'
@@ -12,17 +13,20 @@ import type { SinonSandbox } from 'sinon'
 
 // Captured cf options from the last fetch() call made by the snippet.
 let lastCfOptions = null
+// Captured Request from the last fetch() call (to assert URL/method/headers/redirect).
+let lastRequest: Request | null = null
 // Status code the stubbed origin response will return.
 let stubStatus = 200
 // Headers on the stubbed origin response.
 let stubHeaders = {}
 
-// Helper: call the snippet handler and return { cf, response }.
-async function callHandler (inputUrl: string): Promise<{ cf: any, response: Response }> {
+// Helper: call the snippet handler and return { cf, request, response }.
+async function callHandler (inputUrl: string, init: RequestInit = {}): Promise<{ cf: any, request: Request | null, response: Response }> {
   lastCfOptions = null
-  const response = await handler.fetch(new Request(inputUrl))
+  lastRequest = null
+  const response = await handler.fetch(new Request(inputUrl, init))
 
-  return { cf: lastCfOptions, response }
+  return { cf: lastCfOptions, request: lastRequest, response }
 }
 
 describe('02_shared_sw_installer_cache', () => {
@@ -30,11 +34,13 @@ describe('02_shared_sw_installer_cache', () => {
 
   beforeEach(() => {
     lastCfOptions = null
+    lastRequest = null
     stubStatus = 200
     stubHeaders = {}
 
     sandbox = Sinon.createSandbox()
     sandbox.replace(globalThis, 'fetch', (requestOrUrl, init) => {
+      lastRequest = requestOrUrl instanceof Request ? requestOrUrl : new Request(requestOrUrl as RequestInfo, init)
       lastCfOptions = init?.cf ?? null
       const headers = new Headers(stubHeaders)
       return Promise.resolve(new Response(null, { status: stubStatus, headers }))
@@ -89,6 +95,11 @@ describe('02_shared_sw_installer_cache', () => {
       expect(cf.cacheKey, 'https://inbrowser.dev/ipfs-sw-bundle-abc123.js')
       expect(cf.cacheTtlByStatus['200-299']).to.equal(86400)
     })
+
+    it('uses redirect: manual so an origin 3xx cannot poison the asset cache key', async () => {
+      const { request } = await callHandler('https://inbrowser.dev/ipfs-sw-main.js')
+      expect(request!.redirect).to.equal('manual')
+    })
   })
 
   describe('non-SW paths (per-subdomain installer cache key, 24h TTL)', () => {
@@ -115,14 +126,14 @@ describe('02_shared_sw_installer_cache', () => {
       expect(cfA.cacheKey).to.not.equal(cfB.cacheKey)
     })
 
-    it('uses 24h edge TTL for 200-399', async () => {
+    it('uses 24h edge TTL for 2xx only', async () => {
       const { cf } = await callHandler('https://bafyxxx.ipfs.inbrowser.dev/page')
-      expect(cf.cacheTtlByStatus['200-399']).to.equal(86400)
+      expect(cf.cacheTtlByStatus['200-299']).to.equal(86400)
     })
 
-    it('does not cache 400+ responses at edge', async () => {
+    it('does not cache 3xx, 4xx or 5xx responses at edge', async () => {
       const { cf } = await callHandler('https://bafyxxx.ipfs.inbrowser.dev/')
-      expect(cf.cacheTtlByStatus['400-599']).to.equal(0)
+      expect(cf.cacheTtlByStatus['300-599']).to.equal(0)
     })
 
     it('does not override Cache-Control for 200 responses', async () => {
@@ -142,7 +153,7 @@ describe('02_shared_sw_installer_cache', () => {
     it('uses per-subdomain cache key on .ipns. subdomain', async () => {
       const { cf } = await callHandler('https://en-wikipedia--on--ipfs-org.ipns.inbrowser.dev/wiki/')
       expect(cf.cacheKey).to.equal('https://en-wikipedia--on--ipfs-org.ipns.inbrowser.dev/__sw_installer_html')
-      expect(cf.cacheTtlByStatus['200-399']).to.equal(86400)
+      expect(cf.cacheTtlByStatus['200-299']).to.equal(86400)
     })
 
     it('does not override Cache-Control for 301 responses', async () => {
@@ -158,19 +169,65 @@ describe('02_shared_sw_installer_cache', () => {
       const { response } = await callHandler('https://bafyxxx.ipfs.inbrowser.dev/')
       expect(response.headers.get('Cache-Control')).to.equal('no-store')
     })
+
+    // The next block covers the cache-poisoning fix: the upstream fetch
+    // must be rewritten so a path-specific origin response (e.g. a 308
+    // redirect) cannot be pinned under the per-subdomain cache key.
+
+    it('rewrites the upstream URL to "/" regardless of requested path', async () => {
+      const { request } = await callHandler('https://bafyxxx.ipfs.inbrowser.dev/wiki/Anything?q=1')
+      expect(request!.url).to.equal('https://bafyxxx.ipfs.inbrowser.dev/')
+    })
+
+    it('sets Accept: text/html on the upstream fetch', async () => {
+      const { request } = await callHandler('https://bafyxxx.ipfs.inbrowser.dev/page')
+      expect(request!.headers.get('Accept')).to.equal('text/html')
+    })
+
+    it('uses redirect: manual so an origin 3xx cannot poison the installer cache key', async () => {
+      const { request } = await callHandler('https://bafyxxx.ipfs.inbrowser.dev/page')
+      expect(request!.redirect).to.equal('manual')
+    })
+
+    it('preserves :port when rewriting to "/"', async () => {
+      const { request } = await callHandler('https://bafyxxx.ipfs.inbrowser.dev:8443/anything')
+      expect(request!.url).to.equal('https://bafyxxx.ipfs.inbrowser.dev:8443/')
+    })
+
+    it('rewrites HEAD to HEAD "/" and shares the GET cache key', async () => {
+      const { cf: gCf } = await callHandler('https://bafyxxx.ipfs.inbrowser.dev/page')
+      const { request: hReq, cf: hCf } = await callHandler('https://bafyxxx.ipfs.inbrowser.dev/page', { method: 'HEAD' })
+      expect(hReq!.method).to.equal('HEAD')
+      expect(hReq!.url).to.equal('https://bafyxxx.ipfs.inbrowser.dev/')
+      expect(hCf.cacheKey).to.equal(gCf.cacheKey)
+    })
+
+    it('passes POST through untouched (no rewrite, no snippet cache options)', async () => {
+      const { request, cf } = await callHandler('https://bafyxxx.ipfs.inbrowser.dev/anything', { method: 'POST' })
+      expect(request!.method).to.equal('POST')
+      expect(request!.url).to.equal('https://bafyxxx.ipfs.inbrowser.dev/anything')
+      expect(cf).to.equal(null)
+    })
+
+    it('passes OPTIONS through untouched (CORS preflight survives)', async () => {
+      const { request, cf } = await callHandler('https://bafyxxx.ipfs.inbrowser.dev/api', { method: 'OPTIONS' })
+      expect(request!.method).to.equal('OPTIONS')
+      expect(request!.url).to.equal('https://bafyxxx.ipfs.inbrowser.dev/api')
+      expect(cf).to.equal(null)
+    })
   })
 
   describe('cacheTtlByStatus key guards', () => {
     it('cacheTtlByStatus keys are defined (not undefined)', async () => {
       const { cf } = await callHandler('https://bafyxxx.ipfs.inbrowser.dev/page')
-      expect(cf.cacheTtlByStatus['200-399']).to.not.equal(undefined, 'expected 200-399 key to be defined')
-      expect(cf.cacheTtlByStatus['400-599']).to.not.equal(undefined, 'expected 400-599 key to be defined')
+      expect(cf.cacheTtlByStatus['200-299']).to.not.equal(undefined, 'expected 200-299 key to be defined')
+      expect(cf.cacheTtlByStatus['300-599']).to.not.equal(undefined, 'expected 300-599 key to be defined')
     })
 
     it('HTML and versioned SW asset TTLs match (avoid HTML-JS skew)', async () => {
       const { cf: cfHtml } = await callHandler('https://bafyxxx.ipfs.inbrowser.dev/page')
       const { cf: cfAsset } = await callHandler('https://bafyxxx.ipfs.inbrowser.dev/ipfs-sw-main.js')
-      expect(cfHtml.cacheTtlByStatus['200-399']).to.equal(cfAsset.cacheTtlByStatus['200-299'])
+      expect(cfHtml.cacheTtlByStatus['200-299']).to.equal(cfAsset.cacheTtlByStatus['200-299'])
     })
   })
 
@@ -186,14 +243,14 @@ describe('02_shared_sw_installer_cache', () => {
     it('works the same for .dev and .link on non-SW paths', async () => {
       const { cf: cfDev } = await callHandler('https://bafyxxx.ipfs.inbrowser.dev/page')
       const { cf: cfLink } = await callHandler('https://bafyxxx.ipfs.inbrowser.link/page')
-      expect(cfDev.cacheTtlByStatus['200-399']).to.equal(cfLink.cacheTtlByStatus['200-399'])
+      expect(cfDev.cacheTtlByStatus['200-299']).to.equal(cfLink.cacheTtlByStatus['200-299'])
       expect(cfDev.cacheKey).to.equal('https://bafyxxx.ipfs.inbrowser.dev/__sw_installer_html')
       expect(cfLink.cacheKey).to.equal('https://bafyxxx.ipfs.inbrowser.link/__sw_installer_html')
     })
 
     it('base domain requests use 24h TTL and per-host installer key', async () => {
       const { cf } = await callHandler('https://inbrowser.dev/')
-      expect(cf.cacheTtlByStatus['200-399']).to.equal(86400)
+      expect(cf.cacheTtlByStatus['200-299']).to.equal(86400)
       expect(cf.cacheKey).to.equal('https://inbrowser.dev/__sw_installer_html')
     })
   })
