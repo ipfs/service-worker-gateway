@@ -274,6 +274,18 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
     for (let i = 0; i < MAX_REDIRECTS; i++) {
       response = await verifiedFetch(resource, init)
 
+      // special case - if the user is trying to preview HAMT sub-shards
+      if (response.status === 404) {
+        const response2 = await verifiedFetch(resource, {
+          ...init,
+          translateHAMTPath: false
+        })
+
+        if (response2.status === 200) {
+          response = response2
+        }
+      }
+
       if (isManualRedirect(response)) {
         // a non-30x with a location header should be treated as a rewrite not a
         // redirect so we need to follow the location header internally
