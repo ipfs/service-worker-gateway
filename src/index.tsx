@@ -164,8 +164,15 @@ async function main (): Promise<void> {
         await registerServiceWorker()
       }
 
+      // remove service worker nav to prevent endless redirects
+      if (window.location.hash.startsWith('#/ipfs-sw')) {
+        window.location.hash = ''
+      }
+
       // reload so the subdomain request is handled by the service worker
-      window.location.href = url.toString()
+      // (including the hash)
+      window.location.reload()
+
       showUIAfterDelay(request)
       return
     }
