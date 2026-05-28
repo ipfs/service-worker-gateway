@@ -144,7 +144,6 @@ test.describe('bitswap block retrieval', () => {
   })
 
   test('retrieves content via bitswap over WebTransport', async ({ page, baseURL }) => {
-    test.skip(test.info().project.name === 'safari', 'serverCertificateHashes only landed in Safari 26.4; WebKit in Playwright may be older')
     await mockGateway500(page)
     await mockRouting(page, [wtAddr])
 
@@ -176,7 +175,6 @@ test.describe('bitswap block retrieval', () => {
   })
 
   test('retrieves content via bitswap when routing returns both WS and WT addresses', async ({ page, baseURL }) => {
-    test.skip(test.info().project.name === 'safari', 'serverCertificateHashes only landed in Safari 26.4; WebKit in Playwright may be older')
     await mockGateway500(page)
     await mockRouting(page, [wsAddr, wtAddr])
 
