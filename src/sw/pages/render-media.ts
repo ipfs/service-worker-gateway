@@ -41,9 +41,12 @@ export function renderMediaViewerPageResponse (request: ContentURI, response: Re
     kind: info.kind,
     displayName,
     filename,
-    // Same URL the page was served from. Subresource re-fetches arrive with
-    // `request.destination` set to `image`/`video`/`audio`/`iframe`/... —
-    // never `document` — so they skip the wrapper.
+    // Same URL the page was served from. Subresource re-fetches arrive
+    // with `request.destination` set to `image`/`video`/`audio`/`iframe`/...,
+    // never `document`, so they skip the wrapper. This is hash-free
+    // because the SW's fetch handler strips `event.request.url`'s
+    // fragment at the boundary; the client appends
+    // `globalThis.location.hash` when it hands the iframe its src.
     url: request.subdomainURL.toString()
   }
 

@@ -164,14 +164,56 @@ async function main (): Promise<void> {
         await registerServiceWorker()
       }
 
-      // remove service worker nav to prevent endless redirects
+      // Clear SW-UI hashes before navigating: otherwise the post-reload
+      // React app would match a `/ipfs-sw-…` route from the HashRouter
+      // and show a SW UI page instead of the requested CID content,
+      // causing endless redirects between the two.
       if (window.location.hash.startsWith('#/ipfs-sw')) {
+        url.hash = ''
         window.location.hash = ''
       }
 
-      // reload so the subdomain request is handled by the service worker
-      // (including the hash)
-      window.location.reload()
+      // Trigger a navigation so the just-installed service worker can
+      // intercept the subdomain request. Pick the cheapest primitive
+      // that still works in the presence of a URL fragment.
+      //
+      // Same-URL navigation behavior (HTML spec, verified in Chromium
+      // and Firefox):
+      //
+      //   Method                          No fragment   With fragment
+      //   ------------------------------- ------------- -------------
+      //   location.href = sameURL         reloads       no-op
+      //   location.replace(sameURL)       reloads       no-op
+      //   location.reload()               reloads       reloads
+      //
+      // For URLs that differ only in fragment (or match byte-for-byte
+      // with a fragment), the spec treats the navigation as a
+      // same-document fragment update, which collapses to a no-op when
+      // the URLs are byte-equal. Only `reload()` bypasses that and
+      // actually navigates. Without it the bootstrap would silently sit
+      // on URLs like `…/file.pdf#page=6` because the SW would never
+      // get a chance to intercept.
+      //
+      // Cache cost is the reason we do not unconditionally use
+      // `reload()`: per spec, `location.reload()` sends
+      // `Cache-Control: max-age=0` and forces a revalidation request
+      // even when the browser has a fresh local copy. Behind a CDN
+      // that meters requests (Cloudflare in production), every
+      // SW-bypassed reload turns into a billable edge request. The
+      // `href = url.toString()` path lets the browser serve the
+      // bootstrap HTML from its own cache when possible, costing zero
+      // edge requests.
+      //
+      // Caveat: `reload()` reloads the *current* URL, not `url`. If a
+      // future change here mutates `url` after this point, switch the
+      // fragment branch back to `location.href = url.toString()` and
+      // strip the fragment before the assignment so the navigation
+      // actually fires.
+      if (url.hash === '') {
+        window.location.href = url.toString()
+      } else {
+        window.location.reload()
+      }
 
       showUIAfterDelay(request)
       return
