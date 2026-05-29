@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.4.4](https://github.com/ipfs/service-worker-gateway/compare/v3.4.3...v3.4.4) (2026-05-29)
+
+
+### Bug Fixes
+
+* make url hash available to loaded HTML page ([#1089](https://github.com/ipfs/service-worker-gateway/issues/1089)) ([cac1087](https://github.com/ipfs/service-worker-gateway/commit/cac1087f20944501d3a354ecc17619cf73e851ed)), closes [#1088](https://github.com/ipfs/service-worker-gateway/issues/1088)
+* start libp2p and patch block brokers/webtransport transport ([#1100](https://github.com/ipfs/service-worker-gateway/issues/1100)) ([0c87b35](https://github.com/ipfs/service-worker-gateway/commit/0c87b355f10eaa7a65aa7aa26d0c2bd6f84d07a9))
+
 ## [3.4.3](https://github.com/ipfs/service-worker-gateway/compare/v3.4.2...v3.4.3) (2026-05-19)
 
 
