@@ -64,7 +64,7 @@ test.describe('bitswap block retrieval', () => {
    * over HTTP and never exercise the bitswap path.
    */
   async function mockGateway500 (page: any): Promise<void> {
-    await page.route(`${MAIN_KUBO}/ipfs/**`, async (route: Route) => {
+    await page.context().route(`${MAIN_KUBO}/ipfs/**`, async (route: Route) => {
       await route.fulfill({ status: 500 })
     })
   }
@@ -75,7 +75,19 @@ test.describe('bitswap block retrieval', () => {
    * the page fixture's catch-all route, so it takes LIFO priority.
    */
   async function mockRouting (page: any, peerAddrs: string[]): Promise<void> {
-    await page.route(
+    const addrs = peerAddrs.map(addr => addr.includes('/p2p/') ? addr : `${addr}/p2p/${kuboPeerId}`)
+    const routeTarget = page.context()
+
+    // Mock out peer routing so it doesn't interfere with limitations imposed by
+    // the custom content routing
+    await routeTarget.route(
+      `${MAIN_KUBO}/routing/v1/peers/**`,
+      async (route: Route) => {
+        await route.fulfill({ status: 404 })
+      }
+    )
+
+    await routeTarget.route(
       `${MAIN_KUBO}/routing/v1/providers/**`,
       async (route: Route) => {
         await route.fulfill({
@@ -85,7 +97,7 @@ test.describe('bitswap block retrieval', () => {
             Providers: [{
               Schema: 'peer',
               ID: kuboPeerId,
-              Addrs: peerAddrs,
+              Addrs: addrs,
               Protocols: ['transport-bitswap']
             }]
           })
