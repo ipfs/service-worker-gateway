@@ -126,6 +126,7 @@ export async function updateVerifiedFetch (): Promise<void> {
   verifiedFetch = await createVerifiedFetchWithHelia(helia, {
     withServerTiming: true
   })
+  await verifiedFetch.start()
 }
 
 export async function getVerifiedFetch (): Promise<VerifiedFetch> {
