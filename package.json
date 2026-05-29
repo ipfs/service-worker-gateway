@@ -125,6 +125,7 @@
     "rimraf": "^6.0.1",
     "sinon": "^21.0.2",
     "tar": "^7.5.2",
+    "undici": "^8.3.0",
     "wait-on": "^9.0.1"
   },
   "sideEffects": [
