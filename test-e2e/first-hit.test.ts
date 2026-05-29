@@ -61,6 +61,33 @@ test.describe('first-hit ipfs-hosted', () => {
 
       expect(page?.url()).toBe(`${protocol}//bafkqablimvwgy3y.ipfs.${host}/?foo=bar`)
     })
+
+    test('subdomain with unknown #fragment still loads content', async ({ page, baseURL, protocol, host }) => {
+      // Regression for #1088 / `#x-ipfs-companion-no-redirect`: when a
+      // user navigates to a CID subdomain with a hash that the gateway's
+      // HashRouter does not recognize (an ipfs-companion sentinel, a
+      // hosted SPA route like `#/mail/Inbox`, a PDF `#page=N`, etc.),
+      // the bootstrap must still hand off to the SW and the user's
+      // fragment must survive the reload.
+      const cid = 'bafkqablimvwgy3y'
+      const response = await page.goto(`${protocol}//${cid}.ipfs.${host}/#x-ipfs-companion-no-redirect`, {
+        waitUntil: 'networkidle'
+      })
+
+      expect(response?.status()).toBe(200)
+
+      await mediaViewerFrame(page).getByText('hello').waitFor({
+        timeout: 25_000
+      })
+
+      // fragment must survive so extensions watching the hash still see it
+      expect(page.url()).toBe(`${protocol}//${cid}.ipfs.${host}/#x-ipfs-companion-no-redirect`)
+
+      // and the wrapper propagates it to the iframe so embedded viewers
+      // (PDF, anchors, etc.) can act on it
+      const iframeSrc = await page.locator('iframe').getAttribute('src')
+      expect(iframeSrc).toContain('x-ipfs-companion-no-redirect')
+    })
   })
 })
 

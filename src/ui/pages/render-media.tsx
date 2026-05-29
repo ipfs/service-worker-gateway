@@ -106,6 +106,14 @@ export function RenderMediaPage (): ReactElement {
 }
 
 function MediaBody ({ kind, url, filename, contentType }: NonNullable<typeof globalThis.renderMedia>): ReactElement {
+  // Pass the parent's URL fragment through to the iframe verbatim so the
+  // embedded viewer honors whatever the user typed (e.g. `#page=6` for
+  // PDFs, anchors inside text content). The SW request itself never
+  // sees the fragment (the SW's fetch handler strips it before
+  // dispatching), so only the embedded viewer in the iframe acts on it.
+  // The wrapper does not inject a fragment of its own.
+  const iframeSrc = `${url}${globalThis.location.hash}`
+
   switch (kind) {
     case 'image':
       return <img src={url} alt={filename} style={mediaStyle} />
@@ -114,16 +122,14 @@ function MediaBody ({ kind, url, filename, contentType }: NonNullable<typeof glo
     case 'audio':
       return <audio src={url} controls style={{ width: '80%' }} />
     case 'pdf':
-      // `#toolbar=0` hides the embedded PDF.js toolbar in Chromium, nudging
-      // users toward our explicit Download button.
-      return <iframe src={`${url}#toolbar=0`} title={filename} style={iframeStyle} />
+      return <iframe src={iframeSrc} title={filename} style={iframeStyle} />
     case 'text':
     case 'json':
       // Reuse the browser's built-in text/JSON renderer via an iframe. The
       // subresource fetch arrives with `destination === 'iframe'`, skipping
       // the wrapper. Cheap, and avoids fetching the body in JS just to drop
       // it into a `<pre>`.
-      return <iframe src={url} title={filename} style={iframeStyle} />
+      return <iframe src={iframeSrc} title={filename} style={iframeStyle} />
     default:
       return <div className='white pa4'>Unsupported media type: {contentType}</div>
   }

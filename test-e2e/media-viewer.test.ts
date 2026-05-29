@@ -95,10 +95,9 @@ test.describe('media-viewer wrapper', () => {
       expect(props?.displayName).toBe('tiny.pdf')
       expect(props?.filename).toBe('tiny.pdf')
 
-      // `#toolbar=0` hides Chromium's built-in PDF toolbar so users reach
-      // for our top-bar Download button instead.
+      // wrapper does not inject any fragment of its own
       const iframeSrc = await page.locator('iframe').getAttribute('src')
-      expect(iframeSrc).toContain('#toolbar=0')
+      expect(iframeSrc).not.toContain('#')
 
       await assertDownloadButton(page, 'tiny.pdf')
     })
@@ -198,7 +197,7 @@ test.describe('media-viewer wrapper', () => {
       expect(props?.filename).toBe(`${pdfFile}.pdf`)
 
       const iframeSrc = await page.locator('iframe').getAttribute('src')
-      expect(iframeSrc).toContain('#toolbar=0')
+      expect(iframeSrc).not.toContain('#')
 
       await assertDownloadButton(page, `${pdfFile}.pdf`)
     })
@@ -215,6 +214,69 @@ test.describe('media-viewer wrapper', () => {
 
     const href = await page.locator('a:has-text("Download")').getAttribute('href')
     expect(href).toBe(`?download=true&filename=${encodeURIComponent('readme.txt')}`)
+  })
+
+  test.describe('user URL fragment passthrough', () => {
+    test('PDF iframe receives the user fragment exactly once', async ({ page, baseURL }) => {
+      await loadWithMediaViewer(page, `${baseURL}/ipfs/${pdfDir}/tiny.pdf#page=6`)
+
+      const iframeSrc = await page.locator('iframe').getAttribute('src')
+      // Regression: Chromium leaks the navigation hash into the SW's
+      // `event.request.url`, so the SW must strip it before handing the
+      // URL to the wrapper. Otherwise the client appends the user's
+      // hash again and the iframe loads `URL#frag#frag`, which routes
+      // the iframe back through the wrapper and stacks viewers.
+      expect(iframeSrc?.split('#').length).toBe(2)
+      expect(iframeSrc).toMatch(/#page=6$/)
+    })
+
+    test('text iframe receives the user fragment exactly once', async ({ page, baseURL }) => {
+      await loadWithMediaViewer(page, `${baseURL}/ipfs/${txtDir}/readme.txt#section-1`)
+
+      const iframeSrc = await page.locator('iframe').getAttribute('src')
+      expect(iframeSrc?.split('#').length).toBe(2)
+      expect(iframeSrc).toMatch(/#section-1$/)
+    })
+
+    test('PDF iframe has no fragment when no user fragment', async ({ page, baseURL }) => {
+      await loadWithMediaViewer(page, `${baseURL}/ipfs/${pdfDir}/tiny.pdf`)
+
+      const iframeSrc = await page.locator('iframe').getAttribute('src')
+      expect(iframeSrc).not.toContain('#')
+    })
+
+    test('text iframe has no fragment when no user fragment', async ({ page, baseURL }) => {
+      await loadWithMediaViewer(page, `${baseURL}/ipfs/${txtDir}/readme.txt`)
+
+      const iframeSrc = await page.locator('iframe').getAttribute('src')
+      expect(iframeSrc).not.toContain('#')
+    })
+
+    test('SW cache keys do not include the user fragment', async ({ page, baseURL }) => {
+      // The SW boundary strips the fragment from `event.request.url`, so
+      // cache keys for `…#page=2` and `…#page=5` must collapse to the
+      // same entry as `…` with no fragment. Without the strip every
+      // distinct hash would create a duplicate cache entry for identical
+      // bytes.
+      await loadWithMediaViewer(page, `${baseURL}/ipfs/${pdfDir}/tiny.pdf#page=6`)
+
+      const cacheKeys = await page.evaluate(async () => {
+        const names = await caches.keys()
+        const all: string[] = []
+        for (const name of names) {
+          const cache = await caches.open(name)
+          const requests = await cache.keys()
+          for (const r of requests) {
+            all.push(r.url)
+          }
+        }
+        return all
+      })
+
+      for (const key of cacheKeys) {
+        expect(key, `cache key leaked a fragment: ${key}`).not.toContain('#')
+      }
+    })
   })
 
   // Raw-codec single-block CIDs (`bafkrei…`, what helia/unixfs emits by

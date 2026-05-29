@@ -1,8 +1,22 @@
+import all from 'it-all'
+import { createKuboRPCClient } from 'kubo-rpc-client'
+import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { test, expect } from './fixtures/config-test-fixtures.ts'
 import { loadWithServiceWorker } from './fixtures/load-with-service-worker.ts'
 import { loadBypassingMediaViewer } from './fixtures/media-viewer.ts'
+import type { KuboRPCClient } from 'kubo-rpc-client'
 
 test.describe('website-loading', () => {
+  let kubo: KuboRPCClient
+
+  test.beforeEach(async ({ page }) => {
+    if (process.env.KUBO_GATEWAY == null || process.env.KUBO_GATEWAY === '') {
+      throw new Error('KUBO_GATEWAY not set')
+    }
+
+    kubo = createKuboRPCClient(process.env.KUBO_RPC)
+  })
+
   test('ensure unixfs directory trailing slash is added', async ({ page, baseURL }) => {
     const cid = 'bafybeifq2rzpqnqrsdupncmkmhs3ckxxjhuvdcbvydkgvch3ms24k5lo7q'
     const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}`)
@@ -53,5 +67,26 @@ test.describe('website-loading', () => {
     expect(responseAfterReloading?.status()).toBe(200)
     const headersAfterReloading = await responseAfterReloading?.allHeaders()
     expect(headersAfterReloading?.['content-type']).toContain('text/html')
+  })
+
+  test('ensure URL fragments are available to the target page', async ({ page, baseURL, port }) => {
+    const [, { cid }] = await all(kubo.addAll([{
+      path: '/index.html',
+      content: uint8ArrayFromString(`<html>
+  <body data-testid="body">
+    <script type="text/javascript">
+        document.write(document.location)
+    </script>
+  </body>
+</html>`)
+    }], {
+      wrapWithDirectory: true,
+      cidVersion: 1
+    }))
+
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${cid}#a-url-fragment`)
+    expect(response.status()).toBe(200)
+
+    await expect(page.getByTestId('body')).toHaveText(`http://${cid}.ipfs.localhost:${port}/#a-url-fragment`)
   })
 })

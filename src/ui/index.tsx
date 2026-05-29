@@ -113,38 +113,38 @@ function Header (): React.ReactElement {
  * the landing page, otherwise show the "Enter a CID" UI page
  */
 function getIndexRoute (): React.ReactElement {
-  if (globalThis.fetchError != null && globalThis.location.hash === '') {
+  if (globalThis.fetchError != null) {
     return (
-      <Route element={<FetchErrorPage />} index />
+      <Route element={<FetchErrorPage />} path='*' index />
     )
   }
 
-  if (globalThis.serverError != null && globalThis.location.hash === '') {
+  if (globalThis.serverError != null) {
     return (
-      <Route element={<ServerErrorPage />} index />
+      <Route element={<ServerErrorPage />} path='*' index />
     )
   }
 
-  if (globalThis.originIsolationWarning != null && globalThis.location.hash === '') {
+  if (globalThis.originIsolationWarning != null) {
     return (
-      <Route element={<OriginIsolationWarningPage />} index />
+      <Route element={<OriginIsolationWarningPage />} path='*' index />
     )
   }
 
-  if (globalThis.renderEntity != null && globalThis.location.hash === '') {
+  if (globalThis.renderEntity != null) {
     return (
-      <Route element={<RenderEntityPage />} index />
+      <Route element={<RenderEntityPage />} path='*' index />
     )
   }
 
   if (globalThis.downloadingPage != null) {
     return (
-      <Route element={<DownloadingPage />} index />
+      <Route element={<DownloadingPage />} path='*' index />
     )
   }
 
   return (
-    <Route element={<HomePage />} index />
+    <Route element={<HomePage />} path='*' index />
   )
 }
 
@@ -169,12 +169,12 @@ function App (): React.ReactElement {
       <Header />
       <ErrorBoundary>
         <Routes>
-          {getIndexRoute()}
           <Route path={`/${HASH_FRAGMENTS.IPFS_SW_LOAD_UI}`} element={<HomePage />} />,
           <Route path={`/${HASH_FRAGMENTS.IPFS_SW_ABOUT_UI}`} element={<AboutPage />} />,
           <Route path={`/${HASH_FRAGMENTS.IPFS_SW_FETCH_ERROR_UI}`} element={<FetchErrorPage />} />
           <Route path={`/${HASH_FRAGMENTS.IPFS_SW_SERVER_ERROR_UI}`} element={<ServerErrorPage />} />
           <Route path={`/${HASH_FRAGMENTS.IPFS_SW_ORIGIN_ISOLATION_WARNING}`} element={<OriginIsolationWarningPage />} />
+          {getIndexRoute()}
         </Routes>
       </ErrorBoundary>
     </HashRouter>
