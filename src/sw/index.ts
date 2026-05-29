@@ -93,6 +93,15 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const log = getSwLogger('fetch')
   const url = new URL(event.request.url)
+  // Fragments are client-side only, but Chromium leaks the navigation
+  // hash through to `event.request.url` for `location.reload()` (and
+  // any top-level navigation targeting a fragment URL). Letting it
+  // through here pollutes cache keys, threads stale state into wrapper
+  // props (causing `URL#frag#frag` iframe srcs when the client appends
+  // `globalThis.location.hash`), and complicates `parseRequest`. The
+  // wrapper UI reads `globalThis.location.hash` directly when it needs
+  // the user fragment for embedded viewers (e.g. PDF `#page=N`).
+  url.hash = ''
   const request = parseRequest(url, new URL(self.location.href))
 
   // collect logs from Helia/libp2p during the fetch operation
