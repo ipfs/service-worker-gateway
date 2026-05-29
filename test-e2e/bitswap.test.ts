@@ -194,4 +194,15 @@ test.describe('bitswap block retrieval', () => {
     expect(response.status()).toBe(200)
     expect(await response.text()).toBe('hello from bitswap')
   })
+
+    test('fails bitswap retrieval when routing returns only invalid WT address', async ({ page, baseURL }) => {
+    const invalidWtAddr = wtAddr.replace(/\/certhash\/[^/]+/, '/certhash/not-a-valid-certhash')
+    expect(invalidWtAddr).not.toBe(wtAddr)
+
+    await mockGateway500(page)
+    await mockRouting(page, [invalidWtAddr])
+
+    const response = await loadBypassingMediaViewer(page, `${baseURL}/ipfs/${testCidStr}`)
+    expect(response.status()).not.toBe(200)
+  })
 })
