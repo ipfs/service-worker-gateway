@@ -203,6 +203,7 @@ export default function DownloadForm ({
           input={input}
           setInput={setInput}
           setSubdomainURL={setSubdomainURL}
+          invalid={invalid}
           setInvalid={(res) => {
             setInvalid({
               ...invalid,
