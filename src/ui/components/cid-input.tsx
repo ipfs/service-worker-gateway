@@ -1,5 +1,5 @@
 import { CID } from 'multiformats/cid'
-import React, { useState } from 'react'
+import React from 'react'
 import { parseRequest } from '../../lib/parse-request.ts'
 import { Link } from './link.tsx'
 import type { ReactElement } from 'react'
