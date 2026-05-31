@@ -57,7 +57,7 @@ export interface CIDInputProps {
   input: string
   setInput(download: string): void
   setSubdomainURL(val: URL): void
-  invalid: Record<string, boolean>
+  invalid: boolean
   setInvalid(invalid: boolean): void
 }
 
@@ -111,7 +111,7 @@ export function CIDInput ({ input, setInput, setSubdomainURL, invalid, setInvali
         onChange={(e) => validate(e.target.value)}
       />
       <ValidationMessage
-        errorElement={Object.values(invalid ?? {}).reduce((acc, curr) => acc || curr, false) ? <FormatHelp /> : undefined}
+        errorElement={invalid ? <FormatHelp /> : undefined}
       />
     </>
   )
