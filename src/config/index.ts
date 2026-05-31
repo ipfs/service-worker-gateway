@@ -22,5 +22,5 @@ export const config: Config = {
   },
   fetchTimeout: 30_000,
   serviceWorkerTTL: 86_400_000,
-  debug: globalThis?.location?.hostname?.search(/localhost|inbrowser\.dev|127\.0\.0\.1/) === -1 ? '' : '*,*:trace'
+  debug: '*,*:trace'
 }
