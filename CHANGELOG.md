@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.4.5](https://github.com/ipfs/service-worker-gateway/compare/v3.4.4...v3.4.5) (2026-05-31)
+
+
+### Bug Fixes
+
+* enable logging on inbrowser.link ([#1102](https://github.com/ipfs/service-worker-gateway/issues/1102)) ([18c837d](https://github.com/ipfs/service-worker-gateway/commit/18c837d8973f83b0593737aee3c6a34c8087fc8f))
+* remove error message if input emptied ([#1101](https://github.com/ipfs/service-worker-gateway/issues/1101)) ([358de78](https://github.com/ipfs/service-worker-gateway/commit/358de782884e7c775a4496d66b8132f6109ec7d5))
+
 ## [3.4.4](https://github.com/ipfs/service-worker-gateway/compare/v3.4.3...v3.4.4) (2026-05-29)
 
 
