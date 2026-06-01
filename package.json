@@ -101,7 +101,7 @@
     "aegir": "^47.0.24",
     "body-parser": "^2.2.2",
     "cborg": "^5.1.0",
-    "concurrently": "^9.1.2",
+    "concurrently": "^10.0.1",
     "cors": "^2.8.5",
     "cross-env": "^10.1.0",
     "delay": "^7.0.0",
