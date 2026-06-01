@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.4.6](https://github.com/ipfs/service-worker-gateway/compare/v3.4.5...v3.4.6) (2026-06-01)
+
+
+### Bug Fixes
+
+* disable logging on production ([4e988e4](https://github.com/ipfs/service-worker-gateway/commit/4e988e400ad97935b4e05699e7c010a876a62998))
+
 ## [3.4.5](https://github.com/ipfs/service-worker-gateway/compare/v3.4.4...v3.4.5) (2026-05-31)
 
 
