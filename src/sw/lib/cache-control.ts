@@ -114,10 +114,8 @@ function isFresh (response: Response, cacheControl: HeaderDirectives): boolean {
     return false
   }
 
-  if (cacheControl['must-revalidate'] === true) {
-    return false
-  }
-
+  // must-revalidate only forces revalidation once a response is stale, so it
+  // does not affect freshness here; canUseStale enforces it for stale responses
   const age = findAge(response)
   const ttl = findTtl(response)
 

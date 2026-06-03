@@ -36,7 +36,18 @@ describe('cache-control', () => {
       expect(needsRevalidateBeforeUse(res)).to.be.true()
     })
 
-    it('should revalidate responses that must be revalidated', () => {
+    it('should revalidate stale response that must be revalidated', () => {
+      const res = new Response('', {
+        headers: {
+          date: new Date(Date.now() - 20_000).toUTCString(),
+          'cache-control': 'public, max-age=10, must-revalidate'
+        }
+      })
+
+      expect(needsRevalidateBeforeUse(res)).to.be.true()
+    })
+
+    it('should not revalidate fresh response that must be revalidated', () => {
       const res = new Response('', {
         headers: {
           date: new Date(Date.now()).toUTCString(),
@@ -44,7 +55,7 @@ describe('cache-control', () => {
         }
       })
 
-      expect(needsRevalidateBeforeUse(res)).to.be.true()
+      expect(needsRevalidateBeforeUse(res)).to.be.false()
     })
 
     it('should not throw when cache-control has no max-age directive', () => {
