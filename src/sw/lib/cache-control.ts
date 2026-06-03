@@ -83,6 +83,32 @@ function getResponseExpiry (response: Response): number | undefined {
 }
 
 /**
+ * Signed responses such as IPNS records carry an `Expires` header set to the
+ * record's EOL. Past that point the record is cryptographically invalid, so this
+ * gateway must never serve it, even under `stale-while-revalidate` or
+ * `stale-if-error`. This is stricter than RFC 9111 freshness: a reverse proxy
+ * may serve a stale-but-still-valid copy, but we validate records, so an expired
+ * one fails. The EOL is an absolute wall-clock deadline, so it is compared
+ * against the current time rather than the response age.
+ */
+function isExpired (response: Response): boolean {
+  const expires = response.headers.get('expires')
+
+  if (expires == null) {
+    return false
+  }
+
+  const expiry = new Date(expires).getTime()
+
+  // an unparseable Expires header carries no usable deadline
+  if (isNaN(expiry)) {
+    return false
+  }
+
+  return Date.now() > expiry
+}
+
+/**
  * Returns true if the previously cached response cannot be used to respond to
  * a request
  */
@@ -114,6 +140,11 @@ function isFresh (response: Response, cacheControl: HeaderDirectives): boolean {
     return false
   }
 
+  // a record past its EOL is invalid regardless of max-age
+  if (isExpired(response)) {
+    return false
+  }
+
   // must-revalidate only forces revalidation once a response is stale, so it
   // does not affect freshness here; canUseStale enforces it for stale responses
   const age = findAge(response)
@@ -123,6 +154,11 @@ function isFresh (response: Response, cacheControl: HeaderDirectives): boolean {
 }
 
 function canUseStaleWhileRevalidate (response: Response, cacheControl: HeaderDirectives): boolean {
+  // never serve a record past its EOL, even while revalidating
+  if (isExpired(response)) {
+    return false
+  }
+
   const staleWhileRevalidate = parseInt(cacheControl['stale-while-revalidate']?.toString(), 10)
 
   // ignore invalid stale-while-revalidate values
@@ -177,6 +213,11 @@ export function needsRevalidateAfterUse (response: Response): boolean {
  */
 export function canUseStaleResponseOnError (errorResponse: Response, cachedResponse: Response): boolean {
   if (![500, 502, 503, 504].includes(errorResponse.status)) {
+    return false
+  }
+
+  // never fall back to a record past its EOL, even when the origin errors
+  if (isExpired(cachedResponse)) {
     return false
   }
 

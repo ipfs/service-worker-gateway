@@ -259,6 +259,38 @@ describe('cache-control', () => {
 
       expect(needsRevalidateBeforeUse(res)).to.be.false()
     })
+
+    it('should revalidate before use when Expires has passed even if max-age is fresh', () => {
+      const res = new Response('', {
+        headers: {
+          date: new Date().toUTCString(),
+          // max-age says fresh for 5 minutes...
+          'cache-control': 'public, max-age=300',
+          // ...but the record's EOL has already passed
+          expires: new Date(Date.now() - 10_000).toUTCString()
+        }
+      })
+
+      expect(needsRevalidateBeforeUse(res)).to.be.true()
+    })
+
+    it('should not serve stale-while-revalidate past Expires', () => {
+      const res = new Response('', {
+        headers: {
+          // received 20s ago
+          date: new Date(Date.now() - 20_000).toUTCString(),
+          // stale by max-age but well within the SWR window by age...
+          'cache-control': 'public, max-age=10, stale-while-revalidate=3600',
+          // ...yet the record's EOL has passed
+          expires: new Date(Date.now() - 10_000).toUTCString()
+        }
+      })
+
+      // cannot serve the expired record, must revalidate first
+      expect(needsRevalidateBeforeUse(res)).to.be.true()
+      // and must not be handed out while revalidating in the background
+      expect(needsRevalidateAfterUse(res)).to.be.false()
+    })
   })
 
   describe('can-use-stale-on-response-error', () => {
@@ -355,6 +387,23 @@ describe('cache-control', () => {
         headers: {
           date: new Date(Date.now() - 20_000).toUTCString(),
           'cache-control': 'public, max-age=10, stale-if-error=-10'
+        }
+      })
+
+      expect(canUseStaleResponseOnError(res, cached)).to.be.false()
+    })
+
+    it('should not re-use stale response on error past Expires', () => {
+      const res = new Response('', {
+        status: 500
+      })
+      const cached = new Response('', {
+        headers: {
+          date: new Date(Date.now() - 20_000).toUTCString(),
+          // within the stale-if-error window by age...
+          'cache-control': 'public, max-age=10, stale-if-error=3600',
+          // ...but the record's EOL has passed
+          expires: new Date(Date.now() - 10_000).toUTCString()
         }
       })
 
