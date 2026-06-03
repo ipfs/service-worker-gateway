@@ -198,6 +198,32 @@ describe('cache-control', () => {
     })
   })
 
+  describe('expires-header', () => {
+    it('should treat a response past its Expires as stale', () => {
+      const res = new Response('', {
+        headers: {
+          date: new Date(Date.now() - 20_000).toUTCString(),
+          // expired 10s ago
+          expires: new Date(Date.now() - 10_000).toUTCString()
+        }
+      })
+
+      expect(needsRevalidateBeforeUse(res)).to.be.true()
+    })
+
+    it('should treat a response within its Expires as fresh', () => {
+      const res = new Response('', {
+        headers: {
+          date: new Date().toUTCString(),
+          // expires in 10 minutes
+          expires: new Date(Date.now() + 600_000).toUTCString()
+        }
+      })
+
+      expect(needsRevalidateBeforeUse(res)).to.be.false()
+    })
+  })
+
   describe('can-use-stale-on-response-error', () => {
     it('should re-use stale response if within stale-if-error ttl', () => {
       const res = new Response('', {

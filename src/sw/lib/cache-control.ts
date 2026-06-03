@@ -72,9 +72,11 @@ function getResponseExpiry (response: Response): number | undefined {
     return
   }
 
-  const ttl = parseInt(`${new Date(expires).getTime() - date.getTime()}`, 10)
+  // Date.getTime() is in milliseconds, but every TTL in this module is in
+  // seconds, so convert before returning
+  const ttl = Math.round((new Date(expires).getTime() - date.getTime()) / 1000)
 
-  // invalid or non-integer values are treated as 0
+  // invalid or negative values mean the response has no usable expiry
   if (isNaN(ttl) || ttl < 0) {
     return
   }
