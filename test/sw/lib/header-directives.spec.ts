@@ -13,4 +13,12 @@ describe('header-directives', () => {
   it('should parse empty header', () => {
     expect(parseHeaderDirectives(null)).to.deep.equal({})
   })
+
+  it('should lowercase directive names', () => {
+    expect(parseHeaderDirectives('Public, Max-Age=600, IMMUTABLE')).to.deep.equal({
+      public: true,
+      'max-age': '600',
+      immutable: true
+    })
+  })
 })

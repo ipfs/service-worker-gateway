@@ -6,13 +6,15 @@ export function parseHeaderDirectives (header?: string | null): HeaderDirectives
   header?.split(',').forEach(val => {
     val = val.trim()
 
+    // directive names are case-insensitive (RFC 9110), so normalise the key;
+    // values may be case-sensitive so leave them as-is
     if (val.includes('=')) {
       const [key, value] = val.split('=').map(v => v.trim())
-      directives[key] = value
+      directives[key.toLowerCase()] = value
       return
     }
 
-    directives[val] = true
+    directives[val.toLowerCase()] = true
   })
 
   return directives
