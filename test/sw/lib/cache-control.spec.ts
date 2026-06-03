@@ -70,6 +70,19 @@ describe('cache-control', () => {
       expect(needsRevalidateBeforeUse(res)).to.be.true()
     })
 
+    it('should not revalidate response within max-age that carries a large Age header', () => {
+      const res = new Response('', {
+        headers: {
+          date: new Date(Date.now() - 5_000).toUTCString(),
+          age: '60',
+          // current age is Age + (now - date) = 60 + 5 = 65s, below max-age
+          'cache-control': 'public, max-age=100'
+        }
+      })
+
+      expect(needsRevalidateBeforeUse(res)).to.be.false()
+    })
+
     it('should not revalidate response outside ttl but inside stale-while-revalidate', () => {
       const res = new Response('', {
         headers: {

@@ -25,12 +25,6 @@ function findTtl (response: Response): number {
  * header, if it is present
  */
 function getResponseMaxAge (response: Response): number | undefined {
-  let age = parseInt(`${response.headers.get('age')}`, 10)
-
-  if (isNaN(age)) {
-    age = 0
-  }
-
   const header = response.headers.get('cache-control')
 
   // ignore if no cache control header is present
@@ -49,13 +43,9 @@ function getResponseMaxAge (response: Response): number | undefined {
     return 0
   }
 
-  const ttl = maxAge - age
-
-  if (ttl < 0) {
-    return 0
-  }
-
-  return ttl
+  // max-age is the freshness lifetime; the Age header is accounted for in
+  // findAge, so do not subtract it here as well
+  return maxAge
 }
 
 /**
