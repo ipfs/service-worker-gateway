@@ -33,19 +33,27 @@ function getResponseMaxAge (response: Response): number | undefined {
   }
 
   const cacheControl = parseHeaderDirectives(header)
-  const maxAge = parseInt(cacheControl['max-age'].toString(), 10)
+  const maxAge = cacheControl['max-age']
+
+  // a cache-control header can be present without a max-age directive
+  // (e.g. `public`), in which case there is no max-age TTL to read here
+  if (maxAge == null) {
+    return
+  }
+
+  const seconds = parseInt(maxAge.toString(), 10)
 
   // Caches are encouraged to consider responses that have invalid freshness
   // information (e.g., a max-age directive with non-integer content) to be
   // stale.
   // https://httpwg.org/specs/rfc9111.html#calculating.freshness.lifetime
-  if (isNaN(maxAge) || maxAge.toString() !== cacheControl['max-age']) {
+  if (isNaN(seconds) || seconds.toString() !== maxAge.toString()) {
     return 0
   }
 
   // max-age is the freshness lifetime; the Age header is accounted for in
   // findAge, so do not subtract it here as well
-  return maxAge
+  return seconds
 }
 
 /**

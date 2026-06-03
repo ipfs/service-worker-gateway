@@ -47,6 +47,19 @@ describe('cache-control', () => {
       expect(needsRevalidateBeforeUse(res)).to.be.true()
     })
 
+    it('should not throw when cache-control has no max-age directive', () => {
+      const res = new Response('', {
+        headers: {
+          date: new Date().toUTCString(),
+          'cache-control': 'public'
+        }
+      })
+
+      // falls back to the default TTL rather than throwing on a missing max-age
+      expect(() => needsRevalidateBeforeUse(res)).to.not.throw()
+      expect(needsRevalidateBeforeUse(res)).to.be.false()
+    })
+
     it('should revalidate immutable response outside ttl', () => {
       const res = new Response('', {
         headers: {
