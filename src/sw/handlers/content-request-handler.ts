@@ -88,7 +88,7 @@ async function getResponseFromCacheOrFetch (args: FetchHandlerArg): Promise<Resp
     return cachedResponse
   }
 
-  log('cached response HIT for %s (expires: %s) %o', args.cacheKey, cachedResponse.headers.get('sw-cache-expires'), cachedResponse)
+  log('cached response HIT for %s %o', args.cacheKey, cachedResponse)
   return cachedResponse
 }
 
