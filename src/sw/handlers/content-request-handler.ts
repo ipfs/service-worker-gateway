@@ -8,6 +8,7 @@ import { getSubdomainParts } from '../../lib/get-subdomain-parts.ts'
 import { getSwLogger } from '../../lib/logger.ts'
 import { isBitswapProvider, isFallbackTrustlessGatewayProvider, isTrustlessGatewayProvider } from '../../lib/providers.ts'
 import { canUseStaleResponseOnError, needsRevalidateAfterUse, needsRevalidateBeforeUse } from '../lib/cache-control.ts'
+import { parseHeaderDirectives } from '../lib/header-directives.ts'
 import { getInstallTime } from '../lib/install-time.ts'
 import { sniffRawContentType } from '../lib/sniff-raw-content-type.ts'
 import { getVerifiedFetch } from '../lib/verified-fetch.ts'
@@ -136,7 +137,7 @@ function shouldCacheResponse (response: Response, args: FetchHandlerArg): boolea
   }
 
   // no-store directive prevents any kind of caching
-  if (response.headers.get('cache-control')?.includes('no-store')) {
+  if (parseHeaderDirectives(response.headers.get('cache-control'))['no-store'] === true) {
     return false
   }
 
