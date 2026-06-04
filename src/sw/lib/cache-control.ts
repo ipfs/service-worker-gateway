@@ -84,12 +84,15 @@ function getResponseExpiry (response: Response): number | undefined {
 
 /**
  * Signed responses such as IPNS records carry an `Expires` header set to the
- * record's EOL. Past that point the record is cryptographically invalid, so this
- * gateway must never serve it, even under `stale-while-revalidate` or
- * `stale-if-error`. This is stricter than RFC 9111 freshness: a reverse proxy
- * may serve a stale-but-still-valid copy, but we validate records, so an expired
- * one fails. The EOL is an absolute wall-clock deadline, so it is compared
- * against the current time rather than the response age.
+ * record's EOL. Past that point the record is cryptographically invalid, so
+ * this gateway must never serve it, even under `stale-while-revalidate` or
+ * `stale-if-error`.
+ *
+ * This is stricter than RFC 9111 freshness: a reverse proxy may serve a
+ * stale-but-still-valid copy, but we validate records, so an expired one fails.
+ *
+ * The EOL is an absolute wall-clock deadline, so it is compared against the
+ * current time rather than the response age.
  */
 function isExpired (response: Response): boolean {
   const expires = response.headers.get('expires')
@@ -140,7 +143,8 @@ function isFresh (response: Response, cacheControl: HeaderDirectives): boolean {
     return false
   }
 
-  // a record past its EOL is invalid regardless of max-age
+  // a record past its EOL is invalid regardless of max-age - nb. this is
+  // different to RFC 9111 freshness
   if (isExpired(response)) {
     return false
   }
@@ -154,7 +158,8 @@ function isFresh (response: Response, cacheControl: HeaderDirectives): boolean {
 }
 
 function canUseStaleWhileRevalidate (response: Response, cacheControl: HeaderDirectives): boolean {
-  // never serve a record past its EOL, even while revalidating
+  // never serve a record past its EOL, even while revalidating - nb. this is
+  // different to RFC 9111 freshness
   if (isExpired(response)) {
     return false
   }
@@ -216,7 +221,8 @@ export function canUseStaleResponseOnError (errorResponse: Response, cachedRespo
     return false
   }
 
-  // never fall back to a record past its EOL, even when the origin errors
+  // never fall back to a record past its EOL, even when the origin errors - nb.
+  // this is different to RFC 9111 freshness
   if (isExpired(cachedResponse)) {
     return false
   }
@@ -249,10 +255,10 @@ function findAge (response: Response): number {
     return 0
   }
 
-  const received = Math.round(new Date(dateHeader).getTime() / 1000)
+  const sent = Math.round(new Date(dateHeader).getTime() / 1000)
   const now = Math.round(Date.now() / 1000)
 
-  // the age header is how old the response was in seconds when we received it
+  // the age header is how old the response was in seconds when it was sent
   if (ageHeader != null) {
     const age = parseInt(ageHeader, 10)
 
@@ -261,9 +267,12 @@ function findAge (response: Response): number {
       return 0
     }
 
-    return (now - received) + age
+    // return the difference between now and the time the response was sent plus
+    // the age, or 0 if the result is negative
+    return Math.max(0, (now - sent) + age)
   }
 
-  // return the difference between now and the time we received the response
-  return now - received
+  // return the difference between now and the time the response was sent, or 0
+  // if the result is negative
+  return Math.max(0, now - sent)
 }
