@@ -103,7 +103,7 @@ function DebugInfo ({ request, response, logs }: FetchErrorPageProps): ReactElem
 
   let logDisplay = <></>
 
-  if (logs != null) {
+  if (logs != null && logs.length > 0) {
     logDisplay = (
       <>
         <h4 className='ma3'>Logs</h4>
