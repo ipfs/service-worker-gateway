@@ -74,22 +74,7 @@ Compliance with [IPFS HTTP Gateway specifications](https://specs.ipfs.tech/http-
 
 ## Browser support
 
-The gateway needs a recent browser. Minimum versions:
-
-| Browser | Minimum |
-| --- | --- |
-| Chrome / Edge | 130 |
-| Firefox | 122 |
-| Safari / iOS | 18.4 |
-
-The current [Firefox ESR](https://www.mozilla.org/firefox/enterprise/) and [Tor Browser](https://www.torproject.org/) are above this floor and work.
-
-Two capabilities set the floor:
-
-- Spec-compliant parsing of non-special-scheme URLs, so `new URL('ipfs://<cid>')` exposes the CID as the host (the gateway routes content through `ipfs://` and `ipns://` URLs). Chrome shipped this last, in [Chrome 130](https://developer.chrome.com/release-notes/130); Firefox in 122; Safari during the 18.x cycle.
-- `Promise.withResolvers()` (Chrome 119, Firefox 121, Safari 17.4), used by the bundled Helia/libp2p stack.
-
-The `browserslist` field in `package.json` records this floor. The esbuild syntax target (`es2020`) is configured separately in `build.js`.
+The gateway uses modern [Web APIs](https://developer.mozilla.org/en-US/docs/Web/API), so it needs a web browser kept up to date with security patches. If you see a notice asking you to update, please do.
 
 ## Usage
 
