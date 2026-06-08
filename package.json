@@ -28,7 +28,11 @@
   },
   "browser": "./dist/src/index.js",
   "browserslist": [
-    "last 1 Chrome version"
+    "Chrome >= 130",
+    "Edge >= 130",
+    "Firefox >= 122",
+    "Safari >= 18.4",
+    "iOS >= 18.4"
   ],
   "eslintConfig": {
     "extends": "ipfs",

@@ -72,6 +72,14 @@ The main goals of this project are:
 
 Compliance with [IPFS HTTP Gateway specifications](https://specs.ipfs.tech/http-gateways/) is tested using the [gateway-conformance](https://github.com/ipfs/gateway-conformance) test suite (the same suite used by [Kubo](https://github.com/ipfs/kubo) and [Rainbow](https://github.com/ipfs/rainbow)).
 
+## Browser support
+
+The gateway supports recent versions of all major web browsers.
+
+It is built using modern [Web APIs](https://developer.mozilla.org/en-US/docs/Web/API) so needs a web browser kept up to date with the latest features and security patches.
+
+If you see a notice asking you to update your browser, please do so.
+
 ## Usage
 
 ### Running locally

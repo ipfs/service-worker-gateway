@@ -4,6 +4,7 @@ import './index.css'
 import { FaInfoCircle, FaGithub, FaExclamationTriangle, FaExclamationCircle, FaHome, FaListAlt, FaFileDownload } from 'react-icons/fa'
 import { HashRouter, Route, Routes, NavLink } from 'react-router-dom'
 import { HASH_FRAGMENTS } from '../lib/constants.ts'
+import { isBrowserSupported } from '../lib/is-browser-supported.ts'
 import { ErrorBoundary } from './components/error-boundary.tsx'
 import ipfsLogo from './ipfs-logo.svg'
 import AboutPage from './pages/about.tsx'
@@ -15,6 +16,7 @@ import OriginIsolationWarningPage from './pages/origin-isolation-warning.tsx'
 import { RenderEntityPage } from './pages/render-entity.tsx'
 import { RenderMediaPage } from './pages/render-media.tsx'
 import { ServerErrorPage } from './pages/server-error.tsx'
+import UnsupportedBrowserErrorPage from './pages/unsupported-browser.tsx'
 import { injectCSS } from './utils/css-injector.ts'
 
 // SW did not trigger for this request
@@ -181,6 +183,31 @@ function App (): React.ReactElement {
   )
 }
 
+/**
+ * Wraps an error page in the minimal header chrome used when the full app
+ * cannot run (no service worker, unsupported browser).
+ */
+function errorScreen (page: React.ReactElement): React.ReactElement {
+  return (
+    <React.StrictMode>
+      <header className='e2e-header flex items-center pa2 bg-navy bb bw3 b--aqua tc justify-between'>
+        <div>
+          <a href='https://ipfs.tech' title='IPFS Project' target='_blank' rel='noopener noreferrer' aria-label='Visit the website of the IPFS Project'>
+            <img alt='IPFS logo' src={toAbsolutePath(ipfsLogo)} style={{ height: 50 }} className='v-top' />
+          </a>
+        </div>
+        <div className='pb1 ma0 mr2 inline-flex items-center aqua'>
+          <h1 className='e2e-header-title f3 fw2 ttu sans-serif'>Service Worker Gateway</h1>
+          <a href='https://github.com/ipfs/service-worker-gateway' title='IPFS Service Worker Gateway on GitHub' target='_blank' rel='noopener noreferrer' aria-label='Visit the GitHub repository for the IPFS Service Worker Gateway'>
+            <FaGithub className='ml2 f3' />
+          </a>
+        </div>
+      </header>
+      {page}
+    </React.StrictMode>
+  )
+}
+
 async function renderUi (): Promise<void> {
   try {
     await injectCSS('<%-- src/ui/index.css --%>')
@@ -203,25 +230,14 @@ async function renderUi (): Promise<void> {
 
   const root = ReactDOMClient.createRoot(container)
 
+  if (!isBrowserSupported()) {
+    root.render(errorScreen(<UnsupportedBrowserErrorPage />))
+
+    return
+  }
+
   if (!('serviceWorker' in navigator)) {
-    root.render(
-      <React.StrictMode>
-        <header className='e2e-header flex items-center pa2 bg-navy bb bw3 b--aqua tc justify-between'>
-          <div>
-            <a href='https://ipfs.tech' title='IPFS Project' target='_blank' rel='noopener noreferrer' aria-label='Visit the website of the IPFS Project'>
-              <img alt='IPFS logo' src={toAbsolutePath(ipfsLogo)} style={{ height: 50 }} className='v-top' />
-            </a>
-          </div>
-          <div className='pb1 ma0 mr2 inline-flex items-center aqua'>
-            <h1 className='e2e-header-title f3 fw2 ttu sans-serif'>Service Worker Gateway</h1>
-            <a href='https://github.com/ipfs/service-worker-gateway' title='IPFS Service Worker Gateway on GitHub' target='_blank' rel='noopener noreferrer' aria-label='Visit the GitHub repository for the IPFS Service Worker Gateway'>
-              <FaGithub className='ml2 f3' />
-            </a>
-          </div>
-        </header>
-        <NoServiceWorkerErrorPage />
-      </React.StrictMode>
-    )
+    root.render(errorScreen(<NoServiceWorkerErrorPage />))
 
     return
   }

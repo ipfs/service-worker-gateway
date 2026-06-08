@@ -3,6 +3,7 @@
 import weald from 'weald'
 import { config } from './config/index.ts'
 import { QUERY_PARAMS } from './lib/constants.ts'
+import { isBrowserSupported } from './lib/is-browser-supported.ts'
 import { parseRequest } from './lib/parse-request-cheap.ts'
 import { isSafeOrigin } from './lib/path-or-subdomain.ts'
 import { registerServiceWorker } from './lib/register-service-worker.ts'
@@ -30,6 +31,13 @@ declare global {
  * reload the current page so the request can be handled by the service worker.
  */
 async function main (): Promise<void> {
+  if (!isBrowserSupported()) {
+    // browser is missing Web APIs we need, render the UI which will tell the
+    // user their browser is unsupported
+    await renderUi()
+    return
+  }
+
   if (!('serviceWorker' in navigator)) {
     // no service worker support, render the UI which will tell the user
     // service workers are not supported
