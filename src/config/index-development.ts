@@ -21,5 +21,13 @@ export const config: Config = {
   },
   fetchTimeout: 30_000,
   serviceWorkerTTL: 86_400_000,
-  debug: '*,*:trace'
+  debug: '*,*:trace',
+  ens: {
+    primaryRpc: 'https://ethereum.publicnode.com',
+    witnessRpcs: [
+      'https://eth-mainnet.public.blastapi.io',
+      'https://mainnet.gateway.tenderly.co'
+    ],
+    maxSafeBlockAgeMs: 20 * 60 * 1_000
+  }
 }

@@ -432,7 +432,8 @@ export const buildOptions = {
     'process.env.NODE_ENV': `"${process.env.NODE_ENV ?? 'production'}"`,
     'process.env.APP_NAME': `'${pkg.name}'`,
     'process.env.APP_VERSION': `'${pkg.version}'`,
-    'process.env.GIT_REVISION': `'${rev}'`
+    'process.env.GIT_REVISION': `'${rev}'`,
+    'process.env.DEBUG': 'undefined'
   },
   entryPoints: [
     'src/index.tsx',
