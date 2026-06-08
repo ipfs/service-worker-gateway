@@ -10,7 +10,7 @@ export default function UnsupportedBrowserErrorPage (): ReactElement {
           <line x1='12' y1='9' x2='12' y2='13' />
           <line x1='12' y1='17' x2='12.01' y2='17' />
         </svg>
-        <h1 className='ma0 f3'>Warning: Your Browser Is Not Supported</h1>
+        <h1 className='ma0 f3'>Your Browser Is Not Supported</h1>
       </div>
       <p>
         Your browser is too old and does not support some of the Web APIs this page requires.
