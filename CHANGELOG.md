@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.4.7](https://github.com/ipfs/service-worker-gateway/compare/v3.4.6...v3.4.7) (2026-06-08)
+
+
+### Bug Fixes
+
+* only show logs on error page if there are logs to show ([#1112](https://github.com/ipfs/service-worker-gateway/issues/1112)) ([c8f2874](https://github.com/ipfs/service-worker-gateway/commit/c8f287459ed19e622949149dc5ba0f93046f8abd))
+* respect cache-control response header ([#1109](https://github.com/ipfs/service-worker-gateway/issues/1109)) ([023d3d0](https://github.com/ipfs/service-worker-gateway/commit/023d3d026581baf39afa0d52ead57a6c634a6bf9))
+* show clear notice on unsupported browsers ([#1115](https://github.com/ipfs/service-worker-gateway/issues/1115)) ([771c838](https://github.com/ipfs/service-worker-gateway/commit/771c838a1ffde0cf6509907524dd6af68640e16a))
+
 ## [3.4.6](https://github.com/ipfs/service-worker-gateway/compare/v3.4.5...v3.4.6) (2026-06-01)
 
 
