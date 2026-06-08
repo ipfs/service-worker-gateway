@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.4.8](https://github.com/ipfs/service-worker-gateway/compare/v3.4.7...v3.4.8) (2026-06-08)
+
+
+### Bug Fixes
+
+* update verified-fetch to include cache-control directives ([239eb02](https://github.com/ipfs/service-worker-gateway/commit/239eb02fc822fdfe97992190b7a0ca6342506f4c))
+
 ## [3.4.7](https://github.com/ipfs/service-worker-gateway/compare/v3.4.6...v3.4.7) (2026-06-08)
 
 
