@@ -74,7 +74,11 @@ Compliance with [IPFS HTTP Gateway specifications](https://specs.ipfs.tech/http-
 
 ## Browser support
 
-The gateway uses modern [Web APIs](https://developer.mozilla.org/en-US/docs/Web/API), so it needs a web browser kept up to date with security patches. If you see a notice asking you to update, please do.
+The gateway supports recent versions of all major web browsers.
+
+It is built using modern [Web APIs](https://developer.mozilla.org/en-US/docs/Web/API) so needs a web browser kept up to date with the latest features and security patches.
+
+If you see a notice asking you to update your browser, please do so.
 
 ## Usage
 
