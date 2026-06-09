@@ -46,7 +46,7 @@
     "@chainsafe/libp2p-noise": "^17.0.0",
     "@chainsafe/libp2p-yamux": "^8.0.1",
     "@helia/block-brokers": "^5.2.1",
-    "@helia/delegated-routing-v1-http-api-client": "^6.0.1",
+    "@helia/delegated-routing-v1-http-api-client": "^7.0.1",
     "@helia/routers": "^5.1.0",
     "@helia/utils": "^2.5.0",
     "@helia/verified-fetch": "^7.2.16",
@@ -73,7 +73,7 @@
     "file-type": "^22.0.1",
     "ipfs-css": "^1.4.0",
     "libp2p": "^3.1.0",
-    "multiformats": "^13.4.1",
+    "multiformats": "^14.0.0",
     "preact": "^10.28.2",
     "pretty-bytes": "^7.1.0",
     "react-icons": "^5.5.0",
@@ -135,6 +135,6 @@
     "*.css"
   ],
   "overrides": {
-    "multiformats": "^13.4.1"
+    "multiformats": "^14.0.0"
   }
 }
