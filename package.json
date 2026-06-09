@@ -115,7 +115,7 @@
     "helia": "^6.1.1",
     "http-server": "^14.1.1",
     "ipfs-unixfs": "^12.0.0",
-    "ipfs-unixfs-importer": "^16.1.0",
+    "ipfs-unixfs-importer": "^17.0.1",
     "ipfsd-ctl": "^16.0.0",
     "ipns": "^10.1.3",
     "it-all": "^3.0.7",
