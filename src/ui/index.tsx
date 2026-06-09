@@ -4,6 +4,7 @@ import './index.css'
 import { FaInfoCircle, FaGithub, FaExclamationTriangle, FaExclamationCircle, FaHome, FaListAlt, FaFileDownload } from 'react-icons/fa'
 import { HashRouter, Route, Routes, NavLink } from 'react-router-dom'
 import { HASH_FRAGMENTS } from '../lib/constants.ts'
+import { isBrowserSupported } from '../lib/is-browser-supported.ts'
 import { ErrorBoundary } from './components/error-boundary.tsx'
 import ipfsLogo from './ipfs-logo.svg'
 import AboutPage from './pages/about.tsx'
@@ -15,6 +16,7 @@ import OriginIsolationWarningPage from './pages/origin-isolation-warning.tsx'
 import { RenderEntityPage } from './pages/render-entity.tsx'
 import { RenderMediaPage } from './pages/render-media.tsx'
 import { ServerErrorPage } from './pages/server-error.tsx'
+import UnsupportedBrowserErrorPage from './pages/unsupported-browser.tsx'
 import { injectCSS } from './utils/css-injector.ts'
 
 // SW did not trigger for this request
@@ -113,38 +115,38 @@ function Header (): React.ReactElement {
  * the landing page, otherwise show the "Enter a CID" UI page
  */
 function getIndexRoute (): React.ReactElement {
-  if (globalThis.fetchError != null && globalThis.location.hash === '') {
+  if (globalThis.fetchError != null) {
     return (
-      <Route element={<FetchErrorPage />} index />
+      <Route element={<FetchErrorPage />} path='*' index />
     )
   }
 
-  if (globalThis.serverError != null && globalThis.location.hash === '') {
+  if (globalThis.serverError != null) {
     return (
-      <Route element={<ServerErrorPage />} index />
+      <Route element={<ServerErrorPage />} path='*' index />
     )
   }
 
-  if (globalThis.originIsolationWarning != null && globalThis.location.hash === '') {
+  if (globalThis.originIsolationWarning != null) {
     return (
-      <Route element={<OriginIsolationWarningPage />} index />
+      <Route element={<OriginIsolationWarningPage />} path='*' index />
     )
   }
 
-  if (globalThis.renderEntity != null && globalThis.location.hash === '') {
+  if (globalThis.renderEntity != null) {
     return (
-      <Route element={<RenderEntityPage />} index />
+      <Route element={<RenderEntityPage />} path='*' index />
     )
   }
 
   if (globalThis.downloadingPage != null) {
     return (
-      <Route element={<DownloadingPage />} index />
+      <Route element={<DownloadingPage />} path='*' index />
     )
   }
 
   return (
-    <Route element={<HomePage />} index />
+    <Route element={<HomePage />} path='*' index />
   )
 }
 
@@ -169,15 +171,40 @@ function App (): React.ReactElement {
       <Header />
       <ErrorBoundary>
         <Routes>
-          {getIndexRoute()}
           <Route path={`/${HASH_FRAGMENTS.IPFS_SW_LOAD_UI}`} element={<HomePage />} />,
           <Route path={`/${HASH_FRAGMENTS.IPFS_SW_ABOUT_UI}`} element={<AboutPage />} />,
           <Route path={`/${HASH_FRAGMENTS.IPFS_SW_FETCH_ERROR_UI}`} element={<FetchErrorPage />} />
           <Route path={`/${HASH_FRAGMENTS.IPFS_SW_SERVER_ERROR_UI}`} element={<ServerErrorPage />} />
           <Route path={`/${HASH_FRAGMENTS.IPFS_SW_ORIGIN_ISOLATION_WARNING}`} element={<OriginIsolationWarningPage />} />
+          {getIndexRoute()}
         </Routes>
       </ErrorBoundary>
     </HashRouter>
+  )
+}
+
+/**
+ * Wraps an error page in the minimal header chrome used when the full app
+ * cannot run (no service worker, unsupported browser).
+ */
+function errorScreen (page: React.ReactElement): React.ReactElement {
+  return (
+    <React.StrictMode>
+      <header className='e2e-header flex items-center pa2 bg-navy bb bw3 b--aqua tc justify-between'>
+        <div>
+          <a href='https://ipfs.tech' title='IPFS Project' target='_blank' rel='noopener noreferrer' aria-label='Visit the website of the IPFS Project'>
+            <img alt='IPFS logo' src={toAbsolutePath(ipfsLogo)} style={{ height: 50 }} className='v-top' />
+          </a>
+        </div>
+        <div className='pb1 ma0 mr2 inline-flex items-center aqua'>
+          <h1 className='e2e-header-title f3 fw2 ttu sans-serif'>Service Worker Gateway</h1>
+          <a href='https://github.com/ipfs/service-worker-gateway' title='IPFS Service Worker Gateway on GitHub' target='_blank' rel='noopener noreferrer' aria-label='Visit the GitHub repository for the IPFS Service Worker Gateway'>
+            <FaGithub className='ml2 f3' />
+          </a>
+        </div>
+      </header>
+      {page}
+    </React.StrictMode>
   )
 }
 
@@ -203,25 +230,14 @@ async function renderUi (): Promise<void> {
 
   const root = ReactDOMClient.createRoot(container)
 
+  if (!isBrowserSupported()) {
+    root.render(errorScreen(<UnsupportedBrowserErrorPage />))
+
+    return
+  }
+
   if (!('serviceWorker' in navigator)) {
-    root.render(
-      <React.StrictMode>
-        <header className='e2e-header flex items-center pa2 bg-navy bb bw3 b--aqua tc justify-between'>
-          <div>
-            <a href='https://ipfs.tech' title='IPFS Project' target='_blank' rel='noopener noreferrer' aria-label='Visit the website of the IPFS Project'>
-              <img alt='IPFS logo' src={toAbsolutePath(ipfsLogo)} style={{ height: 50 }} className='v-top' />
-            </a>
-          </div>
-          <div className='pb1 ma0 mr2 inline-flex items-center aqua'>
-            <h1 className='e2e-header-title f3 fw2 ttu sans-serif'>Service Worker Gateway</h1>
-            <a href='https://github.com/ipfs/service-worker-gateway' title='IPFS Service Worker Gateway on GitHub' target='_blank' rel='noopener noreferrer' aria-label='Visit the GitHub repository for the IPFS Service Worker Gateway'>
-              <FaGithub className='ml2 f3' />
-            </a>
-          </div>
-        </header>
-        <NoServiceWorkerErrorPage />
-      </React.StrictMode>
-    )
+    root.render(errorScreen(<NoServiceWorkerErrorPage />))
 
     return
   }

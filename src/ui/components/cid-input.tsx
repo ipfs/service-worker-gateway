@@ -1,5 +1,5 @@
 import { CID } from 'multiformats/cid'
-import React, { useState } from 'react'
+import React from 'react'
 import { parseRequest } from '../../lib/parse-request.ts'
 import { Link } from './link.tsx'
 import type { ReactElement } from 'react'
@@ -46,7 +46,7 @@ const ValidationMessage: React.FC<ValidationMessageProps> = ({ errorElement }) =
 
   return (
     <>
-      <span className='pb3 pa3 db bg-light-yellow'>
+      <span className='pb3 pa3 db bg-light-yellow' data-testid='cid-validation-error-message'>
         {errorElement}
       </span>
     </>
@@ -57,6 +57,7 @@ export interface CIDInputProps {
   input: string
   setInput(download: string): void
   setSubdomainURL(val: URL): void
+  invalid: boolean
   setInvalid(invalid: boolean): void
 }
 
@@ -77,11 +78,7 @@ export function parseSubdomain (val: string): URL | undefined {
   }
 }
 
-export function CIDInput ({ input, setInput, setSubdomainURL, setInvalid }: CIDInputProps): ReactElement {
-  let initialErrorElement: ReactElement | undefined
-
-  const [errorElement, setErrorElement] = useState(initialErrorElement)
-
+export function CIDInput ({ input, setInput, setSubdomainURL, invalid, setInvalid }: CIDInputProps): ReactElement {
   function validate (val: string): void {
     setInput(val)
 
@@ -93,12 +90,11 @@ export function CIDInput ({ input, setInput, setSubdomainURL, setInvalid }: CIDI
         setInvalid(false)
         return
       }
-    } catch (err) {
-      setErrorElement(<FormatHelp />)
+    } catch {
       // ignore
     }
 
-    setInvalid(true)
+    setInvalid(val?.trim() !== '')
   }
 
   return (
@@ -115,7 +111,7 @@ export function CIDInput ({ input, setInput, setSubdomainURL, setInvalid }: CIDI
         onChange={(e) => validate(e.target.value)}
       />
       <ValidationMessage
-        errorElement={errorElement}
+        errorElement={invalid ? <FormatHelp /> : undefined}
       />
     </>
   )

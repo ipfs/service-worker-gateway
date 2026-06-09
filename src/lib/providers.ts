@@ -7,3 +7,7 @@ export function isBitswapProvider (prov?: any): prov is BitswapProvider {
 export function isTrustlessGatewayProvider (prov?: any): prov is TrustlessGatewayProvider {
   return prov?.type === 'trustless-gateway'
 }
+
+export function isFallbackTrustlessGatewayProvider (prov?: any): prov is TrustlessGatewayProvider {
+  return prov?.routing === 'http-gateway-routing' && prov?.type === 'trustless-gateway'
+}

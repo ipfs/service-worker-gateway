@@ -11,7 +11,7 @@ test.describe('IPNS', () => {
 
     const headers = await response.allHeaders()
     expect(headers?.['content-type']).toContain('application/vnd.ipld.dag-json')
-    expect(headers?.['cache-control']).toBe('public, max-age=3155760000')
+    expect(headers?.['cache-control']).toMatch(/public, max-age=3155760000, stale-while-revalidate=\d+, stale-if-error=\d+/)
     expect(headers?.['etag']).toBe(`"${cid}.dag-json"`)
     expect(headers?.['x-ipfs-path']).toBe(`/ipns/${name}`)
 

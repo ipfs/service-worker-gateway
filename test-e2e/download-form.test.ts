@@ -653,4 +653,37 @@ test.describe('download form', () => {
 
     expect(file).toBe('hello world\n')
   })
+
+  test('should error message for invalid CID', async ({ page }) => {
+    await page.fill('#inputContent', '/ipfs/invalid-cid')
+    await expect(page.getByTestId('cid-validation-error-message')).toBeVisible()
+    await expect(page.locator('#load-directly')).toBeDisabled()
+  })
+
+  test('should error message for invalid CID in URL', async ({ page }) => {
+    await page.fill('#inputContent', 'ipfs://invalid-cid')
+    await expect(page.getByTestId('cid-validation-error-message')).toBeVisible()
+    await expect(page.locator('#load-directly')).toBeDisabled()
+  })
+
+  test('should error message for invalid protocol', async ({ page }) => {
+    await page.fill('#inputContent', '/derp/bafybeia7mk3ljigvxaqlzqapyo22hivsja2n5tdjmhpqvvzheoyaribela')
+    await expect(page.getByTestId('cid-validation-error-message')).toBeVisible()
+    await expect(page.locator('#load-directly')).toBeDisabled()
+  })
+
+  test('should error message for invalid protocol in URL', async ({ page }) => {
+    await page.fill('#inputContent', 'derp://bafybeia7mk3ljigvxaqlzqapyo22hivsja2n5tdjmhpqvvzheoyaribela')
+    await expect(page.getByTestId('cid-validation-error-message')).toBeVisible()
+    await expect(page.locator('#load-directly')).toBeDisabled()
+  })
+
+  test('should remove error message when input is emptied', async ({ page }) => {
+    await page.fill('#inputContent', '/ipfs/invalid-cid')
+    await expect(page.getByTestId('cid-validation-error-message')).toBeVisible()
+    await expect(page.locator('#load-directly')).toBeDisabled()
+    await page.fill('#inputContent', '')
+    await expect(page.getByTestId('cid-validation-error-message')).not.toBeVisible()
+    await expect(page.locator('#load-directly')).toBeEnabled()
+  })
 })

@@ -1,6 +1,6 @@
 {
   "name": "@helia/service-worker-gateway",
-  "version": "3.4.0",
+  "version": "3.4.8",
   "private": true,
   "type": "module",
   "description": "An IPFS Gateway that uses @helia/verified-fetch in a Service Worker to fetch content",
@@ -28,7 +28,11 @@
   },
   "browser": "./dist/src/index.js",
   "browserslist": [
-    "last 1 Chrome version"
+    "Chrome >= 130",
+    "Edge >= 130",
+    "Firefox >= 122",
+    "Safari >= 18.4",
+    "iOS >= 18.4"
   ],
   "eslintConfig": {
     "extends": "ipfs",
@@ -45,7 +49,7 @@
     "@helia/delegated-routing-v1-http-api-client": "^6.0.1",
     "@helia/routers": "^5.1.0",
     "@helia/utils": "^2.5.0",
-    "@helia/verified-fetch": "^7.2.11",
+    "@helia/verified-fetch": "^7.2.16",
     "@ipld/dag-cbor": "^9.2.5",
     "@ipld/dag-json": "^10.2.5",
     "@ipld/dag-pb": "^4.1.5",

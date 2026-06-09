@@ -1,5 +1,67 @@
 # Changelog
 
+## [3.4.8](https://github.com/ipfs/service-worker-gateway/compare/v3.4.7...v3.4.8) (2026-06-08)
+
+
+### Bug Fixes
+
+* update verified-fetch to include cache-control directives ([239eb02](https://github.com/ipfs/service-worker-gateway/commit/239eb02fc822fdfe97992190b7a0ca6342506f4c))
+
+## [3.4.7](https://github.com/ipfs/service-worker-gateway/compare/v3.4.6...v3.4.7) (2026-06-08)
+
+
+### Bug Fixes
+
+* only show logs on error page if there are logs to show ([#1112](https://github.com/ipfs/service-worker-gateway/issues/1112)) ([c8f2874](https://github.com/ipfs/service-worker-gateway/commit/c8f287459ed19e622949149dc5ba0f93046f8abd))
+* respect cache-control response header ([#1109](https://github.com/ipfs/service-worker-gateway/issues/1109)) ([023d3d0](https://github.com/ipfs/service-worker-gateway/commit/023d3d026581baf39afa0d52ead57a6c634a6bf9))
+* show clear notice on unsupported browsers ([#1115](https://github.com/ipfs/service-worker-gateway/issues/1115)) ([771c838](https://github.com/ipfs/service-worker-gateway/commit/771c838a1ffde0cf6509907524dd6af68640e16a))
+
+## [3.4.6](https://github.com/ipfs/service-worker-gateway/compare/v3.4.5...v3.4.6) (2026-06-01)
+
+
+### Bug Fixes
+
+* disable logging on production ([4e988e4](https://github.com/ipfs/service-worker-gateway/commit/4e988e400ad97935b4e05699e7c010a876a62998))
+
+## [3.4.5](https://github.com/ipfs/service-worker-gateway/compare/v3.4.4...v3.4.5) (2026-05-31)
+
+
+### Bug Fixes
+
+* enable logging on inbrowser.link ([#1102](https://github.com/ipfs/service-worker-gateway/issues/1102)) ([18c837d](https://github.com/ipfs/service-worker-gateway/commit/18c837d8973f83b0593737aee3c6a34c8087fc8f))
+* remove error message if input emptied ([#1101](https://github.com/ipfs/service-worker-gateway/issues/1101)) ([358de78](https://github.com/ipfs/service-worker-gateway/commit/358de782884e7c775a4496d66b8132f6109ec7d5))
+
+## [3.4.4](https://github.com/ipfs/service-worker-gateway/compare/v3.4.3...v3.4.4) (2026-05-29)
+
+
+### Bug Fixes
+
+* make url hash available to loaded HTML page ([#1089](https://github.com/ipfs/service-worker-gateway/issues/1089)) ([cac1087](https://github.com/ipfs/service-worker-gateway/commit/cac1087f20944501d3a354ecc17619cf73e851ed)), closes [#1088](https://github.com/ipfs/service-worker-gateway/issues/1088)
+* start libp2p and patch block brokers/webtransport transport ([#1100](https://github.com/ipfs/service-worker-gateway/issues/1100)) ([0c87b35](https://github.com/ipfs/service-worker-gateway/commit/0c87b355f10eaa7a65aa7aa26d0c2bd6f84d07a9))
+
+## [3.4.3](https://github.com/ipfs/service-worker-gateway/compare/v3.4.2...v3.4.3) (2026-05-19)
+
+
+### Bug Fixes
+
+* show "Check CID Availability" button on downloading page ([#1085](https://github.com/ipfs/service-worker-gateway/issues/1085)) ([de23da1](https://github.com/ipfs/service-worker-gateway/commit/de23da167a451eacdd054cd25a09e6b6de926688))
+* **snippets:** installer cache poisoning ([#1081](https://github.com/ipfs/service-worker-gateway/issues/1081)) ([b9ffe7d](https://github.com/ipfs/service-worker-gateway/commit/b9ffe7d45289457bda8982ea9d4e57e17e5052a8))
+
+## [3.4.2](https://github.com/ipfs/service-worker-gateway/compare/v3.4.1...v3.4.2) (2026-05-18)
+
+
+### Bug Fixes
+
+* improve 502 error messaging ([#1078](https://github.com/ipfs/service-worker-gateway/issues/1078)) ([73210cd](https://github.com/ipfs/service-worker-gateway/commit/73210cdfa3ae13bb354296ac183b402aa0e78603)), closes [#1070](https://github.com/ipfs/service-worker-gateway/issues/1070)
+* make download block button download dag ([#1079](https://github.com/ipfs/service-worker-gateway/issues/1079)) ([bd318ec](https://github.com/ipfs/service-worker-gateway/commit/bd318ec7eefd4b7be58e7d2512b72470f0611cc6))
+
+## [3.4.1](https://github.com/ipfs/service-worker-gateway/compare/v3.4.0...v3.4.1) (2026-05-18)
+
+
+### Bug Fixes
+
+* set up go before node ([#1076](https://github.com/ipfs/service-worker-gateway/issues/1076)) ([c94c120](https://github.com/ipfs/service-worker-gateway/commit/c94c1203944f3688085bff4234bb57b87ab03963))
+
 ## [3.4.0](https://github.com/ipfs/service-worker-gateway/compare/v3.3.1...v3.4.0) (2026-05-16)
 
 

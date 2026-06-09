@@ -203,10 +203,11 @@ export default function DownloadForm ({
           input={input}
           setInput={setInput}
           setSubdomainURL={setSubdomainURL}
+          invalid={Boolean(invalid['cid-input'])}
           setInvalid={(res) => {
             setInvalid({
               ...invalid,
-              'entity-bytes': res
+              'cid-input': res
             })
           }}
         />

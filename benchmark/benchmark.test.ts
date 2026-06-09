@@ -11,16 +11,16 @@ const CID = 'bafybeigocr7lc57bjw3b7jkv2y3mtggcvfiebs5wq5b7epfwtb5wgwgzm4'
 test.describe('@helia/service-worker-gateway - benchmark', () => {
   const tests = [{
     name: 'inbrowser.link (subdomain gateway)',
-    url: (cid: string): string => `https://${cid}.ipfs.inbrowser.link/`
+    url: (cid: string): string => `https://${cid}.ipfs.inbrowser.link/?download=true`
   }, {
     name: 'inbrowser.link (path gateway)',
-    url: (cid: string): string => `https://inbrowser.link/ipfs/${cid}/`
+    url: (cid: string): string => `https://inbrowser.link/ipfs/${cid}/?download=true`
   }, {
     name: 'inbrowser.dev (subdomain gateway)',
-    url: (cid: string): string => `https://${cid}.ipfs.inbrowser.dev/`
+    url: (cid: string): string => `https://${cid}.ipfs.inbrowser.dev/?download=true`
   }, {
     name: 'inbrowser.dev (path gateway)',
-    url: (cid: string): string => `https://inbrowser.dev/ipfs/${cid}/`
+    url: (cid: string): string => `https://inbrowser.dev/ipfs/${cid}/?download=true`
   }]
 
   tests.forEach(t => {
@@ -54,8 +54,8 @@ test.describe('@helia/service-worker-gateway - benchmark', () => {
 
         // check response
         expect(response.status()).toBe(200)
-        expect(response.headers()['content-length']).toBe('2805')
-        expect(response.headers()['content-type']).toBe('text/html; charset=utf-8')
+        expect(response.headers()['content-length']).toBe('8895')
+        expect(response.headers()['content-type']).toBe('image/jpeg')
 
         // should have service worker(s)
         expect(context.serviceWorkers().length).not.toBe(0)

@@ -3,6 +3,7 @@
 import weald from 'weald'
 import { config } from './config/index.ts'
 import { QUERY_PARAMS } from './lib/constants.ts'
+import { isBrowserSupported } from './lib/is-browser-supported.ts'
 import { parseRequest } from './lib/parse-request-cheap.ts'
 import { isSafeOrigin } from './lib/path-or-subdomain.ts'
 import { registerServiceWorker } from './lib/register-service-worker.ts'
@@ -30,6 +31,13 @@ declare global {
  * reload the current page so the request can be handled by the service worker.
  */
 async function main (): Promise<void> {
+  if (!isBrowserSupported()) {
+    // browser is missing Web APIs we need, render the UI which will tell the
+    // user their browser is unsupported
+    await renderUi()
+    return
+  }
+
   if (!('serviceWorker' in navigator)) {
     // no service worker support, render the UI which will tell the user
     // service workers are not supported
@@ -164,8 +172,57 @@ async function main (): Promise<void> {
         await registerServiceWorker()
       }
 
-      // reload so the subdomain request is handled by the service worker
-      window.location.href = url.toString()
+      // Clear SW-UI hashes before navigating: otherwise the post-reload
+      // React app would match a `/ipfs-sw-…` route from the HashRouter
+      // and show a SW UI page instead of the requested CID content,
+      // causing endless redirects between the two.
+      if (window.location.hash.startsWith('#/ipfs-sw')) {
+        url.hash = ''
+        window.location.hash = ''
+      }
+
+      // Trigger a navigation so the just-installed service worker can
+      // intercept the subdomain request. Pick the cheapest primitive
+      // that still works in the presence of a URL fragment.
+      //
+      // Same-URL navigation behavior (HTML spec, verified in Chromium
+      // and Firefox):
+      //
+      //   Method                          No fragment   With fragment
+      //   ------------------------------- ------------- -------------
+      //   location.href = sameURL         reloads       no-op
+      //   location.replace(sameURL)       reloads       no-op
+      //   location.reload()               reloads       reloads
+      //
+      // For URLs that differ only in fragment (or match byte-for-byte
+      // with a fragment), the spec treats the navigation as a
+      // same-document fragment update, which collapses to a no-op when
+      // the URLs are byte-equal. Only `reload()` bypasses that and
+      // actually navigates. Without it the bootstrap would silently sit
+      // on URLs like `…/file.pdf#page=6` because the SW would never
+      // get a chance to intercept.
+      //
+      // Cache cost is the reason we do not unconditionally use
+      // `reload()`: per spec, `location.reload()` sends
+      // `Cache-Control: max-age=0` and forces a revalidation request
+      // even when the browser has a fresh local copy. Behind a CDN
+      // that meters requests (Cloudflare in production), every
+      // SW-bypassed reload turns into a billable edge request. The
+      // `href = url.toString()` path lets the browser serve the
+      // bootstrap HTML from its own cache when possible, costing zero
+      // edge requests.
+      //
+      // Caveat: `reload()` reloads the *current* URL, not `url`. If a
+      // future change here mutates `url` after this point, switch the
+      // fragment branch back to `location.href = url.toString()` and
+      // strip the fragment before the assignment so the navigation
+      // actually fires.
+      if (url.hash === '') {
+        window.location.href = url.toString()
+      } else {
+        window.location.reload()
+      }
+
       showUIAfterDelay(request)
       return
     }
@@ -255,8 +312,19 @@ function tooManyRedirects (storageKey: string, maxRedirects = 5, period = 5_000)
  */
 function showUIAfterDelay (request: ResolvableURI): void {
   setTimeout(() => {
+    let cid: string | undefined
+
+    if (request.type === 'native' && request.protocol === 'ipfs') {
+      cid = request.nativeURL.hostname
+    } else if (request.type === 'path' && request.protocol === 'ipfs') {
+      cid = request.pathURL.pathname.split('/')[2]
+    } else if (request.type === 'subdomain' && request.protocol === 'ipfs') {
+      cid = request.subdomainURL.hostname.split('.ipfs.')[0]
+    }
+
     globalThis.downloadingPage = {
-      request
+      request,
+      cid
     }
 
     renderUi()

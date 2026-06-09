@@ -6,7 +6,9 @@ import { CURRENT_CACHES } from '../../constants.ts'
 import { errorToObject } from '../../lib/error-to-object.ts'
 import { getSubdomainParts } from '../../lib/get-subdomain-parts.ts'
 import { getSwLogger } from '../../lib/logger.ts'
-import { isBitswapProvider, isTrustlessGatewayProvider } from '../../lib/providers.ts'
+import { isBitswapProvider, isFallbackTrustlessGatewayProvider, isTrustlessGatewayProvider } from '../../lib/providers.ts'
+import { canUseStaleResponseOnError, needsRevalidateAfterUse, needsRevalidateBeforeUse } from '../lib/cache-control.ts'
+import { parseHeaderDirectives } from '../lib/header-directives.ts'
 import { getInstallTime } from '../lib/install-time.ts'
 import { sniffRawContentType } from '../lib/sniff-raw-content-type.ts'
 import { getVerifiedFetch } from '../lib/verified-fetch.ts'
@@ -40,7 +42,6 @@ interface FetchHandlerArg {
   accept: string | null
 }
 
-const ONE_HOUR_IN_SECONDS = 3600
 const MAX_REDIRECTS = 5
 
 function getCacheKey (resource: ContentURI, headers: Headers, renderHtml: boolean, destination: RequestDestination): string {
@@ -56,16 +57,40 @@ async function getResponseFromCacheOrFetch (args: FetchHandlerArg): Promise<Resp
   log.trace('cache key: %s', args.cacheKey)
   const cache = await caches.open(args.isMutable ? CURRENT_CACHES.mutable : CURRENT_CACHES.immutable)
   const cachedResponse = await cache.match(args.cacheKey)
-  const validCacheHit = cachedResponse != null && !hasExpired(cachedResponse)
 
-  if (validCacheHit) {
-    log('cached response HIT for %s (expires: %s) %o', args.cacheKey, cachedResponse.headers.get('sw-cache-expires'), cachedResponse)
+  if (cachedResponse == null) {
+    log('cached response MISS for %s', args.cacheKey)
+    return fetchAndUpdateCache(args)
+  }
+
+  if (needsRevalidateBeforeUse(cachedResponse)) {
+    log('cached response HIT for %s but needs revalidation before use', args.cacheKey)
+
+    const response = await fetchAndUpdateCache(args)
+
+    if (canUseStaleResponseOnError(response, cachedResponse)) {
+      log('%d error revalidating response but can re-use cached response HIT for %s', response.status, args.cacheKey)
+      return cachedResponse
+    }
+
+    return response
+  }
+
+  if (needsRevalidateAfterUse(cachedResponse)) {
+    log('cached response HIT for %s but needs background revalidation', args.cacheKey)
+
+    args.event.waitUntil(
+      fetchAndUpdateCache(args)
+        .catch(err => {
+          log.error('background revalidate for %s failed - %e', args.cacheKey, err)
+        })
+    )
+
     return cachedResponse
   }
 
-  log('cached response MISS for %s', args.cacheKey)
-
-  return fetchAndUpdateCache(args)
+  log('cached response HIT for %s %o', args.cacheKey, cachedResponse)
+  return cachedResponse
 }
 
 async function fetchAndUpdateCache (args: FetchHandlerArg): Promise<Response> {
@@ -84,22 +109,6 @@ async function fetchAndUpdateCache (args: FetchHandlerArg): Promise<Response> {
   }
 
   return response
-}
-
-/**
- * Checks whether our custom expires header shows that this response has expired
- */
-function hasExpired (response: Response): boolean {
-  const expiresHeader = response.headers.get('sw-cache-expires')
-
-  if (expiresHeader == null) {
-    return false
-  }
-
-  const expires = new Date(expiresHeader)
-  const now = new Date()
-
-  return expires < now
 }
 
 function shouldCacheResponse (response: Response, args: FetchHandlerArg): boolean {
@@ -127,6 +136,11 @@ function shouldCacheResponse (response: Response, args: FetchHandlerArg): boolea
     return false
   }
 
+  // no-store directive prevents any kind of caching
+  if (parseHeaderDirectives(response.headers.get('cache-control'))['no-store'] === true) {
+    return false
+  }
+
   return true
 }
 
@@ -137,13 +151,10 @@ async function storeResponseInCache (response: Response, args: FetchHandlerArg):
     return
   }
 
-  if (args.isMutable) {
-    log.trace('setting expires header on response key %s before storing in cache', args.cacheKey)
-    // 👇 Set expires header to an hour from now for mutable (ipns://) resources
-    // Note that this technically breaks HTTP semantics, whereby the
-    // cache-control max-age takes precedence Setting this header is only used
-    // by the service worker using a mechanism similar to stale-while-revalidate
-    setExpiresHeader(response, ONE_HOUR_IN_SECONDS)
+  // ensure we can invalidate the cache later
+  if (response.headers.get('date') == null) {
+    log.trace('setting date header on response key %s before storing in cache', args.cacheKey)
+    response.headers.set('date', new Date().toUTCString())
   }
 
   log.trace('updating cache for %s in the background', args.cacheKey)
@@ -162,11 +173,11 @@ async function storeResponseInCache (response: Response, args: FetchHandlerArg):
     args.event.waitUntil(
       cache.put(args.cacheKey, respToCache)
         .catch((err) => {
-          log.error('error storing response in cache - %e', err)
+          log.error('error storing response for %s in cache - %e', args.cacheKey, err)
         })
     )
   } catch (err) {
-    log.error('error storing response in cache - %e', err)
+    log.error('error storing response for %s in cache - %e', args.cacheKey, err)
   }
 }
 
@@ -216,7 +227,11 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
     redirect: 'manual',
     onProgress: (evt) => {
       if (evt.type.endsWith(':found-provider')) {
-        providers.total++
+        if (isFallbackTrustlessGatewayProvider(evt.detail)) {
+          // do not include fallback trustless gateways in provider list since
+          // they aren't really providers in the IPFS sense
+          return
+        }
 
         log('got found-provider event %s %j', evt.type, evt.detail)
 
@@ -432,16 +447,6 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
     signal.clear()
     clearTimeout(timeout)
   }
-}
-
-/**
- * Set a custom expires header on a response object to a timestamp based on the
- * passed ttl interval. Defaults to one hour.
- */
-function setExpiresHeader (response: Response, ttlSeconds: number = ONE_HOUR_IN_SECONDS): void {
-  const expirationTime = new Date(Date.now() + ttlSeconds * 1000)
-
-  response.headers.set('sw-cache-expires', expirationTime.toUTCString())
 }
 
 function shouldRenderDirectory (url: URL, accept?: string | null): boolean {

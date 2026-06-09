@@ -1,9 +1,10 @@
 import React from 'react'
-import { FaFileDownload, FaFileCode, FaCopy } from 'react-icons/fa'
+import { FaFileDownload, FaCopy } from 'react-icons/fa'
 import { MULTICODECS } from '../pages/multicodec-table.ts'
 import { CopyCidButton } from './copy-cid-button.tsx'
-import { DownloadBlockButton } from './download-block-button.tsx'
-import { ViewBlockButton } from './view-block-button.tsx'
+import { DownloadButton } from './download-button.tsx'
+import { FaFileSearch } from './fa-file-search.ts'
+import { InspectBlockButton } from './inspect-block-button.tsx'
 import type { CID } from 'multiformats/cid'
 import type { ReactElement } from 'react'
 
@@ -23,12 +24,12 @@ export function CIDDetails ({ cid, ipfsPath, className, buttonClassName }: CIDDe
       <CopyCidButton cid={cid} className={`ml1 copy-cid-button ${buttonClassName ?? ''}`}>
         <FaCopy />
       </CopyCidButton>
-      <DownloadBlockButton ipfsPath={ipfsPath} className={`ml1 download-block-button ${buttonClassName ?? ''}`}>
+      <DownloadButton ipfsPath={ipfsPath} className={`ml1 download-block-button ${buttonClassName ?? ''}`}>
         <FaFileDownload />
-      </DownloadBlockButton>
-      <ViewBlockButton ipfsPath={ipfsPath} className={`ml1 view-block-button ${buttonClassName ?? ''}`}>
-        <FaFileCode />
-      </ViewBlockButton>
+      </DownloadButton>
+      <InspectBlockButton ipfsPath={ipfsPath} className={`ml1 view-block-button ${buttonClassName ?? ''}`}>
+        <FaFileSearch />
+      </InspectBlockButton>
     </div>
   )
 }
