@@ -50,7 +50,7 @@
     "@helia/routers": "^5.1.0",
     "@helia/utils": "^2.5.0",
     "@helia/verified-fetch": "^7.2.16",
-    "@ipld/dag-cbor": "^9.2.5",
+    "@ipld/dag-cbor": "^10.0.1",
     "@ipld/dag-json": "^10.2.5",
     "@ipld/dag-pb": "^4.1.5",
     "@libp2p/crypto": "^5.1.13",
