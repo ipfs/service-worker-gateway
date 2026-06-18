@@ -135,6 +135,7 @@
     "*.css"
   ],
   "overrides": {
-    "multiformats": "^13.4.1"
+    "multiformats": "^13.4.1",
+    "interface-datastore": "^10.0.0"
   }
 }
