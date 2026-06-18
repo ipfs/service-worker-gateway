@@ -44,7 +44,6 @@ test.describe('directory-listing', () => {
   })
 
   test('should load directory entry', async ({ page, baseURL }) => {
-    test.setTimeout(640_000_000)
     const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${domain}`)
     expect(response.status()).toBe(200)
 
@@ -54,6 +53,20 @@ test.describe('directory-listing', () => {
     // iframe, so the body text lives inside the wrapper's iframe.
     await expect(mediaViewerFrame(page).getByText('hello world')).toBeVisible()
     expect(page.url().endsWith('/hello-world.txt')).toBeTruthy()
+  })
+
+  test('should show correct IPNS namespace in header', async ({ page, baseURL }) => {
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipfs/${directory.cid}`)
+    expect(response.status()).toBe(200)
+
+    await expect(page.locator('#directory-index')).toContainText(`Index of /ipfs/${directory.cid}`)
+  })
+
+  test('should show correct IPFS namespace in header', async ({ page, baseURL }) => {
+    const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${domain}`)
+    expect(response.status()).toBe(200)
+
+    await expect(page.locator('#directory-index')).toContainText(`Index of /ipns/${domain}`)
   })
 
   test('should download directory entry block', async ({ page, baseURL }) => {

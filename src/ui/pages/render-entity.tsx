@@ -126,8 +126,8 @@ interface UnixFSPathProps {
 
 function UnixFSPath ({ ipfsPath }: UnixFSPathProps): ReactElement {
   // /ipfs/cid/path
-  const parts = ipfsPath.split('/')
-    .slice(2)
+  const [namespace, ...rest] = ipfsPath.split('/').slice(1)
+  const parts = rest
     .filter(segment => segment !== '')
     .map((segment, index, arr) => {
       return (
@@ -137,7 +137,7 @@ function UnixFSPath ({ ipfsPath }: UnixFSPathProps): ReactElement {
 
   return (
     <>
-      /ipfs{parts}
+      /{namespace}{parts}
     </>
   )
 }
