@@ -24,11 +24,6 @@ export function getWontFixTests (): string[] {
     'TestGatewayCache/HEAD_for_%2Fipfs%2F_with_only-if-cached_succeeds_when_in_local_datastore',
     'TestGatewayCache/GET_for_%2Fipfs%2F_with_only-if-cached_succeeds_when_in_local_datastore',
 
-    // this test sends an empty weak etag (W/"") which should disable etag
-    // matching but instead it expects it to match and return a 304?
-    // https://github.com/ipfs/gateway-conformance/issues/261
-    'TestGatewayCache/GET_for_%2Fipfs%2F_dir_listing_with_matching_weak_Etag_in_If-None-Match_returns_304_Not_Modified',
-
     // this test requires reporting an unrelated error
     // https://github.com/ipfs/gateway-conformance/issues/269
     'TestRedirectsFileSupport/invalid_file:_request_for_$INVALID_REDIRECTS_DIR_HOSTNAME%2Fnot-found_returns_error_about_invalid_redirects_file',
