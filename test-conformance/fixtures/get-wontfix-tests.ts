@@ -24,11 +24,6 @@ export function getWontFixTests (): string[] {
     'TestGatewayCache/HEAD_for_%2Fipfs%2F_with_only-if-cached_succeeds_when_in_local_datastore',
     'TestGatewayCache/GET_for_%2Fipfs%2F_with_only-if-cached_succeeds_when_in_local_datastore',
 
-    // this test requires reporting an unrelated error
-    // https://github.com/ipfs/gateway-conformance/issues/269
-    'TestRedirectsFileSupport/invalid_file:_request_for_$INVALID_REDIRECTS_DIR_HOSTNAME%2Fnot-found_returns_error_about_invalid_redirects_file',
-    'TestRedirectsFileSupport/invalid_file:_request_for_$TOO_LARGE_REDIRECTS_DIR_HOSTNAME%2Fnot-found_returns_error_about_too_large_redirects_file',
-
     // cannot skip the tests that require reporting unrelated errors
     'TestRedirectsFileSupport',
 
