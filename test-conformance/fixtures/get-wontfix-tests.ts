@@ -63,10 +63,6 @@ export function getWontFixTests (): string[] {
     'TestProxyTunnelGatewaySubdomains',
     'TestProxyGatewaySubdomains',
 
-    // this is the wrong way round
-    // https://github.com/ipfs/specs/issues/521
-    'TestTrustlessCarOrderAndDuplicates/GET_CAR_with_Accept_and_%3Fformat%2C_specific_Accept_header_is_prioritized',
-
     // last few tests
     'TestTar/GET_TAR_with_relative_paths_inside_root_works',
     'TestGatewaySymlink/Test_the_directory_listing',
