@@ -32,10 +32,6 @@ export function getWontFixTests (): string[] {
     // cannot skip the tests that require reporting unrelated errors
     'TestRedirectsFileSupport',
 
-    // this test makes HTTP requests to non-localhost domains
-    // https://github.com/ipfs/gateway-conformance/issues/270
-    'TestRedirectsFileWithIfNoneMatchHeader',
-
     // playwright cannot intercept redirects so we cannot assert 301/302 status
     // codes were received
     'TestRedirectsFileSupport/request_for_%7Bcid%7D.ipfs.example.com%2Fredirect-one_redirects_with_default_of_301%2C_per__redirects_file',
