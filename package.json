@@ -86,7 +86,7 @@
     "@babel/core": "^7.28.0",
     "@babel/preset-env": "^7.28.0",
     "@babel/preset-react": "^7.27.1",
-    "@babel/preset-typescript": "^7.27.1",
+    "@babel/preset-typescript": "^8.0.1",
     "@cloudflare/workers-types": "^4.20260301.1",
     "@helia/car": "^5.4.0",
     "@helia/dag-cbor": "^5.1.0",
