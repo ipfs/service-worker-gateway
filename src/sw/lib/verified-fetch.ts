@@ -15,8 +15,8 @@ import { webTransport } from '@libp2p/webtransport'
 import { blake2b256 } from '@multiformats/blake2/blake2b'
 import { dns } from '@multiformats/dns'
 import { dnsJsonOverHttps } from '@multiformats/dns/resolvers'
-import { MemoryBlockstore } from 'blockstore-core'
-import { MemoryDatastore } from 'datastore-core'
+import { IDBBlockstore } from 'blockstore-idb'
+import { IDBDatastore } from 'datastore-idb'
 import { createLibp2p } from 'libp2p'
 import * as libp2pInfo from 'libp2p/version'
 import { sha1 } from 'multiformats/hashes/sha1'
@@ -92,8 +92,10 @@ export async function updateVerifiedFetch (): Promise<void> {
   })
 
   const hashers = [blake3, blake2b256, sha1]
-  const datastore = new MemoryDatastore()
-  const blockstore = new MemoryBlockstore()
+  const datastore = new IDBDatastore('/@helia/service-worker-gateway/data')
+  await datastore.open()
+  const blockstore = new IDBBlockstore('/@helia/service-worker-gateway/blocks')
+  await blockstore.open()
 
   const libp2pOptions = await libp2pDefaults()
   libp2pOptions.dns = dnsConfig
