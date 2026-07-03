@@ -1,4 +1,3 @@
-import { peerIdFromString } from '@libp2p/peer-id'
 import { CID } from 'multiformats'
 import { identity } from 'multiformats/hashes/identity'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
@@ -50,10 +49,9 @@ test.describe('DNSLink', () => {
   test('should load a DNSLink record that resolves to an IPNS name', async ({ page, baseURL }) => {
     const name = 'k51qzi5uqu5dhjghbwdvbo6mi40htrq6e2z4pwgp15pgv3ho1azvidttzh8yy2'
     const cid = 'baguqeeram5ujjqrwheyaty3w5gdsmoz6vittchvhk723jjqxk7hakxkd47xq'
-    const peerId = peerIdFromString(name)
     const domain = 'recursive-dnslink.com'
 
-    await publishDNSLink(domain, peerId)
+    await publishDNSLink(domain, `/ipns/${name}`)
 
     const response = await loadWithServiceWorker(page, `${baseURL}/ipns/${domain}`)
     expect(response.status()).toBe(200)

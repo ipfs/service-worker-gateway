@@ -605,7 +605,7 @@ test.describe('download form', () => {
     const file = await fsp.readFile(await download.path())
     const decoded = IPNSEntry.decode(file)
     expect(decoded.value).toEqual(uint8ArrayFromString('/ipfs/bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am'))
-    expect(decoded.validityType).toEqual(uint8ArrayFromString('EOL'))
+    expect(decoded.validityType).toEqual('EOL')
     expect(decoded.validity).toEqual(uint8ArrayFromString('2123-04-12T13:44:59.801728Z'))
   })
 

@@ -5,6 +5,8 @@ import { delegatedRoutingV1HttpApiClient } from '@helia/delegated-routing-v1-htt
 import { withHTTP } from '@helia/http'
 import { withLibp2p } from '@helia/libp2p'
 import { createVerifiedFetchWithHelia } from '@helia/verified-fetch'
+import * as dagCbor from '@ipld/dag-cbor'
+import * as dagJson from '@ipld/dag-json'
 import { dcutr } from '@libp2p/dcutr'
 import { identify, identifyPush } from '@libp2p/identify'
 import { keychain } from '@libp2p/keychain'
@@ -19,7 +21,9 @@ import { IDBDatastore } from 'datastore-idb'
 import { createHeliaLight } from 'helia'
 import { createLibp2p } from 'libp2p'
 import * as libp2pInfo from 'libp2p/version'
+import * as json from 'multiformats/codecs/json'
 import { sha1 } from 'multiformats/hashes/sha1'
+import { sha512 } from 'multiformats/hashes/sha2'
 import { config } from '../../config/index.ts'
 import { collectingLogger } from '../../lib/collecting-logger.ts'
 import { blake3 } from './blake3.ts'
@@ -89,7 +93,6 @@ export async function updateVerifiedFetch (): Promise<void> {
     logger
   })
 
-  const hashers = [blake3, blake2b256, sha1]
   const datastore = new IDBDatastore('/@helia/service-worker-gateway/data')
   await datastore.open()
   const blockstore = new IDBBlockstore('/@helia/service-worker-gateway/blocks')
@@ -107,13 +110,22 @@ export async function updateVerifiedFetch (): Promise<void> {
     blockstore,
     logger,
     dns: dnsConfig,
-    hashers
+    hashers: [
+      blake3,
+      blake2b256,
+      sha1,
+      sha512
+    ],
+    codecs: [
+      dagCbor,
+      dagJson,
+      json
+    ]
   }), {
     delegatedRouters: config.routers,
     recursiveGateways: config.gateways,
-    trustlessGatewayBlockBrokerInit: {
-      allowLocal: true
-    }
+    allowLocal: true,
+    allowInsecure: true
   }), libp2p)).start()
 
   verifiedFetch = await createVerifiedFetchWithHelia(helia, {
