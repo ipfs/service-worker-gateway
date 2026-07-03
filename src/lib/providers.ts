@@ -1,4 +1,5 @@
-import type { BitswapProvider, TrustlessGatewayProvider } from '@helia/block-brokers'
+import type { BitswapProvider } from '@helia/bitswap'
+import type { TrustlessGatewayProvider } from '@helia/trustless-gateway-client'
 
 export function isBitswapProvider (prov?: any): prov is BitswapProvider {
   return prov?.type === 'bitswap'

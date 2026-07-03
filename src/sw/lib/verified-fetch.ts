@@ -1,11 +1,12 @@
 import { noise } from '@chainsafe/libp2p-noise'
 import { yamux } from '@chainsafe/libp2p-yamux'
-import { trustlessGateway, bitswap } from '@helia/block-brokers'
+import { withBitswap } from '@helia/bitswap'
 import { delegatedRoutingV1HttpApiClient } from '@helia/delegated-routing-v1-http-api-client'
-import { httpGatewayRouting, libp2pRouting } from '@helia/routers'
-import { Helia } from '@helia/utils'
+import { withHTTP } from '@helia/http'
+import { withLibp2p } from '@helia/libp2p'
 import { createVerifiedFetchWithHelia } from '@helia/verified-fetch'
-import { generateKeyPair } from '@libp2p/crypto/keys'
+import * as dagCbor from '@ipld/dag-cbor'
+import * as dagJson from '@ipld/dag-json'
 import { dcutr } from '@libp2p/dcutr'
 import { identify, identifyPush } from '@libp2p/identify'
 import { keychain } from '@libp2p/keychain'
@@ -17,9 +18,12 @@ import { dns } from '@multiformats/dns'
 import { dnsJsonOverHttps } from '@multiformats/dns/resolvers'
 import { IDBBlockstore } from 'blockstore-idb'
 import { IDBDatastore } from 'datastore-idb'
+import { createHeliaLight } from 'helia'
 import { createLibp2p } from 'libp2p'
 import * as libp2pInfo from 'libp2p/version'
+import * as json from 'multiformats/codecs/json'
 import { sha1 } from 'multiformats/hashes/sha1'
+import { sha512 } from 'multiformats/hashes/sha2'
 import { config } from '../../config/index.ts'
 import { collectingLogger } from '../../lib/collecting-logger.ts'
 import { blake3 } from './blake3.ts'
@@ -28,7 +32,6 @@ import type { Libp2pOptions } from 'libp2p'
 
 async function libp2pDefaults (): Promise<Libp2pOptions> {
   const agentVersion = `@helia/verified-fetch ${libp2pInfo.name}/${libp2pInfo.version} UserAgent=${globalThis.navigator.userAgent}`
-  const privateKey = await generateKeyPair('Ed25519')
 
   const filterAddrs = [
     'wss',  // /dns4/sv15.bootstrap.libp2p.io/tcp/443/wss/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJ
@@ -63,7 +66,6 @@ async function libp2pDefaults (): Promise<Libp2pOptions> {
   })
 
   return {
-    privateKey,
     nodeInfo: {
       userAgent: agentVersion
     },
@@ -91,7 +93,6 @@ export async function updateVerifiedFetch (): Promise<void> {
     logger
   })
 
-  const hashers = [blake3, blake2b256, sha1]
   const datastore = new IDBDatastore('/@helia/service-worker-gateway/data')
   await datastore.open()
   const blockstore = new IDBBlockstore('/@helia/service-worker-gateway/blocks')
@@ -104,26 +105,28 @@ export async function updateVerifiedFetch (): Promise<void> {
 
   const libp2p = await createLibp2p(libp2pOptions)
 
-  const helia = new Helia({
-    logger,
-    libp2p,
-    routers: [
-      httpGatewayRouting({
-        gateways: config.gateways
-      }),
-      libp2pRouting(libp2p)
-    ],
-    blockBrokers: [
-      bitswap(),
-      trustlessGateway({
-        allowLocal: true
-      })
-    ],
-    hashers,
-    dns: dnsConfig,
+  const helia = await withBitswap(withLibp2p(withHTTP(createHeliaLight({
     datastore,
-    blockstore
-  })
+    blockstore,
+    logger,
+    dns: dnsConfig,
+    hashers: [
+      blake3,
+      blake2b256,
+      sha1,
+      sha512
+    ],
+    codecs: [
+      dagCbor,
+      dagJson,
+      json
+    ]
+  }), {
+    delegatedRouters: config.routers,
+    recursiveGateways: config.gateways,
+    allowLocal: true,
+    allowInsecure: true
+  }), libp2p)).start()
 
   verifiedFetch = await createVerifiedFetchWithHelia(helia, {
     withServerTiming: true

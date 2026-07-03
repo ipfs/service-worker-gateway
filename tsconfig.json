@@ -5,6 +5,8 @@
     "jsx": "preserve",
     "strictNullChecks": true,
     "ignoreDeprecations": "5.0", // needed due to deprecated usage in tsconfig.aegir.json
+    "noUncheckedSideEffectImports": false, // allow importing .css files for side effects
+    "module": "node18", // allow "import ... with { type: 'json' }"
     "types": [
       "@cloudflare/workers-types",
       "@types/mocha"

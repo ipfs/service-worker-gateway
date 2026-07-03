@@ -220,7 +220,7 @@ const helia = await createHelia({
     encode: (obj) => cborg.encode(obj),
     decode: (buf) => cborg.decode(new Uint8Array(buf))
   }]
-})
+}).start()
 
 const context = {
   helia,
