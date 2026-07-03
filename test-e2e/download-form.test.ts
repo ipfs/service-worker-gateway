@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import fsp from 'node:fs/promises'
+import { IPNSEntry } from '@helia/ipns'
 import { CarReader } from '@ipld/car'
-import { unmarshalIPNSRecord } from 'ipns'
 import all from 'it-all'
 import toBuffer from 'it-to-buffer'
 import { createKuboRPCClient } from 'kubo-rpc-client'
@@ -603,10 +603,10 @@ test.describe('download form', () => {
     download = await downloadPromise
 
     const file = await fsp.readFile(await download.path())
-    const decoded = unmarshalIPNSRecord(file)
-    expect(decoded.value).toEqual('/ipfs/bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am')
-    expect(decoded.validityType).toEqual('EOL')
-    expect(decoded.validity).toEqual('2123-04-12T13:44:59.801728Z')
+    const decoded = IPNSEntry.decode(file)
+    expect(decoded.value).toEqual(uint8ArrayFromString('/ipfs/bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am'))
+    expect(decoded.validityType).toEqual(uint8ArrayFromString('EOL'))
+    expect(decoded.validity).toEqual(uint8ArrayFromString('2123-04-12T13:44:59.801728Z'))
   })
 
   test('should reload the page and submit the form', async ({ page }) => {
