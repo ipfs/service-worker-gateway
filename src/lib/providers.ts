@@ -10,5 +10,5 @@ export function isTrustlessGatewayProvider (prov?: any): prov is TrustlessGatewa
 }
 
 export function isFallbackTrustlessGatewayProvider (prov?: any): prov is TrustlessGatewayProvider {
-  return prov?.routing === 'http-gateway-routing' && prov?.type === 'trustless-gateway'
+  return prov?.router === 'fallback-router' && prov?.type === 'trustless-gateway'
 }

@@ -1,7 +1,7 @@
 import { noise } from '@chainsafe/libp2p-noise'
 import { yamux } from '@chainsafe/libp2p-yamux'
 import { withBitswap } from '@helia/bitswap'
-import { delegatedRoutingV1HttpApiClient } from '@helia/delegated-routing-v1-http-api-client'
+import { delegatedRoutingV1HttpApiClientContentRouting, delegatedRoutingV1HttpApiClientPeerRouting } from '@helia/delegated-routing-v1-http-api-client'
 import { withHTTP } from '@helia/http'
 import { withLibp2p } from '@helia/libp2p'
 import { createVerifiedFetchWithHelia } from '@helia/verified-fetch'
@@ -58,7 +58,12 @@ async function libp2pDefaults (): Promise<Libp2pOptions> {
   }
 
   config.routers.forEach((url, i) => {
-    services[`delegatedRouter${i}`] = delegatedRoutingV1HttpApiClient({
+    services[`delegatedContentRouter${i}`] = delegatedRoutingV1HttpApiClientContentRouting({
+      url,
+      filterProtocols: ['unknown', 'transport-bitswap', 'transport-ipfs-gateway-http'],
+      filterAddrs
+    })
+    services[`delegatedPeerRouter${i}`] = delegatedRoutingV1HttpApiClientPeerRouting({
       url,
       filterProtocols: ['unknown', 'transport-bitswap', 'transport-ipfs-gateway-http'],
       filterAddrs

@@ -18,7 +18,7 @@ weald.enable(config.debug)
 
 export interface Provider {
   type: string
-  routing: string
+  router: string
   provider: any
 }
 

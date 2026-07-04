@@ -238,20 +238,20 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
         if (isBitswapProvider(evt.detail)) {
           providers.providers.push({
             type: evt.detail.type,
-            routing: evt.detail.routing,
+            router: evt.detail.router,
             provider: evt.detail.provider
           })
         } else if (isTrustlessGatewayProvider(evt.detail)) {
           providers.providers.push({
             type: evt.detail.type,
-            routing: evt.detail.routing,
+            router: evt.detail.router,
             provider: evt.detail.url
           })
         } else {
           providers.providers.push({
             type: 'unknown',
             // @ts-expect-error cannot derive type
-            routing: evt.detail?.routing ?? 'unknown',
+            router: evt.detail?.router ?? 'unknown',
             provider: evt.detail
           })
         }
