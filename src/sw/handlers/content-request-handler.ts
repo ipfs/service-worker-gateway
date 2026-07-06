@@ -9,7 +9,6 @@ import { getSwLogger } from '../../lib/logger.ts'
 import { isBitswapProvider, isFallbackTrustlessGatewayProvider, isTrustlessGatewayProvider } from '../../lib/providers.ts'
 import { canUseStaleResponseOnError, needsRevalidateAfterUse, needsRevalidateBeforeUse } from '../lib/cache-control.ts'
 import { parseHeaderDirectives } from '../lib/header-directives.ts'
-import { getInstallTime } from '../lib/install-time.ts'
 import { sniffRawContentType } from '../lib/sniff-raw-content-type.ts'
 import { getVerifiedFetch } from '../lib/verified-fetch.ts'
 import { fetchErrorPageResponse } from '../pages/fetch-error-page.ts'
@@ -190,8 +189,6 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
   }
 
   let resource = request.nativeURL
-  const firstInstallTime = await getInstallTime()
-
   let ifNoneMatch = headers.get('if-none-match')
 
   // these tokens are added to the header by the entity renderer response,
@@ -343,7 +340,7 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
     }
 
     if (response.status > 399) {
-      return fetchErrorPageResponse(request, init, response, await response.text(), providers, firstInstallTime, logs)
+      return fetchErrorPageResponse(request, init, response, await response.text(), providers, logs)
     }
 
     if (response.status > 199 && response.status < 300) {

@@ -8,7 +8,6 @@ import { parseRequest } from '../lib/parse-request.ts'
 import { getGatewayRoot } from '../lib/to-gateway-root.ts'
 import { APP_NAME, APP_VERSION, GIT_REVISION } from '../version.ts'
 import { handlers } from './handlers/index.ts'
-import { getInstallTime, setInstallTime } from './lib/install-time.ts'
 import { updateRedirect } from './lib/update-redirect.ts'
 import { serverErrorPageResponse } from './pages/server-error-page.ts'
 import type { ResolvableURI } from '../lib/parse-request.ts'
@@ -41,7 +40,6 @@ self.addEventListener('install', (event) => {
     .catch(err => {
       log.error('error skipping waiting - %e', err)
     })
-  event.waitUntil(setInstallTime())
   event.waitUntil(clearSwAssetCache())
 })
 
@@ -132,19 +130,6 @@ self.addEventListener('fetch', (event) => {
           throw new Error('Body was locked after handleFetch')
         }
 
-        // maybe uninstall service worker after request has finished
-        // TODO: remove this, it breaks offline installations after the TTL
-        // has expired
-        if (!(await isServiceWorkerRegistrationTTLValid())) {
-          log('Service worker registration TTL expired, unregistering service worker')
-          const clonedResponse = response.clone()
-          event.waitUntil(
-            clonedResponse.blob().then(() => {
-              log('Service worker registration TTL expired, unregistering after response consumed')
-            }).finally(() => self.registration.unregister())
-          )
-        }
-
         if (response.body?.locked) {
           throw new Error('Body was locked before updating redirect')
         }
@@ -205,35 +190,6 @@ async function handleFetch (request: ResolvableURI, event: FetchEvent, handler: 
     // ensure we only reject, never throw
     return Promise.reject(err)
   }
-}
-
-async function isServiceWorkerRegistrationTTLValid (): Promise<boolean> {
-  if (!navigator.onLine) {
-    /**
-     * When we unregister the service worker, the a new one will be installed on
-     * the next page load.
-     *
-     * Note: returning true here means if the user is not online, we will not
-     * unregister the service worker.
-     *
-     * However, browsers will have `navigator.onLine === true` if connected to a
-     * LAN that is not internet-connected, so we may want to be smarter about
-     * this in the future.
-     *
-     * @see https://github.com/ipfs/service-worker-gateway/issues/724
-     */
-    return true
-  }
-
-  const firstInstallTime = await getInstallTime()
-
-  if (firstInstallTime == null) {
-    // no firstInstallTime or serviceWorkerRegistrationTTL, assume new and valid
-    return true
-  }
-
-  const now = Date.now()
-  return now - firstInstallTime <= config.serviceWorkerTTL
 }
 
 /**
