@@ -7,8 +7,8 @@ import ContentBox from '../components/content-box.tsx'
 import { Link } from '../components/link.tsx'
 import Terminal from '../components/terminal.tsx'
 import { createLink } from '../utils/links.ts'
-import type { Providers } from '../../sw/index.ts'
 import type { RequestDetails, ResponseDetails } from '../../sw/pages/fetch-error-page.ts'
+import type { Providers } from '../../sw/sw.ts'
 import type { ReactElement } from 'react'
 
 declare global {

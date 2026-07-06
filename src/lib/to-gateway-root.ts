@@ -12,7 +12,8 @@ export function toGatewayRoot (hash: string): string {
 /**
  * If we are on a path gateway, return the gateway URL without the path.
  *
- * If we are on a subdomain gateway, return the parent domain without the path.
+ * If we are on a subdomain gateway, return the parent domain without the
+ * subdomain or the path.
  */
 export function getGatewayRoot (): string {
   const url = new URL(globalThis?.location?.href)

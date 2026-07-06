@@ -16,7 +16,7 @@ import { renderEntityPageResponse } from '../pages/render-entity.ts'
 import { tryRenderMediaViewer } from '../pages/render-media.ts'
 import type { Handler } from './index.ts'
 import type { ContentURI } from '../../lib/parse-request.ts'
-import type { Providers } from '../index.ts'
+import type { Providers } from '../sw.ts'
 import type { VerifiedFetchInit } from '@helia/verified-fetch'
 
 const FORMAT_TO_MEDIA_TYPE: Record<string, string> = {
