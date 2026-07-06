@@ -3,7 +3,6 @@ export interface Config {
   routers: string[]
   dnsResolvers: Record<string, string | string[]>
   fetchTimeout: number
-  serviceWorkerTTL: number
   debug: string
 }
 
@@ -21,6 +20,5 @@ export const config: Config = {
     '.': 'https://delegated-ipfs.dev/dns-query'
   },
   fetchTimeout: 30_000,
-  serviceWorkerTTL: 86_400_000,
   debug: globalThis?.location?.hostname?.search(/localhost|inbrowser\.dev|127\.0\.0\.1/) === -1 ? '' : '*,*:trace'
 }

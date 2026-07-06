@@ -11,7 +11,6 @@ declare let self: ServiceWorkerGlobalScope
  */
 interface ServiceWorkerDetails {
   crossOriginIsolated: boolean
-  installTime: string
   origin: string
   scope: string
   state: string
@@ -22,14 +21,13 @@ interface ServiceWorkerDetails {
 /**
  * TODO: more service worker details
  */
-function getServiceWorkerDetails (firstInstallTime: number): ServiceWorkerDetails {
+function getServiceWorkerDetails (): ServiceWorkerDetails {
   const registration = self.registration
   const state = registration.installing?.state ?? registration.waiting?.state ?? registration.active?.state ?? 'unknown'
 
   return {
     // TODO: implement https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Opener-Policy
     crossOriginIsolated: self.crossOriginIsolated,
-    installTime: (new Date(firstInstallTime)).toUTCString(),
     origin: self.location.origin,
     scope: registration.scope,
     state,
@@ -84,7 +82,7 @@ function getResponseDetails (response: Response, body: string): ResponseDetails 
 /**
  * Shows an error page to the user
  */
-export function fetchErrorPageResponse (request: ContentURI, requestInit: RequestInit, fetchResponse: Response, responseBody: string, providers: Providers, installTime: number, logs: string[]): Response {
+export function fetchErrorPageResponse (request: ContentURI, requestInit: RequestInit, fetchResponse: Response, responseBody: string, providers: Providers, logs: string[]): Response {
   const responseContentType = fetchResponse.headers.get('Content-Type')
 
   if (responseContentType?.includes('text/html')) {
@@ -99,7 +97,7 @@ export function fetchErrorPageResponse (request: ContentURI, requestInit: Reques
   const props = {
     request: getRequestDetails(request, requestInit),
     response: responseDetails,
-    config: getServiceWorkerDetails(installTime),
+    config: getServiceWorkerDetails(),
     providers,
     title: `${responseDetails.status} ${responseDetails.statusText}`,
     logs

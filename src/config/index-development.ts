@@ -20,6 +20,5 @@ export const config: Config = {
     ]
   },
   fetchTimeout: 30_000,
-  serviceWorkerTTL: 86_400_000,
   debug: '*,*:trace'
 }

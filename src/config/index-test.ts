@@ -14,6 +14,5 @@ export const config: Config = {
     '.': 'http://127.0.0.1:3335/dns-query'
   },
   fetchTimeout: 1_000,
-  serviceWorkerTTL: 86_400_000,
   debug: '*,*:trace'
 }
