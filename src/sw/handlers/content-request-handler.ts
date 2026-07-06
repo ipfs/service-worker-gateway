@@ -379,7 +379,7 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
             headers: {
               'Content-Type': 'application/json'
             }
-          }), JSON.stringify(errorToObject(err), null, 2), providers, firstInstallTime, logs)
+          }), JSON.stringify(errorToObject(err), null, 2), providers, logs)
         }
       } else if (resource.searchParams.get('download') === 'true') {
         // override inline attachments if present
@@ -439,7 +439,7 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
       response.headers.set('server-timing', err.serverTiming)
     }
 
-    return fetchErrorPageResponse(request, init, response, responseBody, providers, firstInstallTime, logs)
+    return fetchErrorPageResponse(request, init, response, responseBody, providers, logs)
   } finally {
     signal.clear()
     clearTimeout(timeout)
