@@ -1,7 +1,7 @@
 import { APP_NAME, APP_VERSION, GIT_REVISION } from '../../version.ts'
 import { htmlPage } from './page.ts'
 import type { ContentURI } from '../../lib/parse-request.ts'
-import type { Providers } from '../index.ts'
+import type { Providers } from '../sw.ts'
 
 declare let self: ServiceWorkerGlobalScope
 

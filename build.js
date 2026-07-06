@@ -94,7 +94,7 @@ function gitRevision () {
  */
 const injectHtmlPages = async (metafile, revision) => {
   const htmlFilePaths = await fs.readdir(path.resolve('dist'), { withFileTypes: true })
-    .then(files => files.filter(file => file.isFile() && file.name.endsWith('.html')))
+    .then(files => files.filter(file => file.isFile() && (file.name.endsWith('.html') || file.name.endsWith('.js'))))
     .then(files => files.map(file => path.resolve('dist', file.name)))
 
   // htmlFilePaths.push(path.resolve('dist/index.html'))
@@ -109,8 +109,8 @@ const injectHtmlPages = async (metafile, revision) => {
 
   const { config } = await import(configFile)
 
-  for (const htmlFilePath of htmlFilePaths) {
-    const baseName = path.basename(htmlFilePath, '.html')
+  for (const filePath of htmlFilePaths) {
+    const baseName = path.basename(filePath, '.html')
     let jsFile = Object.keys(metafile.outputs).filter(file => file.endsWith('.js') && (file.includes(baseName) || file.includes('index')))
     if (jsFile.length > 1) {
       // override injection of index.js to the basename file
@@ -129,34 +129,34 @@ const injectHtmlPages = async (metafile, revision) => {
 
     const logoFile = Object.keys(metafile.outputs).find(file => file.endsWith('.svg') && file.includes('ipfs-sw-ipfs-logo'))
 
-    let htmlContent = await fs.readFile(htmlFilePath, 'utf8')
+    let fileContent = await fs.readFile(filePath, 'utf8')
 
-    if (htmlContent.includes('<%= JS_SCRIPT_TAG %>')) {
+    if (fileContent.includes('<%= JS_SCRIPT_TAG %>')) {
       if (jsFile != null) {
         const jsTag = `<script type="module" src="/${path.basename(jsFile)}"></script>`
-        htmlContent = htmlContent.replace(/<%= JS_SCRIPT_TAG %>/g, jsTag)
-        console.log(`Injected ${path.basename(jsFile)} into ${path.relative(process.cwd(), htmlFilePath)}.`)
+        fileContent = fileContent.replace(/<%= JS_SCRIPT_TAG %>/g, jsTag)
+        console.log(`Injected ${path.basename(jsFile)} into ${path.relative(process.cwd(), filePath)}.`)
       } else {
-        throw new Error(`Could not find a js file to include in ${path.relative(process.cwd(), htmlFilePath)}.`)
+        throw new Error(`Could not find a js file to include in ${path.relative(process.cwd(), filePath)}.`)
       }
     }
 
-    if (htmlContent.includes('<%= IPFS_LOGO_PATH %>')) {
+    if (fileContent.includes('<%= IPFS_LOGO_PATH %>')) {
       if (logoFile != null) {
-        htmlContent = htmlContent.replace(/<%= IPFS_LOGO_PATH %>/g, path.basename(logoFile))
-        console.log(`Injected ${path.basename(logoFile)} into ${path.relative(process.cwd(), htmlFilePath)}.`)
+        fileContent = fileContent.replace(/<%= IPFS_LOGO_PATH %>/g, path.basename(logoFile))
+        console.log(`Injected ${path.basename(logoFile)} into ${path.relative(process.cwd(), filePath)}.`)
       } else {
-        throw new Error(`Could not find the logo file to include in ${path.relative(process.cwd(), htmlFilePath)}.`)
+        throw new Error(`Could not find the logo file to include in ${path.relative(process.cwd(), filePath)}.`)
       }
     }
 
-    if (!htmlContent.includes('<%= GIT_VERSION %>')) {
+    if (fileContent.includes('<%= GIT_VERSION %>')) {
+      fileContent = fileContent.replace(/<%= GIT_VERSION %>/g, revision)
+      console.log(`Added git revision (${revision}) to ${path.relative(process.cwd(), filePath)}.`)
+    } else if (filePath.endsWith('.html')) {
       // if you see this error, make sure you update the HTML file to include an html comment similar to the one in public/index.html
-      throw new Error(`${path.relative(process.cwd(), htmlFilePath)} does not contain <%= GIT_VERSION %>.`)
+      throw new Error(`${path.relative(process.cwd(), filePath)} does not contain <%= GIT_VERSION %>.`)
     }
-
-    htmlContent = htmlContent.replace(/<%= GIT_VERSION %>/g, revision)
-    console.log(`Added git revision (${revision}) to ${path.relative(process.cwd(), htmlFilePath)}.`)
 
     // preconnect to routers as we will probably need to use them to find provs
     const preconnect = new Set([
@@ -169,16 +169,23 @@ const injectHtmlPages = async (metafile, revision) => {
       ...Object.values(config.dnsResolvers).flat().map(toUrl)
     ])
 
-    htmlContent = htmlContent.replace(/<%= PRECONNECT_HINTS %>/g, [...preconnect]
-      .map(url => `<link rel="preconnect" href="${url}" />`).join('\n    ')
-    )
-    htmlContent = htmlContent.replace(/<%= DNS_PREFETCH_HINTS %>/g, [...dnsPrefetch]
-      .filter(onlyDomains)
-      .filter(notIn(preconnect))
-      .map(url => `<link rel="dns-prefetch" href="${url}" />`).join('\n    ')
-    )
+    if (fileContent.includes('<%= PRECONNECT_HINTS %>')) {
+      console.log(`Set preconnect hints in ${path.relative(process.cwd(), filePath)}.`)
+      fileContent = fileContent.replace(/<%= PRECONNECT_HINTS %>/g, [...preconnect]
+        .map(url => `<link rel="preconnect" href="${url}" />`).join('\n    ')
+      )
+    }
 
-    await fs.writeFile(htmlFilePath, htmlContent)
+    if (fileContent.includes('<%= DNS_PREFETCH_HINTS %>')) {
+      console.log(`Set DNS prefetch hints in ${path.relative(process.cwd(), filePath)}.`)
+      fileContent = fileContent.replace(/<%= DNS_PREFETCH_HINTS %>/g, [...dnsPrefetch]
+        .filter(onlyDomains)
+        .filter(notIn(preconnect))
+        .map(url => `<link rel="dns-prefetch" href="${url}" />`).join('\n    ')
+      )
+    }
+
+    await fs.writeFile(filePath, fileContent)
   }
 }
 
@@ -437,6 +444,7 @@ export const buildOptions = {
   entryPoints: [
     'src/index.tsx',
     'src/sw/index.ts',
+    'src/sw/sw.ts',
     'src/ui/index.tsx'
   ],
   bundle: true,
