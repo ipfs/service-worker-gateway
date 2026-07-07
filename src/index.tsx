@@ -172,13 +172,14 @@ async function main (): Promise<void> {
         await registerServiceWorker()
       }
 
-      // Clear SW-UI hashes before navigating: otherwise the post-reload
-      // React app would match a `/ipfs-sw-…` route from the HashRouter
-      // and show a SW UI page instead of the requested CID content,
+      // Clear SW-UI hash nav or assets before navigating: otherwise the
+      // post-reload React app would match a `/ipfs-sw-…` route from the
+      // HashRouter and show a SW UI page instead of the requested CID content,
       // causing endless redirects between the two.
-      if (window.location.hash.startsWith('#/ipfs-sw')) {
+      if (window.location.hash.startsWith('#/ipfs-sw') || window.location.pathname.startsWith('/ipfs-sw')) {
         url.hash = ''
         window.location.hash = ''
+        url.pathname = ''
       }
 
       // Trigger a navigation so the just-installed service worker can
@@ -256,6 +257,36 @@ async function renderUi (): Promise<void> {
   // dynamically load the app chunk using the correct filename
   try {
     const script = document.createElement('script')
+    script.addEventListener('error', () => {
+      // failed to load script, there may be a new service worker available -
+      // delete all caches, unregister the service worker and reload
+      Promise.all([
+        caches.keys()
+          .then(async (cacheNames) => {
+            return Promise.all(
+              cacheNames.map(async function (cacheName) {
+                return caches.delete(cacheName)
+              })
+            )
+          })
+          .catch(err => {
+            // eslint-disable-next-line no-console
+            console.error('could not delete out of date cache - %e', err)
+          }),
+        navigator.serviceWorker.getRegistration()
+          .then(async registration => {
+            registration?.unregister()
+          })
+      ])
+        .then(() => {
+          // @ts-expect-error boolean `forceGet` argument is firefox-only
+          document.location.reload(true)
+        })
+        .catch((err) => {
+          // eslint-disable-next-line no-console
+          console.error('could not refresh context', err)
+        })
+    })
     script.type = 'module'
     script.src = '<%-- src/ui/index.tsx --%>'
     document.body.appendChild(script)

@@ -53,22 +53,21 @@ function getCacheKey (resource: ContentURI, headers: Headers, renderHtml: boolea
 async function getResponseFromCacheOrFetch (args: FetchHandlerArg): Promise<Response> {
   const log = getSwLogger('get-response-from-cache-or-fetch')
 
-  log.trace('cache key: %s', args.cacheKey)
   const cache = await caches.open(args.isMutable ? CURRENT_CACHES.mutable : CURRENT_CACHES.immutable)
   const cachedResponse = await cache.match(args.cacheKey)
 
   if (cachedResponse == null) {
-    log('cached response MISS for %s', args.cacheKey)
+    log('cached response MISS for %s (cache key %s)', args.event.request.url, args.cacheKey)
     return fetchAndUpdateCache(args)
   }
 
   if (needsRevalidateBeforeUse(cachedResponse)) {
-    log('cached response HIT for %s but needs revalidation before use', args.cacheKey)
+    log('cached response HIT for %s (cache key %s) but needs revalidation before use', args.event.request.url, args.cacheKey)
 
     const response = await fetchAndUpdateCache(args)
 
     if (canUseStaleResponseOnError(response, cachedResponse)) {
-      log('%d error revalidating response but can re-use cached response HIT for %s', response.status, args.cacheKey)
+      log('%d error revalidating response but can re-use cached response HIT for %s (cache key %s)', response.status, args.event.request.url, args.cacheKey)
       return cachedResponse
     }
 
@@ -76,19 +75,19 @@ async function getResponseFromCacheOrFetch (args: FetchHandlerArg): Promise<Resp
   }
 
   if (needsRevalidateAfterUse(cachedResponse)) {
-    log('cached response HIT for %s but needs background revalidation', args.cacheKey)
+    log('cached response HIT for %s (cache key %s) but needs background revalidation', args.event.request.url, args.cacheKey)
 
     args.event.waitUntil(
       fetchAndUpdateCache(args)
         .catch(err => {
-          log.error('background revalidate for %s failed - %e', args.cacheKey, err)
+          log.error('background revalidate for %s (cache key %s) failed - %e', args.event.request.url, args.cacheKey, err)
         })
     )
 
     return cachedResponse
   }
 
-  log('cached response HIT for %s %o', args.cacheKey, cachedResponse)
+  log('cached response HIT for %s (cache key %s)', args.event.request.url, args.cacheKey)
   return cachedResponse
 }
 
