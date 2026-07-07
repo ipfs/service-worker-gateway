@@ -8,7 +8,7 @@ import esbuild from 'esbuild'
 
 const pkg = JSON.parse(readFileSync(path.resolve('package.json'), 'utf-8'))
 const revision = gitRevision()
-const version = `${pkg.version}/${revision}-${Date.now()}`
+const version = `${pkg.version}/${revision}${process.env.NODE_ENV === 'development' ? `'${Date.now()}` : ''}`
 
 console.info('Detected versions', pkg.name, pkg.version, revision)
 
