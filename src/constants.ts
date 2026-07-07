@@ -30,7 +30,8 @@ export const CACHE_VERSION = 2
 export const CURRENT_CACHES = Object.freeze({
   mutable: `mutable-cache-v${CACHE_VERSION}`,
   immutable: `immutable-cache-v${CACHE_VERSION}`,
-  swAssets: `sw-assets-v${CACHE_VERSION}`
+  swAssets: `sw-assets-v${CACHE_VERSION}`,
+  delegatedRouting: 'delegated-routing-v1-cache'
 })
 
 /**

@@ -44,7 +44,36 @@ globalThis.${key} = ${JSON.stringify(value, null, 2).replace(/</g, '\\u003c')}
   </head>
   <body>
     <div id="root" class="sans-serif charcoal f5"></div>
-    <script type="module" src="<%-- src/ui/index.tsx --%>"></script>
+    <script>
+      const script = document.createElement('script')
+      script.addEventListener('error', (evt) => {
+        // failed to load script, there may be a new service worker available -
+        // delete all caches, unregister the service worker and reload
+        Promise.all([
+          caches.keys()
+            .then(async (cacheNames) => {
+              return Promise.all(
+                cacheNames.map(async function (cacheName) {
+                  return caches.delete(cacheName)
+                })
+              )
+            })
+            .catch(err => {
+              console.error('could not delete out of date cache - %e', err)
+            }),
+          navigator.serviceWorker.getRegistration()
+            .then(async registration => {
+              registration?.unregister()
+            })
+        ])
+          .then(() => {
+            document.location.reload(true)
+          })
+      })
+      script.type = 'module'
+      script.src = '<%-- src/ui/index.tsx --%>'
+      document.body.appendChild(script)
+    </script>
   </body>
 </html>
 `
