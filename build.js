@@ -6,6 +6,12 @@ import path from 'node:path'
 import { isIP } from '@chainsafe/is-ip'
 import esbuild from 'esbuild'
 
+const pkg = JSON.parse(readFileSync(path.resolve('package.json'), 'utf-8'))
+const revision = gitRevision()
+const version = `${pkg.version}/${revision}-${Date.now()}`
+
+console.info('Detected versions', pkg.name, pkg.version, revision)
+
 /**
  * @param {string} str
  * @returns {string}
@@ -90,9 +96,8 @@ function gitRevision () {
  * Inject all ipfs-sw-*.html pages (not index.html) in the dist folder with CSS, git revision, and logo.
  *
  * @param {esbuild.Metafile} metafile - esbuild's metafile to extract output file names
- * @param {string} revision - Pre-computed Git revision string
  */
-const injectHtmlPages = async (metafile, revision) => {
+const injectHtmlPages = async (metafile) => {
   const htmlFilePaths = await fs.readdir(path.resolve('dist'), { withFileTypes: true })
     .then(files => files.filter(file => file.isFile() && (file.name.endsWith('.html') || file.name.endsWith('.js'))))
     .then(files => files.map(file => path.resolve('dist', file.name)))
@@ -159,8 +164,8 @@ const injectHtmlPages = async (metafile, revision) => {
     }
 
     if (fileContent.includes('<%= MODULE_VERSION %>')) {
-      fileContent = fileContent.replace(/<%= MODULE_VERSION %>/g, `${pkg.version}/${revision}-${Date.now()}`)
-      console.log(`Added git revision (${revision}) to ${path.relative(process.cwd(), filePath)}.`)
+      fileContent = fileContent.replace(/<%= MODULE_VERSION %>/g, version)
+      console.log(`Injected module version (${version}) to ${path.relative(process.cwd(), filePath)}.`)
     }
 
     // preconnect to routers as we will probably need to use them to find provs
@@ -354,13 +359,10 @@ const modifyBuiltFiles = {
     build.onEnd(async (result) => {
       const metafile = result.metafile
 
-      // Cache the Git revision once
-      const revision = gitRevision()
-
       // Run copyPublicFiles first to make sure public assets are in place
       await copyPublicFiles()
 
-      await injectHtmlPages(metafile, revision)
+      await injectHtmlPages(metafile)
 
       // Modify the redirects file last
       await modifyRedirects()
@@ -384,10 +386,6 @@ const excludeFilesPlugin = (extensions) => ({
     })
   }
 })
-
-const pkg = JSON.parse(readFileSync(path.resolve('package.json'), 'utf-8'))
-const rev = gitRevision()
-console.info('Detected versions', pkg.name, pkg.version, rev)
 
 // build cloudflare
 const cloudflareResult = await esbuild.build({
@@ -444,7 +442,7 @@ export const buildOptions = {
     'process.env.NODE_ENV': `"${process.env.NODE_ENV ?? 'production'}"`,
     'process.env.APP_NAME': `'${pkg.name}'`,
     'process.env.APP_VERSION': `'${pkg.version}'`,
-    'process.env.GIT_REVISION': `'${rev}'`
+    'process.env.GIT_REVISION': `'${revision}'`
   },
   entryPoints: [
     'src/index.tsx',
