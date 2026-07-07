@@ -5,7 +5,6 @@ import { CID } from 'multiformats/cid'
 import * as json from 'multiformats/codecs/json'
 import { identity } from 'multiformats/hashes/identity'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
-import { CURRENT_CACHES } from '../src/constants.ts'
 import { CODE_RAW } from '../src/ui/pages/multicodec-table.ts'
 import { test, expect } from './fixtures/config-test-fixtures.ts'
 import { hasCacheEntry } from './fixtures/has-cache-entry.ts'
@@ -22,8 +21,8 @@ test.describe('smoke test', () => {
     expect(response?.headers()['cache-control']).toBe('public, max-age=29030400, immutable')
 
     // should be in the immutable cache
-    expect(await hasCacheEntry(page, CURRENT_CACHES.mutable, cid)).toBeFalsy()
-    expect(await hasCacheEntry(page, CURRENT_CACHES.immutable, cid)).toBeTruthy()
+    expect(await hasCacheEntry(page, 'mutable-cache', cid)).toBeFalsy()
+    expect(await hasCacheEntry(page, 'immutable-cache', cid)).toBeTruthy()
   })
 
   test('request to /ipfs/dir-cid redirects to /ipfs/dir-cid/', async ({ page, baseURL, protocol, host }) => {
@@ -71,16 +70,16 @@ test.describe('smoke test', () => {
     const name = 'k51qzi5uqu5dk3v4rmjber23h16xnr23bsggmqqil9z2gduiis5se8dht36dam'
 
     // should not be cached
-    expect(await hasCacheEntry(page, CURRENT_CACHES.mutable, name)).toBeFalsy()
-    expect(await hasCacheEntry(page, CURRENT_CACHES.immutable, name)).toBeFalsy()
+    expect(await hasCacheEntry(page, 'mutable-cache', name)).toBeFalsy()
+    expect(await hasCacheEntry(page, 'immutable-cache', name)).toBeFalsy()
 
     const response = await loadBypassingMediaViewer(page, `${baseURL}/ipns/${name}`)
     expect(response.status()).toBe(200)
     expect(await response.text()).toContain('hello')
 
     // should be in the mutable cache only
-    expect(await hasCacheEntry(page, CURRENT_CACHES.mutable, name)).toBeTruthy()
-    expect(await hasCacheEntry(page, CURRENT_CACHES.immutable, name)).toBeFalsy()
+    expect(await hasCacheEntry(page, 'mutable-cache', name)).toBeTruthy()
+    expect(await hasCacheEntry(page, 'immutable-cache', name)).toBeFalsy()
   })
 
   test('normalizes base16 CIDs to base32', async ({ page, baseURL, protocol, host }) => {
