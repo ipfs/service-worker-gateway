@@ -7,7 +7,7 @@
  *
  * @see https://github.com/ipfs/service-worker-gateway/pull/853#issuecomment-3309246532
  */
-export const CACHE_VERSION = 2
+export const CACHE_VERSION = '<%= MODULE_VERSION %>'
 
 /**
  * This is one best practice that can be followed in general to keep track of

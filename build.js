@@ -158,6 +158,11 @@ const injectHtmlPages = async (metafile, revision) => {
       throw new Error(`${path.relative(process.cwd(), filePath)} does not contain <%= GIT_VERSION %>.`)
     }
 
+    if (fileContent.includes('<%= MODULE_VERSION %>')) {
+      fileContent = fileContent.replace(/<%= MODULE_VERSION %>/g, `${pkg.version}/${revision}-${Date.now()}`)
+      console.log(`Added git revision (${revision}) to ${path.relative(process.cwd(), filePath)}.`)
+    }
+
     // preconnect to routers as we will probably need to use them to find provs
     const preconnect = new Set([
       ...config.routers.map(toUrl)
