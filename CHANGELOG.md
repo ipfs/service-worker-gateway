@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.4.9](https://github.com/ipfs/service-worker-gateway/compare/v3.4.8...v3.4.9) (2026-07-09)
+
+
+### Bug Fixes
+
+* display correct namespace in directory listing ([#1127](https://github.com/ipfs/service-worker-gateway/issues/1127)) ([3997469](https://github.com/ipfs/service-worker-gateway/commit/399746900920a30dfd5a13530d1229c359f02f9a)), closes [#1120](https://github.com/ipfs/service-worker-gateway/issues/1120)
+* remove cache on failed asset get ([#1151](https://github.com/ipfs/service-worker-gateway/issues/1151)) ([86255f8](https://github.com/ipfs/service-worker-gateway/commit/86255f8ab7f2a68492e9b935ba36f38c9e8701eb))
+* remove service worker ttl ([#1147](https://github.com/ipfs/service-worker-gateway/issues/1147)) ([0b4ea0d](https://github.com/ipfs/service-worker-gateway/commit/0b4ea0db763df97a2e7e3fe955d2c540ac801e70))
+* update deps ([f788639](https://github.com/ipfs/service-worker-gateway/commit/f78863997d25d53ee289c333af6477af1db3fcda))
+* use module version for cache version ([#1152](https://github.com/ipfs/service-worker-gateway/issues/1152)) ([663990c](https://github.com/ipfs/service-worker-gateway/commit/663990c77a9f07219aa37dc3a1c7164025a16c02))
+* use persistent storage ([#1137](https://github.com/ipfs/service-worker-gateway/issues/1137)) ([5fcbb21](https://github.com/ipfs/service-worker-gateway/commit/5fcbb21c0bdee3b942068d83d3734ecee6918b15)), closes [#996](https://github.com/ipfs/service-worker-gateway/issues/996)
+* use wrapper to load sw ([#1149](https://github.com/ipfs/service-worker-gateway/issues/1149)) ([5bb7514](https://github.com/ipfs/service-worker-gateway/commit/5bb751464ffb13f9235897fa8870e1a2793667f7)), closes [#1146](https://github.com/ipfs/service-worker-gateway/issues/1146)
+
 ## [3.4.8](https://github.com/ipfs/service-worker-gateway/compare/v3.4.7...v3.4.8) (2026-06-08)
 
 
