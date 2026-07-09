@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.4.10](https://github.com/ipfs/service-worker-gateway/compare/v3.4.9...v3.4.10) (2026-07-09)
+
+
+### Bug Fixes
+
+* downgrade `@cloudflare/workers-types` ([5b79e77](https://github.com/ipfs/service-worker-gateway/commit/5b79e7711512d90b70c51c57f570a7662ca06b30))
+* revert @cloudflare/workers-types upgrade ([c2b0b5e](https://github.com/ipfs/service-worker-gateway/commit/c2b0b5e639d1f96293243cd4a335e3c4f53053fd))
+
 ## [3.4.9](https://github.com/ipfs/service-worker-gateway/compare/v3.4.8...v3.4.9) (2026-07-09)
 
 
