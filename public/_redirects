@@ -1,4 +1,23 @@
 # Cloudflare redirects file
-# - Proxy all requests to index file to install service worker
 # https://developers.cloudflare.com/pages/configuration/redirects/
-/* /index.html 200
+#
+# There is deliberately no `/* /index.html 200` catch-all here.
+#
+# It used to be the way every subdomain got the service worker installer on
+# any path, but Cloudflare Snippet 02_shared_sw_installer_cache already does
+# that: it ignores the requested path and fetches "/" from origin. So the
+# catch-all served nobody, and it lied about missing files.
+#
+# A request for a hashed asset that this deployment does not have, which is
+# what a browser holding the previous deployment's HTML asks for during a
+# cutover, came back as 200 text/html rather than 404. A 200 is cacheable, and
+# the edge pinned that HTML for 24h under a cache key shared by every
+# subdomain, so the whole site served an HTML page where a .js file belonged.
+# That is the cyclic reload reported in #1155.
+#
+# Without the catch-all, Pages answers a missing file with a real 404, which
+# the snippet's `cacheTtlByStatus: {'300-599': 0}` refuses to cache. The bad
+# response cannot outlive the request that produced it.
+#
+# `build.js` appends a `/*/<file> /<file>` rewrite per built asset below, so an
+# asset referenced from a nested path still resolves.

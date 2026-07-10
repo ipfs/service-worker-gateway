@@ -66,6 +66,15 @@ func ipfsLikeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// A missing versioned build asset must 404. Serving index.html under a .js
+	// URL makes the browser reject the module on its MIME type, which the
+	// installer reads as "a new version shipped" and answers with a reload,
+	// over and over. See #1155.
+	if strings.HasPrefix(r.URL.Path, "/ipfs-sw-") {
+		http.NotFound(w, r)
+		return
+	}
+
 	// Otherwise serve the index file
 	http.ServeFile(w, r, "dist/index.html")
 }

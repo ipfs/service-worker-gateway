@@ -49,12 +49,22 @@ jobs:
   # without waiting for the 24h TTL to expire.
   purge-cache-and-verify:
     needs: deploy
+    # Purge once the upload lands, whatever happens afterwards. In #1155 this
+    # job purged, then spent ten minutes waiting for a version the edge could
+    # never serve, hit the job timeout, and took the run down as "cancelled".
+    # A half filled cache is worse than a cold one, so the purge steps below
+    # must not be reachable only through the happy path.
+    if: always() && needs.deploy.result == 'success'
     runs-on: ubuntu-latest
     environment: production
-    timeout-minutes: 10
+    # Every step carries its own bound. The job timeout is only a backstop, and
+    # it is generous on purpose: if it fires mid-job it takes the purge with it.
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
       - name: Wait for deployment to be live on CF Pages origin
+        id: wait-origin
+        continue-on-error: true
         timeout-minutes: 9
         run: |
           # fetch the tag to ensure it's available
@@ -62,7 +72,7 @@ jobs:
           # check Pages origin directly (bypasses CDN cache)
           ./.github/scripts/wait-for-deploy.sh https://ipfs-service-worker-gateway.pages.dev ${{ inputs.tag }}
       - name: Fetch Cloudflare Pages deployment logs
-        if: success() || failure()
+        if: always()
         run: ./.github/scripts/fetch-cf-pages-logs.sh
         env:
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
@@ -70,18 +80,49 @@ jobs:
           CF_PAGES_TOKEN: ${{ secrets.CF_PAGES_TOKEN }}
           DEPLOY_COMMIT: ${{ inputs.tag }}
       - name: Purge Cloudflare cache for inbrowser.link
+        if: always()
+        timeout-minutes: 2
+        run: ./.github/scripts/purge-cache.sh
+        env:
+          CF_ZONE_ID: ${{ secrets.CF_ZONE_ID_PRODUCTION }}
+          CF_TOKEN: ${{ secrets.CF_CACHE_PURGE_TOKEN_PRODUCTION }}
+      # Pages does not flip every node at the same instant. The purge above
+      # empties the cache while some nodes may still answer from the previous
+      # deployment, and whatever they answer gets cached for 24h. Purge a second
+      # time once they have caught up, so nothing cached during that window
+      # outlives it. Assets are content hashed, so an extra purge only ever
+      # costs a cold cache.
+      - name: Purge again once Pages has finished propagating
+        if: always()
+        timeout-minutes: 3
         run: |
-          curl --fail --request POST \
-            --url "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/purge_cache" \
-            -H 'Content-Type: application/json' \
-            -H "Authorization: Bearer $CF_TOKEN" \
-            --data '{"purge_everything": true}'
+          sleep 60
+          ./.github/scripts/purge-cache.sh
         env:
           CF_ZONE_ID: ${{ secrets.CF_ZONE_ID_PRODUCTION }}
           CF_TOKEN: ${{ secrets.CF_CACHE_PURGE_TOKEN_PRODUCTION }}
       - name: Wait for new version to be served via inbrowser.link
+        id: verify
+        continue-on-error: true
+        timeout-minutes: 5
         run: |
           ./.github/scripts/wait-for-deploy.sh https://inbrowser.link ${{ inputs.tag }}
+      # Both waits above are advisory so that neither can skip a purge. Turn
+      # their outcome into the job's, otherwise a deploy that never went live
+      # reports green.
+      - name: Report whether the deploy went live
+        if: always()
+        run: |
+          failed=0
+          if [ "${{ steps.wait-origin.outcome }}" != "success" ]; then
+            echo "::error::CF Pages origin never served ${{ inputs.tag }}"
+            failed=1
+          fi
+          if [ "${{ steps.verify.outcome }}" != "success" ]; then
+            echo "::error::inbrowser.link never served ${{ inputs.tag }}, even after two purges"
+            failed=1
+          fi
+          exit "$failed"
   deploy-snippets:
     needs: deploy
     runs-on: ubuntu-latest

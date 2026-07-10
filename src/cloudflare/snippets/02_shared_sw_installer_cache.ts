@@ -17,10 +17,15 @@
 //   everything else (the installer page)
 //     cache key normalized to one entry per subdomain.
 //
-// HTML and asset TTLs match on purpose: a stale HTML referencing
-// fresh JS (or vice versa) would mismatch and break the installer.
-// Badbits is enforced by purging the whole subdomain, so a long
-// TTL does not delay takedowns.
+// HTML and asset TTLs are both 24h, but note that equal TTLs are
+// not synchronized expiry: the two entries are written whenever
+// they are first requested, so they drift apart by however long
+// separates those requests. In #1155 the HTML entry was written
+// two and a half hours after the asset entry. What keeps a stale
+// HTML from naming an asset that is gone is that a missing asset
+// 404s (see below), not that the numbers match. Badbits is
+// enforced by purging the whole subdomain, so a long TTL does not
+// delay takedowns.
 //
 // Why we rewrite the upstream URL for the installer branch
 //
@@ -45,8 +50,89 @@
 // so this snippet owns the cache decision. We only cache 200-299.
 // 3xx, 4xx and 5xx are not cached so a transient origin response
 // cannot get pinned for the full 24 hour TTL.
+//
+// Why the asset branch also checks the content type
+//
+// A status of 200 is not enough to tell a real asset from a missing
+// one, because an origin can answer a file it does not have with
+// the installer HTML and a 200. Every origin we ship now returns a
+// real 404 instead: Pages because public/_redirects no longer has a
+// catch-all, main.go and the dev server because they special case
+// the /ipfs-sw- prefix. cacheTtlByStatus only ever sees the status,
+// so a 404 is enough to keep it out of the cache and this check
+// should never fire.
+//
+// It stays because "should never" has already been wrong once, in
+// #1155. A deploy cutover raced a request for a freshly hashed
+// chunk. Origin did not have it yet, answered 200 text/html, and
+// the edge pinned that HTML for 24 hours under the shared base
+// domain key, five seconds after the deploy's cache purge had
+// emptied it. Every subdomain then served HTML where a .js file
+// belonged. Browsers reject a module on its MIME type, the
+// installer read that as "a new version shipped" and reloaded, and
+// the reload storm rate limited us.
+//
+// Two things keep that from recurring. The origin no longer lies,
+// and if one ever does again, this branch refuses to pass the lie
+// on. The deployment being replaced during a cutover is itself an
+// origin that may still have the old catch-all, so the window is
+// real on the very deploy that removes it.
+//
+// The build never emits HTML under /ipfs-sw-, so a text/html body
+// on an asset path always means the file is missing. When we see
+// one we go back to origin with `cache: 'no-store'`, the one option
+// that skips the cache read rather than just the write. If the
+// deploy has since settled we serve the real asset, so a poisoned
+// entry costs an extra origin fetch rather than a day of downtime,
+// and it heals without waiting for a purge that may never run: the
+// purge is a step in a workflow, and that workflow gets cancelled.
+// If origin still does not have the file we answer 404, which is
+// honest and, unlike HTML, cannot be mistaken for a script.
+//
+// We cannot stop a poisoned entry being written in the first place.
+// cf.cacheTtlByStatus decides on status alone, before the snippet
+// ever sees the response. Owning the entry through the Cache API
+// instead would mean buffering the body to call cache.put, and the
+// built chunks and their source maps run to several MB against a
+// 2 MB snippet memory limit. So we let the entry exist and refuse
+// to serve it.
+//
+// Worst case, if a runtime ever ignored `cache: 'no-store'`, the
+// retry reads the poisoned entry again and we answer 404 until the
+// TTL lapses or a purge lands. That is a bad day, but it is a 404
+// rather than HTML masquerading as a script, so the installer shows
+// an error instead of reloading itself into a rate limit.
 
 const EDGE_CACHE_TTL_S = 86400 // 24h
+
+/**
+ * Whether a response body is really a versioned asset.
+ *
+ * Only the headers are inspected, never the body: assets here reach several MB
+ * and a snippet gets 2 MB of memory, so everything has to stream through.
+ *
+ * A missing file arrives as the installer page with a 200, and the build emits
+ * only JS, CSS, source maps and images under /ipfs-sw-, so text/html on an
+ * asset path means the file is gone. A response with no content type is not
+ * trusted either, since there is nothing to tell it apart from that fallback.
+ */
+function isAssetResponse (response: Response): boolean {
+  if (!response.ok) {
+    return false
+  }
+
+  const contentType = response.headers.get('content-type')
+
+  return contentType != null && !contentType.startsWith('text/html')
+}
+
+/** A missing asset, marked so nothing downstream keeps it. */
+function notFound (): Response {
+  return new Response(null, {
+    status: 404,
+    headers: { 'cache-control': 'no-store' }
+  })
+}
 
 export default {
   async fetch (request: Request): Promise<Response> {
@@ -64,7 +150,7 @@ export default {
       // not the followed 2xx.
       const assetReq = new Request(request, { redirect: 'manual' })
 
-      return fetch(assetReq, {
+      const response = await fetch(assetReq, {
         cf: {
           cacheEverything: true,
           cacheKey,
@@ -76,6 +162,36 @@ export default {
           }
         }
       })
+
+      if (isAssetResponse(response)) {
+        return response
+      }
+
+      // A real 3xx/4xx/5xx from origin, already kept out of cache by
+      // cacheTtlByStatus. Pass it through as-is.
+      if (!response.ok) {
+        return response
+      }
+
+      // A 2xx that is not an asset: the shared entry, or origin itself, is
+      // handing back the installer page for a file that does not exist. Ask
+      // origin again with the cache out of the way.
+      //
+      // `cache: 'no-store'` is the only thing that skips the cache read. It
+      // has to, because on the base domain the request URL is byte-for-byte
+      // the shared cacheKey, so a plain re-fetch would be answered by the
+      // poisoned entry we are trying to get around. `cf.cacheTtl: 0` does not
+      // help: it expires the entry it writes, it does not bypass the lookup.
+      const fresh = await fetch(new Request(request, {
+        redirect: 'manual',
+        cache: 'no-store'
+      }))
+
+      if (isAssetResponse(fresh)) {
+        return fresh
+      }
+
+      return notFound()
     }
 
     // The installer branch handles GET and HEAD only. Other
