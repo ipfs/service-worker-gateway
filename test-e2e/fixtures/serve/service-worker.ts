@@ -18,8 +18,13 @@ const MIME_TYPES: Record<string, string> = {
 }
 
 /**
- * create a web server that serves an asset if it exists or index.html if not,
- * this simulates the behaviour of Cloudflare with `./dist/_redirects`
+ * create a web server that serves an asset if it exists, or index.html if not
+ *
+ * This mirrors production, where Cloudflare Snippet 02_shared_sw_installer_cache
+ * answers any non-asset path with the installer page, and `main.go` does the
+ * same for the standalone binary. A missing versioned asset is the exception:
+ * it 404s here, in `main.go` and on Pages, so that a stale reference to a
+ * chunk that no longer exists cannot be mistaken for a script.
  */
 export async function createHttpServer (port = HTTP_PORT): Promise<Server> {
   const server = createServer((req, res) => {
@@ -32,6 +37,16 @@ export async function createHttpServer (port = HTTP_PORT): Promise<Server> {
     let asset = join(__dirname, '../../../dist', file)
 
     if (!existsSync(asset)) {
+      // a missing versioned build asset 404s. Serving index.html under a .js
+      // URL makes the browser reject the module on its MIME type, which the
+      // installer reads as "a new version shipped" and answers with a reload.
+      if (file.startsWith('/ipfs-sw-')) {
+        res.statusCode = 404
+        res.setHeader('content-type', 'text/plain; charset=utf8')
+        res.end('Not Found')
+        return
+      }
+
       // serve index.html instead of 404ing
       asset = join(__dirname, '../../../dist/index.html')
     }
