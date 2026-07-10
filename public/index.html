@@ -118,6 +118,37 @@
       .hidden {
         display: none;
       }
+      /* Shown when the app chunk will not load. These rules have to live here:
+         every stylesheet the app ships is inside the chunk that just failed. */
+      .sw-error {
+        max-width: 38rem;
+        margin: 12vh auto 0;
+        padding: 0 1.25rem;
+        font-family: system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+        line-height: 1.55;
+        color: #0b3a53;
+      }
+      .sw-error h1 {
+        margin: 0 0 1rem;
+        font-size: 1.5rem;
+        font-weight: 600;
+      }
+      .sw-error p {
+        margin: 0 0 1rem;
+        color: #3f4b53;
+      }
+      .sw-error button {
+        font: inherit;
+        color: #fff;
+        background: #378085;
+        border: 0;
+        border-radius: 4px;
+        padding: 0.6rem 1.25rem;
+        cursor: pointer;
+      }
+      .sw-error button:hover {
+        background: #2c686c;
+      }
     </style>
   </head>
   <body>
