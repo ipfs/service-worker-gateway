@@ -20,6 +20,7 @@ import { $ } from 'execa'
 import { glob } from 'glob'
 import itAll from 'it-all'
 import drain from 'it-drain'
+import { GWC_IMAGE } from '../../test-conformance/fixtures/constants.ts'
 import type { KuboNode } from 'ipfsd-ctl'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -47,7 +48,7 @@ export async function downloadFixtures (force = false): Promise<void> {
   console.info('Downloading fixtures to', relative('.', GWC_FIXTURES_PATH))
 
   try {
-    await $`docker run -v ${process.cwd()}:/workspace -w /workspace ghcr.io/ipfs/gateway-conformance:v0.7.1 extract-fixtures --directory ${relative('.', GWC_FIXTURES_PATH)} --merged false`
+    await $`docker run -v ${process.cwd()}:/workspace -w /workspace ${GWC_IMAGE} extract-fixtures --directory ${relative('.', GWC_FIXTURES_PATH)} --merged false`
   } catch (err: any) {
     if (err.message.includes('docker')) {
       throw err
