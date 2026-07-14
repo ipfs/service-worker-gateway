@@ -225,6 +225,7 @@ async function main (): Promise<void> {
       }
 
       showUIAfterDelay(request)
+
       return
     }
   } catch (err: any) {
@@ -250,78 +251,6 @@ async function main (): Promise<void> {
 }
 
 /**
- * Marks, on the current history entry, that we have already tried to recover
- * from an app chunk that would not load.
- *
- * `history.state` is the right place for it. It survives `location.reload()`,
- * it is scoped to this page rather than the whole origin, and reading it needs
- * no storage permission, so the cap still holds in a browser configured to
- * block storage. `tooManyRedirects` cannot be reused here for a different
- * reason: it ignores everything unless `document.referrer` is the current URL,
- * which a `location.reload()` never makes true.
- */
-const CHUNK_RETRIED = 'ipfsSwChunkRetried'
-
-function alreadyRetriedChunk (): boolean {
-  return history.state?.[CHUNK_RETRIED] === true
-}
-
-function markChunkRetried (): void {
-  history.replaceState({ ...history.state, [CHUNK_RETRIED]: true }, '')
-}
-
-function forgetChunkRetry (): void {
-  if (!alreadyRetriedChunk()) {
-    return
-  }
-
-  const state = { ...history.state }
-  delete state[CHUNK_RETRIED]
-  history.replaceState(state, '')
-}
-
-/**
- * Tell the user the app chunk will not load, using only the bootstrap DOM.
- *
- * Everything `renderUi` would normally reach for lives inside the chunk that
- * just failed: every page, the error pages among them, and the
- * `globalThis.serverError` channel that renders them. What is left is the
- * markup `index.html` already parsed, so build the message out of that.
- */
-function showAppChunkError (): void {
-  document.querySelector('.loading-indicator-js')?.classList.add('hidden')
-
-  const root = document.getElementById('root')
-
-  if (root == null) {
-    return
-  }
-
-  // `.sw-error` is defined in the inline stylesheet of index.html, because the
-  // stylesheet the app ships is inside the chunk that failed to load.
-  root.classList.add('sw-error')
-
-  const title = document.createElement('h1')
-  title.textContent = 'Could not load this page'
-
-  const cause = document.createElement('p')
-  cause.textContent = 'The application script failed to load. Usually a CDN or your browser is holding a stale copy of this page that points at a script which no longer exists.'
-
-  const remedy = document.createElement('p')
-  remedy.textContent = 'Waiting a few minutes and trying again normally clears it. A hard reload, which bypasses your browser cache, fetches a fresh copy right away.'
-
-  const retry = document.createElement('button')
-  retry.textContent = 'Try again'
-  retry.addEventListener('click', () => {
-    forgetChunkRetry()
-    // @ts-expect-error boolean `forceGet` argument is firefox-only
-    document.location.reload(true)
-  })
-
-  root.replaceChildren(title, cause, remedy, retry)
-}
-
-/**
  * Asynchronously loads and shows the UI - this is to make the number of bytes
  * downloaded before the service worker is installed smaller
  */
@@ -329,63 +258,12 @@ async function renderUi (): Promise<void> {
   // dynamically load the app chunk using the correct filename
   try {
     const script = document.createElement('script')
-
-    script.addEventListener('load', () => {
-      forgetChunkRetry()
-    })
-
-    script.addEventListener('error', () => {
-      // Recover once, and only once. Dropping the caches and the service worker
-      // is what fixes a bootstrap left behind by a deploy, and the reload is
-      // what picks up the current one. If the chunk is still missing after
-      // that, the stale copy lives in a CDN entry that no reload can evict, so
-      // trying again only hammers the CDN until it rate limits us, with the
-      // user watching a blank page throughout. That is the cyclic reload
-      // reported in #1155.
-      if (alreadyRetriedChunk()) {
-        showAppChunkError()
-        return
-      }
-
-      // Mark before the purge below, which deletes every cache, and before the
-      // reload, which resets the page.
-      markChunkRetried()
-
-      // failed to load script, there may be a new service worker available -
-      // delete all caches, unregister the service worker and reload
-      Promise.all([
-        caches.keys()
-          .then(async (cacheNames) => {
-            return Promise.all(
-              cacheNames.map(async function (cacheName) {
-                return caches.delete(cacheName)
-              })
-            )
-          })
-          .catch(err => {
-            // eslint-disable-next-line no-console
-            console.error('could not delete out of date cache - %e', err)
-          }),
-        navigator.serviceWorker.getRegistration()
-          .then(async registration => {
-            registration?.unregister()
-          })
-      ])
-        .then(() => {
-          // @ts-expect-error boolean `forceGet` argument is firefox-only
-          document.location.reload(true)
-        })
-        .catch((err) => {
-          // eslint-disable-next-line no-console
-          console.error('could not refresh context', err)
-        })
-    })
     script.type = 'module'
     script.src = '<%-- src/ui/index.tsx --%>'
     document.body.appendChild(script)
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error('Failed to load app chunk config:', err)
+    console.error('failed to load ui', err)
     throw err
   }
 }
