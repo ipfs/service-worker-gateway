@@ -34,14 +34,14 @@ async function main (): Promise<void> {
   if (!isBrowserSupported()) {
     // browser is missing Web APIs we need, render the UI which will tell the
     // user their browser is unsupported
-    await renderUi()
+    renderUi()
     return
   }
 
   if (!('serviceWorker' in navigator)) {
     // no service worker support, render the UI which will tell the user
     // service workers are not supported
-    await renderUi()
+    renderUi()
     return
   }
 
@@ -60,7 +60,7 @@ async function main (): Promise<void> {
     globalThis.originIsolationWarning = {
       location: window.location.href
     }
-    await renderUi()
+    renderUi()
     return
   }
 
@@ -80,7 +80,7 @@ async function main (): Promise<void> {
       logs: []
     }
 
-    await renderUi()
+    renderUi()
     return
   }
 
@@ -106,15 +106,16 @@ async function main (): Promise<void> {
       logs: []
     }
 
-    await renderUi()
+    renderUi()
     return
   }
 
   try {
     if (request.type === 'path' || request.type === 'native') {
+      await showDownloadingPageAfterDelay(request)
+
       // redirect to subdomain
       window.location.href = request.subdomainURL.href
-      showUIAfterDelay(request)
       return
     }
 
@@ -137,8 +138,8 @@ async function main (): Promise<void> {
           const request = parseRequest(uri, new URL(globalThis.location.href))
 
           if (request.type === 'subdomain' || request.type === 'path' || request.type === 'native') {
+            await showDownloadingPageAfterDelay(request)
             window.location.href = request.subdomainURL.href
-            showUIAfterDelay(request)
             return
           }
           return
@@ -182,6 +183,8 @@ async function main (): Promise<void> {
         url.pathname = ''
       }
 
+      await showDownloadingPageAfterDelay(request)
+
       // Trigger a navigation so the just-installed service worker can
       // intercept the subdomain request. Pick the cheapest primitive
       // that still works in the presence of a URL fragment.
@@ -224,7 +227,6 @@ async function main (): Promise<void> {
         window.location.reload()
       }
 
-      showUIAfterDelay(request)
       return
     }
   } catch (err: any) {
@@ -246,7 +248,7 @@ async function main (): Promise<void> {
     }
   }
 
-  await renderUi()
+  renderUi()
 }
 
 /**
@@ -325,16 +327,20 @@ function showAppChunkError (): void {
  * Asynchronously loads and shows the UI - this is to make the number of bytes
  * downloaded before the service worker is installed smaller
  */
-async function renderUi (): Promise<void> {
+function renderUi (): void {
   // dynamically load the app chunk using the correct filename
   try {
     const script = document.createElement('script')
-
     script.addEventListener('load', () => {
       forgetChunkRetry()
     })
-
     script.addEventListener('error', () => {
+      // Safari errors when loading a script during page navigation so swallow
+      // the error if it fails
+      if (isWebkit()) {
+        return
+      }
+
       // Recover once, and only once. Dropping the caches and the service worker
       // is what fixes a bootstrap left behind by a deploy, and the reload is
       // what picks up the current one. If the chunk is still missing after
@@ -385,7 +391,7 @@ async function renderUi (): Promise<void> {
     document.body.appendChild(script)
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error('Failed to load app chunk config:', err)
+    console.error('failed to load app ui', err)
     throw err
   }
 }
@@ -432,27 +438,72 @@ function tooManyRedirects (storageKey: string, maxRedirects = 5, period = 5_000)
 /**
  * If the requested URL triggers a download, the currently displayed page will
  * not change so show the user something, otherwise it looks like they are stuck
+ * on a loading page.
+ *
+ * If the user is on a WebKit-based browser loading the UI js file while a
+ * navigation is occurring will fail so wait for the UI to appear before
+ * redirecting, otherwise load the UI asynchronously.
+ */
+async function showDownloadingPageAfterDelay (request: ResolvableURI, delay = 500): Promise<void> {
+  if (isWebkit()) {
+    showDownloadingPage(request)
+    await waitForUiToRender()
+
+    return
+  }
+
+  setTimeout(() => {
+    showDownloadingPage(request)
+  }, delay)
+}
+
+/**
+ * If the requested URL triggers a download, the currently displayed page will
+ * not change so show the user something, otherwise it looks like they are stuck
  * on a loading page
  */
-function showUIAfterDelay (request: ResolvableURI): void {
-  setTimeout(() => {
-    let cid: string | undefined
+function showDownloadingPage (request: ResolvableURI): void {
+  let cid: string | undefined
 
-    if (request.type === 'native' && request.protocol === 'ipfs') {
-      cid = request.nativeURL.hostname
-    } else if (request.type === 'path' && request.protocol === 'ipfs') {
-      cid = request.pathURL.pathname.split('/')[2]
-    } else if (request.type === 'subdomain' && request.protocol === 'ipfs') {
-      cid = request.subdomainURL.hostname.split('.ipfs.')[0]
-    }
+  if (request.type === 'native' && request.protocol === 'ipfs') {
+    cid = request.nativeURL.hostname
+  } else if (request.type === 'path' && request.protocol === 'ipfs') {
+    cid = request.pathURL.pathname.split('/')[2]
+  } else if (request.type === 'subdomain' && request.protocol === 'ipfs') {
+    cid = request.subdomainURL.hostname.split('.ipfs.')[0]
+  }
 
-    globalThis.downloadingPage = {
-      request,
-      cid
-    }
+  globalThis.downloadingPage = {
+    request,
+    cid
+  }
 
-    renderUi()
-  }, 500)
+  renderUi()
+}
+
+/**
+ * Detect WebKit browsers
+ */
+function isWebkit (): boolean {
+  return 'GestureEvent' in globalThis
+}
+
+/**
+ * Wait for the UI to be present in the DOM
+ */
+async function waitForUiToRender (): Promise<void> {
+  let interval: ReturnType<typeof setInterval>
+
+  await new Promise<void>((resolve) => {
+    interval = setInterval(() => {
+      if (document.getElementsByTagName('header').length === 0) {
+        return
+      }
+
+      clearInterval(interval)
+      resolve()
+    }, 100)
+  })
 }
 
 main()
