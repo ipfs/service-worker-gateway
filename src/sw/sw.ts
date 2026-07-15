@@ -36,11 +36,15 @@ self.addEventListener('install', (event) => {
   const log = getSwLogger('install')
 
   // 👇 When a new version of the SW is installed, activate immediately
-  self.skipWaiting()
-    .catch(err => {
-      log.error('error skipping waiting - %e', err)
-    })
-  event.waitUntil(clearSwAssetCache())
+  event.waitUntil(
+    Promise.all([
+      self.skipWaiting()
+        .catch(err => {
+          log.error('error skipping waiting - %e', err)
+        }),
+      clearSwAssetCache()
+    ])
+  )
 })
 
 self.addEventListener('activate', (event) => {
