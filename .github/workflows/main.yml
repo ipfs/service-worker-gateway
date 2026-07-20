@@ -67,7 +67,7 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - name: Setup Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version: '1.24'
       - uses: ipfs/aegir/actions/cache-node-modules@main
@@ -244,7 +244,7 @@ jobs:
       - run: npx playwright install --with-deps
         timeout-minutes: 10 # should take no longer than 2min
       - name: Setup Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version: '1.24'
       - run: npx xvfb-maybe npm run --if-present test:local-binary
