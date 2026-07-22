@@ -4,7 +4,7 @@ import * as json from 'multiformats/codecs/json'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { test, expect } from './fixtures/config-test-fixtures.ts'
 import { loadWithServiceWorker } from './fixtures/load-with-service-worker.ts'
-import { makeFetchRequest } from './fixtures/make-range-request.ts'
+import { makeFetchRequest } from './fixtures/make-fetch-request.ts'
 import type { KuboRPCClient } from 'kubo-rpc-client'
 import type { CID } from 'multiformats/cid'
 

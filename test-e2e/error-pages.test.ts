@@ -1,7 +1,7 @@
 import { test, expect } from './fixtures/config-test-fixtures.ts'
 import { findIpAddress } from './fixtures/find-ip-address.ts'
 import { loadWithServiceWorker } from './fixtures/load-with-service-worker.ts'
-import { makeFetchRequest } from './fixtures/make-range-request.ts'
+import { makeFetchRequest } from './fixtures/make-fetch-request.ts'
 
 test.describe('error pages', () => {
   test('it should show a message for unsupported hash algorithms', async ({ page, baseURL }) => {
