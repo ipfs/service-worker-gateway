@@ -18,6 +18,17 @@ declare global {
   }
 }
 
+let isNavigating = false
+
+/**
+ * Reset flag if loaded from bfcache
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Glossary/bfcache
+ */
+window.addEventListener('pageshow', () => {
+  isNavigating = false
+})
+
 /**
  * The `index.html` page is loaded either as the root domain (e.g.
  * `http://localhost:1234`), a path gateway request (e.g.
@@ -113,10 +124,11 @@ async function main (): Promise<void> {
 
   try {
     if (request.type === 'path' || request.type === 'native') {
-      await showDownloadingPageAfterDelay(request)
-
       // redirect to subdomain
+      isNavigating = true
+      await showDownloadingPageAfterDelay(request)
       window.location.href = request.subdomainURL.href
+
       return
     }
 
@@ -139,6 +151,7 @@ async function main (): Promise<void> {
           const request = parseRequest(uri, new URL(globalThis.location.href))
 
           if (request.type === 'subdomain' || request.type === 'path' || request.type === 'native') {
+            isNavigating = true
             await showDownloadingPageAfterDelay(request)
             window.location.href = request.subdomainURL.href
             return
@@ -184,6 +197,7 @@ async function main (): Promise<void> {
         url.pathname = ''
       }
 
+      isNavigating = true
       await showDownloadingPageAfterDelay(request)
 
       // Trigger a navigation so the just-installed service worker can
@@ -338,7 +352,7 @@ function renderUi (): void {
     script.addEventListener('error', () => {
       // Safari errors when loading a script during page navigation so swallow
       // the error if it fails
-      if (isWebkit()) {
+      if (isNavigating && isWebkit()) {
         return
       }
 
@@ -446,7 +460,7 @@ function tooManyRedirects (storageKey: string, maxRedirects = 5, period = 5_000)
  * redirecting, otherwise load the UI asynchronously.
  */
 async function showDownloadingPageAfterDelay (request: ResolvableURI, delay = 500): Promise<void> {
-  if (isWebkit()) {
+  if (isNavigating && isWebkit()) {
     showDownloadingPage(request)
     await waitForUiToRender(AbortSignal.timeout(2_000))
 
