@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.4.11](https://github.com/ipfs/service-worker-gateway/compare/v3.4.10...v3.4.11) (2026-07-23)
+
+
+### Bug Fixes
+
+* cyclic reload from a poisoned cdn cache ([#1156](https://github.com/ipfs/service-worker-gateway/issues/1156)) ([9e0c642](https://github.com/ipfs/service-worker-gateway/commit/9e0c642ee6a69ed603a941970378b28eec849140)), closes [#1155](https://github.com/ipfs/service-worker-gateway/issues/1155)
+* do not wait for UI forever ([#1163](https://github.com/ipfs/service-worker-gateway/issues/1163)) ([5bda231](https://github.com/ipfs/service-worker-gateway/commit/5bda231fbd4058587e9cac767a576ef2e6a726e6))
+* only wait for ui in WebKit when navigating ([#1171](https://github.com/ipfs/service-worker-gateway/issues/1171)) ([ca93870](https://github.com/ipfs/service-worker-gateway/commit/ca9387019bb09ca50829c05b681d7240e14c99ed))
+* use cheap parse request in ui ([#1172](https://github.com/ipfs/service-worker-gateway/issues/1172)) ([a116557](https://github.com/ipfs/service-worker-gateway/commit/a116557b9fb1e72c00fdb103c0541c03c8973529))
+* wait for skipWaiting promise ([#1162](https://github.com/ipfs/service-worker-gateway/issues/1162)) ([cd4d19b](https://github.com/ipfs/service-worker-gateway/commit/cd4d19b324623aa5fc72220c26815933306ac3bd))
+* wait for UI before reloading in Safari ([#1161](https://github.com/ipfs/service-worker-gateway/issues/1161)) ([85da529](https://github.com/ipfs/service-worker-gateway/commit/85da52948e035797da75540c45a98155914ec885)), closes [#1159](https://github.com/ipfs/service-worker-gateway/issues/1159)
+
 ## [3.4.10](https://github.com/ipfs/service-worker-gateway/compare/v3.4.9...v3.4.10) (2026-07-09)
 
 
