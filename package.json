@@ -69,7 +69,7 @@
     "any-signal": "^4.1.1",
     "blockstore-idb": "^4.0.1",
     "datastore-idb": "^5.0.1",
-    "execa": "^9.5.2",
+    "execa": "^10.0.0",
     "file-type": "^22.0.1",
     "helia": "^7.0.5",
     "ipfs-css": "^1.4.0",
