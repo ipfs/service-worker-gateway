@@ -11,6 +11,7 @@ export type URIType = 'subdomain' | 'path' | 'native' | 'internal' | 'external'
 export interface IPFSURI {
   protocol: 'ipfs'
   type: 'subdomain' | 'path' | 'native'
+  cid: string
   subdomainURL: URL
   pathURL: URL
   nativeURL: URL
@@ -87,6 +88,7 @@ function toIPFSURI (type: 'subdomain' | 'path' | 'native', cidStr: string, host:
   const output: IPFSURI = {
     type,
     protocol: 'ipfs',
+    cid,
     subdomainURL: new URL(`${root.protocol}//${cid}.ipfs.${root.host}${pathname}${search}${hash}`),
     pathURL: new URL(`${root.protocol}//${root.host}/ipfs/${cidStr}${pathname}${search}${hash}`),
     nativeURL: new URL(`ipfs://${cidStr}${pathname}${search}${hash}`)
