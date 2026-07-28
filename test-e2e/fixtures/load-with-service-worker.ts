@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { parseRequest } from '../../src/lib/parse-request-cheap.ts'
 import type { Page, Response } from 'playwright'
 
 export interface LoadWithServiceWorkerOptions {
@@ -74,6 +75,14 @@ export async function loadWithServiceWorker (page: Page, resource: string, optio
   const downloadPromise = page.waitForEvent('download')
     .catch(() => {})
 
+  const resourceUrl = new URL(resource)
+  const parsedRequest = parseRequest(resource, new URL(`${resourceUrl.protocol}//${resourceUrl.host}`))
+  let target = resourceUrl
+
+  if (parsedRequest.type === 'subdomain' || parsedRequest.type === 'path') {
+    target = parsedRequest.subdomainURL
+  }
+
   const [
     response
   ] = await Promise.all([
@@ -86,7 +95,7 @@ export async function loadWithServiceWorker (page: Page, resource: string, optio
       // used when benchmarking prod/dev service worker gateway in chrome -
       // cannot use this for e2e tests because `fromServiceWorker` is broken in
       // firefox
-      if ((response.url().includes('.ipfs.') || response.url().includes('.ipns.')) && response.fromServiceWorker()) {
+      if (response.url() === target.toString() && response.fromServiceWorker()) {
         return true
       }
 
