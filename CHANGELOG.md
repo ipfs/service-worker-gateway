@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.4.12](https://github.com/ipfs/service-worker-gateway/compare/v3.4.11...v3.4.12) (2026-07-29)
+
+
+### Bug Fixes
+
+* use iife instead of esm bundle ([#1176](https://github.com/ipfs/service-worker-gateway/issues/1176)) ([2789adb](https://github.com/ipfs/service-worker-gateway/commit/2789adbb6c71ca38dc73ded3eaa18f848925e9dc))
+
 ## [3.4.11](https://github.com/ipfs/service-worker-gateway/compare/v3.4.10...v3.4.11) (2026-07-28)
 
 
