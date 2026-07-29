@@ -2,7 +2,7 @@
  * This function is always and only used from the UI
  */
 export async function registerServiceWorker (): Promise<ServiceWorkerRegistration> {
-  const swRegistration = await navigator.serviceWorker.register(new URL('ipfs-sw-sw.js', import.meta.url), {
+  const swRegistration = await navigator.serviceWorker.register(new URL(`${window.location.protocol}//${window.location.host}/ipfs-sw-sw.js`), {
     scope: '/'
   })
 

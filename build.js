@@ -462,7 +462,7 @@ export const buildOptions = {
   metafile: true,
   splitting: false,
   target: ['es2020'],
-  format: 'esm',
+  format: 'iife',
   entryNames: 'ipfs-sw-[name]-[hash]',
   assetNames: 'ipfs-sw-[name]-[hash]',
   plugins: [
