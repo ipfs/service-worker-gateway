@@ -64,7 +64,7 @@ jobs:
           ref: ${{ steps.set_release_tag.outputs.release_tag }}
 
       - name: Setup Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version: '1.24'
 
