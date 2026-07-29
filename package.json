@@ -108,7 +108,7 @@
     "@types/wait-on": "^5.3.4",
     "aegir": "^48.1.1",
     "body-parser": "^2.2.2",
-    "cborg": "^5.1.0",
+    "cborg": "^6.1.1",
     "concurrently": "^10.0.3",
     "cors": "^2.8.5",
     "cross-env": "^10.1.0",
