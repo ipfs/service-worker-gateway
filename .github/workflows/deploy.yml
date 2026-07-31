@@ -59,7 +59,7 @@ jobs:
         env:
           TAG: ${{ inputs.tag }}
         run: git checkout "$TAG"
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: lts/*
       - uses: ipfs/aegir/actions/cache-node-modules@main
