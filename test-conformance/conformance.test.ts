@@ -10,7 +10,7 @@ import { prefixLogger } from '@libp2p/logger'
 import { test, expect } from '@playwright/test'
 import { execa } from 'execa'
 import { loadWithServiceWorker } from '../test-e2e/fixtures/load-with-service-worker.ts'
-import { makeFetchRequest } from '../test-e2e/fixtures/make-range-request.ts'
+import { makeFetchRequest } from '../test-e2e/fixtures/make-fetch-request.ts'
 import { GWC_IMAGE } from './fixtures/constants.ts'
 import expectedFailingTests from './fixtures/expected-failing-tests.json' with { type: 'json' }
 import expectedPassingTests from './fixtures/expected-passing-tests.json' with { type: 'json' }

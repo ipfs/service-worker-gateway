@@ -88,8 +88,6 @@ function LoadContent (): ReactElement {
       })
       .join('&')
 
-    // window.location.href = getGatewayRoot() + request + (search === '' ? '' : `?${search}`)
-
     window.location.href = `${subdomainURL.protocol}//${subdomainURL.host}${subdomainURL.pathname}${search === '' ? '' : `?${search}`}${subdomainURL.hash}`
   }
 

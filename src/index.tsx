@@ -1,5 +1,6 @@
 /* eslint-disable max-depth */
 
+import { raceSignal } from 'race-signal'
 import weald from 'weald'
 import { config } from './config/index.ts'
 import { QUERY_PARAMS } from './lib/constants.ts'
@@ -16,6 +17,17 @@ declare global {
     location: string
   }
 }
+
+let isNavigating = false
+
+/**
+ * Reset flag if loaded from bfcache
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Glossary/bfcache
+ */
+window.addEventListener('pageshow', () => {
+  isNavigating = false
+})
 
 /**
  * The `index.html` page is loaded either as the root domain (e.g.
@@ -112,10 +124,11 @@ async function main (): Promise<void> {
 
   try {
     if (request.type === 'path' || request.type === 'native') {
-      await showDownloadingPageAfterDelay(request)
-
       // redirect to subdomain
+      isNavigating = true
+      await showDownloadingPageAfterDelay(request)
       window.location.href = request.subdomainURL.href
+
       return
     }
 
@@ -138,6 +151,7 @@ async function main (): Promise<void> {
           const request = parseRequest(uri, new URL(globalThis.location.href))
 
           if (request.type === 'subdomain' || request.type === 'path' || request.type === 'native') {
+            isNavigating = true
             await showDownloadingPageAfterDelay(request)
             window.location.href = request.subdomainURL.href
             return
@@ -183,6 +197,7 @@ async function main (): Promise<void> {
         url.pathname = ''
       }
 
+      isNavigating = true
       await showDownloadingPageAfterDelay(request)
 
       // Trigger a navigation so the just-installed service worker can
@@ -337,7 +352,7 @@ function renderUi (): void {
     script.addEventListener('error', () => {
       // Safari errors when loading a script during page navigation so swallow
       // the error if it fails
-      if (isWebkit()) {
+      if (isNavigating && isWebkit()) {
         return
       }
 
@@ -441,13 +456,13 @@ function tooManyRedirects (storageKey: string, maxRedirects = 5, period = 5_000)
  * on a loading page.
  *
  * If the user is on a WebKit-based browser loading the UI js file while a
- * navigation is occurring will fail so wait for the UI to appear before
+ * navigation is occurring will fail so give the UI some time to appear before
  * redirecting, otherwise load the UI asynchronously.
  */
 async function showDownloadingPageAfterDelay (request: ResolvableURI, delay = 500): Promise<void> {
-  if (isWebkit()) {
+  if (isNavigating && isWebkit()) {
     showDownloadingPage(request)
-    await waitForUiToRender()
+    await waitForUiToRender(AbortSignal.timeout(2_000))
 
     return
   }
@@ -489,21 +504,24 @@ function isWebkit (): boolean {
 }
 
 /**
- * Wait for the UI to be present in the DOM
+ * Wait for the UI to be present in the DOM until the passed abort signal fires
  */
-async function waitForUiToRender (): Promise<void> {
+async function waitForUiToRender (signal?: AbortSignal): Promise<void> {
   let interval: ReturnType<typeof setInterval>
 
-  await new Promise<void>((resolve) => {
+  await raceSignal(new Promise<void>((resolve) => {
     interval = setInterval(() => {
       if (document.getElementsByTagName('header').length === 0) {
         return
       }
 
-      clearInterval(interval)
       resolve()
     }, 100)
-  })
+  }), signal)
+    .catch(() => {})
+    .finally(() => {
+      clearInterval(interval)
+    })
 }
 
 main()

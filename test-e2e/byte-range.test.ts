@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures/config-test-fixtures.ts'
-import { makeFetchRequest } from './fixtures/make-range-request.ts'
+import { makeFetchRequest } from './fixtures/make-fetch-request.ts'
 
 test.describe('byte-ranges', () => {
   test('should be able to get a single character', async ({ page, baseURL }) => {
