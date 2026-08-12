@@ -32,12 +32,6 @@ import type { Libp2pOptions } from 'libp2p'
 
 async function libp2pDefaults (): Promise<Libp2pOptions> {
   const agentVersion = `@helia/verified-fetch ${libp2pInfo.name}/${libp2pInfo.version} UserAgent=${globalThis.navigator.userAgent}`
-
-  const filterAddrs = [
-    'wss',  // /dns4/sv15.bootstrap.libp2p.io/tcp/443/wss/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJ
-    'tls',  // /ip4/A.B.C.D/tcp/4002/tls/sni/A-B-C-D.peerid.libp2p.direct/ws/p2p/peerid
-    'https' // /dns/example.com/tcp/443/https
-  ] as string[]
   const transports: Array<(components: any) => any> = [
     webSockets()
   ]
@@ -46,7 +40,6 @@ async function libp2pDefaults (): Promise<Libp2pOptions> {
   // Baseline as of 2026-03 (Safari 26.4); also Chrome 97+, Edge 98+, Firefox 114+.
   if ('WebTransport' in globalThis) {
     transports.push(webTransport())
-    filterAddrs.push('webtransport')
   }
 
   const services: Record<string, any> = {
@@ -59,14 +52,10 @@ async function libp2pDefaults (): Promise<Libp2pOptions> {
 
   config.routers.forEach((url, i) => {
     services[`delegatedContentRouter${i}`] = delegatedRoutingV1HttpApiClientContentRouting({
-      url,
-      filterProtocols: ['unknown', 'transport-bitswap', 'transport-ipfs-gateway-http'],
-      filterAddrs
+      url
     })
     services[`delegatedPeerRouter${i}`] = delegatedRoutingV1HttpApiClientPeerRouting({
-      url,
-      filterProtocols: ['unknown', 'transport-bitswap', 'transport-ipfs-gateway-http'],
-      filterAddrs
+      url
     })
   })
 

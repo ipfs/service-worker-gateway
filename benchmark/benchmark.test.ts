@@ -21,6 +21,12 @@ test.describe('@helia/service-worker-gateway - benchmark', () => {
   }, {
     name: 'inbrowser.dev (path gateway)',
     url: (cid: string): string => `https://inbrowser.dev/ipfs/${cid}/?download=true`
+  }, {
+    name: 'localhost:3000 (subdomain gateway)',
+    url: (cid: string): string => `http://${cid}.ipfs.localhost:3000/?download=true`
+  }, {
+    name: 'localhost:3000 (path gateway)',
+    url: (cid: string): string => `http://localhost:3000/ipfs/${cid}/?download=true`
   }]
 
   tests.forEach(t => {

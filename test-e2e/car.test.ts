@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures/config-test-fixtures.ts'
-import { makeFetchRequest } from './fixtures/make-range-request.ts'
+import { makeFetchRequest } from './fixtures/make-fetch-request.ts'
 
 test.describe('car files', () => {
   test('should respect settings from accept header', async ({ page, baseURL, protocol, host }) => {

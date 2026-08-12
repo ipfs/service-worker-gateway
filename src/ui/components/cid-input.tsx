@@ -1,6 +1,6 @@
 import { CID } from 'multiformats/cid'
 import React from 'react'
-import { parseRequest } from '../../lib/parse-request.ts'
+import { parseRequest } from '../../lib/parse-request-cheap.ts'
 import { Link } from './link.tsx'
 import type { ReactElement } from 'react'
 

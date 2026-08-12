@@ -2,7 +2,7 @@ import { stop } from '@libp2p/interface'
 import * as cbor from 'cborg'
 import { createKuboRPCClient } from 'kubo-rpc-client'
 import { test, expect } from './fixtures/config-test-fixtures.ts'
-import { makeFetchRequest } from './fixtures/make-range-request.ts'
+import { makeFetchRequest } from './fixtures/make-fetch-request.ts'
 import type { KuboRPCClient } from 'kubo-rpc-client'
 import type { CID } from 'multiformats/cid'
 
