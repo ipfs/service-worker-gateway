@@ -78,7 +78,7 @@ const cleanup = async (): Promise<void> => {
 }
 
 // when the process exits, stop the reverse proxy
-build?.on('exit', () => { void cleanup() })
+build?.nodeChildProcess.on('exit', () => { void cleanup() })
 process.on('SIGINT', () => { void cleanup() })
 process.on('SIGTERM', () => { void cleanup() })
 
