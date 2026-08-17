@@ -19,7 +19,6 @@ import { dnsJsonOverHttps } from '@multiformats/dns/resolvers'
 import { IDBBlockstore } from 'blockstore-idb'
 import { IDBDatastore } from 'datastore-idb'
 import { createHeliaLight } from 'helia'
-import { createLibp2p } from 'libp2p'
 import * as libp2pInfo from 'libp2p/version'
 import * as json from 'multiformats/codecs/json'
 import { sha1 } from 'multiformats/hashes/sha1'
@@ -97,8 +96,6 @@ export async function updateVerifiedFetch (): Promise<void> {
   libp2pOptions.logger = logger
   libp2pOptions.datastore = datastore
 
-  const libp2p = await createLibp2p(libp2pOptions)
-
   const helia = await withBitswap(withLibp2p(withHTTP(createHeliaLight({
     datastore,
     blockstore,
@@ -120,7 +117,7 @@ export async function updateVerifiedFetch (): Promise<void> {
     recursiveGateways: config.gateways,
     allowLocal: true,
     allowInsecure: true
-  }), libp2p)).start()
+  }), libp2pOptions)).start()
 
   verifiedFetch = await createVerifiedFetchWithHelia(helia, {
     withServerTiming: true
