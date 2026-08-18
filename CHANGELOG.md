@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.4.13](https://github.com/ipfs/service-worker-gateway/compare/v3.4.12...v3.4.13) (2026-08-18)
+
+
+### Bug Fixes
+
+* update @helia/libp2p ([#1186](https://github.com/ipfs/service-worker-gateway/issues/1186)) ([2576c49](https://github.com/ipfs/service-worker-gateway/commit/2576c49c9a5162ec2d645f0b6cf1564e7dcf7c67))
+
 ## [3.4.12](https://github.com/ipfs/service-worker-gateway/compare/v3.4.11...v3.4.12) (2026-07-29)
 
 
