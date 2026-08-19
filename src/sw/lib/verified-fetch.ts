@@ -3,7 +3,7 @@ import { yamux } from '@chainsafe/libp2p-yamux'
 import { withBitswap } from '@helia/bitswap'
 import { delegatedRoutingV1HttpApiClientContentRouting, delegatedRoutingV1HttpApiClientPeerRouting } from '@helia/delegated-routing-v1-http-api-client'
 import { withHTTP } from '@helia/http'
-import { withLibp2p } from '@helia/libp2p'
+import { withLibp2pLight } from '@helia/libp2p'
 import { createVerifiedFetchWithHelia } from '@helia/verified-fetch'
 import * as dagCbor from '@ipld/dag-cbor'
 import * as dagJson from '@ipld/dag-json'
@@ -96,7 +96,7 @@ export async function updateVerifiedFetch (): Promise<void> {
   libp2pOptions.logger = logger
   libp2pOptions.datastore = datastore
 
-  const helia = await withBitswap(withLibp2p(withHTTP(createHeliaLight({
+  const helia = await withBitswap(withLibp2pLight(withHTTP(createHeliaLight({
     datastore,
     blockstore,
     logger,
