@@ -48,7 +48,7 @@
     "@helia/bitswap": "^4.0.7",
     "@helia/delegated-routing-v1-http-api-client": "^9.0.0",
     "@helia/http": "^4.0.6",
-    "@helia/libp2p": "^2.0.0",
+    "@helia/libp2p": "^2.1.0",
     "@helia/trustless-gateway-client": "^1.0.5",
     "@helia/verified-fetch": "^8.0.4",
     "@ipld/dag-cbor": "^10.0.1",
