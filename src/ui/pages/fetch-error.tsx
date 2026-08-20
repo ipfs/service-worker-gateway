@@ -247,7 +247,7 @@ export function FetchErrorPage ({ request, response, logs, providers }: FetchErr
         <p className='f5 ma3 fw4 db'>An error occurred while streaming the content.</p>
         {providers.total === 0
           ? (
-            <p className='f5 ma3 fw4 db'>This means that no providers with browser-compatible transports were found, and that proxy fallback at trustless-gateway.link failed to to find TCP or QUIC providers.</p>
+            <p className='f5 ma3 fw4 db'>This means that no providers with browser-compatible transports were found, and that the fallback trustless gateway failed to to find TCP or QUIC providers.</p>
             )
           : ''}
         {providers.total > 0

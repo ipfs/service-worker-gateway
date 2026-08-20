@@ -30,7 +30,7 @@ jobs:
       fail-fast: false
       matrix:
         gateway:
-          - trustless-gateway.link
+          - trustless-gateway.net
           - cloudflare-ipfs.com
         dnslink:
           - inbrowser.link
