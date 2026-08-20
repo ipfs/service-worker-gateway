@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.4.14](https://github.com/ipfs/service-worker-gateway/compare/v3.4.13...v3.4.14) (2026-08-19)
+
+
+### Bug Fixes
+
+* update libp2p version to get smaller bundle size ([#1191](https://github.com/ipfs/service-worker-gateway/issues/1191)) ([7b8056d](https://github.com/ipfs/service-worker-gateway/commit/7b8056dbed8ae85ffabdcbc82cab44be87968cc6))
+
 ## [3.4.13](https://github.com/ipfs/service-worker-gateway/compare/v3.4.12...v3.4.13) (2026-08-18)
 
 
