@@ -65,7 +65,7 @@ The main goals of this project are:
 
 ### Feature Set
 
-- 🔒 [Trustless Retrieval](https://specs.ipfs.tech/http-gateways/trustless-gateway/) client that fetches content directly from providers over HTTPS, Secure WebSockets, and other browser-compatible transports, falling back to HTTPS gateway proxy/relay via `trustless-gateway.link` when direct retrieval is not possible.
+- 🔒 [Trustless Retrieval](https://specs.ipfs.tech/http-gateways/trustless-gateway/) client that fetches content directly from providers over HTTPS, Secure WebSockets, and other browser-compatible transports, using a fallback trustless gateway when direct retrieval is not possible.
 - 🌐 Service Worker running as a [Web Gateway](https://specs.ipfs.tech/http-gateways/) for website hosting (`index.html`, [web pathing](https://github.com/ipfs/specs/issues/432), `_redirects`).
 - 🧭 [HTTP Routing V1](https://specs.ipfs.tech/routing/http-routing-v1/) (`/routing/v1`) client for discovering content providers (via `delegated-ipfs.dev`).
 - 📡 [DNSLink](https://dnslink.dev/) resolution via [DNS-over-HTTPS](https://en.wikipedia.org/wiki/DNS_over_HTTPS) (DoH).

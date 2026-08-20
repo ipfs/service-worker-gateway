@@ -11,7 +11,7 @@ export interface Config {
  */
 export const config: Config = {
   gateways: [
-    'https://trustless-gateway.link'
+    'https://trustless-gateway.net'
   ],
   routers: [
     'https://delegated-ipfs.dev'
