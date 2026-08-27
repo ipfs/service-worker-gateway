@@ -135,8 +135,6 @@
   },
   "sideEffects": false,
   "overrides": {
-    "multiformats": "^14.0.4",
-    "uint8arrays": "^6.1.1",
-    "uint8arraylist": "^3.0.2"
+    "node-datachannel": "0.33.0"
   }
 }
