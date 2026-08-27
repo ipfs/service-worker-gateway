@@ -21,7 +21,7 @@ export function renderEntityPageResponse (request: ContentURI, headers: Headers,
 
   const props = {
     cid: mergedHeaders.get('x-ipfs-roots')?.split(',').pop() ?? '',
-    ipfsPath: safeDecodeURI(mergedHeaders.get('x-ipfs-path') ?? ''),
+    ipfsPath: safeDecodeURI(mergedHeaders.get('ipfs-uri') ?? ''),
     entity: uint8ArrayToString(new Uint8Array(entity, 0, entity.byteLength), 'base64'),
     contentType,
     request: {
