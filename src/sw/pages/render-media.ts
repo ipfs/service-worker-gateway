@@ -27,7 +27,7 @@ export function renderMediaViewerPageResponse (request: ContentURI, response: Re
   mergedHeaders.set('cache-control', GENERATED_HTML_CACHE_CONTROL)
 
   const cid = mergedHeaders.get('x-ipfs-roots')?.split(',').pop() ?? ''
-  const ipfsPath = safeDecodeURI(mergedHeaders.get('x-ipfs-path') ?? '')
+  const ipfsPath = safeDecodeURI(mergedHeaders.get('ipfs-uri') ?? '')
   const { displayName, filename } = deriveViewerNames(ipfsPath, cid, info)
   const contentType = response.headers.get('content-type') ?? ''
   const contentLengthHeader = response.headers.get('content-length')

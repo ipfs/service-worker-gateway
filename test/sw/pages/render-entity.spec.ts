@@ -30,19 +30,20 @@ function titleOf (html: string): string | undefined {
 describe('/sw/pages/render-entity', () => {
   describe('directory listing title', () => {
     it('uses the ipfs path as title for UnixFS directories', async () => {
-      const ipfsPath = '/ipns/dist.ipfs.tech/kubo/'
+      const ipnsPath = '/ipns/dist.ipfs.tech/kubo/'
+      const ipfsUri = 'ipns://dist.ipfs.tech/kubo/'
       const response = new Response(null, {
         headers: {
           'content-type': MEDIA_TYPE_DAG_PB,
           'x-ipfs-roots': DIR_CID,
-          'x-ipfs-path': ipfsPath
+          'ipfs-uri': ipfsUri
         }
       })
 
       const result = renderEntityPageResponse(makeRequest(DIR_CID), new Headers(), response, new ArrayBuffer(0))
       const html = await result.text()
 
-      expect(titleOf(html)).to.equal(ipfsPath)
+      expect(titleOf(html)).to.equal(ipnsPath)
     })
 
     it('falls back to the CID when the directory has no x-ipfs-path header', async () => {
@@ -64,7 +65,7 @@ describe('/sw/pages/render-entity', () => {
         headers: {
           'content-type': MEDIA_TYPE_DAG_PB,
           'x-ipfs-roots': DIR_CID,
-          'x-ipfs-path': '/ipfs/bafy.../hello%20world/'
+          'ipfs-uri': 'ipfs://bafy.../hello%20world/'
         }
       })
 
@@ -79,7 +80,7 @@ describe('/sw/pages/render-entity', () => {
         headers: {
           'content-type': MEDIA_TYPE_DAG_PB,
           'x-ipfs-roots': DIR_CID,
-          'x-ipfs-path': '/ipfs/bafy.../</title><script>x</script>/'
+          'ipfs-uri': 'ipfs://bafy.../%3C/title%3E%3Cscript%3Ex%3C%2Fscript%3E/'
         }
       })
 

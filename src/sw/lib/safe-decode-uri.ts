@@ -5,7 +5,21 @@
  */
 export function safeDecodeURI (s: string): string {
   try {
-    return decodeURI(s)
+    const url = new URL(s)
+
+    let pathname = url.pathname.split('/')
+      .map(component => decodeURIComponent(component))
+      .join('/')
+
+    if (pathname.length > 0 && !pathname.startsWith('/')) {
+      pathname = `/${pathname}`
+    }
+
+    if (pathname === '/') {
+      pathname = ''
+    }
+
+    return `/${url.protocol === 'ipfs:' ? 'ipfs' : 'ipns'}/${url.hostname}${pathname}`
   } catch {
     return s
   }

@@ -30,7 +30,7 @@ describe('/sw/pages/render-media', () => {
         headers: {
           'content-type': 'image/webp',
           'x-ipfs-roots': cid,
-          'x-ipfs-path': `/ipfs/${cid}${urlPath}`
+          'ipfs-uri': `ipfs://${cid}${urlPath}`
         }
       })
 
