@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.4.15](https://github.com/ipfs/service-worker-gateway/compare/v3.4.14...v3.4.15) (2026-08-27)
+
+
+### Bug Fixes
+
+* use ipfs-uri where available ([#1194](https://github.com/ipfs/service-worker-gateway/issues/1194)) ([2543c2f](https://github.com/ipfs/service-worker-gateway/commit/2543c2fa23b9f9095d178bcda8c7bc296884a67d))
+
 ## [3.4.14](https://github.com/ipfs/service-worker-gateway/compare/v3.4.13...v3.4.14) (2026-08-19)
 
 
