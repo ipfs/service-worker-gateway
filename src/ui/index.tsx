@@ -1,7 +1,7 @@
 import React from 'react'
 import ReactDOMClient from 'react-dom/client'
 import './index.css'
-import { FaInfoCircle, FaGithub, FaExclamationTriangle, FaExclamationCircle, FaHome, FaListAlt, FaFileDownload } from 'react-icons/fa'
+import { FaCog, FaInfoCircle, FaGithub, FaExclamationTriangle, FaExclamationCircle, FaHome, FaListAlt, FaFileDownload } from 'react-icons/fa'
 import { HashRouter, Route, Routes, NavLink } from 'react-router-dom'
 import { HASH_FRAGMENTS } from '../lib/constants.ts'
 import { isBrowserSupported } from '../lib/is-browser-supported.ts'
@@ -18,6 +18,10 @@ import { RenderMediaPage } from './pages/render-media.tsx'
 import { ServerErrorPage } from './pages/server-error.tsx'
 import UnsupportedBrowserErrorPage from './pages/unsupported-browser.tsx'
 import { injectCSS } from './utils/css-injector.ts'
+
+// Lazy-load the settings page so its code (and the health-check / config-db
+// modules it pulls in) stays out of the content-retrieval path's bundle.
+const ConfigPage = React.lazy(() => import('./pages/config.tsx'))
 
 // SW did not trigger for this request
 
@@ -102,6 +106,9 @@ function Header (): React.ReactElement {
         <NavLink id='e2e-link-about-page' to={`/${HASH_FRAGMENTS.IPFS_SW_ABOUT_UI}`} className={({ isActive }) => isActive ? 'white' : 'aqua'}>
           <FaInfoCircle className='ml2 f3' />
         </NavLink>
+        <NavLink id='e2e-link-config-page' to={`/${HASH_FRAGMENTS.IPFS_SW_CONFIG_UI}`} className={({ isActive }) => isActive ? 'white' : 'aqua'} title='Gateway & router settings'>
+          <FaCog className='ml2 f3' />
+        </NavLink>
         <a href='https://github.com/ipfs/service-worker-gateway' className='aqua' title='IPFS Service Worker Gateway on GitHub' target='_blank' rel='noopener noreferrer' aria-label='Visit the GitHub repository for the IPFS Service Worker Gateway'>
           <FaGithub className='ml2 f3' />
         </a>
@@ -173,6 +180,14 @@ function App (): React.ReactElement {
         <Routes>
           <Route path={`/${HASH_FRAGMENTS.IPFS_SW_LOAD_UI}`} element={<HomePage />} />,
           <Route path={`/${HASH_FRAGMENTS.IPFS_SW_ABOUT_UI}`} element={<AboutPage />} />,
+          <Route
+            path={`/${HASH_FRAGMENTS.IPFS_SW_CONFIG_UI}`}
+            element={
+              <React.Suspense fallback={<div className='pa4 charcoal'>Loading…</div>}>
+                <ConfigPage />
+              </React.Suspense>
+            }
+          />
           <Route path={`/${HASH_FRAGMENTS.IPFS_SW_FETCH_ERROR_UI}`} element={<FetchErrorPage />} />
           <Route path={`/${HASH_FRAGMENTS.IPFS_SW_SERVER_ERROR_UI}`} element={<ServerErrorPage />} />
           <Route path={`/${HASH_FRAGMENTS.IPFS_SW_ORIGIN_ISOLATION_WARNING}`} element={<OriginIsolationWarningPage />} />

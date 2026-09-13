@@ -8,6 +8,7 @@ import { parseRequest } from '../lib/parse-request.ts'
 import { getGatewayRoot } from '../lib/to-gateway-root.ts'
 import { APP_NAME, APP_VERSION, GIT_REVISION } from '../version.ts'
 import { handlers } from './handlers/index.ts'
+import { invalidatePersistedConfigCache } from './lib/runtime-config.ts'
 import { updateRedirect } from './lib/update-redirect.ts'
 import { serverErrorPageResponse } from './pages/server-error-page.ts'
 import type { ResolvableURI } from '../lib/parse-request.ts'
@@ -66,7 +67,7 @@ self.addEventListener('activate', (event) => {
   )
 
   // eslint-disable-next-line no-console
-  console.info(`Service Worker Gateway: To manually unregister, append "?${QUERY_PARAMS.UNREGISTER_SERVICE_WORKER}=true" to the URL, or use the button on the config page.`)
+  console.info(`Service Worker Gateway: To manually unregister, append "?${QUERY_PARAMS.UNREGISTER_SERVICE_WORKER}=true" to the URL, or use the button on the config page. To purge all caches, append "?${QUERY_PARAMS.PURGE_CACHES}=true".`)
 
   // delete all caches that aren't named in CURRENT_CACHES.
   const expectedCacheNames = Object.keys(CURRENT_CACHES).map(function (key) {
@@ -90,6 +91,16 @@ self.addEventListener('activate', (event) => {
         log.error('could not delete out of date cache - %e', err)
       })
   )
+})
+
+// When the settings UI saves a new persisted config (root origin only, see
+// config-db.ts), it posts a message so the SW drops its in-memory cache and
+// the next request re-reads from IDB. This makes a config save take effect
+// immediately for subsequent content fetches.
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'ipfs-sw-config-updated') {
+    invalidatePersistedConfigCache()
+  }
 })
 
 self.addEventListener('fetch', (event) => {

@@ -23,13 +23,13 @@ import * as libp2pInfo from 'libp2p/version'
 import * as json from 'multiformats/codecs/json'
 import { sha1 } from 'multiformats/hashes/sha1'
 import { sha512 } from 'multiformats/hashes/sha2'
-import { config } from '../../config/index.ts'
 import { collectingLogger } from '../../lib/collecting-logger.ts'
 import { blake3 } from './blake3.ts'
+import type { ResolvedConfig } from './runtime-config.ts'
 import type { VerifiedFetch } from '@helia/verified-fetch'
 import type { Libp2pOptions } from 'libp2p'
 
-async function libp2pDefaults (): Promise<Libp2pOptions> {
+async function libp2pDefaults (routers: string[]): Promise<Libp2pOptions> {
   const agentVersion = `@helia/verified-fetch ${libp2pInfo.name}/${libp2pInfo.version} UserAgent=${globalThis.navigator.userAgent}`
   const transports: Array<(components: any) => any> = [
     webSockets()
@@ -49,7 +49,7 @@ async function libp2pDefaults (): Promise<Libp2pOptions> {
     ping: ping()
   }
 
-  config.routers.forEach((url, i) => {
+  routers.forEach((url, i) => {
     services[`delegatedContentRouter${i}`] = delegatedRoutingV1HttpApiClientContentRouting({
       url
     })
@@ -70,14 +70,25 @@ async function libp2pDefaults (): Promise<Libp2pOptions> {
   }
 }
 
-let verifiedFetch: VerifiedFetch
+/**
+ * Cache of `verifiedFetch` instances keyed by `ResolvedConfig.hash`, so each
+ * distinct backend set gets its own Helia without rebuilding on every request.
+ * Bounded by a small LRU to cap memory (each instance holds an IDB
+ * blockstore/datastore + libp2p node).
+ */
+const MAX_VERIFIED_FETCH_INSTANCES = 3
+const verifiedFetchCache = new Map<string, VerifiedFetch>()
 
-export async function updateVerifiedFetch (): Promise<void> {
+/**
+ * Build a `verifiedFetch` instance for the given resolved config. Called on a
+ * cache miss from `getVerifiedFetch`.
+ */
+async function buildVerifiedFetch (resolved: ResolvedConfig): Promise<VerifiedFetch> {
   const logger = collectingLogger()
 
   const resolvers: Record<string, any> = {}
 
-  for (const [key, resolver] of Object.entries(config.dnsResolvers)) {
+  for (const [key, resolver] of Object.entries(resolved.dnsResolvers)) {
     resolvers[key] = Array.isArray(resolver) ? resolver.map(r => dnsJsonOverHttps(r)) : dnsJsonOverHttps(resolver)
   }
 
@@ -91,7 +102,7 @@ export async function updateVerifiedFetch (): Promise<void> {
   const blockstore = new IDBBlockstore('/@helia/service-worker-gateway/blocks')
   await blockstore.open()
 
-  const libp2pOptions = await libp2pDefaults()
+  const libp2pOptions = await libp2pDefaults(resolved.routers)
   libp2pOptions.dns = dnsConfig
   libp2pOptions.logger = logger
   libp2pOptions.datastore = datastore
@@ -113,22 +124,53 @@ export async function updateVerifiedFetch (): Promise<void> {
       json
     ]
   }), {
-    delegatedRouters: config.routers,
-    recursiveGateways: config.gateways,
+    delegatedRouters: resolved.routers,
+    recursiveGateways: resolved.gateways,
     allowLocal: true,
     allowInsecure: true
   }), libp2pOptions)).start()
 
-  verifiedFetch = await createVerifiedFetchWithHelia(helia, {
+  const vf = await createVerifiedFetchWithHelia(helia, {
     withServerTiming: true
   })
-  await verifiedFetch.start()
+  await vf.start()
+
+  return vf
 }
 
-export async function getVerifiedFetch (): Promise<VerifiedFetch> {
-  if (verifiedFetch == null) {
-    await updateVerifiedFetch()
+/**
+ * Get the `verifiedFetch` instance for the given resolved config, building it
+ * on a cache miss. Instances are cached by `resolved.hash` and evicted in LRU
+ * order once `MAX_VERIFIED_FETCH_INSTANCES` is exceeded.
+ */
+export async function getVerifiedFetch (resolved: ResolvedConfig): Promise<VerifiedFetch> {
+  const existing = verifiedFetchCache.get(resolved.hash)
+  if (existing != null) {
+    // Move to end (most-recently-used) by re-inserting.
+    verifiedFetchCache.delete(resolved.hash)
+    verifiedFetchCache.set(resolved.hash, existing)
+    return existing
   }
 
-  return verifiedFetch
+  const vf = await buildVerifiedFetch(resolved)
+
+  verifiedFetchCache.set(resolved.hash, vf)
+  while (verifiedFetchCache.size > MAX_VERIFIED_FETCH_INSTANCES) {
+    // Evict the least-recently-used entry (first key in insertion order).
+    const oldestKey = verifiedFetchCache.keys().next().value
+    if (oldestKey == null) {
+      break
+    }
+    const evicted = verifiedFetchCache.get(oldestKey)
+    verifiedFetchCache.delete(oldestKey)
+    // Best-effort teardown; `verifiedFetch` does not expose a synchronous stop
+    // in all versions, so guard it.
+    try {
+      await evicted?.stop?.()
+    } catch {
+      // ignore — evicted instance will be GC'd
+    }
+  }
+
+  return vf
 }

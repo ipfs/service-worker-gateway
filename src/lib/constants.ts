@@ -17,7 +17,31 @@ export const QUERY_PARAMS = {
    *
    * @see https://specs.ipfs.tech/http-gateways/subdomain-gateway/#uri-router
    */
-  URI_ROUTER: 'uri'
+  URI_ROUTER: 'uri',
+
+  /**
+   * One-shot override of the trustless gateways used for block retrieval.
+   * Repeatable; each value is a gateway entry (see `normalizeGatewayEntry`).
+   * Presence of this param for a navigation means "use these verbatim,
+   * ignore persisted config" for that navigation only.
+   */
+  GATEWAYS: 'gateways',
+
+  /**
+   * One-shot override of the delegated routing endpoints (`/routing/v1`).
+   * Repeatable; each value is a router origin.
+   */
+  ROUTERS: 'routers',
+
+  /**
+   * Purge all Cache API storage created by the service worker. Cache storage
+   * persists across SW deregistrations, so this is the only way to reclaim
+   * that space short of clearing site data. Visiting any page will re-install
+   * the SW afterwards.
+   *
+   * @see https://github.com/ipfs/service-worker-gateway/issues/507
+   */
+  PURGE_CACHES: 'ipfs-sw-purge-caches'
 }
 
 /**
@@ -50,5 +74,11 @@ export const HASH_FRAGMENTS = {
    * The hash fragment that is used to request the origin isolation warning
    * page.
    */
-  IPFS_SW_ORIGIN_ISOLATION_WARNING: 'ipfs-sw-origin-isolation-warning'
+  IPFS_SW_ORIGIN_ISOLATION_WARNING: 'ipfs-sw-origin-isolation-warning',
+
+  /**
+   * Show the user-configurable gateways/routers settings page. The page is
+   * only writable from the root/landing origin (see `config-db.ts`).
+   */
+  IPFS_SW_CONFIG_UI: 'ipfs-sw-config'
 }
