@@ -18,6 +18,7 @@ import type { Handler } from './index.ts'
 import type { ContentURI } from '../../lib/parse-request.ts'
 import type { Providers } from '../sw.ts'
 import type { VerifiedFetchInit } from '@helia/verified-fetch'
+import type { ClearableSignal } from 'any-signal'
 
 const FORMAT_TO_MEDIA_TYPE: Record<string, string> = {
   raw: 'application/vnd.ipld.raw',
@@ -39,6 +40,7 @@ interface FetchHandlerArg {
   cacheKey: string
   isMutable: boolean
   accept: string | null
+  signal: AbortSignal
 }
 
 const MAX_REDIRECTS = 5
@@ -55,6 +57,7 @@ async function getResponseFromCacheOrFetch (args: FetchHandlerArg): Promise<Resp
 
   const cache = await caches.open(args.isMutable ? CURRENT_CACHES.mutable : CURRENT_CACHES.immutable)
   const cachedResponse = await cache.match(args.cacheKey)
+  args.signal.throwIfAborted()
 
   if (cachedResponse == null) {
     log('cached response MISS for %s (cache key %s)', args.event.request.url, args.cacheKey)
@@ -157,6 +160,7 @@ async function storeResponseInCache (response: Response, args: FetchHandlerArg):
 
   log.trace('updating cache for %s in the background', args.cacheKey)
   const cache = await caches.open(args.isMutable ? CURRENT_CACHES.mutable : CURRENT_CACHES.immutable)
+  args.signal.throwIfAborted()
 
   // Clone the response since streams can only be consumed once.
   const respToCache = response.clone()
@@ -179,7 +183,7 @@ async function storeResponseInCache (response: Response, args: FetchHandlerArg):
   }
 }
 
-async function fetchHandler ({ request, headers, renderHtml, event, logs, accept }: FetchHandlerArg): Promise<Response> {
+async function fetchHandler ({ request, headers, renderHtml, event, logs, accept, signal }: FetchHandlerArg): Promise<Response> {
   const log = getSwLogger('fetch-handler')
 
   const providers: Providers = {
@@ -211,14 +215,14 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
    * https://bugs.chromium.org/p/chromium/issues/detail?id=823697
    * https://bugzilla.mozilla.org/show_bug.cgi?id=1394102
    */
-  const signal = anySignal([
-    event.request.signal,
+  const timeoutSignal = anySignal([
+    signal,
     abortController.signal
   ])
-  setMaxListeners(Infinity, signal)
+  setMaxListeners(Infinity, timeoutSignal)
 
   const init: VerifiedFetchInit = {
-    signal,
+    signal: timeoutSignal,
     headers,
     redirect: 'manual',
     onProgress: (evt) => {
@@ -263,6 +267,8 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
     supportDirectoryIndexes: resource.searchParams.get('download') !== 'false',
     supportWebRedirects: resource.searchParams.get('download') !== 'false'
   }
+
+  let streamingResponse = false
 
   try {
     const verifiedFetch = await getVerifiedFetch()
@@ -309,7 +315,8 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
     if (redirectStatus != null) {
       // if we are here, it's because the user defined status codes in a
       // _redirects file so just return the response instead of showing UI
-      return new Response(bodyWithTimeout(response, abortController), {
+      streamingResponse = true
+      return new Response(bodyWithTimeout(response, abortController, timeoutSignal, timeout), {
         status: redirectStatus,
         headers: response.headers,
         statusText: response.statusText
@@ -399,7 +406,8 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
     //
     // This is necessary to work around a bug with Safari not rendering
     // content correctly.
-    return new Response(bodyWithTimeout(response, abortController), {
+    streamingResponse = true
+    return new Response(bodyWithTimeout(response, abortController, timeoutSignal, timeout), {
       status: response.status,
       headers: response.headers,
       statusText: response.statusText
@@ -440,8 +448,10 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
 
     return fetchErrorPageResponse(request, init, response, responseBody, providers, logs)
   } finally {
-    signal.clear()
-    clearTimeout(timeout)
+    if (!streamingResponse) {
+      timeoutSignal.clear()
+      clearTimeout(timeout)
+    }
   }
 }
 
@@ -462,7 +472,7 @@ export const contentRequestHandler: Handler = {
     return request.type === 'subdomain'
   },
 
-  async handle (request: ContentURI, event, logs) {
+  async handle (request: ContentURI, event, logs, signal) {
     // request was for subdomain or path gateway
     const log = getSwLogger('fetch-handler')
 
@@ -514,7 +524,8 @@ export const contentRequestHandler: Handler = {
       cacheKey: getCacheKey(request, headers, renderHtml, event.request.destination),
       isMutable: urlParts.protocol === 'ipns',
       renderHtml,
-      accept
+      accept,
+      signal
     })
 
     return response
@@ -633,19 +644,25 @@ function isManualRedirect (response: Response): boolean {
 /**
  * A passthrough body stream resets the inactivity timer on every chunk
  */
-function bodyWithTimeout (response: Response, abortController: AbortController): BodyInit | undefined {
-  let timeout: ReturnType<typeof setTimeout>
-
+function bodyWithTimeout (response: Response, abortController: AbortController, signal: ClearableSignal, timeout: ReturnType<typeof setTimeout>): BodyInit | undefined {
   return response.body?.pipeThrough(new TransformStream({
-    transform (chunk, controller) {
+    async transform (chunk, controller) {
       clearTimeout(timeout)
       timeout = setTimeout(() => {
         abortController.abort(new TimeoutError('Timed out'))
       }, config.fetchTimeout)
 
+      if (signal.aborted) {
+        signal.clear()
+        clearTimeout(timeout)
+        controller.error(signal.reason)
+        return
+      }
+
       controller.enqueue(chunk)
     },
     flush () {
+      signal.clear()
       clearTimeout(timeout)
     }
   }))

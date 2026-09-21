@@ -10,7 +10,7 @@ export const uriRouterHandler: Handler = {
     return request.type === 'internal' && (request.url.pathname === '/ipfs/' || request.url.pathname === '/ipns/') && request.url.searchParams.has(QUERY_PARAMS.URI_ROUTER)
   },
 
-  async handle (request: InternalURI, event: FetchEvent) {
+  handle (request: InternalURI, event: FetchEvent, logs) {
     const log = getSwLogger('uri-router')
 
     const uri = new URL(request.url.searchParams.get(QUERY_PARAMS.URI_ROUTER) ?? '')
