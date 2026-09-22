@@ -9,6 +9,7 @@ import * as dagCbor from '@ipld/dag-cbor'
 import * as dagJson from '@ipld/dag-json'
 import { dcutr } from '@libp2p/dcutr'
 import { identify, identifyPush } from '@libp2p/identify'
+import { setMaxListeners } from '@libp2p/interface'
 import { keychain } from '@libp2p/keychain'
 import { ping } from '@libp2p/ping'
 import { webSockets } from '@libp2p/websockets'
@@ -106,6 +107,7 @@ export async function updateVerifiedFetch (): Promise<void> {
       AbortSignal.timeout(config.fetchTimeout),
       options?.signal
     ])
+    setMaxListeners(Infinity, signal)
 
     try {
       yield * originalGet(key, {
