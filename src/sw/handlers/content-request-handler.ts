@@ -1,14 +1,15 @@
 import { isAbortWithServerTimingError, MEDIA_TYPE_CAR, MEDIA_TYPE_CBOR, MEDIA_TYPE_DAG_CBOR, MEDIA_TYPE_DAG_JSON, MEDIA_TYPE_DAG_PB, MEDIA_TYPE_IPNS_RECORD, MEDIA_TYPE_JSON, MEDIA_TYPE_RAW, MEDIA_TYPE_TAR } from '@helia/verified-fetch'
 import { setMaxListeners, TimeoutError } from '@libp2p/interface'
 import { anySignal } from 'any-signal'
-import { config } from '../../config/index.ts'
 import { CURRENT_CACHES } from '../../constants.ts'
+import { QUERY_PARAMS } from '../../lib/constants.ts'
 import { errorToObject } from '../../lib/error-to-object.ts'
 import { getSubdomainParts } from '../../lib/get-subdomain-parts.ts'
 import { getSwLogger } from '../../lib/logger.ts'
 import { isBitswapProvider, isFallbackTrustlessGatewayProvider, isTrustlessGatewayProvider } from '../../lib/providers.ts'
 import { canUseStaleResponseOnError, needsRevalidateAfterUse, needsRevalidateBeforeUse } from '../lib/cache-control.ts'
 import { parseHeaderDirectives } from '../lib/header-directives.ts'
+import { resolveConfig } from '../lib/runtime-config.ts'
 import { sniffRawContentType } from '../lib/sniff-raw-content-type.ts'
 import { getVerifiedFetch } from '../lib/verified-fetch.ts'
 import { fetchErrorPageResponse } from '../pages/fetch-error-page.ts'
@@ -16,6 +17,7 @@ import { renderEntityPageResponse } from '../pages/render-entity.ts'
 import { tryRenderMediaViewer } from '../pages/render-media.ts'
 import type { Handler } from './index.ts'
 import type { ContentURI } from '../../lib/parse-request.ts'
+import type { ResolvedConfig } from '../lib/runtime-config.ts'
 import type { Providers } from '../sw.ts'
 import type { VerifiedFetchInit } from '@helia/verified-fetch'
 
@@ -39,15 +41,30 @@ interface FetchHandlerArg {
   cacheKey: string
   isMutable: boolean
   accept: string | null
+  resolved: ResolvedConfig
 }
 
 const MAX_REDIRECTS = 5
 
-function getCacheKey (resource: ContentURI, headers: Headers, renderHtml: boolean, destination: RequestDestination): string {
+/**
+ * Build a cache key for a content request.
+ *
+ * The `gateways`/`routers` URL override params are stripped from the resource
+ * URL so identical resolved configs hit the same entry, while the resolved
+ * config `hash` and persisted `generation` are included so different backends
+ * or a config save produce distinct keys (and thus a fresh fetch).
+ */
+function getCacheKey (resource: ContentURI, headers: Headers, renderHtml: boolean, destination: RequestDestination, resolved: ResolvedConfig): string {
+  // Strip one-shot override params so they don't create divergent entries for
+  // the same resolved backend set expressed via different param spellings.
+  const cacheUrl = new URL(resource.subdomainURL.href)
+  cacheUrl.searchParams.delete(QUERY_PARAMS.GATEWAYS)
+  cacheUrl.searchParams.delete(QUERY_PARAMS.ROUTERS)
+
   // Include `destination` so a cached media-viewer wrapper (top-level
   // navigation) does not collide with a subresource `<img>`/`<video>`
   // re-fetch of the same URL that needs the raw bytes.
-  return `${resource.subdomainURL}-${headers.get('accept')}-html-${renderHtml}-dest-${destination}-match-${headers.get('if-none-match')}`
+  return `${cacheUrl.href}-${headers.get('accept')}-html-${renderHtml}-dest-${destination}-match-${headers.get('if-none-match')}-cfg-${resolved.hash}-gen-${resolved.generation}`
 }
 
 async function getResponseFromCacheOrFetch (args: FetchHandlerArg): Promise<Response> {
@@ -179,7 +196,7 @@ async function storeResponseInCache (response: Response, args: FetchHandlerArg):
   }
 }
 
-async function fetchHandler ({ request, headers, renderHtml, event, logs, accept }: FetchHandlerArg): Promise<Response> {
+async function fetchHandler ({ request, headers, renderHtml, event, logs, accept, resolved }: FetchHandlerArg): Promise<Response> {
   const log = getSwLogger('fetch-handler')
 
   const providers: Providers = {
@@ -204,7 +221,7 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
   const abortController = new AbortController()
   const timeout = setTimeout(() => {
     abortController.abort(new TimeoutError('Timed out'))
-  }, config.fetchTimeout)
+  }, resolved.fetchTimeout)
 
   /**
    * Note that there are existing bugs regarding service worker signal handling:
@@ -265,7 +282,7 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
   }
 
   try {
-    const verifiedFetch = await getVerifiedFetch()
+    const verifiedFetch = await getVerifiedFetch(resolved)
 
     log('request')
     log('%s %s HTTP/1.1', init.method ?? 'GET', resource)
@@ -309,7 +326,7 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
     if (redirectStatus != null) {
       // if we are here, it's because the user defined status codes in a
       // _redirects file so just return the response instead of showing UI
-      return new Response(bodyWithTimeout(response, abortController), {
+      return new Response(bodyWithTimeout(response, abortController, resolved.fetchTimeout), {
         status: redirectStatus,
         headers: response.headers,
         statusText: response.statusText
@@ -399,7 +416,7 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
     //
     // This is necessary to work around a bug with Safari not rendering
     // content correctly.
-    return new Response(bodyWithTimeout(response, abortController), {
+    return new Response(bodyWithTimeout(response, abortController, resolved.fetchTimeout), {
       status: response.status,
       headers: response.headers,
       statusText: response.statusText
@@ -506,15 +523,21 @@ export const contentRequestHandler: Handler = {
       renderHtml = true
     }
 
+    // Resolve the effective config for this request (URL params > persisted
+    // config > build-time defaults). This must happen before the cache key is
+    // built so the key includes the resolved backend hash + generation.
+    const resolved = await resolveConfig(new URL(event.request.url))
+
     const response = await getResponseFromCacheOrFetch({
       event,
       request,
       headers,
       logs,
-      cacheKey: getCacheKey(request, headers, renderHtml, event.request.destination),
+      cacheKey: getCacheKey(request, headers, renderHtml, event.request.destination, resolved),
       isMutable: urlParts.protocol === 'ipns',
       renderHtml,
-      accept
+      accept,
+      resolved
     })
 
     return response
@@ -633,7 +656,7 @@ function isManualRedirect (response: Response): boolean {
 /**
  * A passthrough body stream resets the inactivity timer on every chunk
  */
-function bodyWithTimeout (response: Response, abortController: AbortController): BodyInit | undefined {
+function bodyWithTimeout (response: Response, abortController: AbortController, fetchTimeout: number): BodyInit | undefined {
   let timeout: ReturnType<typeof setTimeout>
 
   return response.body?.pipeThrough(new TransformStream({
@@ -641,7 +664,7 @@ function bodyWithTimeout (response: Response, abortController: AbortController):
       clearTimeout(timeout)
       timeout = setTimeout(() => {
         abortController.abort(new TimeoutError('Timed out'))
-      }, config.fetchTimeout)
+      }, fetchTimeout)
 
       controller.enqueue(chunk)
     },
