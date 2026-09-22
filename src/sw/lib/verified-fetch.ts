@@ -9,6 +9,7 @@ import * as dagCbor from '@ipld/dag-cbor'
 import * as dagJson from '@ipld/dag-json'
 import { dcutr } from '@libp2p/dcutr'
 import { identify, identifyPush } from '@libp2p/identify'
+import { setMaxListeners } from '@libp2p/interface'
 import { keychain } from '@libp2p/keychain'
 import { ping } from '@libp2p/ping'
 import { webSockets } from '@libp2p/websockets'
@@ -16,6 +17,7 @@ import { webTransport } from '@libp2p/webtransport'
 import { blake2b256 } from '@multiformats/blake2/blake2b'
 import { dns } from '@multiformats/dns'
 import { dnsJsonOverHttps } from '@multiformats/dns/resolvers'
+import { anySignal } from 'any-signal'
 import { IDBBlockstore } from 'blockstore-idb'
 import { IDBDatastore } from 'datastore-idb'
 import { createHeliaLight } from 'helia'
@@ -95,6 +97,27 @@ export async function updateVerifiedFetch (): Promise<void> {
   libp2pOptions.dns = dnsConfig
   libp2pOptions.logger = logger
   libp2pOptions.datastore = datastore
+
+  // add block timeouts - we do it here and not in the content request handler
+  // to separate fetching the block from the user consuming it, otherwise they
+  // could pause a download, for example, and see the response fail on resume
+  const originalGet = blockstore.get.bind(blockstore)
+  blockstore.get = async function * (key, options) {
+    const signal = anySignal([
+      AbortSignal.timeout(config.fetchTimeout),
+      options?.signal
+    ])
+    setMaxListeners(Infinity, signal)
+
+    try {
+      yield * originalGet(key, {
+        ...options,
+        signal
+      })
+    } finally {
+      signal.clear()
+    }
+  }
 
   const helia = await withBitswap(withLibp2pLight(withHTTP(createHeliaLight({
     datastore,

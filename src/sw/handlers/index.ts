@@ -3,13 +3,14 @@ import { contentRequestHandler } from './content-request-handler.ts'
 import { unregisterHandler } from './unregister-handler.ts'
 import { uriRouterHandler } from './uri-router-handler.ts'
 import type { ResolvableURI } from '../../lib/parse-request.ts'
+import type { ClearableSignal } from 'any-signal'
 
 export interface Handler {
   name: string
 
   canHandle(request: ResolvableURI, event: FetchEvent, logs: string[]): boolean
 
-  handle(request: ResolvableURI, event: FetchEvent, logs: string[], signal: AbortSignal): Response | Promise<Response>
+  handle(request: ResolvableURI, event: FetchEvent, logs: string[], signal: ClearableSignal): Response | Promise<Response>
 }
 
 /**

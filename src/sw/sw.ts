@@ -15,6 +15,7 @@ import { updateRedirect } from './lib/update-redirect.ts'
 import { serverErrorPageResponse } from './pages/server-error-page.ts'
 import type { ResolvableURI } from '../lib/parse-request.ts'
 import type { Handler } from './handlers/index.ts'
+import type { ClearableSignal } from 'any-signal'
 
 weald.enable(config.debug)
 
@@ -245,7 +246,7 @@ self.addEventListener('fetch', (event) => {
   )
 })
 
-async function handleFetch (request: ResolvableURI, event: FetchEvent, handler: Handler, logs: string[], signal: AbortSignal): Promise<Response> {
+async function handleFetch (request: ResolvableURI, event: FetchEvent, handler: Handler, logs: string[], signal: ClearableSignal): Promise<Response> {
   try {
     const response = await handler.handle(request, event, logs, signal)
 
