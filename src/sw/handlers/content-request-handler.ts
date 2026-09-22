@@ -1,7 +1,4 @@
 import { isAbortWithServerTimingError, MEDIA_TYPE_CAR, MEDIA_TYPE_CBOR, MEDIA_TYPE_DAG_CBOR, MEDIA_TYPE_DAG_JSON, MEDIA_TYPE_DAG_PB, MEDIA_TYPE_IPNS_RECORD, MEDIA_TYPE_JSON, MEDIA_TYPE_RAW, MEDIA_TYPE_TAR } from '@helia/verified-fetch'
-import { setMaxListeners, TimeoutError } from '@libp2p/interface'
-import { anySignal } from 'any-signal'
-import { config } from '../../config/index.ts'
 import { CURRENT_CACHES } from '../../constants.ts'
 import { errorToObject } from '../../lib/error-to-object.ts'
 import { getSubdomainParts } from '../../lib/get-subdomain-parts.ts'
@@ -40,7 +37,7 @@ interface FetchHandlerArg {
   cacheKey: string
   isMutable: boolean
   accept: string | null
-  signal: AbortSignal
+  signal: ClearableSignal
 }
 
 const MAX_REDIRECTS = 5
@@ -179,7 +176,7 @@ async function storeResponseInCache (response: Response, args: FetchHandlerArg):
         })
     )
   } catch (err) {
-    log.error('error storing response for %s in cache - %e', args.cacheKey, err)
+    log.error('storing response for %s in cache threw - %e', args.cacheKey, err)
   }
 }
 
@@ -203,26 +200,8 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
     headers.set('if-none-match', ifNoneMatch)
   }
 
-  // make the timeout apply to receiving the response headers, then to each
-  // chunk of the body
-  const abortController = new AbortController()
-  const timeout = setTimeout(() => {
-    abortController.abort(new TimeoutError('Timed out'))
-  }, config.fetchTimeout)
-
-  /**
-   * Note that there are existing bugs regarding service worker signal handling:
-   * https://bugs.chromium.org/p/chromium/issues/detail?id=823697
-   * https://bugzilla.mozilla.org/show_bug.cgi?id=1394102
-   */
-  const timeoutSignal = anySignal([
-    signal,
-    abortController.signal
-  ])
-  setMaxListeners(Infinity, timeoutSignal)
-
   const init: VerifiedFetchInit = {
-    signal: timeoutSignal,
+    signal,
     headers,
     redirect: 'manual',
     onProgress: (evt) => {
@@ -316,7 +295,7 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
       // if we are here, it's because the user defined status codes in a
       // _redirects file so just return the response instead of showing UI
       streamingResponse = true
-      return new Response(bodyWithTimeout(response, abortController, timeoutSignal, timeout), {
+      return new Response(abortableBody(response, signal), {
         status: redirectStatus,
         headers: response.headers,
         statusText: response.statusText
@@ -407,7 +386,7 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
     // This is necessary to work around a bug with Safari not rendering
     // content correctly.
     streamingResponse = true
-    return new Response(bodyWithTimeout(response, abortController, timeoutSignal, timeout), {
+    return new Response(abortableBody(response, signal), {
       status: response.status,
       headers: response.headers,
       statusText: response.statusText
@@ -416,7 +395,7 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
     let response: Response
     let responseBody: string
 
-    if (abortController.signal.aborted) {
+    if (err.name === 'TimeoutError') {
       response = new Response('', {
         status: 504,
         statusText: 'Gateway Timeout',
@@ -425,9 +404,8 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
         }
       })
 
-      responseBody = JSON.stringify(errorToObject(abortController.signal.reason), null, 2)
+      responseBody = JSON.stringify(errorToObject(err), null, 2)
     } else {
-      abortController.abort(err)
       log.error('error during request - %e', err)
 
       response = new Response('', {
@@ -449,8 +427,7 @@ async function fetchHandler ({ request, headers, renderHtml, event, logs, accept
     return fetchErrorPageResponse(request, init, response, responseBody, providers, logs)
   } finally {
     if (!streamingResponse) {
-      timeoutSignal.clear()
-      clearTimeout(timeout)
+      signal.clear()
     }
   }
 }
@@ -642,28 +619,13 @@ function isManualRedirect (response: Response): boolean {
 }
 
 /**
- * A passthrough body stream resets the inactivity timer on every chunk
+ * A passthrough body stream that clears the passed signal after all bytes have
+ * been sent
  */
-function bodyWithTimeout (response: Response, abortController: AbortController, signal: ClearableSignal, timeout: ReturnType<typeof setTimeout>): BodyInit | undefined {
+function abortableBody (response: Response, signal: ClearableSignal): BodyInit | undefined {
   return response.body?.pipeThrough(new TransformStream({
-    async transform (chunk, controller) {
-      clearTimeout(timeout)
-      timeout = setTimeout(() => {
-        abortController.abort(new TimeoutError('Timed out'))
-      }, config.fetchTimeout)
-
-      if (signal.aborted) {
-        signal.clear()
-        clearTimeout(timeout)
-        controller.error(signal.reason)
-        return
-      }
-
-      controller.enqueue(chunk)
-    },
     flush () {
       signal.clear()
-      clearTimeout(timeout)
     }
   }))
 }
