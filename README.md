@@ -36,9 +36,7 @@ happens on end user's machine) and reliability (ability to use multiple sources
 of content-addressed blocks) without reliance on a single HTTP server for IPFS
 tasks.
 
-<a href="http://ipshipyard.com/"><img align="right" src="https://github.com/user-attachments/assets/39ed3504-bb71-47f6-9bf8-cb9a1698f272" /></a>
-
-This project  was brought to you by the [Shipyard](http://ipshipyard.com/) team.
+This project  was created by the [Shipyard](http://ipshipyard.com/) team.
 
 ### Goals
 
@@ -121,6 +119,14 @@ For example, if the service worker is active for `https://example.com`,
 navigating to `https://example.com/?ipfs-sw-unregister=true` will cause the
 service worker to unregister itself and attempt to reload all controlled clients
 (browser tabs).
+
+## Maintainer Info
+
+This project was created by the [Shipyard](https://ipshipyard.com/) team, who maintained it in 2024, 2025 and 2026. Shipyard's IPFS maintenance work [ended in Q3 2026](https://ipshipyard.com/blog/2026-the-end-of-ipfs-at-shipyard/).
+
+[@nymd](https://github.com/nymd) and [@byo](https://github.com/byo) maintain it now, on behalf of the [IPFS Foundation](https://ipfsfoundation.org/), [as noted here](https://github.com/ipfs/service-worker-gateway/issues/1197#issuecomment-5778335121).
+
+For support and questions, use the [community forum](https://discuss.ipfs.tech/).
 
 ## License
 
