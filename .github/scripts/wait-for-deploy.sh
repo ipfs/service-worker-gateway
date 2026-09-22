@@ -31,7 +31,7 @@ DELAY=60
 echo "Watching $ENDPOINT for Build: .*@${SHORT_SHA} ..."
 while true
 do
-  PAGE_CONTENT="$(curl -s "$ENDPOINT")"
+  PAGE_CONTENT="$(curl -A 'Mozilla/5.0 (X11; Linux x86_64; rv:58.0) Gecko/20100101 Firefox/58.0' -s "$ENDPOINT")"
 
   # If the page contains the line with the hash:
   if echo "$PAGE_CONTENT" | grep -q "Build: .*@${SHORT_SHA}"; then
