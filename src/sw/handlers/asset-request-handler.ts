@@ -34,14 +34,16 @@ export const assetRequestHandler: Handler = {
     return isActualSwAsset || isIndexHtmlRequest
   },
 
-  async handle (request, event) {
+  async handle (request, event, logs, signal) {
     const log = getSwLogger('asset-handler')
 
     // return the asset from the cache if it exists, otherwise fetch it.
     const cache = await caches.open(CURRENT_CACHES.swAssets)
+    signal.throwIfAborted()
 
     try {
       const cachedResponse = await cache.match(event.request)
+      signal.throwIfAborted()
 
       if (cachedResponse != null) {
         log('returning cached response for', event.request.url)
@@ -51,7 +53,10 @@ export const assetRequestHandler: Handler = {
       log.error('error matching cached response - %e', err)
     }
 
-    const response = await fetch(event.request)
+    const response = await fetch(event.request.url, {
+      ...event.request,
+      signal
+    })
 
     log('got asset response %d with content type %s for %s', response.status, response.headers.get('content-type'), event.request.url)
 

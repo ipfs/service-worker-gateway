@@ -9,7 +9,7 @@ export interface Handler {
 
   canHandle(request: ResolvableURI, event: FetchEvent, logs: string[]): boolean
 
-  handle(request: ResolvableURI, event: FetchEvent, logs: string[]): Response | Promise<Response>
+  handle(request: ResolvableURI, event: FetchEvent, logs: string[], signal: AbortSignal): Response | Promise<Response>
 }
 
 /**

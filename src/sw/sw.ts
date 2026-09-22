@@ -1,3 +1,6 @@
+import { setMaxListeners } from '@libp2p/interface'
+import { anySignal } from 'any-signal'
+import { raceSignal } from 'race-signal'
 import weald from 'weald'
 import { config } from '../config/index.ts'
 import { CURRENT_CACHES } from '../constants.ts'
@@ -124,11 +127,21 @@ self.addEventListener('fetch', (event) => {
 
   log.trace('incoming request url %s - handler %s', event.request.url, handler.name)
 
+  const controller = new AbortController()
+
+  const signal = anySignal([
+    event.request.signal,
+    controller.signal
+  ])
+  setMaxListeners(Infinity, signal)
+
+  let body: ReadableStream<Uint8Array> | undefined | null
+
   // `event.respondWith` must be called synchronously in the event handler, but
   // we can pass it a promise
   // https://stackoverflow.com/questions/76848928/failed-to-execute-respondwith-on-fetchevent-the-event-handler-is-already-f
   event.respondWith(
-    handleFetch(request, event, handler, logs)
+    handleFetch(request, event, handler, logs, signal)
       .then(async response => {
         if (response.body?.locked) {
           throw new Error('Body was locked after handleFetch')
@@ -152,7 +165,69 @@ self.addEventListener('fetch', (event) => {
         const headers = new Headers(response.headers)
         headers.set('server', `${APP_NAME}/${APP_VERSION}#${GIT_REVISION}`)
 
-        return new Response(response.body, {
+        body = response.body
+
+        if (body == null) {
+          return new Response(body, {
+            status: response.status,
+            statusText: response.statusText,
+            headers
+          })
+        }
+
+        const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>()
+        const writer = writable.getWriter()
+        const reader = body.getReader()
+
+        ;(async () => {
+          try {
+            while (true) {
+              const [result] = await raceSignal(Promise.all([
+                reader.read(),
+                writer.ready
+              ]), signal)
+
+              if (writer.desiredSize === null || writer.desiredSize === 0) {
+                // if desiredSize is not a positive integer it means the stream
+                // has errored (null) or is closed (0) so abort any in-flight
+                // operations
+                throw new Error(`Stream ${writer.desiredSize === null ? 'errored' : 'closed'}`)
+              }
+
+              if (result.done === true) {
+                // request body finished
+                await raceSignal(writer.close(), signal)
+                break
+              }
+
+              if (result.value != null) {
+                await raceSignal(writer.write(result.value), signal)
+              }
+            }
+          } catch (e) {
+            if (!controller.signal.aborted) {
+              controller.abort(e)
+            }
+
+            try {
+              await Promise.all([
+                reader.cancel(e),
+                writer.abort(e),
+                readable.cancel(e)
+              ])
+            } catch {
+              // ignore cleanup errors
+            }
+          } finally {
+            // Release the writer lock
+            writer.releaseLock()
+
+            signal.clear()
+            logEmitter.removeEventListener('log', onLog)
+          }
+        })()
+
+        return new Response(readable, {
           status: response.status,
           statusText: response.statusText,
           headers
@@ -162,14 +237,17 @@ self.addEventListener('fetch', (event) => {
         return serverErrorPageResponse(url, err, logs)
       })
       .finally(() => {
-        logEmitter.removeEventListener('log', onLog)
+        if (body == null) {
+          signal.clear()
+          logEmitter.removeEventListener('log', onLog)
+        }
       })
   )
 })
 
-async function handleFetch (request: ResolvableURI, event: FetchEvent, handler: Handler, logs: string[]): Promise<Response> {
+async function handleFetch (request: ResolvableURI, event: FetchEvent, handler: Handler, logs: string[], signal: AbortSignal): Promise<Response> {
   try {
-    const response = await handler.handle(request, event, logs)
+    const response = await handler.handle(request, event, logs, signal)
 
     if (response.body?.locked) {
       throw new Error('Body was locked after handler ' + handler.name)
