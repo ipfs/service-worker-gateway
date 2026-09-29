@@ -99,7 +99,10 @@ browser ─▶ *.ipfs|ipns.inbrowser.link
 4. **Run the Badbits Sync workflow** manually. The log should report about
    513k entries and 4,096 of 4,096 shards written. Until this has run, the
    deploy gate fails.
-5. **Set up alerting** on the events in [Monitoring](#monitoring).
+5. **Enable Analytics Engine** on the account (dashboard → Workers → Analytics
+   Engine). The `METRICS` binding needs it: without it, `wrangler deploy` fails
+   with error 10089.
+6. **Set up alerting** on the events in [Monitoring](#monitoring).
 
 ## Rollout
 
