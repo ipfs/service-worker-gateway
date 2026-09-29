@@ -26,7 +26,7 @@ let stubStatus = 200
 let stubHeaders: Record<string, string> = {}
 // When set, supplies the response for each fetch() call by index, letting a
 // test model "the shared cache entry is poisoned but origin is healthy".
-let stubByCall: Array<{ status?: number, headers?: Record<string, string> }> | null = null
+let stubByCall: Array<{ status?: number, headers?: Record<string, string>, throws?: Error }> | null = null
 
 interface HandlerResult {
   cf: any
@@ -69,6 +69,11 @@ describe('02_shared_sw_installer_cache', () => {
       cfOptions.push(init?.cf ?? null)
 
       const stub = stubByCall?.[index]
+
+      if (stub?.throws != null) {
+        return Promise.reject(stub.throws)
+      }
+
       const status = stub?.status ?? stubStatus
       const headers = new Headers(stub?.headers ?? stubHeaders)
 
@@ -178,6 +183,22 @@ describe('02_shared_sw_installer_cache', () => {
       const { response, calls } = await callHandler('https://inbrowser.dev/ipfs-sw-main.js')
       expect(response.status).to.equal(404)
       expect(calls).to.equal(2)
+    })
+
+    // Snippets on inbrowser.dev and inbrowser.link throw on the retry, most
+    // likely because the runtime does not implement the `cache` option. Left
+    // uncaught, every missing asset became a "Worker threw exception" 500.
+    it('404s when the retry throws', async () => {
+      stubByCall = [{ headers: HTML }, { throws: new TypeError("The 'cache' field on 'RequestInitializerDict' is not implemented.") }]
+      const { response, calls } = await callHandler('https://bafyxxx.ipfs.inbrowser.dev/ipfs-sw-main.js')
+      expect(response.status).to.equal(404)
+      expect(response.headers.get('cache-control')).to.equal('no-store')
+      expect(calls).to.equal(2)
+    })
+
+    it('does not swallow a failure of the first fetch', async () => {
+      stubByCall = [{ throws: new Error('origin unreachable') }]
+      await expect(callHandler('https://inbrowser.dev/ipfs-sw-main.js')).to.eventually.be.rejectedWith('origin unreachable')
     })
 
     it('marks the 404 uncacheable so the next request can retry', async () => {
