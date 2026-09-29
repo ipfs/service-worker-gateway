@@ -1,0 +1,39 @@
+# Keeps the badbits denylist shards in Workers KV current for the
+# gateway-edge Worker. See docs/BADBITS.md.
+
+name: Badbits Sync
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Upload even if the list is unchanged or shrank'
+        required: false
+        type: boolean
+        default: false
+
+permissions: {}
+
+concurrency:
+  group: badbits-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: badbits
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+      - name: Sync badbits.deny to KV
+        run: node --experimental-strip-types .github/scripts/badbits-sync.ts
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_BADBITS_TOKEN: ${{ secrets.CF_BADBITS_TOKEN }}
+          BADBITS_KV_ID: ${{ vars.BADBITS_KV_ID }}
+          FORCE: ${{ inputs.force && 'true' || 'false' }}

@@ -8,7 +8,9 @@
 # 3. Fetches any CF Pages deployment logs for debugging.
 # 4. Purges Cloudflare CDN cache for inbrowser.link and verifies
 #    the new version is served.
-# 5. Deploys Cloudflare Snippets to the production zone.
+# 5. Deploys the gateway-edge Worker (badbits + installer cache on the
+#    *.ipfs / *.ipns subdomains).
+# 6. Deploys Cloudflare Snippets to the production zone.
 
 name: Deploy to Production
 
@@ -123,8 +125,33 @@ jobs:
             failed=1
           fi
           exit "$failed"
-  deploy-snippets:
+  # The gateway-edge Worker takes over the *.ipfs / *.ipns subdomains
+  # (badbits + installer cache) in the same run that narrows snippet 02 to
+  # the apex hosts, so snippets wait for it: the subdomains are never left
+  # without one or the other. See docs/BADBITS.md.
+  deploy-gateway-edge:
     needs: deploy
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag }}
+      - name: Check the KV namespace is configured
+        run: |
+          if grep -q REPLACE_WITH_ src/cloudflare/workers/gateway-edge/wrangler.toml; then
+            echo "::error::set the BADBITS KV namespace id in src/cloudflare/workers/gateway-edge/wrangler.toml (see docs/BADBITS.md)"
+            exit 1
+          fi
+      - name: Deploy gateway-edge Worker
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CF_WORKERS_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          workingDirectory: src/cloudflare/workers/gateway-edge
+          command: deploy --env production
+  deploy-snippets:
+    needs: [deploy, deploy-gateway-edge]
     runs-on: ubuntu-latest
     environment: production
     steps:

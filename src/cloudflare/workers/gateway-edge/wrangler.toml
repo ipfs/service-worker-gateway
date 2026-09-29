@@ -1,0 +1,35 @@
+# Worker for the per-CID subdomains: badbits enforcement + installer cache.
+# See docs/BADBITS.md for setup and rollout.
+#
+# Deploy with: wrangler deploy --env staging|production
+# (run from this directory; CI does this in deploy-to-*.yml)
+
+name = "gateway-edge"
+main = "index.ts"
+# 2024-11-11 or later is needed for `cache: 'no-store'` on fetch, which the
+# installer cache logic uses to bypass a poisoned asset entry
+compatibility_date = "2026-09-01"
+minify = true
+workers_dev = false
+preview_urls = false
+
+[env.staging]
+name = "gateway-edge-staging"
+routes = [
+  { pattern = "*.ipfs.inbrowser.dev/*", zone_name = "inbrowser.dev" },
+  { pattern = "*.ipns.inbrowser.dev/*", zone_name = "inbrowser.dev" }
+]
+# the same namespace serves both environments: the list is identical
+kv_namespaces = [
+  { binding = "BADBITS", id = "REPLACE_WITH_BADBITS_KV_NAMESPACE_ID" }
+]
+
+[env.production]
+name = "gateway-edge-production"
+routes = [
+  { pattern = "*.ipfs.inbrowser.link/*", zone_name = "inbrowser.link" },
+  { pattern = "*.ipns.inbrowser.link/*", zone_name = "inbrowser.link" }
+]
+kv_namespaces = [
+  { binding = "BADBITS", id = "REPLACE_WITH_BADBITS_KV_NAMESPACE_ID" }
+]

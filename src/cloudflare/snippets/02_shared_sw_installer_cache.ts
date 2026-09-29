@@ -8,6 +8,12 @@
 // every subdomain. Versioned JS/CSS assets (paths starting with
 // /ipfs-sw-) are also the same on every subdomain.
 //
+// Where it runs: as a snippet only on the apex hosts (inbrowser.link,
+// inbrowser.dev). On the *.ipfs / *.ipns subdomains the same handler is
+// called from the gateway-edge Worker (src/cloudflare/workers/gateway-edge),
+// which checks the badbits denylist first. Cloudflare advises against
+// Snippets and Workers on the same URLs, hence the split.
+//
 // Two cache branches, both with a 24h TTL:
 //
 //   /ipfs-sw-* (versioned assets)
