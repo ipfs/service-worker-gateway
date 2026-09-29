@@ -1,15 +1,29 @@
 # Keeps the badbits denylist shards in Workers KV current for the
 # gateway-edge Worker. See docs/BADBITS.md.
+#
+# Every 5 minutes: cheap when nothing changed (ETag check, one status write
+# so the Worker can tell the sync is alive). Once a day: a full rewrite of
+# every shard, which heals any shard edited or deleted out of band.
+#
+# GitHub disables scheduled workflows after 60 days without repository
+# activity and runs them best-effort. The Worker reports a stale store
+# (badbits_store_stale) after 2 hours, so a stopped sync does not go unseen.
 
 name: Badbits Sync
 
 on:
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '*/5 * * * *'
+    - cron: '17 3 * * *'
   workflow_dispatch:
     inputs:
       force:
-        description: 'Upload even if the list is unchanged or shrank'
+        description: 'Write even if the list is unchanged or looks too small'
+        required: false
+        type: boolean
+        default: false
+      full:
+        description: 'Rewrite every shard regardless of stored digests'
         required: false
         type: boolean
         default: false
@@ -37,3 +51,4 @@ jobs:
           CF_BADBITS_TOKEN: ${{ secrets.CF_BADBITS_TOKEN }}
           BADBITS_KV_ID: ${{ vars.BADBITS_KV_ID }}
           FORCE: ${{ inputs.force && 'true' || 'false' }}
+          FULL: ${{ (inputs.full || github.event.schedule == '17 3 * * *') && 'true' || 'false' }}

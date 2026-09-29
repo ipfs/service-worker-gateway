@@ -6,12 +6,15 @@
 // Pages serves the installer for any hostname. This module restores the same
 // check at the edge.
 //
-// Anchors follow the legacy double-hash rules of the compact denylist spec:
+// Anchors follow the legacy double-hash rules of the compact denylist spec,
+// the way nopfs (Rainbow's blocker) builds them:
 //
-//   /ipfs/CID        sha256(`${cidV1Base32}/`)
-//   /ipfs/CID/PATH   sha256(`${cidV1Base32}/PATH`), no trailing slash
-//   /ipns/KEY        sha256(`${libp2pKeyCidV1Base32}/`)
-//   /ipns/DOMAIN     sha256(`${domain}/`)
+//   /ipfs/CID[/PATH]         sha256(`${cidV1Base32}/${path}`)
+//   /ipns/KEY[/PATH]         sha256(`${libp2pKeyCidV1Base32}/${path}`)
+//   /ipns/DOMAIN[/PATH]      sha256(`${domain}/${path}`)
+//
+// `path` is the decoded path without leading or trailing slash, empty for
+// the root, so a root anchor ends in `/`.
 //
 // Only the first request for a host reaches the edge. After that the service
 // worker answers navigations itself, so path anchors only see the path a
@@ -23,48 +26,75 @@ import { CODE_LIBP2P_KEY } from '../../../ui/pages/multicodec-table.ts'
 import { cidV1Bytes, parseCID } from '../../snippets/cid.ts'
 import { base32Encode } from '../../snippets/codec.ts'
 import { dnsLinkDecode } from '../../snippets/dnslink.ts'
-import { SHARD_PREFIX_LENGTH, parseShard, shardKey } from './shards.ts'
+import { SHARD_PREFIX_LENGTH, STATUS_KEY, shardHas, shardKey } from './shards.ts'
+import type { SyncStatus } from './shards.ts'
 
 export type Namespace = 'ipfs' | 'ipns'
 
-/** how long a shard is reused before KV is asked again */
-export const SHARD_TTL_S = 300
+/**
+ * How long a shard read from KV is reused (memo and Cache API combined).
+ * Together with KV's own ~60s edge cache and the 5-minute sync, a newly
+ * listed CID is refused within about 8 minutes of the list changing.
+ */
+export const SHARD_TTL_S = 120
+
+/** parsed shards kept per isolate, ~8 KB each */
+export const MAX_MEMO_SHARDS = 512
+
+const FETCHED_AT = 'x-badbits-fetched-at'
+
+/**
+ * Decode and normalise a URL path the way a gateway resolves it: segments
+ * percent-decoded, empty segments dropped. Undecodable segments are kept as
+ * sent rather than dropping the anchor.
+ */
+export function gatewaySubpath (pathname: string): string {
+  return pathname
+    .split('/')
+    .filter(segment => segment !== '')
+    .map(segment => {
+      try {
+        return decodeURIComponent(segment)
+      } catch {
+        return segment
+      }
+    })
+    .join('/')
+}
 
 /**
  * The strings whose sha256 may appear on the denylist for a request to
  * `<label>.<namespace>.<gateway>` with the given path.
  */
 export function denylistAnchors (label: string, namespace: Namespace, pathname: string): string[] {
-  if (namespace === 'ipfs') {
-    let root: string
-
-    try {
-      const cid = parseCID(label)
-      root = 'b' + base32Encode(cid.version === 0 ? cidV1Bytes(cid.codec, cid.multihash) : cid.raw)
-    } catch {
-      return []
-    }
-
-    const anchors = [`${root}/`]
-    const path = pathname.replace(/\/+$/, '')
-
-    // gateway assets are the same on every host, a path anchor for them can
-    // never match anything specific to this CID
-    if (path !== '' && !path.startsWith('/ipfs-sw-')) {
-      anchors.push(`${root}${path}`)
-    }
-
-    return anchors
-  }
+  let root: string
 
   try {
     const cid = parseCID(label)
-    const key = cid.version === 0 ? cidV1Bytes(CODE_LIBP2P_KEY, cid.multihash) : cid.raw
 
-    return [`b${base32Encode(key)}/`]
+    if (namespace === 'ipfs') {
+      root = 'b' + base32Encode(cid.version === 0 ? cidV1Bytes(cid.codec, cid.multihash) : cid.raw)
+    } else {
+      root = 'b' + base32Encode(cid.version === 0 ? cidV1Bytes(CODE_LIBP2P_KEY, cid.multihash) : cid.raw)
+    }
   } catch {
-    return [`${dnsLinkDecode(label)}/`]
+    if (namespace === 'ipfs') {
+      return []
+    }
+
+    root = dnsLinkDecode(label)
   }
+
+  const anchors = [`${root}/`]
+  const subpath = gatewaySubpath(pathname)
+
+  // gateway assets are the same on every host, a path anchor for them can
+  // never match anything specific to this root
+  if (subpath !== '' && !subpath.startsWith('ipfs-sw-')) {
+    anchors.push(`${root}/${subpath}`)
+  }
+
+  return anchors
 }
 
 export async function sha256Hex (value: string): Promise<string> {
@@ -73,23 +103,51 @@ export async function sha256Hex (value: string): Promise<string> {
   return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
+/** the part of a KV binding the store needs */
+export interface ShardSource {
+  get(key: string): Promise<string | null>
+}
+
 export interface ShardStore {
-  /** hash suffixes (the part after the shard prefix) listed under `prefix` */
-  get(prefix: string): Promise<Set<string>>
+  /** raw shard value for `prefix` ('' when absent) */
+  get(prefix: string): Promise<string>
+  /** the sync's status record, or null when the store has never been synced */
+  status(): Promise<SyncStatus | null>
 }
 
 interface MemoEntry {
   expires: number
-  shard: Set<string>
+  value: string
 }
 
-// Parsed shards are kept per isolate so a busy host does not re-read and
-// re-parse the same ~8 KB value on every request.
+// Raw shard strings kept per isolate, least recently used first. Bounded so
+// a busy isolate cannot fill its memory with shards.
 const memo = new Map<string, MemoEntry>()
 
-/** the part of a KV binding the store needs */
-export interface ShardSource {
-  get(key: string): Promise<string | null>
+function memoGet (key: string, now: number): string | undefined {
+  const hit = memo.get(key)
+
+  if (hit == null) {
+    return undefined
+  }
+
+  memo.delete(key)
+
+  if (hit.expires <= now) {
+    return undefined
+  }
+
+  memo.set(key, hit)
+  return hit.value
+}
+
+function memoSet (key: string, value: string, expires: number): void {
+  memo.delete(key)
+  memo.set(key, { expires, value })
+
+  while (memo.size > MAX_MEMO_SHARDS) {
+    memo.delete(memo.keys().next().value!)
+  }
 }
 
 export interface ShardStoreOptions {
@@ -103,57 +161,86 @@ export interface ShardStoreOptions {
 }
 
 /**
- * Reads shards through three layers: an in-isolate memo, the colo's Cache
- * API (so most lookups never bill a KV read), then KV itself.
+ * Reads KV values through three layers: an in-isolate memo, the colo's Cache
+ * API (so most lookups never bill a KV read), then KV itself. A value's TTL
+ * counts from when it was read from KV, not from when a layer last copied
+ * it, so the layers cannot stack their TTLs.
  */
 export function createShardStore (options: ShardStoreOptions): ShardStore {
   const now = options.now ?? Date.now
 
+  async function read (kvKey: string): Promise<string> {
+    const memoKey = `${options.cacheBase}|${kvKey}`
+    const memoised = memoGet(memoKey, now())
+
+    if (memoised != null) {
+      return memoised
+    }
+
+    const cacheKey = new Request(`${options.cacheBase}/__badbits/${encodeURIComponent(kvKey)}`)
+    const cached = await options.cache?.match(cacheKey)
+
+    if (cached != null) {
+      const fetchedAt = Number(cached.headers.get(FETCHED_AT))
+      const expires = (Number.isFinite(fetchedAt) && fetchedAt > 0 ? fetchedAt : now()) + SHARD_TTL_S * 1000
+
+      if (expires > now()) {
+        const value = await cached.text()
+        memoSet(memoKey, value, expires)
+        return value
+      }
+    }
+
+    const fetchedAt = now()
+    const value = (await options.kv.get(kvKey)) ?? ''
+
+    if (options.cache != null) {
+      const put = options.cache.put(cacheKey, new Response(value, {
+        headers: { 'cache-control': `max-age=${SHARD_TTL_S}`, [FETCHED_AT]: String(fetchedAt) }
+      }))
+      options.waitUntil?.(put)
+    }
+
+    memoSet(memoKey, value, fetchedAt + SHARD_TTL_S * 1000)
+    return value
+  }
+
   return {
     async get (prefix) {
-      const memoKey = `${options.cacheBase}|${prefix}`
-      const hit = memo.get(memoKey)
+      return read(shardKey(prefix))
+    },
+    async status () {
+      const value = await read(STATUS_KEY)
 
-      if (hit != null && hit.expires > now()) {
-        return hit.shard
+      if (value === '') {
+        return null
       }
 
-      const cacheKey = new Request(`${options.cacheBase}/__badbits/${prefix}`)
-      let value: string | null = null
-      const cached = await options.cache?.match(cacheKey)
-
-      if (cached != null) {
-        value = await cached.text()
-      } else {
-        value = await options.kv.get(shardKey(prefix))
-
-        if (options.cache != null) {
-          const put = options.cache.put(cacheKey, new Response(value ?? '', {
-            headers: { 'cache-control': `max-age=${SHARD_TTL_S}` }
-          }))
-          options.waitUntil?.(put)
-        }
+      try {
+        return JSON.parse(value) as SyncStatus
+      } catch {
+        return null
       }
-
-      const shard = parseShard(value)
-      memo.set(memoKey, { expires: now() + SHARD_TTL_S * 1000, shard })
-
-      return shard
     }
   }
 }
 
-/** test hook: forget memoised shards */
+/** test hook: forget memoised values */
 export function clearShardMemo (): void {
   memo.clear()
 }
 
+/** test hook: number of memoised values */
+export function shardMemoSize (): number {
+  return memo.size
+}
+
 /**
  * Whether any anchor's sha256 is on the list. `extra` holds full sha256 hex
- * digests checked before the shards, used to prove enforcement on staging
- * with a harmless CID.
+ * digests checked before the shards, for manual blocks and for proving
+ * enforcement on staging with a harmless CID.
  */
-export async function isDenied (anchors: string[], store: ShardStore, extra: ReadonlySet<string> = new Set()): Promise<boolean> {
+export async function isDenied (anchors: string[], store: Pick<ShardStore, 'get'>, extra: ReadonlySet<string> = new Set()): Promise<boolean> {
   for (const anchor of anchors) {
     const hash = await sha256Hex(anchor)
 
@@ -161,9 +248,7 @@ export async function isDenied (anchors: string[], store: ShardStore, extra: Rea
       return true
     }
 
-    const shard = await store.get(hash.slice(0, SHARD_PREFIX_LENGTH))
-
-    if (shard.has(hash.slice(SHARD_PREFIX_LENGTH))) {
+    if (shardHas(await store.get(hash.slice(0, SHARD_PREFIX_LENGTH)), hash.slice(SHARD_PREFIX_LENGTH))) {
       return true
     }
   }

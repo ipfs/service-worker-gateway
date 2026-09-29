@@ -122,11 +122,25 @@ jobs:
         with:
           ref: ${{ inputs.tag }}
       - name: Check the KV namespace is configured
+        id: kv
         run: |
           if grep -q REPLACE_WITH_ src/cloudflare/workers/gateway-edge/wrangler.toml; then
             echo "::error::set the BADBITS KV namespace id in src/cloudflare/workers/gateway-edge/wrangler.toml (see docs/BADBITS.md)"
             exit 1
           fi
+          id=$(grep -oE 'binding = "BADBITS", id = "[0-9a-f]+"' src/cloudflare/workers/gateway-edge/wrangler.toml | head -1 | grep -oE '[0-9a-f]{32}')
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+      # a Worker bound to an empty, too small or unsynced store would block
+      # nothing without any error, so refuse to deploy one
+      - name: Check the denylist store is populated and current
+        run: node --experimental-strip-types .github/scripts/badbits-check.ts
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_KV_TOKEN: ${{ secrets.CF_WORKERS_TOKEN }}
+          BADBITS_KV_ID: ${{ steps.kv.outputs.id }}
       - name: Deploy gateway-edge Worker
         uses: cloudflare/wrangler-action@v4
         with:

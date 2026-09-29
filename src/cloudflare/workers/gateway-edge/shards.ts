@@ -10,13 +10,46 @@
 // single small value that caches well at the edge.
 //
 // Each shard value holds the remaining hex characters of its hashes,
-// sorted and newline separated.
+// sorted and newline separated. Every line has the same width, so a lookup
+// binary-searches the string in place instead of splitting it: an isolate
+// holding thousands of shards keeps ~8 KB strings, not ~125 small strings
+// each.
+//
+// Keys written by the sync, in order:
+//
+//   bb:<prefix>  shards that changed
+//   bb:meta      ETag, count and a digest per shard (used to diff next run)
+//   bb:status    small summary the Worker and the deploy gate read; written
+//                last and on every run, so `checked` shows the sync is alive
 //
 // @see https://specs.ipfs.tech/compact-denylist-format/
 
 export const SHARD_PREFIX_LENGTH = 3
 export const SHARD_KEY_PREFIX = 'bb:'
 export const META_KEY = 'bb:meta'
+export const STATUS_KEY = 'bb:status'
+
+/** width of one shard line: a sha256 hex digest minus its prefix */
+export const SHARD_LINE_WIDTH = 64 - SHARD_PREFIX_LENGTH
+
+/**
+ * Fewer entries than this means a truncated download or an empty store:
+ * the list held 513,017 entries in September 2026 and only grows.
+ */
+export const MIN_ENTRIES = 450_000
+
+export interface SyncStatus {
+  /** ETag of the list that was last written */
+  etag: string | null
+  /** legacy entries in that list */
+  count: number
+  /** entries the edge cannot enforce */
+  unenforced: number
+  /** when the shards last changed */
+  updated: string
+  /** when a sync last completed, changed or not */
+  checked: string
+}
 
 const LEGACY_DOUBLE_HASH = /^\/\/([0-9a-f]{64})$/
 
@@ -103,6 +136,43 @@ export function parseShard (value: string | null): Set<string> {
   }
 
   return new Set(value.split('\n'))
+}
+
+/**
+ * Whether a shard value (as written by `buildShards`) holds `suffix`, by
+ * binary search over its fixed-width lines. Falls back to a linear scan if
+ * the value is not in the expected shape rather than missing a match.
+ */
+export function shardHas (value: string, suffix: string): boolean {
+  if (value === '' || suffix.length !== SHARD_LINE_WIDTH) {
+    return false
+  }
+
+  const stride = SHARD_LINE_WIDTH + 1
+
+  if ((value.length + 1) % stride !== 0) {
+    return value.split('\n').includes(suffix)
+  }
+
+  let lo = 0
+  let hi = (value.length + 1) / stride - 1
+
+  while (lo <= hi) {
+    const mid = (lo + hi) >>> 1
+    const line = value.slice(mid * stride, mid * stride + SHARD_LINE_WIDTH)
+
+    if (line === suffix) {
+      return true
+    }
+
+    if (line < suffix) {
+      lo = mid + 1
+    } else {
+      hi = mid - 1
+    }
+  }
+
+  return false
 }
 
 /**

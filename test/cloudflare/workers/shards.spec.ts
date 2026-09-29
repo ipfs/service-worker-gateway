@@ -1,7 +1,7 @@
 // Tests for badbits denylist parsing and sharding.
 
 import { expect } from 'aegir/chai'
-import { buildShards, changedPrefixes, parseDenylist, parseShard, shardKey } from '../../../src/cloudflare/workers/gateway-edge/shards.ts'
+import { buildShards, changedPrefixes, parseDenylist, parseShard, shardHas, shardKey } from '../../../src/cloudflare/workers/gateway-edge/shards.ts'
 
 const A = 'd9d295bde21f422d471a90f2a37ec53049fdf3e5fa3ee2e8f20e10003da429e7'
 const B = 'd9d0000000000000000000000000000000000000000000000000000000000000'
@@ -47,6 +47,28 @@ describe('badbits shards', () => {
       const shard = parseShard(buildShards([A, B]).get('d9d') ?? null)
       expect(shard.has(A.slice(3))).to.equal(true)
       expect(shard.has(B.slice(3))).to.equal(true)
+    })
+  })
+
+  describe('shardHas', () => {
+    const hashes = Array.from({ length: 200 }, (_, i) => 'abc' + i.toString(16).padStart(61, '0'))
+    const value = buildShards(hashes).get('abc') ?? ''
+
+    it('finds every entry of a shard by binary search', () => {
+      for (const hash of hashes) {
+        expect(shardHas(value, hash.slice(3))).to.equal(true)
+      }
+    })
+
+    it('does not find absent entries, including neighbours and prefixes of entries', () => {
+      expect(shardHas(value, 'f'.repeat(61))).to.equal(false)
+      expect(shardHas(value, '0'.repeat(60) + 'g')).to.equal(false)
+      expect(shardHas(value, hashes[0].slice(3, 20))).to.equal(false)
+      expect(shardHas('', hashes[0].slice(3))).to.equal(false)
+    })
+
+    it('still finds an entry in a value that is not fixed width', () => {
+      expect(shardHas(`short\n${hashes[5].slice(3)}`, hashes[5].slice(3))).to.equal(true)
     })
   })
 
