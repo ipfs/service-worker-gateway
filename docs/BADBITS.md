@@ -81,12 +81,15 @@ browser ─▶ *.ipfs|ipns.inbrowser.link
 
 ## Setup (once, by someone with Cloudflare access)
 
-1. **Create the KV namespace** in the "IPFS Public Utilities" account, for
-   example `badbits`. Put its id in both `kv_namespaces` entries in
-   `src/cloudflare/workers/gateway-edge/wrangler.toml`, replacing
-   `REPLACE_WITH_BADBITS_KV_NAMESPACE_ID`. Until you do, the deploy
-   workflows refuse to deploy the Worker.
-2. **Create the GitHub environment `badbits`**, with:
+1. **KV namespace:** `badbits` (`94d9ebe487dd4ba1bf7d729c364a757b`) already
+   exists. It was created and populated during the manual staging trial, and
+   its id is set in `src/cloudflare/workers/gateway-edge/wrangler.toml`. The
+   deploy workflows still refuse to deploy until the sync has populated it and
+   run within the last 24 hours.
+2. **Create the GitHub environment `badbits`** (Settings → Environments). Give
+   it **no required reviewers and no wait timer**, because the sync runs every 5
+   minutes and a review gate would hold every run. Limit deployment branches to
+   `main`. It needs:
    - secret `CF_ACCOUNT_ID`
    - secret `CF_BADBITS_TOKEN`: API token with *Account › Workers KV Storage › Edit*
    - variable `BADBITS_KV_ID`: the namespace id
@@ -96,12 +99,14 @@ browser ─▶ *.ipfs|ipns.inbrowser.link
    - *Account › Workers KV Storage › Read* (used by the deploy gate)
    - *Account › Account Analytics › Read*, if you query the metrics with it
    - *Zone › Workers Routes › Edit* on `inbrowser.dev` and `inbrowser.link`
-4. **Run the Badbits Sync workflow** manually. The log should report about
-   513k entries and 4,096 of 4,096 shards written. Until this has run, the
-   deploy gate fails.
+4. **Run the Badbits Sync workflow** manually once, to confirm the environment
+   works. The namespace is already populated, so expect `list unchanged … status
+   refreshed`, or a handful of shards written if the list moved. On an empty
+   namespace, a first run writes all 4,096 shards. After that the schedule takes
+   over.
 5. **Enable Analytics Engine** on the account (dashboard → Workers → Analytics
    Engine). The `METRICS` binding needs it: without it, `wrangler deploy` fails
-   with error 10089.
+   with error 10089. *(Already enabled on this account.)*
 6. **Set up alerting** on the events in [Monitoring](#monitoring).
 
 ## Rollout

@@ -30,7 +30,7 @@ routes = [
 ]
 # the same namespace serves both environments: the list is identical
 kv_namespaces = [
-  { binding = "BADBITS", id = "REPLACE_WITH_BADBITS_KV_NAMESPACE_ID" }
+  { binding = "BADBITS", id = "94d9ebe487dd4ba1bf7d729c364a757b" }
 ]
 analytics_engine_datasets = [
   { binding = "METRICS", dataset = "gateway_edge_staging" }
@@ -43,7 +43,7 @@ routes = [
   { pattern = "*.ipns.inbrowser.link/*", zone_name = "inbrowser.link" }
 ]
 kv_namespaces = [
-  { binding = "BADBITS", id = "REPLACE_WITH_BADBITS_KV_NAMESPACE_ID" }
+  { binding = "BADBITS", id = "94d9ebe487dd4ba1bf7d729c364a757b" }
 ]
 analytics_engine_datasets = [
   { binding = "METRICS", dataset = "gateway_edge_production" }
