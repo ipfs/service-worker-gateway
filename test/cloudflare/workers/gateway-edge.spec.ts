@@ -7,7 +7,7 @@
 
 import { expect } from 'aegir/chai'
 import { base32Encode, base36Decode } from '../../../src/cloudflare/snippets/codec.ts'
-import { MAX_MEMO_SHARDS, SHARD_TTL_S, clearShardMemo, createShardStore, denylistAnchors, gatewaySubpath, goneResponse, isDenied, parseExtraHashes, sha256Hex, shardMemoSize } from '../../../src/cloudflare/workers/gateway-edge/badbits.ts'
+import { MAX_MEMO_SHARDS, SHARD_MAX_STALE_S, SHARD_TTL_S, clearShardMemo, createShardStore, denylistAnchors, gatewaySubpath, goneResponse, isDenied, parseExtraHashes, sha256Hex, shardMemoSize } from '../../../src/cloudflare/workers/gateway-edge/badbits.ts'
 import { STALE_AFTER_MS, handle, resetHealthCheck } from '../../../src/cloudflare/workers/gateway-edge/index.ts'
 import { STATUS_KEY, buildShards, shardKey } from '../../../src/cloudflare/workers/gateway-edge/shards.ts'
 import type { Env } from '../../../src/cloudflare/workers/gateway-edge/index.ts'
@@ -211,14 +211,81 @@ describe('gateway-edge worker', () => {
       expect(kv.reads).to.have.length(1)
     })
 
-    it('treats an expired Cache API entry as a miss', async () => {
+    it('treats a Cache API entry past the stale limit as a miss', async () => {
       const cache = fakeCache()
       const prefix = SPEC_CID_HASH.slice(0, 3)
       cache.entries.set(`https://inbrowser.link/__badbits/${encodeURIComponent(shardKey(prefix))}`,
-        new Response('', { headers: { 'x-badbits-fetched-at': String(NOW - (SHARD_TTL_S + 1) * 1000) } }))
+        new Response('', { headers: { 'x-badbits-fetched-at': String(NOW - (SHARD_MAX_STALE_S + 1) * 1000) } }))
       const kv = fakeKV([SPEC_CID_HASH])
-      const store = createShardStore({ kv, cache, cacheBase: 'https://inbrowser.link', now: () => NOW })
+      const pending: Array<Promise<unknown>> = []
+      const store = createShardStore({ kv, cache, cacheBase: 'https://inbrowser.link', waitUntil: p => { pending.push(p) }, now: () => NOW })
       expect(await isDenied([`${SPEC_CID}/`], store)).to.equal(true)
+    })
+
+    it('answers from a stale Cache API entry and refreshes it in the background', async () => {
+      const cache = fakeCache()
+      const prefix = SPEC_CID_HASH.slice(0, 3)
+      const cacheUrl = `https://inbrowser.link/__badbits/${encodeURIComponent(shardKey(prefix))}`
+      cache.entries.set(cacheUrl, new Response('', { headers: { 'x-badbits-fetched-at': String(NOW - (SHARD_TTL_S + 1) * 1000) } }))
+      const kv = fakeKV([SPEC_CID_HASH])
+      const pending: Array<Promise<unknown>> = []
+      const store = createShardStore({ kv, cache, cacheBase: 'https://inbrowser.link', waitUntil: p => { pending.push(p) }, now: () => NOW })
+      expect(await isDenied([`${SPEC_CID}/`], store)).to.equal(false)
+      await Promise.all(pending)
+      expect(kv.reads).to.deep.equal([shardKey(prefix)])
+      expect(cache.entries.get(cacheUrl)?.headers.get('x-badbits-fetched-at')).to.equal(String(NOW))
+      expect(await isDenied([`${SPEC_CID}/`], store)).to.equal(true)
+      expect(kv.reads).to.have.length(1)
+    })
+
+    it('starts one background read for a burst of requests on a stale shard', async () => {
+      let now = NOW
+      const kv = fakeKV([SPEC_CID_HASH])
+      const pending: Array<Promise<unknown>> = []
+      const store = createShardStore({ kv, cacheBase: 'https://inbrowser.link', waitUntil: p => { pending.push(p) }, now: () => now })
+      expect(await isDenied([`${SPEC_CID}/`], store)).to.equal(true)
+      now += (SHARD_TTL_S + 1) * 1000
+      await Promise.all([1, 2, 3].map(async () => isDenied([`${SPEC_CID}/`], store)))
+      await Promise.all(pending)
+      expect(kv.reads).to.have.length(2)
+    })
+
+    it('waits for KV once a memoised shard is past the stale limit', async () => {
+      let now = NOW
+      const kv = fakeKV([])
+      const pending: Array<Promise<unknown>> = []
+      const store = createShardStore({ kv, cacheBase: 'https://inbrowser.link', waitUntil: p => { pending.push(p) }, now: () => now })
+      expect(await isDenied([`${SPEC_CID}/`], store)).to.equal(false)
+      kv.values.set(shardKey(SPEC_CID_HASH.slice(0, 3)), SPEC_CID_HASH.slice(3))
+      now += SHARD_MAX_STALE_S * 1000
+      expect(await isDenied([`${SPEC_CID}/`], store)).to.equal(true)
+      expect(pending).to.deep.equal([])
+    })
+
+    it('keeps the stale shard and reports when a background read fails', async () => {
+      let now = NOW
+      let fail = false
+      const kv = fakeKV([SPEC_CID_HASH])
+      const get = kv.get
+      kv.get = async key => {
+        if (fail) {
+          throw new Error('KV unavailable')
+        }
+        return get(key)
+      }
+      const errors: unknown[] = []
+      const pending: Array<Promise<unknown>> = []
+      const store = createShardStore({ kv, cacheBase: 'https://inbrowser.link', waitUntil: p => { pending.push(p) }, onRefreshError: err => errors.push(err), now: () => now })
+      expect(await isDenied([`${SPEC_CID}/`], store)).to.equal(true)
+      fail = true
+      now += (SHARD_TTL_S + 1) * 1000
+      expect(await isDenied([`${SPEC_CID}/`], store)).to.equal(true)
+      await Promise.all(pending)
+      expect(errors).to.have.length(1)
+      // the failed read is not stuck in flight: the next request retries
+      expect(await isDenied([`${SPEC_CID}/`], store)).to.equal(true)
+      await Promise.all(pending)
+      expect(errors).to.have.length(2)
     })
 
     it('fills the Cache API from KV with its read time', async () => {
@@ -228,6 +295,7 @@ describe('gateway-edge worker', () => {
       await new Promise(resolve => setTimeout(resolve, 0))
       const [entry] = [...cache.entries.values()]
       expect(entry.headers.get('x-badbits-fetched-at')).to.equal(String(NOW))
+      expect(entry.headers.get('cache-control')).to.equal(`max-age=${SHARD_MAX_STALE_S}`)
     })
 
     it('bounds the memo', async () => {

@@ -21,7 +21,8 @@ browser ─▶ *.ipfs|ipns.inbrowser.link
             ▼
    gateway-edge Worker  (src/cloudflare/workers/gateway-edge)
      1. host → legacy anchor(s) → sha256 → shard = first 3 hex chars
-     2. shard: in-isolate memo ─▶ Cache API ─▶ KV "bb:<prefix>" (120 s)
+     2. shard: in-isolate memo ─▶ Cache API ─▶ KV "bb:<prefix>"
+        (fresh 120 s, then served stale while re-read, up to 10 min)
      3. listed          → 410 Gone
      4. not listed      → shared installer cache (snippet 02 handler) → origin
      (background, once a minute per isolate: is bb:status present and fresh?)
@@ -53,6 +54,17 @@ browser ─▶ *.ipfs|ipns.inbrowser.link
   - up to 60 seconds of KV's own edge cache
   - up to 120 seconds of shard reuse (memo and Cache API together; a copy's
     age counts from its KV read, so the layers don't add up)
+
+  After 120 seconds a copy is not dropped. The request that finds it is
+  answered from it, and a fresh copy is read from KV in the background
+  (`SHARD_MAX_STALE_S`). Only past 10 minutes does a request wait for KV.
+  Without this, three in four Cache API lookups found an expired copy and
+  the request waited 100–300 ms on a cold KV read, because each colo holds
+  4,096 shards. The cost: on a shard nobody has
+  asked for in a while, that first request can see a list up to 10 minutes
+  old, so the worst case for a single request is about 16 minutes. If the
+  background read fails, the stale copy stays in use and the failure is
+  reported as `badbits_lookup_error`.
 
   GitHub runs scheduled workflows best-effort, so a delayed run adds to this.
   Rainbow's nopfs polled the list about every minute.

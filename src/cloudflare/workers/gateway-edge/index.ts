@@ -14,8 +14,8 @@
 // the apex hosts.
 //
 // The check runs before any cache lookup, so a newly listed CID is refused
-// once its shard reaches the colo (see SHARD_TTL_S), without purging the
-// host's cached installer.
+// once its shard reaches the colo (see SHARD_TTL_S and SHARD_MAX_STALE_S),
+// without purging the host's cached installer.
 //
 // Lookups fail open: if KV errors, the request is served. Refusing every
 // subdomain because the denylist store is unreachable would take the gateway
@@ -113,6 +113,7 @@ export async function handle (request: Request, env: Env, ctx: Pick<ExecutionCon
       cache: deps.cache,
       cacheBase: `https://${baseDomain}`,
       waitUntil: promise => { ctx.waitUntil(promise) },
+      onRefreshError: err => { report(env, deps, 'badbits_lookup_error', url.hostname, 1, err) },
       now
     })
 
