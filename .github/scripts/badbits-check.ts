@@ -51,4 +51,9 @@ if (!(ageHours <= maxAgeHours)) {
   fail(`denylist store was last synced ${status.checked} (${ageHours.toFixed(1)}h ago), over ${maxAgeHours}h`)
 }
 
-console.info(`denylist store ok: ${status.count} entries, synced ${status.checked}${status.unenforced > 0 ? `, ${status.unenforced} unenforced` : ''}`)
+// not fatal: the Worker falls back to reading shards, only slower
+if (status.indexed == null) {
+  console.info(`::warning::${STATUS_KEY} has no index count: the sync has not written bb:index yet, so every lookup will read its shard`)
+}
+
+console.info(`denylist store ok: ${status.count} entries, synced ${status.checked}${status.unenforced > 0 ? `, ${status.unenforced} unenforced` : ''}${status.indexed != null ? `, index ${status.indexed}` : ''}`)

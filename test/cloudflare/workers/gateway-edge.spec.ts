@@ -9,7 +9,7 @@ import { expect } from 'aegir/chai'
 import { base32Encode, base36Decode } from '../../../src/cloudflare/snippets/codec.ts'
 import { MAX_MEMO_SHARDS, SHARD_MAX_STALE_S, SHARD_TTL_S, clearShardMemo, createShardStore, denylistAnchors, gatewaySubpath, goneResponse, isDenied, parseExtraHashes, sha256Hex, shardMemoSize } from '../../../src/cloudflare/workers/gateway-edge/badbits.ts'
 import { STALE_AFTER_MS, handle, resetHealthCheck } from '../../../src/cloudflare/workers/gateway-edge/index.ts'
-import { STATUS_KEY, buildShards, shardKey } from '../../../src/cloudflare/workers/gateway-edge/shards.ts'
+import { INDEX_ENTRY_BYTES, INDEX_KEY, MIN_ENTRIES, STATUS_KEY, buildIndex, buildShards, shardKey } from '../../../src/cloudflare/workers/gateway-edge/shards.ts'
 import type { Env } from '../../../src/cloudflare/workers/gateway-edge/index.ts'
 import type { SyncStatus } from '../../../src/cloudflare/workers/gateway-edge/shards.ts'
 
@@ -27,15 +27,48 @@ const NOW = Date.parse('2026-09-30T12:00:00Z')
 
 interface FakeKV {
   get(key: string): Promise<string | null>
+  get(key: string, type: 'arrayBuffer'): Promise<ArrayBuffer | null>
+  /** text reads (shards and status) */
   reads: string[]
+  indexReads: number
   values: Map<string, string>
+  index: ArrayBuffer | null
+}
+
+// The Worker ignores an index smaller than MIN_ENTRIES, so test indexes are
+// padded with evenly spaced filler entries. Filler can only cause extra
+// shard reads, never a block.
+const indexCache = new Map<string, ArrayBuffer>()
+
+function realisticIndex (hashes: string[]): ArrayBuffer {
+  const cacheKey = hashes.join()
+  let index = indexCache.get(cacheKey)
+
+  if (index == null) {
+    const entries = new Set<number>()
+    for (let i = 0; i < MIN_ENTRIES; i++) {
+      entries.add(i * 9541)
+    }
+    const real = buildIndex(hashes)
+    const view = new DataView(real.buffer)
+    for (let i = 0; i < real.byteLength; i += INDEX_ENTRY_BYTES) {
+      entries.add(view.getUint32(i))
+    }
+    const sorted = [...entries].sort((a, b) => a - b)
+    index = new ArrayBuffer(sorted.length * INDEX_ENTRY_BYTES)
+    const out = new DataView(index)
+    sorted.forEach((entry, i) => { out.setUint32(i * INDEX_ENTRY_BYTES, entry) })
+    indexCache.set(cacheKey, index)
+  }
+
+  return index
 }
 
 function status (overrides: Partial<SyncStatus> = {}): SyncStatus {
   return { etag: '"x"', count: 513017, unenforced: 0, updated: new Date(NOW).toISOString(), checked: new Date(NOW).toISOString(), ...overrides }
 }
 
-function fakeKV (hashes: string[], options: { fail?: boolean, status?: SyncStatus | null } = {}): FakeKV {
+function fakeKV (hashes: string[], options: { fail?: boolean, status?: SyncStatus | null, index?: 'realistic' | 'none' | 'small' } = {}): FakeKV {
   const values = new Map<string, string>()
   for (const [prefix, value] of buildShards(hashes)) {
     values.set(shardKey(prefix), value)
@@ -44,17 +77,29 @@ function fakeKV (hashes: string[], options: { fail?: boolean, status?: SyncStatu
   if (st != null) {
     values.set(STATUS_KEY, JSON.stringify(st))
   }
+  const index = options.index === 'none'
+    ? null
+    : options.index === 'small' ? buildIndex(hashes).slice().buffer : realisticIndex(hashes)
   const kv: FakeKV = {
     reads: [],
+    indexReads: 0,
     values,
-    async get (key) {
-      kv.reads.push(key)
+    index,
+    async get (key: string, type?: 'arrayBuffer'): Promise<any> {
+      if (type === 'arrayBuffer') {
+        kv.indexReads++
+      } else {
+        kv.reads.push(key)
+      }
       if (options.fail === true) {
         throw new Error('KV unavailable')
       }
+      if (type === 'arrayBuffer') {
+        return key === INDEX_KEY && kv.index != null ? kv.index.slice(0) : null
+      }
       return values.get(key) ?? null
     }
-  }
+  } as FakeKV
   return kv
 }
 
@@ -85,13 +130,14 @@ interface RunOptions {
   hashes?: string[]
   extra?: string
   kvFails?: boolean
+  index?: 'realistic' | 'none' | 'small'
   status?: SyncStatus | null
   cache?: Pick<Cache, 'match' | 'put'>
   now?: number
 }
 
 async function run (url: string, options: RunOptions = {}): Promise<Harness> {
-  const kv = fakeKV(options.hashes ?? [], { fail: options.kvFails, status: options.status })
+  const kv = fakeKV(options.hashes ?? [], { fail: options.kvFails, status: options.status, index: options.index })
   const points: unknown[] = []
   const env = { BADBITS: kv, EXTRA_DENY_HASHES: options.extra, METRICS: { writeDataPoint: (p: unknown) => points.push(p) } } as unknown as Env
   const installerCalls: Request[] = []
@@ -189,7 +235,7 @@ describe('gateway-edge worker', () => {
       const prefix = SPEC_CID_HASH.slice(0, 3)
       cache.entries.set(`https://inbrowser.link/__badbits/${encodeURIComponent(shardKey(prefix))}`,
         new Response(SPEC_CID_HASH.slice(3), { headers: { 'x-badbits-fetched-at': String(NOW - 1000) } }))
-      const kv = fakeKV([])
+      const kv = fakeKV([], { index: 'none' })
       const store = createShardStore({ kv, cache, cacheBase: 'https://inbrowser.link', now: () => NOW })
       expect(await isDenied([`${SPEC_CID}/`], store)).to.equal(true)
       expect(kv.reads).to.deep.equal([])
@@ -252,7 +298,7 @@ describe('gateway-edge worker', () => {
 
     it('waits for KV once a memoised shard is past the stale limit', async () => {
       let now = NOW
-      const kv = fakeKV([])
+      const kv = fakeKV([], { index: 'none' })
       const pending: Array<Promise<unknown>> = []
       const store = createShardStore({ kv, cacheBase: 'https://inbrowser.link', waitUntil: p => { pending.push(p) }, now: () => now })
       expect(await isDenied([`${SPEC_CID}/`], store)).to.equal(false)
@@ -265,14 +311,15 @@ describe('gateway-edge worker', () => {
     it('keeps the stale shard and reports when a background read fails', async () => {
       let now = NOW
       let fail = false
-      const kv = fakeKV([SPEC_CID_HASH])
+      const kv = fakeKV([SPEC_CID_HASH], { index: 'none' })
       const get = kv.get
-      kv.get = async key => {
-        if (fail) {
+      // only shard reads fail, so each round reports exactly one error
+      kv.get = (async (key: string, type?: 'arrayBuffer') => {
+        if (fail && type == null) {
           throw new Error('KV unavailable')
         }
-        return get(key)
-      }
+        return type == null ? get(key) : get(key, type)
+      }) as FakeKV['get']
       const errors: unknown[] = []
       const pending: Array<Promise<unknown>> = []
       const store = createShardStore({ kv, cacheBase: 'https://inbrowser.link', waitUntil: p => { pending.push(p) }, onRefreshError: err => errors.push(err), now: () => now })
@@ -296,6 +343,74 @@ describe('gateway-edge worker', () => {
       const [entry] = [...cache.entries.values()]
       expect(entry.headers.get('x-badbits-fetched-at')).to.equal(String(NOW))
       expect(entry.headers.get('cache-control')).to.equal(`max-age=${SHARD_MAX_STALE_S}`)
+    })
+
+    it('rules out an unlisted hash with the index, without reading its shard', async () => {
+      const kv = fakeKV([SPEC_CID_HASH])
+      const store = createShardStore({ kv, cacheBase: 'https://inbrowser.link', now: () => NOW })
+      expect(await isDenied([`${ALLOWED_CID}/`], store)).to.equal(false)
+      expect(kv.reads).to.deep.equal([])
+      expect(kv.indexReads).to.equal(1)
+    })
+
+    it('reads the shard when the index matches, and blocks a listed hash', async () => {
+      const kv = fakeKV([SPEC_CID_HASH])
+      const store = createShardStore({ kv, cacheBase: 'https://inbrowser.link', now: () => NOW })
+      expect(await isDenied([`${SPEC_CID}/`], store)).to.equal(true)
+      expect(kv.reads).to.deep.equal([shardKey(SPEC_CID_HASH.slice(0, 3))])
+    })
+
+    it('does not block an index match that is not in the shard', async () => {
+      // the index keeps 4 bytes per hash: the same prefix, a different hash
+      const lookalike = SPEC_CID_HASH.slice(0, 8) + '0'.repeat(56)
+      const kv = fakeKV([lookalike])
+      const store = createShardStore({ kv, cacheBase: 'https://inbrowser.link', now: () => NOW })
+      expect(await isDenied([`${SPEC_CID}/`], store)).to.equal(false)
+      expect(kv.reads).to.have.length(1)
+    })
+
+    it('reads every shard when the index is missing or implausibly small', async () => {
+      for (const index of ['none', 'small'] as const) {
+        clearShardMemo()
+        const kv = fakeKV([SPEC_CID_HASH], { index })
+        const store = createShardStore({ kv, cacheBase: 'https://inbrowser.link', now: () => NOW })
+        expect(await store.index()).to.equal(null)
+        expect(await isDenied([`${SPEC_CID}/`], store)).to.equal(true)
+        expect(await isDenied([`${ALLOWED_CID}/`], store)).to.equal(false)
+        expect(kv.reads).to.have.length(2)
+      }
+    })
+
+    it('keeps the index in the memo and the Cache API as bytes', async () => {
+      const cache = fakeCache()
+      const kv = fakeKV([SPEC_CID_HASH])
+      const store = createShardStore({ kv, cache, cacheBase: 'https://inbrowser.link', now: () => NOW })
+      const first = await store.index()
+      expect(first?.byteLength).to.equal(kv.index?.byteLength)
+      expect(await store.index()).to.equal(first)
+      expect(kv.indexReads).to.equal(1)
+      clearShardMemo()
+      // a new isolate gets the same bytes from the Cache API
+      const again = await createShardStore({ kv, cache, cacheBase: 'https://inbrowser.link', now: () => NOW }).index()
+      expect(again).to.deep.equal(first)
+      expect(kv.indexReads).to.equal(1)
+    })
+
+    it('refreshes a stale value from a fresher Cache API copy before KV', async () => {
+      let now = NOW
+      const cache = fakeCache()
+      const kv = fakeKV([SPEC_CID_HASH], { index: 'none' })
+      const pending: Array<Promise<unknown>> = []
+      const store = createShardStore({ kv, cache, cacheBase: 'https://inbrowser.link', waitUntil: p => { pending.push(p) }, now: () => now })
+      expect(await isDenied([`${SPEC_CID}/`], store)).to.equal(true)
+      await Promise.all(pending)
+      now += (SHARD_TTL_S + 1) * 1000
+      // another isolate refreshed the Cache API copy a second ago
+      cache.entries.set(`https://inbrowser.link/__badbits/${encodeURIComponent(shardKey(SPEC_CID_HASH.slice(0, 3)))}`,
+        new Response(SPEC_CID_HASH.slice(3), { headers: { 'x-badbits-fetched-at': String(now - 1000) } }))
+      expect(await isDenied([`${SPEC_CID}/`], store)).to.equal(true)
+      await Promise.all(pending)
+      expect(kv.reads).to.have.length(1)
     })
 
     it('bounds the memo', async () => {
@@ -383,6 +498,12 @@ describe('gateway-edge worker', () => {
       expect(events).to.have.length(1)
       expect(events[0].event).to.equal('badbits_store_stale')
       expect(events[0].value).to.equal(Math.round((STALE_AFTER_MS + 60_000) / 1000))
+    })
+
+    it('reports a missing index, and still blocks without it', async () => {
+      const blocked = await run(`https://${SPEC_CID}.ipfs.inbrowser.link/`, { hashes: [SPEC_CID_HASH], index: 'none' })
+      expect(blocked.response.status).to.equal(410)
+      expect(blocked.events.map(e => e.event)).to.have.members(['badbits_blocked', 'badbits_index_missing'])
     })
 
     it('does not report a store synced within the threshold', async () => {

@@ -1,7 +1,7 @@
 // Tests for badbits denylist parsing and sharding.
 
 import { expect } from 'aegir/chai'
-import { buildShards, changedPrefixes, parseDenylist, parseShard, shardHas, shardKey } from '../../../src/cloudflare/workers/gateway-edge/shards.ts'
+import { buildIndex, buildShards, changedPrefixes, indexHas, parseDenylist, parseShard, shardHas, shardKey } from '../../../src/cloudflare/workers/gateway-edge/shards.ts'
 
 const A = 'd9d295bde21f422d471a90f2a37ec53049fdf3e5fa3ee2e8f20e10003da429e7'
 const B = 'd9d0000000000000000000000000000000000000000000000000000000000000'
@@ -88,5 +88,36 @@ describe('badbits shards', () => {
 
   it('namespaces KV keys', () => {
     expect(shardKey('abc')).to.equal('bb:abc')
+  })
+
+  describe('index', () => {
+    const listed = ['00000001' + 'a'.repeat(56), '7fffffff' + 'b'.repeat(56), 'ffffffff' + 'c'.repeat(56), 'ffffffff' + 'd'.repeat(56)]
+
+    it('keeps the first 4 bytes of each hash, sorted and deduplicated', () => {
+      expect([...buildIndex([...listed].reverse())]).to.deep.equal([0, 0, 0, 1, 0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff])
+    })
+
+    it('matches every listed hash, including the first and last entries', () => {
+      const index = buildIndex(listed)
+      for (const hash of listed) {
+        expect(indexHas(index, hash)).to.equal(true)
+      }
+    })
+
+    it('matches any hash sharing a listed prefix, and nothing else', () => {
+      const index = buildIndex(listed)
+      expect(indexHas(index, '7fffffff' + '0'.repeat(56))).to.equal(true)
+      for (const prefix of ['00000000', '00000002', '7ffffffe', '80000000', 'fffffffe']) {
+        expect(indexHas(index, prefix + '0'.repeat(56))).to.equal(false)
+      }
+      expect(indexHas(new Uint8Array(0), listed[0])).to.equal(false)
+    })
+
+    it('works on a view into a larger buffer', () => {
+      const index = buildIndex(listed)
+      const padded = new Uint8Array(index.byteLength + 8)
+      padded.set(index, 8)
+      expect(indexHas(padded.subarray(8), listed[1])).to.equal(true)
+    })
   })
 })

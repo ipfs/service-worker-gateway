@@ -44,7 +44,7 @@ export const STALE_AFTER_MS = 2 * 60 * 60 * 1000
 /** report store health at most this often per isolate */
 export const HEALTH_CHECK_INTERVAL_MS = 60 * 1000
 
-export type EdgeEvent = 'badbits_blocked' | 'badbits_lookup_error' | 'badbits_store_missing' | 'badbits_store_stale'
+export type EdgeEvent = 'badbits_blocked' | 'badbits_lookup_error' | 'badbits_store_missing' | 'badbits_store_stale' | 'badbits_index_missing'
 
 const SUBDOMAIN = /^([^.]+)\.(ipfs|ipns)\.(inbrowser\.(?:dev|link))$/
 
@@ -95,6 +95,11 @@ async function checkStoreHealth (store: ShardStore, env: Env, deps: Dependencies
 
     if (!(age <= STALE_AFTER_MS)) {
       report(env, deps, 'badbits_store_stale', host, Math.round(age / 1000), status.checked)
+    }
+
+    // still enforced without it, but every lookup then waits on a shard read
+    if (await store.index() == null) {
+      report(env, deps, 'badbits_index_missing', host)
     }
   } catch (err) {
     report(env, deps, 'badbits_lookup_error', host, 1, err)

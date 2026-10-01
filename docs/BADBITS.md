@@ -20,12 +20,15 @@ browser ─▶ *.ipfs|ipns.inbrowser.link
             │
             ▼
    gateway-edge Worker  (src/cloudflare/workers/gateway-edge)
-     1. host → legacy anchor(s) → sha256 → shard = first 3 hex chars
-     2. shard: in-isolate memo ─▶ Cache API ─▶ KV "bb:<prefix>"
+     1. host → legacy anchor(s) → sha256
+     2. index "bb:index": first 4 bytes not in it → not listed (most requests)
+     3. otherwise shard = first 3 hex chars, read "bb:<prefix>"
+        both via in-isolate memo ─▶ Cache API ─▶ KV
         (fresh 120 s, then served stale while re-read, up to 10 min)
-     3. listed          → 410 Gone
-     4. not listed      → shared installer cache (snippet 02 handler) → origin
-     (background, once a minute per isolate: is bb:status present and fresh?)
+     4. listed          → 410 Gone
+     5. not listed      → shared installer cache (snippet 02 handler) → origin
+     (background, once a minute per isolate: bb:status present and fresh,
+      bb:index usable?)
             ▲
    KV namespace (BADBITS) ◀── Badbits Sync workflow, every 5 min + daily full
 ```
@@ -46,6 +49,15 @@ browser ─▶ *.ipfs|ipns.inbrowser.link
 - **Shards.** Entries are grouped by the first 3 hex characters of the hash:
   4,096 KV values of 5–10 KB each. A full load is 4,096 writes, and an update
   only writes the shards that changed.
+- **Index.** `bb:index` holds the first 4 bytes of every hash, sorted: one
+  binary value of ~2 MB (~511k entries). The Worker checks it first and reads
+  a shard only on a match: a listed hash, or about 1 in 8,000 others.
+  Without it, each request read its own shard, and traffic spread over 4,096
+  shards and ~230 colos missed every cache: subdomain p95 TTFB went from
+  ~60 ms to ~300 ms. The index is the same key for every request, so it stays
+  cached everywhere. The sync writes it after the shards, and only when it
+  changed. If it is missing, or holds fewer than 450,000 entries, the Worker
+  ignores it and reads every shard: slower, but still enforcing.
 - **Before the cache.** The check runs before any cache lookup, so the host's
   cached installer doesn't need purging.
 - **How fast a new entry takes effect:** usually within about **8 minutes**
@@ -159,8 +171,9 @@ datasets `gateway_edge_staging` and `gateway_edge_production`:
 | `badbits_lookup_error` | KV failed and the request was **served** (fail-open) | any sustained rate |
 | `badbits_store_missing` | `bb:status` is absent: the Worker is blocking nothing | any occurrence |
 | `badbits_store_stale` | the last completed sync is over 2h old (value = age in seconds) | any occurrence |
+| `badbits_index_missing` | `bb:index` is missing or too small: still enforced, but every lookup reads its shard (slow) | any occurrence after the first sync with the index |
 
-The two store events are checked once a minute per isolate, off the request
+The store and index events are checked once a minute per isolate, off the request
 path.
 
 The sync workflow itself fails, which notifies whoever GitHub notifies for

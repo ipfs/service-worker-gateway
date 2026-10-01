@@ -15,9 +15,19 @@
 // holding thousands of shards keeps ~8 KB strings, not ~125 small strings
 // each.
 //
+// A shard is only worth reading when it may hold the hash. Traffic is
+// spread so thinly over 4096 shards and ~230 colos that most shard reads
+// miss every cache and wait 100-300 ms on KV. So the sync also writes an
+// index: the first INDEX_ENTRY_BYTES of every hash, sorted, as one ~2 MB
+// binary value. Every request reads that same key, so it stays cached
+// everywhere, and a lookup only reads a shard when the index matches: a
+// listed hash, or about 1 in 8,000 others (~513k entries in 2^32).
+//
 // Keys written by the sync, in order:
 //
 //   bb:<prefix>  shards that changed
+//   bb:index     the index, when it changed (after the shards, so it never
+//                points at a shard that has not landed)
 //   bb:meta      ETag, count and a digest per shard (used to diff next run)
 //   bb:status    small summary the Worker and the deploy gate read; written
 //                last and on every run, so `checked` shows the sync is alive
@@ -28,6 +38,10 @@ export const SHARD_PREFIX_LENGTH = 3
 export const SHARD_KEY_PREFIX = 'bb:'
 export const META_KEY = 'bb:meta'
 export const STATUS_KEY = 'bb:status'
+export const INDEX_KEY = 'bb:index'
+
+/** bytes of each hash kept in the index */
+export const INDEX_ENTRY_BYTES = 4
 
 /** width of one shard line: a sha256 hex digest minus its prefix */
 export const SHARD_LINE_WIDTH = 64 - SHARD_PREFIX_LENGTH
@@ -49,6 +63,8 @@ export interface SyncStatus {
   updated: string
   /** when a sync last completed, changed or not */
   checked: string
+  /** entries in `bb:index`; absent before the index existed */
+  indexed?: number
 }
 
 const LEGACY_DOUBLE_HASH = /^\/\/([0-9a-f]{64})$/
@@ -183,4 +199,52 @@ export function changedPrefixes (previous: Record<string, string>, next: Record<
   const prefixes = new Set([...Object.keys(previous), ...Object.keys(next)])
 
   return [...prefixes].filter(prefix => previous[prefix] !== next[prefix]).sort()
+}
+
+/** the index entry of a sha256 hex digest */
+function indexEntry (hash: string): number {
+  return Number.parseInt(hash.slice(0, INDEX_ENTRY_BYTES * 2), 16)
+}
+
+/**
+ * The index value: the first INDEX_ENTRY_BYTES of every hash, big-endian,
+ * sorted and deduplicated. Deterministic, so an unchanged list gives an
+ * unchanged index.
+ */
+export function buildIndex (hashes: string[]): Uint8Array<ArrayBuffer> {
+  const entries = [...new Set(hashes.map(indexEntry))].sort((a, b) => a - b)
+  const bytes = new Uint8Array(entries.length * INDEX_ENTRY_BYTES)
+  const view = new DataView(bytes.buffer)
+
+  entries.forEach((entry, i) => { view.setUint32(i * INDEX_ENTRY_BYTES, entry) })
+
+  return bytes
+}
+
+/**
+ * Whether the index may hold `hash`. False means the hash is certainly not
+ * on the list the index was built from; true means its shard must be read.
+ */
+export function indexHas (index: Uint8Array, hash: string): boolean {
+  const view = new DataView(index.buffer, index.byteOffset, index.byteLength)
+  const target = indexEntry(hash)
+  let lo = 0
+  let hi = index.byteLength / INDEX_ENTRY_BYTES - 1
+
+  while (lo <= hi) {
+    const mid = (lo + hi) >>> 1
+    const entry = view.getUint32(mid * INDEX_ENTRY_BYTES)
+
+    if (entry === target) {
+      return true
+    }
+
+    if (entry < target) {
+      lo = mid + 1
+    } else {
+      hi = mid - 1
+    }
+  }
+
+  return false
 }

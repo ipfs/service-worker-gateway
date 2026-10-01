@@ -3,7 +3,7 @@
 // list says, and the write order that makes interruption safe.
 
 import { expect } from 'aegir/chai'
-import { META_KEY, STATUS_KEY, shardKey } from '../../../src/cloudflare/workers/gateway-edge/shards.ts'
+import { INDEX_KEY, META_KEY, STATUS_KEY, buildIndex, shardKey } from '../../../src/cloudflare/workers/gateway-edge/shards.ts'
 import { UnenforcedEntriesError, runSync } from '../../../src/cloudflare/workers/gateway-edge/sync.ts'
 import type { SyncStatus } from '../../../src/cloudflare/workers/gateway-edge/shards.ts'
 import type { SyncOptions } from '../../../src/cloudflare/workers/gateway-edge/sync.ts'
@@ -49,10 +49,10 @@ function world (): FakeWorld {
         if (w.failBulkAfter != null && w.writes.length >= w.failBulkAfter) {
           return new Response(JSON.stringify({ success: false, errors: ['boom'] }), { status: 500 })
         }
-        const items = JSON.parse(init.body as string) as Array<{ key: string, value: string }>
+        const items = JSON.parse(init.body as string) as Array<{ key: string, value: string, base64?: boolean }>
         w.writes.push(items.map(i => i.key))
         for (const item of items) {
-          w.kv.set(item.key, item.value)
+          w.kv.set(item.key, item.base64 === true ? `base64:${item.value}` : item.value)
         }
         return new Response(JSON.stringify({ success: true, errors: [] }))
       }
@@ -76,8 +76,8 @@ describe('badbits sync', () => {
     expect(result).to.include({ outcome: 'synced', count: 1000, unenforced: 0 })
     expect(result.written).to.equal(new Set(hashes(1000).map(h => h.slice(0, 3))).size)
     const order = w.writes.flat()
-    expect(order.slice(-2)).to.deep.equal([META_KEY, STATUS_KEY])
-    expect(order.slice(0, -2).every(k => k.startsWith('bb:') && k !== META_KEY && k !== STATUS_KEY)).to.equal(true)
+    expect(order.slice(-3)).to.deep.equal([INDEX_KEY, META_KEY, STATUS_KEY])
+    expect(order.slice(0, -3).every(k => /^bb:[0-9a-f]{3}$/.test(k))).to.equal(true)
     expect(statusOf(w)).to.deep.include({ count: 1000, etag: '"v1"', checked: T0.toISOString(), updated: T0.toISOString() })
   })
 
@@ -103,7 +103,50 @@ describe('badbits sync', () => {
     w.listBody = list([...hashes(1000), 'f'.repeat(64), '000' + 'e'.repeat(61)])
     const result = await sync(w)
     expect(result.written).to.equal(2)
-    expect(w.writes.flat()).to.deep.equal([shardKey('000'), shardKey('fff'), META_KEY, STATUS_KEY])
+    expect(w.writes.flat()).to.deep.equal([shardKey('000'), shardKey('fff'), INDEX_KEY, META_KEY, STATUS_KEY])
+  })
+
+  it('writes the index as base64 bytes of every hash prefix', async () => {
+    const w = world()
+    const entries = [...hashes(200), ...hashes(200, 2 ** 40).map(h => h.split('').reverse().join(''))]
+    w.listBody = list(entries)
+    const result = await sync(w)
+    expect(result.indexWritten).to.equal(true)
+    const stored = w.kv.get(INDEX_KEY) ?? ''
+    expect(stored.startsWith('base64:')).to.equal(true)
+    const bytes = new Uint8Array([...atob(stored.slice('base64:'.length))].map(c => c.charCodeAt(0)))
+    const expected = buildIndex(entries)
+    expect(bytes).to.deep.equal(expected)
+    expect(statusOf(w).indexed).to.equal(expected.byteLength / 4)
+  })
+
+  it('leaves the index alone when no hash prefix changed', async () => {
+    const w = world()
+    w.listBody = list(hashes(1000))
+    await sync(w)
+    w.writes = []
+    w.listEtag = '"v2"'
+    // same first 4 bytes as entries already listed
+    w.listBody = list([...hashes(1000), '0'.repeat(8) + 'a'.repeat(56)])
+    const result = await sync(w)
+    expect(result.indexWritten).to.equal(false)
+    expect(w.writes.flat()).to.deep.equal([shardKey('000'), META_KEY, STATUS_KEY])
+  })
+
+  it('adds the index once to a store synced before it existed, even if the list is unchanged', async () => {
+    const w = world()
+    w.listBody = list(hashes(1000))
+    await sync(w)
+    const meta = JSON.parse(w.kv.get(META_KEY) ?? '{}')
+    delete meta.index
+    w.kv.set(META_KEY, JSON.stringify(meta))
+    w.kv.delete(INDEX_KEY)
+    w.writes = []
+    const result = await sync(w)
+    expect(result).to.include({ outcome: 'synced', written: 0, indexWritten: true })
+    expect(w.writes.flat()).to.deep.equal([INDEX_KEY, META_KEY, STATUS_KEY])
+    w.writes = []
+    expect((await sync(w)).outcome).to.equal('unchanged')
   })
 
   it('refuses a list below the absolute floor, even on the first run', async () => {

@@ -11,17 +11,19 @@
 //   - unenforceable entries: legacy entries are still synced, then the run
 //     fails so a list-format change cannot go unnoticed
 //
-// Write order is shards, then `bb:meta`, then `bb:status`. An interrupted
+// Write order is shards, then `bb:index`, then `bb:meta`, then `bb:status`. An interrupted
 // run leaves the old meta in place, so the next run rewrites whatever did
 // not land.
 
-import { MIN_ENTRIES, META_KEY, STATUS_KEY, buildShards, changedPrefixes, parseDenylist, shardKey } from './shards.ts'
+import { INDEX_ENTRY_BYTES, INDEX_KEY, MIN_ENTRIES, META_KEY, STATUS_KEY, buildIndex, buildShards, changedPrefixes, parseDenylist, shardKey } from './shards.ts'
 import type { SyncStatus } from './shards.ts'
 
 export interface SyncMeta {
   etag: string | null
   count: number
   shards: Record<string, string>
+  /** digest of `bb:index`; absent before the index existed */
+  index?: string
 }
 
 export interface SyncOptions {
@@ -44,7 +46,9 @@ export interface SyncOptions {
 export interface SyncResult {
   outcome: 'unchanged' | 'synced'
   count: number
+  /** shards written */
   written: number
+  indexWritten: boolean
   unenforced: number
 }
 
@@ -59,8 +63,8 @@ export class UnenforcedEntriesError extends Error {
   }
 }
 
-async function digest (value: string): Promise<string> {
-  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
+async function digest (value: string | Uint8Array<ArrayBuffer>): Promise<string> {
+  const bytes = await crypto.subtle.digest('SHA-256', typeof value === 'string' ? new TextEncoder().encode(value) : value)
 
   return [...new Uint8Array(bytes)].slice(0, 8).map(b => b.toString(16).padStart(2, '0')).join('')
 }
@@ -80,9 +84,26 @@ export function assertPlausibleSize (count: number, previousCount: number | unde
   }
 }
 
+function toBase64 (bytes: Uint8Array): string {
+  let binary = ''
+
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+  }
+
+  return btoa(binary)
+}
+
+interface KVEntry {
+  key: string
+  value: string
+  /** `value` is base64 and stored as the bytes it decodes to */
+  base64?: boolean
+}
+
 interface KVClient {
   readJSON<T>(key: string): Promise<T | null>
-  bulkPut(entries: Array<{ key: string, value: string }>): Promise<void>
+  bulkPut(entries: KVEntry[]): Promise<void>
 }
 
 function kvClient (kvBase: string, token: string, doFetch: typeof globalThis.fetch): KVClient {
@@ -103,7 +124,7 @@ function kvClient (kvBase: string, token: string, doFetch: typeof globalThis.fet
     return await res.json() as T
   }
 
-  async function bulkPut (entries: Array<{ key: string, value: string }>): Promise<void> {
+  async function bulkPut (entries: KVEntry[]): Promise<void> {
     for (let i = 0; i < entries.length; i += BULK_LIMIT) {
       const res = await doFetch(`${options.kvBase}/bulk`, {
         method: 'PUT',
@@ -159,7 +180,8 @@ export async function runSync (options: SyncOptions): Promise<SyncResult> {
   const etag = res.headers.get('etag')
   const checked = now().toISOString()
 
-  if (!force && !full && previousStatus != null && previous?.etag != null && etag === previous.etag) {
+  // a store synced before the index existed is rewritten once to add it
+  if (!force && !full && previousStatus != null && previous?.etag != null && previous.index != null && etag === previous.etag) {
     await res.body?.cancel()
     await bulkPut([{ key: STATUS_KEY, value: JSON.stringify({ ...previousStatus, checked } satisfies SyncStatus) }])
     log(`list unchanged (${etag}), status refreshed`)
@@ -168,7 +190,7 @@ export async function runSync (options: SyncOptions): Promise<SyncResult> {
       throw new UnenforcedEntriesError(previousStatus.unenforced)
     }
 
-    return { outcome: 'unchanged', count: previousStatus.count, written: 0, unenforced: previousStatus.unenforced }
+    return { outcome: 'unchanged', count: previousStatus.count, written: 0, indexWritten: false, unenforced: previousStatus.unenforced }
   }
 
   const { hashes, skipped } = parseDenylist(await res.text())
@@ -180,18 +202,28 @@ export async function runSync (options: SyncOptions): Promise<SyncResult> {
   const shards = buildShards(hashes)
   const { digests, prefixes } = await planWrites(shards, previous, full)
 
-  await bulkPut(prefixes.map(prefix => ({ key: shardKey(prefix), value: shards.get(prefix) ?? '' })))
-  await bulkPut([{ key: META_KEY, value: JSON.stringify({ etag, count: hashes.length, shards: digests } satisfies SyncMeta) }])
+  const index = buildIndex(hashes)
+  const indexDigest = await digest(index)
+  const writeIndex = full || previous?.index !== indexDigest
 
-  const updated = prefixes.length > 0 || previousStatus == null ? checked : previousStatus.updated
-  const status: SyncStatus = { etag, count: hashes.length, unenforced: skipped, updated, checked }
+  await bulkPut(prefixes.map(prefix => ({ key: shardKey(prefix), value: shards.get(prefix) ?? '' })))
+
+  if (writeIndex) {
+    await bulkPut([{ key: INDEX_KEY, value: toBase64(index), base64: true }])
+  }
+
+  await bulkPut([{ key: META_KEY, value: JSON.stringify({ etag, count: hashes.length, shards: digests, index: indexDigest } satisfies SyncMeta) }])
+
+  const updated = prefixes.length > 0 || writeIndex || previousStatus == null ? checked : previousStatus.updated
+  const indexed = index.byteLength / INDEX_ENTRY_BYTES
+  const status: SyncStatus = { etag, count: hashes.length, unenforced: skipped, updated, checked, indexed }
   await bulkPut([{ key: STATUS_KEY, value: JSON.stringify(status) }])
 
-  log(`synced ${hashes.length} entries (${etag}): ${prefixes.length} of ${shards.size} shards written${full ? ' (full)' : ''}`)
+  log(`synced ${hashes.length} entries (${etag}): ${prefixes.length} of ${shards.size} shards written, index ${writeIndex ? `written (${indexed} entries)` : 'unchanged'}${full ? ' (full)' : ''}`)
 
   if (skipped > 0) {
     throw new UnenforcedEntriesError(skipped)
   }
 
-  return { outcome: 'synced', count: hashes.length, written: prefixes.length, unenforced: skipped }
+  return { outcome: 'synced', count: hashes.length, written: prefixes.length, indexWritten: writeIndex, unenforced: skipped }
 }

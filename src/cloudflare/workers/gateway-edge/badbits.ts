@@ -26,7 +26,7 @@ import { CODE_LIBP2P_KEY } from '../../../ui/pages/multicodec-table.ts'
 import { cidV1Bytes, parseCID } from '../../snippets/cid.ts'
 import { base32Encode } from '../../snippets/codec.ts'
 import { dnsLinkDecode } from '../../snippets/dnslink.ts'
-import { SHARD_PREFIX_LENGTH, STATUS_KEY, shardHas, shardKey } from './shards.ts'
+import { INDEX_ENTRY_BYTES, INDEX_KEY, MIN_ENTRIES, SHARD_PREFIX_LENGTH, STATUS_KEY, indexHas, shardHas, shardKey } from './shards.ts'
 import type { SyncStatus } from './shards.ts'
 
 export type Namespace = 'ipfs' | 'ipns'
@@ -114,11 +114,17 @@ export async function sha256Hex (value: string): Promise<string> {
 /** the part of a KV binding the store needs */
 export interface ShardSource {
   get(key: string): Promise<string | null>
+  get(key: string, type: 'arrayBuffer'): Promise<ArrayBuffer | null>
 }
 
 export interface ShardStore {
   /** raw shard value for `prefix` ('' when absent) */
   get(prefix: string): Promise<string>
+  /**
+   * the hash-prefix index, or null when it is missing or implausibly small,
+   * in which case every lookup reads its shard
+   */
+  index(): Promise<Uint8Array | null>
   /** the sync's status record, or null when the store has never been synced */
   status(): Promise<SyncStatus | null>
 }
@@ -126,10 +132,10 @@ export interface ShardStore {
 interface MemoEntry {
   /** when the value was read from KV */
   fetchedAt: number
-  value: string
+  value: string | Uint8Array
 }
 
-// Raw shard strings kept per isolate, least recently used first. Bounded so
+// Raw shard strings (and the index) kept per isolate, least recently used first. Bounded so
 // a busy isolate cannot fill its memory with shards.
 const memo = new Map<string, MemoEntry>()
 
@@ -169,11 +175,20 @@ export interface ShardStoreOptions {
   cache?: Pick<Cache, 'match' | 'put'>
   /** base URL for Cache API keys, must be on the Worker's zone */
   cacheBase: string
-  /** without it, stale shards are re-read from KV on the request path */
+  /** without it, stale values are re-read on the request path */
   waitUntil?(promise: Promise<unknown>): void
-  /** a background KV read failed; the stale shard stays in use */
+  /** a background read failed; the stale value stays in use */
   onRefreshError?(err: unknown): void
+  /** an index with fewer entries is ignored, defaults to MIN_ENTRIES */
+  minIndexEntries?: number
   now?(): number
+}
+
+interface StoreKey {
+  kv: string
+  memo: string
+  cache: Request
+  binary: boolean
 }
 
 /**
@@ -183,79 +198,123 @@ export interface ShardStoreOptions {
  * it, so the layers cannot stack their TTLs.
  *
  * Up to SHARD_TTL_S old a value is used as is. Up to SHARD_MAX_STALE_S old it
- * is still used, and a fresh copy is read from KV in the background. Older,
- * the request waits for KV.
+ * is still used, and a fresh copy is fetched in the background: from the
+ * Cache API if another isolate already put one there, otherwise from KV.
+ * Older, the request waits for KV.
  */
 export function createShardStore (options: ShardStoreOptions): ShardStore {
   const now = options.now ?? Date.now
 
-  async function fetchFromKV (memoKey: string, cacheKey: Request, kvKey: string): Promise<string> {
+  function storeKey (kvKey: string, binary: boolean): StoreKey {
+    return {
+      kv: kvKey,
+      memo: `${options.cacheBase}|${kvKey}`,
+      cache: new Request(`${options.cacheBase}/__badbits/${encodeURIComponent(kvKey)}`),
+      binary
+    }
+  }
+
+  async function fromKV (key: StoreKey): Promise<string | Uint8Array> {
     const fetchedAt = now()
-    const value = (await options.kv.get(kvKey)) ?? ''
+    const value = key.binary
+      ? new Uint8Array((await options.kv.get(key.kv, 'arrayBuffer')) ?? new ArrayBuffer(0))
+      : (await options.kv.get(key.kv)) ?? ''
 
     if (options.cache != null) {
-      const put = options.cache.put(cacheKey, new Response(value, {
+      const put = options.cache.put(key.cache, new Response(value, {
         headers: { 'cache-control': `max-age=${SHARD_MAX_STALE_S}`, [FETCHED_AT]: String(fetchedAt) }
       }))
       options.waitUntil?.(put)
     }
 
-    memoSet(memoKey, { fetchedAt, value })
+    memoSet(key.memo, { fetchedAt, value })
     return value
   }
 
-  async function use (entry: MemoEntry, memoKey: string, cacheKey: Request, kvKey: string): Promise<string> {
+  async function fromCache (key: StoreKey): Promise<MemoEntry | undefined> {
+    const cached = await options.cache?.match(key.cache)
+
+    if (cached == null) {
+      return undefined
+    }
+
+    const header = Number(cached.headers.get(FETCHED_AT))
+    const fetchedAt = Number.isFinite(header) && header > 0 ? header : now()
+
+    if (now() - fetchedAt >= SHARD_MAX_STALE_S * 1000) {
+      return undefined
+    }
+
+    const value = key.binary ? new Uint8Array(await cached.arrayBuffer()) : await cached.text()
+    return { fetchedAt, value }
+  }
+
+  async function refresh (key: StoreKey, stale: MemoEntry): Promise<string | Uint8Array> {
+    const cached = await fromCache(key)
+
+    if (cached != null && cached.fetchedAt > stale.fetchedAt && now() - cached.fetchedAt < SHARD_TTL_S * 1000) {
+      memoSet(key.memo, cached)
+      return cached.value
+    }
+
+    return fromKV(key)
+  }
+
+  async function use (entry: MemoEntry, key: StoreKey): Promise<string | Uint8Array> {
     if (now() - entry.fetchedAt < SHARD_TTL_S * 1000) {
       return entry.value
     }
 
     if (options.waitUntil == null) {
-      return fetchFromKV(memoKey, cacheKey, kvKey)
+      return refresh(key, entry)
     }
 
-    if (!refreshing.has(memoKey)) {
-      refreshing.add(memoKey)
+    if (!refreshing.has(key.memo)) {
+      refreshing.add(key.memo)
       options.waitUntil(
-        fetchFromKV(memoKey, cacheKey, kvKey)
+        refresh(key, entry)
           .catch(err => { options.onRefreshError?.(err) })
-          .finally(() => { refreshing.delete(memoKey) })
+          .finally(() => { refreshing.delete(key.memo) })
       )
     }
 
     return entry.value
   }
 
-  async function read (kvKey: string): Promise<string> {
-    const memoKey = `${options.cacheBase}|${kvKey}`
-    const cacheKey = new Request(`${options.cacheBase}/__badbits/${encodeURIComponent(kvKey)}`)
-    const memoised = memoGet(memoKey, now())
+  async function read (key: StoreKey): Promise<string | Uint8Array> {
+    const memoised = memoGet(key.memo, now())
 
     if (memoised != null) {
-      return use(memoised, memoKey, cacheKey, kvKey)
+      return use(memoised, key)
     }
 
-    const cached = await options.cache?.match(cacheKey)
+    const cached = await fromCache(key)
 
     if (cached != null) {
-      const header = Number(cached.headers.get(FETCHED_AT))
-      const fetchedAt = Number.isFinite(header) && header > 0 ? header : now()
-
-      if (now() - fetchedAt < SHARD_MAX_STALE_S * 1000) {
-        const entry = { fetchedAt, value: await cached.text() }
-        memoSet(memoKey, entry)
-        return use(entry, memoKey, cacheKey, kvKey)
-      }
+      memoSet(key.memo, cached)
+      return use(cached, key)
     }
 
-    return fetchFromKV(memoKey, cacheKey, kvKey)
+    return fromKV(key)
   }
 
   return {
     async get (prefix) {
-      return read(shardKey(prefix))
+      return await read(storeKey(shardKey(prefix), false)) as string
+    },
+    async index () {
+      const value = await read(storeKey(INDEX_KEY, true)) as Uint8Array
+      const entries = value.byteLength / INDEX_ENTRY_BYTES
+
+      // a truncated or empty index would let listed hashes through
+      if (!Number.isInteger(entries) || entries < (options.minIndexEntries ?? MIN_ENTRIES)) {
+        return null
+      }
+
+      return value
     },
     async status () {
-      const value = await read(STATUS_KEY)
+      const value = await read(storeKey(STATUS_KEY, false)) as string
 
       if (value === '') {
         return null
@@ -282,16 +341,24 @@ export function shardMemoSize (): number {
 }
 
 /**
- * Whether any anchor's sha256 is on the list. `extra` holds full sha256 hex
- * digests checked before the shards, for manual blocks and for proving
- * enforcement on staging with a harmless CID.
+ * Whether any anchor's sha256 is on the list. The index rules most hashes
+ * out without a shard read; without a usable index every shard is read.
+ * `extra` holds full sha256 hex digests checked before the shards, for
+ * manual blocks and for proving enforcement on staging with a harmless CID.
  */
-export async function isDenied (anchors: string[], store: Pick<ShardStore, 'get'>, extra: ReadonlySet<string> = new Set()): Promise<boolean> {
+export async function isDenied (anchors: string[], store: Pick<ShardStore, 'get' | 'index'>, extra: ReadonlySet<string> = new Set()): Promise<boolean> {
+  const index = await store.index()
+
   for (const anchor of anchors) {
     const hash = await sha256Hex(anchor)
 
     if (extra.has(hash)) {
       return true
+    }
+
+    // not in the index: certainly not listed, no shard read needed
+    if (index != null && !indexHas(index, hash)) {
+      continue
     }
 
     if (shardHas(await store.get(hash.slice(0, SHARD_PREFIX_LENGTH)), hash.slice(SHARD_PREFIX_LENGTH))) {
