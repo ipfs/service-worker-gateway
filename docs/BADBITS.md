@@ -176,6 +176,13 @@ datasets `gateway_edge_staging` and `gateway_edge_production`:
 The store and index events are checked once a minute per isolate, off the request
 path.
 
+Cloudflare can't alert on these events directly, so the Worker also answers
+`/ipfs-sw-badbits-status` on any subdomain: `200` with `"fresh":true` while
+the last sync is under 2h old, `503` when it's stale, missing or KV can't be
+read. A Cloudflare health check on that path (managed in
+[ipni/terraform-deployments](https://github.com/ipni/terraform-deployments))
+alerts when the sync stops.
+
 The sync workflow itself fails, which notifies whoever GitHub notifies for
 this repo, in these cases:
 - the download fails

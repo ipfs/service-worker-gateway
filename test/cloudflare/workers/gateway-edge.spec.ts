@@ -8,7 +8,7 @@
 import { expect } from 'aegir/chai'
 import { base32Encode, base36Decode } from '../../../src/cloudflare/snippets/codec.ts'
 import { MAX_MEMO_SHARDS, SHARD_MAX_STALE_S, SHARD_TTL_S, clearShardMemo, createShardStore, denylistAnchors, gatewaySubpath, goneResponse, isDenied, parseExtraHashes, sha256Hex, shardMemoSize } from '../../../src/cloudflare/workers/gateway-edge/badbits.ts'
-import { STALE_AFTER_MS, handle, resetHealthCheck } from '../../../src/cloudflare/workers/gateway-edge/index.ts'
+import { STALE_AFTER_MS, STORE_STATUS_PATH, handle, resetHealthCheck } from '../../../src/cloudflare/workers/gateway-edge/index.ts'
 import { INDEX_ENTRY_BYTES, INDEX_KEY, MIN_ENTRIES, STATUS_KEY, buildIndex, buildShards, shardKey } from '../../../src/cloudflare/workers/gateway-edge/shards.ts'
 import type { Env } from '../../../src/cloudflare/workers/gateway-edge/index.ts'
 import type { SyncStatus } from '../../../src/cloudflare/workers/gateway-edge/shards.ts'
@@ -510,6 +510,32 @@ describe('gateway-edge worker', () => {
       const checked = new Date(NOW - STALE_AFTER_MS + 60_000).toISOString()
       const { events } = await run(`https://${ALLOWED_CID}.ipfs.inbrowser.link/`, { status: status({ checked }) })
       expect(events).to.deep.equal([])
+    })
+
+    it('answers the status path with 200 and fresh while the sync is alive', async () => {
+      const { response, installerCalls } = await run(`https://${ALLOWED_CID}.ipfs.inbrowser.link${STORE_STATUS_PATH}`)
+      expect(response.status).to.equal(200)
+      expect(response.headers.get('cache-control')).to.equal('no-store')
+      expect(await response.text()).to.include('"fresh":true')
+      expect(installerCalls).to.have.length(0)
+    })
+
+    it('answers the status path with 503 once the sync has stopped', async () => {
+      const checked = new Date(NOW - STALE_AFTER_MS - 60_000).toISOString()
+      const { response } = await run(`https://${ALLOWED_CID}.ipfs.inbrowser.link${STORE_STATUS_PATH}`, { status: status({ checked }) })
+      expect(response.status).to.equal(503)
+      const body = await response.json()
+      expect(body).to.include({ fresh: false, reason: 'stale', checked })
+    })
+
+    it('answers the status path with 503 when the store is missing or unreadable', async () => {
+      const missing = await run(`https://${ALLOWED_CID}.ipfs.inbrowser.link${STORE_STATUS_PATH}`, { status: null })
+      expect(missing.response.status).to.equal(503)
+      expect(await missing.response.json()).to.include({ fresh: false, reason: 'missing' })
+      clearShardMemo()
+      const failing = await run(`https://${ALLOWED_CID}.ipfs.inbrowser.link${STORE_STATUS_PATH}`, { kvFails: true })
+      expect(failing.response.status).to.equal(503)
+      expect(await failing.response.json()).to.include({ fresh: false, reason: 'error' })
     })
 
     it('checks store health at most once a minute per isolate', async () => {

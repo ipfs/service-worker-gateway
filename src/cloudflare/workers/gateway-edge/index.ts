@@ -43,6 +43,12 @@ export interface Env {
 export const STALE_AFTER_MS = 2 * 60 * 60 * 1000
 /** report store health at most this often per isolate */
 export const HEALTH_CHECK_INTERVAL_MS = 60 * 1000
+/**
+ * Answers whether the denylist store is fresh, for an external health check
+ * to alert on: Cloudflare can't alert on the events below. Under the
+ * gateway's own /ipfs-sw- prefix so it never shadows content.
+ */
+export const STORE_STATUS_PATH = '/ipfs-sw-badbits-status'
 
 export type EdgeEvent = 'badbits_blocked' | 'badbits_lookup_error' | 'badbits_store_missing' | 'badbits_store_stale' | 'badbits_index_missing'
 
@@ -106,6 +112,34 @@ async function checkStoreHealth (store: ShardStore, env: Env, deps: Dependencies
   }
 }
 
+/**
+ * 200 with `"fresh":true` while the sync is alive, 503 otherwise (never
+ * synced, stale, or KV unreadable). The health check matches the body too,
+ * so an installer page answering 200 for an unknown path can't pass it.
+ */
+async function storeStatusResponse (store: ShardStore, now: number): Promise<Response> {
+  let body: Record<string, unknown>
+
+  try {
+    const status = await store.status()
+
+    if (status == null) {
+      body = { fresh: false, reason: 'missing' }
+    } else {
+      const ageS = Math.round((now - Date.parse(status.checked)) / 1000)
+      const fresh = ageS * 1000 <= STALE_AFTER_MS
+      body = { fresh, ...(fresh ? {} : { reason: 'stale' }), checked: status.checked, updated: status.updated, ageS, count: status.count }
+    }
+  } catch (err) {
+    body = { fresh: false, reason: 'error', error: String(err) }
+  }
+
+  return new Response(JSON.stringify(body), {
+    status: body.fresh === true ? 200 : 503,
+    headers: { 'content-type': 'application/json', 'cache-control': 'no-store' }
+  })
+}
+
 export async function handle (request: Request, env: Env, ctx: Pick<ExecutionContext, 'waitUntil'>, deps: Dependencies): Promise<Response> {
   const url = new URL(request.url)
   const match = SUBDOMAIN.exec(url.hostname)
@@ -121,6 +155,10 @@ export async function handle (request: Request, env: Env, ctx: Pick<ExecutionCon
       onRefreshError: err => { report(env, deps, 'badbits_lookup_error', url.hostname, 1, err) },
       now
     })
+
+    if (url.pathname === STORE_STATUS_PATH) {
+      return storeStatusResponse(store, now())
+    }
 
     // off the request path: an empty or frozen store would otherwise block
     // nothing without any error
