@@ -1,0 +1,206 @@
+# Badbits enforcement at the edge
+
+The per-CID subdomains (`*.ipfs.inbrowser.*`, `*.ipns.inbrowser.*`) refuse
+hosts on the [Bad Bits](https://badbits.dwebops.pub/) denylist with
+`410 Gone`, before the service worker installer is served.
+
+## Why this exists
+
+Until September 2026 the subdomains were served through load balancers whose
+origin was Rainbow. Rainbow saw the CID in the `Host` header and answered
+`410` for listed roots. That was about 60k refused requests a day on
+inbrowser.link, relayed to visitors through snippet 02. Cloudflare Pages
+serves the installer for any hostname, so moving the origin to Pages removed
+that enforcement. This Worker restores it independently of the origin.
+
+## How it works
+
+```
+browser ─▶ *.ipfs|ipns.inbrowser.link
+            │
+            ▼
+   gateway-edge Worker  (src/cloudflare/workers/gateway-edge)
+     1. host → legacy anchor(s) → sha256
+     2. index "bb:index": first 4 bytes not in it → not listed (most requests)
+     3. otherwise shard = first 3 hex chars, read "bb:<prefix>"
+        both via in-isolate memo ─▶ Cache API ─▶ KV
+        (fresh 120 s, then served stale while re-read, up to 10 min)
+     4. listed          → 410 Gone
+     5. not listed      → shared installer cache (snippet 02 handler) → origin
+     (background, once a minute per isolate: bb:status present and fresh,
+      bb:index usable?)
+            ▲
+   KV namespace (BADBITS) ◀── Badbits Sync workflow, every 5 min + daily full
+```
+
+- **Anchors** follow the legacy double-hash rules of the
+  [compact denylist spec](https://specs.ipfs.tech/compact-denylist-format/),
+  built the way nopfs (Rainbow's blocker) builds them:
+  - `sha256("<CIDv1 base32>/<path>")` for IPFS
+  - `sha256("<libp2p-key CIDv1 base32>/<path>")` for an IPNS key
+  - `sha256("<domain>/<path>")` for a DNSLink name
+
+  Here `<path>` is the **decoded** path of the first request, without leading
+  or trailing slashes, and empty for the root. So `some%20file` is hashed as
+  `some file`.
+
+  Today every one of the list's ~513k entries is in this legacy form. The
+  sync job warns if other forms appear, because the edge doesn't enforce them.
+- **Shards.** Entries are grouped by the first 3 hex characters of the hash:
+  4,096 KV values of 5–10 KB each. A full load is 4,096 writes, and an update
+  only writes the shards that changed.
+- **Index.** `bb:index` holds the first 4 bytes of every hash, sorted: one
+  binary value of ~2 MB (~511k entries). The Worker checks it first and reads
+  a shard only on a match: a listed hash, or about 1 in 8,000 others.
+  Without it, each request read its own shard, and traffic spread over 4,096
+  shards and ~230 colos missed every cache: subdomain p95 TTFB went from
+  ~60 ms to ~300 ms. The index is the same key for every request, so it stays
+  cached everywhere. The sync writes it after the shards, and only when it
+  changed. If it is missing, or holds fewer than 450,000 entries, the Worker
+  ignores it and reads every shard: slower, but still enforcing.
+- **Before the cache.** The check runs before any cache lookup, so the host's
+  cached installer doesn't need purging.
+- **How fast a new entry takes effect:** usually within about **8 minutes**
+  of the list changing. The pieces add up as follows:
+  - up to 5 minutes until the next sync
+  - up to 60 seconds of KV's own edge cache
+  - up to 120 seconds of shard reuse (memo and Cache API together; a copy's
+    age counts from its KV read, so the layers don't add up)
+
+  After 120 seconds a copy is not dropped. The request that finds it is
+  answered from it, and a fresh copy is read from KV in the background
+  (`SHARD_MAX_STALE_S`). Only past 10 minutes does a request wait for KV.
+  Without this, three in four Cache API lookups found an expired copy and
+  the request waited 100–300 ms on a cold KV read, because each colo holds
+  4,096 shards. The cost: on a shard nobody has
+  asked for in a while, that first request can see a list up to 10 minutes
+  old, so the worst case for a single request is about 16 minutes. If the
+  background read fails, the stale copy stays in use and the failure is
+  reported as `badbits_lookup_error`.
+
+  GitHub runs scheduled workflows best-effort, so a delayed run adds to this.
+  Rainbow's nopfs polled the list about every minute.
+- **Fails open, loudly.** If KV errors, the request is served. An unreachable
+  denylist store must not take every subdomain down. Every such case is
+  reported as `badbits_lookup_error`; see [Monitoring](#monitoring).
+- **Deploy gate.** The deploy workflows refuse to deploy the Worker unless
+  `bb:status` exists, holds at least 450,000 entries, and was synced in the
+  last 24 hours. A Worker bound to an empty or wrong namespace would
+  otherwise block nothing, with no error.
+- **Snippet 02's handler moves into the Worker** for the subdomains.
+  Cloudflare advises against running Snippets and Workers on the same URLs,
+  so snippet 02's rule now matches only the apex hosts. Inside the Worker,
+  the handler's `cache: 'no-store'` retry works, so a poisoned asset entry
+  heals again. The Snippets runtime rejects that option (#1213).
+
+### What it does not cover
+
+- **Service workers already installed** answer navigations locally, so the
+  edge only sees a visitor's first request to a host. Rainbow had the same
+  limitation.
+- **Content the service worker fetches** is filtered by `trustless-gateway.net`
+  (currently Rainbow). Direct peers aren't filtered. A check inside the
+  service worker (#840) would close both gaps. The Worker could serve these
+  same shards to the service worker.
+
+## Setup (once, by someone with Cloudflare access)
+
+1. **KV namespace:** `badbits` (`94d9ebe487dd4ba1bf7d729c364a757b`) already
+   exists. It was created and populated during the manual staging trial, and
+   its id is set in `src/cloudflare/workers/gateway-edge/wrangler.toml`. The
+   deploy workflows still refuse to deploy until the sync has populated it and
+   run within the last 24 hours.
+2. **Create the GitHub environment `badbits`** (Settings → Environments). Give
+   it **no required reviewers and no wait timer**, because the sync runs every 5
+   minutes and a review gate would hold every run. Limit deployment branches to
+   `main`. It needs:
+   - secret `CF_ACCOUNT_ID`
+   - secret `CF_BADBITS_TOKEN`: API token with *Account › Workers KV Storage › Edit*
+   - variable `BADBITS_KV_ID`: the namespace id
+3. **Add secret `CF_WORKERS_TOKEN`** to the `staging` and `production`
+   environments. It's an API token with:
+   - *Account › Workers Scripts › Edit*
+   - *Account › Workers KV Storage › Read* (used by the deploy gate)
+   - *Account › Account Analytics › Read*, if you query the metrics with it
+   - *Zone › Workers Routes › Edit* on `inbrowser.dev` and `inbrowser.link`
+4. **Run the Badbits Sync workflow** manually once, to confirm the environment
+   works. The namespace is already populated, so expect `list unchanged … status
+   refreshed`, or a handful of shards written if the list moved. On an empty
+   namespace, a first run writes all 4,096 shards. After that the schedule takes
+   over.
+5. **Enable Analytics Engine** on the account (dashboard → Workers → Analytics
+   Engine). The `METRICS` binding needs it: without it, `wrangler deploy` fails
+   with error 10089. *(Already enabled on this account.)*
+6. **Set up alerting** on the events in [Monitoring](#monitoring).
+
+## Rollout
+
+1. **Staging first.** Merge, then run *Deploy to Staging*. It deploys the
+   Worker on the `inbrowser.dev` routes, then narrows snippet 02 to the apex,
+   in that order.
+2. **Prove enforcement with a harmless CID** before trusting it with real
+   takedowns:
+   ```bash
+   printf '%s/' bafkreicafxt3zr4cshf7qteztjzl62ouxqrofu647e44wt7s2iaqjn7bra | shasum -a 256
+   ```
+   Set the digest with `wrangler secret put EXTRA_DENY_HASHES --env staging`.
+   Always use a **secret**: a plain dashboard variable is removed by the next
+   `wrangler deploy`. Then:
+   - that CID's `inbrowser.dev` subdomain should return `410`
+   - other CIDs should work normally
+
+   Delete the secret afterwards (`wrangler secret delete EXTRA_DENY_HASHES --env staging`).
+3. **Regression-check the gateway** on staging: path redirect, installer,
+   service worker registration, IPFS and IPNS rendering, assets.
+4. **Point the `inbrowser.dev` load balancers back at Pages first.** Check
+   that the Worker's 410 count follows the list, and that Rainbow's 410s
+   (`edgeWorkerFetch` with origin status `410`) stop.
+5. **Production:** run *Deploy to Production*, repeat steps 3–4 on
+   `inbrowser.link`, and agree the load balancer change with whoever operates
+   the zone.
+
+## Monitoring
+
+The Worker writes structured log lines (Workers Logs are enabled in
+`wrangler.toml`). It also writes the same events to the Analytics Engine
+datasets `gateway_edge_staging` and `gateway_edge_production`:
+
+| Event | Meaning | Alert when |
+|---|---|---|
+| `badbits_blocked` | a host was refused (value 1) | an unexpected drop to zero, compared with the ~60k/day Rainbow baseline |
+| `badbits_lookup_error` | KV failed and the request was **served** (fail-open) | any sustained rate |
+| `badbits_store_missing` | `bb:status` is absent: the Worker is blocking nothing | any occurrence |
+| `badbits_store_stale` | the last completed sync is over 2h old (value = age in seconds) | any occurrence |
+| `badbits_index_missing` | `bb:index` is missing or too small: still enforced, but every lookup reads its shard (slow) | any occurrence after the first sync with the index |
+
+The store and index events are checked once a minute per isolate, off the request
+path.
+
+Cloudflare can't alert on these events directly, so the Worker also answers
+`/ipfs-sw-badbits-status` on any subdomain: `200` with `"fresh":true` while
+the last sync is under 2h old, `503` when it's stale, missing or KV can't be
+read. A Cloudflare health check on that path (managed in
+[ipni/terraform-deployments](https://github.com/ipni/terraform-deployments))
+alerts when the sync stops.
+
+The sync workflow itself fails, which notifies whoever GitHub notifies for
+this repo, in these cases:
+- the download fails
+- the list is below 450,000 entries, or shrank more than 10%
+- a KV write fails
+- the list contains entries the edge can't enforce
+
+In the last case the legacy entries are still synced, and every later run
+keeps failing until the new format is handled.
+
+## Operations
+
+- **Force a sync** past the size guards (for example after a deliberate list
+  shrink): run *Badbits Sync* with `force` checked.
+- **Rewrite every shard:** run *Badbits Sync* with `full` checked. This also
+  runs daily at 03:17 UTC and heals any shard changed outside the sync.
+- **See the list state:** read KV key `bb:status` (ETag, entry count,
+  unenforced count, last change, last successful sync). `bb:meta` holds the
+  per-shard digests.
+- **Refuse a host that isn't on the list yet:** add its anchor's sha256 to
+  the `EXTRA_DENY_HASHES` **secret**. Secrets survive deploys.

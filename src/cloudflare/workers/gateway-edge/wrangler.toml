@@ -1,0 +1,50 @@
+# Worker for the per-CID subdomains: badbits enforcement + installer cache.
+# See docs/BADBITS.md for setup and rollout.
+#
+# Deploy with: wrangler deploy --env staging|production
+# (run from this directory; CI does this in deploy-to-*.yml, after checking
+# the denylist store with .github/scripts/badbits-check.ts)
+#
+# Manual blocks go in the EXTRA_DENY_HASHES *secret*
+# (`wrangler secret put EXTRA_DENY_HASHES --env <env>`). Do not set it as a
+# dashboard variable: `wrangler deploy` replaces plain variables with the ones
+# in this file, which would silently lift the block. Secrets are kept.
+
+name = "gateway-edge"
+main = "index.ts"
+# 2024-11-11 or later is needed for `cache: 'no-store'` on fetch, which the
+# installer cache logic uses to bypass a poisoned asset entry
+compatibility_date = "2026-09-01"
+minify = true
+workers_dev = false
+preview_urls = false
+
+[observability]
+enabled = true
+
+[env.staging]
+name = "gateway-edge-staging"
+routes = [
+  { pattern = "*.ipfs.inbrowser.dev/*", zone_name = "inbrowser.dev" },
+  { pattern = "*.ipns.inbrowser.dev/*", zone_name = "inbrowser.dev" }
+]
+# the same namespace serves both environments: the list is identical
+kv_namespaces = [
+  { binding = "BADBITS", id = "94d9ebe487dd4ba1bf7d729c364a757b" }
+]
+analytics_engine_datasets = [
+  { binding = "METRICS", dataset = "gateway_edge_staging" }
+]
+
+[env.production]
+name = "gateway-edge-production"
+routes = [
+  { pattern = "*.ipfs.inbrowser.link/*", zone_name = "inbrowser.link" },
+  { pattern = "*.ipns.inbrowser.link/*", zone_name = "inbrowser.link" }
+]
+kv_namespaces = [
+  { binding = "BADBITS", id = "94d9ebe487dd4ba1bf7d729c364a757b" }
+]
+analytics_engine_datasets = [
+  { binding = "METRICS", dataset = "gateway_edge_production" }
+]

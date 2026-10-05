@@ -1,1 +1,1 @@
-(ends_with(http.host, "inbrowser.dev") or ends_with(http.host, "inbrowser.link"))
+(http.host eq "inbrowser.dev" or http.host eq "inbrowser.link")
