@@ -13,6 +13,7 @@
 * abort IPFS operations if writing response fails ([#1207](https://github.com/ipfs/service-worker-gateway/issues/1207)) ([9e62f4f](https://github.com/ipfs/service-worker-gateway/commit/9e62f4fb6717c62314ff626e3c837afaddaaaf2d))
 * make timeout per-block ([#1209](https://github.com/ipfs/service-worker-gateway/issues/1209)) ([0196144](https://github.com/ipfs/service-worker-gateway/commit/01961442d3e737399ad99bacc2068ef1612f62f0))
 * use @libp2p/yamux and @libp2p/noise ([#1210](https://github.com/ipfs/service-worker-gateway/issues/1210)) ([a52ff74](https://github.com/ipfs/service-worker-gateway/commit/a52ff7488c0fe2258e6eb4a095d99e8abc9bdac1))
+* bump @helia/verified-fetch to 8.1.2 for the audio playback fix ([#1216](https://github.com/ipfs/service-worker-gateway/issues/1216))
 
 ## [3.4.15](https://github.com/ipfs/service-worker-gateway/compare/v3.4.14...v3.4.15) (2026-08-27)
 
