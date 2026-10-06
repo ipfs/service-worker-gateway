@@ -61,28 +61,27 @@
 //
 // A status of 200 is not enough to tell a real asset from a missing
 // one, because an origin can answer a file it does not have with
-// the installer HTML and a 200. Every origin we ship now returns a
-// real 404 instead: Pages because public/_redirects no longer has a
-// catch-all, main.go and the dev server because they special case
-// the /ipfs-sw- prefix. cacheTtlByStatus only ever sees the status,
-// so a 404 is enough to keep it out of the cache and this check
-// should never fire.
+// the installer HTML and a 200. main.go and the dev server return a
+// real 404 instead, because they special case the /ipfs-sw- prefix.
+// Pages does not: public/_redirects no longer has a catch-all, but
+// with no 404.html in the build Pages still falls back to the index
+// page with a 200, so every missing asset on Pages reaches this
+// check.
 //
-// It stays because "should never" has already been wrong once, in
-// #1155. A deploy cutover raced a request for a freshly hashed
-// chunk. Origin did not have it yet, answered 200 text/html, and
-// the edge pinned that HTML for 24 hours under the shared base
-// domain key, five seconds after the deploy's cache purge had
-// emptied it. Every subdomain then served HTML where a .js file
-// belonged. Browsers reject a module on its MIME type, the
-// installer read that as "a new version shipped" and reloaded, and
-// the reload storm rate limited us.
+// This is what went wrong in #1155. A deploy cutover raced a
+// request for a freshly hashed chunk. Origin did not have it yet,
+// answered 200 text/html, and the edge pinned that HTML for 24
+// hours under the shared base domain key, five seconds after the
+// deploy's cache purge had emptied it. Every subdomain then served
+// HTML where a .js file belonged. Browsers reject a module on its
+// MIME type, the installer read that as "a new version shipped" and
+// reloaded, and the reload storm rate limited us.
 //
-// Two things keep that from recurring. The origin no longer lies,
-// and if one ever does again, this branch refuses to pass the lie
-// on. The deployment being replaced during a cutover is itself an
-// origin that may still have the old catch-all, so the window is
-// real on the very deploy that removes it.
+// This branch keeps that from recurring: whatever the origin says,
+// it refuses to pass HTML off as an asset. The deployment being
+// replaced during a cutover is itself an origin that may still have
+// the old catch-all, so the window is real on the very deploy that
+// removes it.
 //
 // The build never emits HTML under /ipfs-sw-, so a text/html body
 // on an asset path always means the file is missing. When we see
@@ -107,7 +106,9 @@
 // retry reads the poisoned entry again and we answer 404 until the
 // TTL lapses or a purge lands. That is a bad day, but it is a 404
 // rather than HTML masquerading as a script, so the installer shows
-// an error instead of reloading itself into a rate limit.
+// an error instead of reloading itself into a rate limit. A runtime
+// that rejects the option outright gets the same 404: the retry
+// throws, and a thrown retry counts as a miss.
 
 const EDGE_CACHE_TTL_S = 86400 // 24h
 
@@ -188,13 +189,23 @@ export default {
       // the shared cacheKey, so a plain re-fetch would be answered by the
       // poisoned entry we are trying to get around. `cf.cacheTtl: 0` does not
       // help: it expires the entry it writes, it does not bypass the lookup.
-      const fresh = await fetch(new Request(request, {
-        redirect: 'manual',
-        cache: 'no-store'
-      }))
+      //
+      // The retry is best effort. On inbrowser.dev and inbrowser.link it
+      // throws instead of fetching, most likely because the snippet runtime
+      // does not implement the `cache` option. Uncaught, that turns every
+      // missing asset into a Cloudflare "Worker threw exception" 500, so
+      // any failure here falls through to the 404 below.
+      try {
+        const fresh = await fetch(new Request(request, {
+          redirect: 'manual',
+          cache: 'no-store'
+        }))
 
-      if (isAssetResponse(fresh)) {
-        return fresh
+        if (isAssetResponse(fresh)) {
+          return fresh
+        }
+      } catch {
+        // fall through to the 404
       }
 
       return notFound()
