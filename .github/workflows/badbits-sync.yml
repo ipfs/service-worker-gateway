@@ -12,11 +12,9 @@
 name: Badbits Sync
 
 on:
-  # Schedule paused while the badbits list host is down; the k3s CronJob
-  # keeps syncing meanwhile. Restore these two crons to re-enable it.
-  # schedule:
-  #   - cron: '*/5 * * * *'
-  #   - cron: '17 3 * * *'
+  schedule:
+    - cron: '*/5 * * * *'
+    - cron: '17 3 * * *'
   workflow_dispatch:
     inputs:
       force:
