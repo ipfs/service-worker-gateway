@@ -1,0 +1,13 @@
+diff --git a/node_modules/@helia/block-brokers/dist/src/trustless-gateway/utils.js b/node_modules/@helia/block-brokers/dist/src/trustless-gateway/utils.js
+index 23527a0..15ed1a3 100644
+--- a/node_modules/@helia/block-brokers/dist/src/trustless-gateway/utils.js
++++ b/node_modules/@helia/block-brokers/dist/src/trustless-gateway/utils.js
+@@ -5,7 +5,7 @@ import { Uint8ArrayList } from 'uint8arraylist';
+ import { TrustlessGateway } from "./trustless-gateway.js";
+ export function filterNonHTTPMultiaddrs(multiaddrs, allowInsecure, allowLocal) {
+     return multiaddrs.filter(ma => {
+-        if (HTTPS.matches(ma) || (allowInsecure && HTTP.matches(ma))) {
++        if (HTTPS.exactMatch(ma) || (allowInsecure && HTTP.exactMatch(ma))) {
+             if (allowLocal) {
+                 return true;
+             }

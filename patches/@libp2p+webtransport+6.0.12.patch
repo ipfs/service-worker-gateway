@@ -1,0 +1,39 @@
+diff --git a/node_modules/@libp2p/webtransport/dist/src/index.js b/node_modules/@libp2p/webtransport/dist/src/index.js
+index 5b52492..48f3757 100644
+--- a/node_modules/@libp2p/webtransport/dist/src/index.js
++++ b/node_modules/@libp2p/webtransport/dist/src/index.js
+@@ -225,8 +225,12 @@ class WebTransportTransport {
+             if (!WebTransportMatcher.exactMatch(ma)) {
+                 return false;
+             }
+-            const { url, certhashes } = parseMultiaddr(ma);
+-            return url != null && certhashes.length > 0;
++            try {
++                const { url, certhashes } = parseMultiaddr(ma);
++                return url != null && certhashes.length > 0;
++            } catch {
++                return false;
++            }
+         });
+     }
+ }
+diff --git a/node_modules/@libp2p/webtransport/src/index.ts b/node_modules/@libp2p/webtransport/src/index.ts
+index 75f05ff..01eb51a 100644
+--- a/node_modules/@libp2p/webtransport/src/index.ts
++++ b/node_modules/@libp2p/webtransport/src/index.ts
+@@ -306,9 +306,12 @@ class WebTransportTransport implements Transport<WebTransportDialEvents> {
+         return false
+       }
+ 
+-      const { url, certhashes } = parseMultiaddr(ma)
+-
+-      return url != null && certhashes.length > 0
++      try {
++        const { url, certhashes } = parseMultiaddr(ma)
++        return url != null && certhashes.length > 0
++      } catch {
++        return false
++      }
+     })
+   }
+ }
