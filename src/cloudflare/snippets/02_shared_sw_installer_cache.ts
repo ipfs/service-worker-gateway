@@ -21,7 +21,10 @@
 //     share one edge entry.
 //
 //   everything else (the installer page)
-//     cache key normalized to one entry per subdomain.
+//     cache key normalized to the base domain, so all subdomains
+//     share one edge entry. The page is identical on every subdomain,
+//     and badbits is enforced before this handler runs, so a per-host
+//     entry only made every new subdomain a cold miss at every colo.
 //
 // HTML and asset TTLs are both 24h, but note that equal TTLs are
 // not synchronized expiry: the two entries are written whenever
@@ -143,9 +146,9 @@ function notFound (): Response {
 export default {
   async fetch (request: Request): Promise<Response> {
     const url = new URL(request.url)
+    const baseDomain = url.hostname.split('.').slice(-2).join('.')
 
     if (url.pathname.startsWith('/ipfs-sw-')) {
-      const baseDomain = url.hostname.split('.').slice(-2).join('.')
       const cacheKey = `https://${baseDomain}${url.pathname}`
 
       // redirect: manual matches the installer branch. With the
@@ -224,7 +227,7 @@ export default {
     return fetch(installerReq, {
       cf: {
         cacheEverything: true,
-        cacheKey: `https://${url.hostname}/__sw_installer_html`,
+        cacheKey: `https://${baseDomain}/__sw_installer_html`,
         cacheTtlByStatus: {
           '200-299': EDGE_CACHE_TTL_S,
           // Do not cache errors. A transient failure must not be stuck
