@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.5.1](https://github.com/ipfs/service-worker-gateway/compare/v3.5.0...v3.5.1) (2026-10-15)
+
+
+### Bug Fixes
+
+* share the installer HTML cache entry across subdomains ([#1220](https://github.com/ipfs/service-worker-gateway/issues/1220)) ([02b8918](https://github.com/ipfs/service-worker-gateway/commit/02b89180be59d3b194c093c5be612da39e87ccb8))
+
 ## [3.5.0](https://github.com/ipfs/service-worker-gateway/compare/v3.4.15...v3.5.0) (2026-10-05)
 
 
