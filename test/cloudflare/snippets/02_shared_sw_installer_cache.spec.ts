@@ -4,7 +4,7 @@
 // TTL differentiation, Cache-Control passthrough, and the installer branch
 // upstream rewrite (path → "/", Accept: text/html, redirect: manual,
 // GET/HEAD only) that prevents path-specific origin responses from poisoning
-// the collapsed per-subdomain cache entry.
+// the shared installer cache entry.
 //
 // The asset branch additionally refuses to serve a text/html body under a
 // /ipfs-sw-* URL. That body is the origin's installer page standing in for a
@@ -220,28 +220,22 @@ describe('02_shared_sw_installer_cache', () => {
     })
   })
 
-  describe('non-SW paths (per-subdomain installer cache key, 24h TTL)', () => {
-    it('collapses /wiki/ to per-subdomain installer cache key', async () => {
+  describe('non-SW paths (base-domain installer cache key, 24h TTL)', () => {
+    it('collapses /wiki/ to base-domain installer cache key', async () => {
       const { cf } = await callHandler('https://bafyxxx.ipfs.inbrowser.dev/wiki/')
-      expect(cf.cacheKey).to.equal('https://bafyxxx.ipfs.inbrowser.dev/__sw_installer_html')
+      expect(cf.cacheKey).to.equal('https://inbrowser.dev/__sw_installer_html')
       expect(cf.cacheEverything).to.equal(true)
     })
 
-    it('collapses root / to per-subdomain installer cache key', async () => {
+    it('collapses root / to base-domain installer cache key', async () => {
       const { cf } = await callHandler('https://bafyxxx.ipfs.inbrowser.dev/')
-      expect(cf.cacheKey).to.equal('https://bafyxxx.ipfs.inbrowser.dev/__sw_installer_html')
+      expect(cf.cacheKey).to.equal('https://inbrowser.dev/__sw_installer_html')
     })
 
     it('shares cache key across long-tail paths on the same subdomain', async () => {
       const { cf: cf1 } = await callHandler('https://en-wikipedia--on--ipfs-org.ipns.inbrowser.link/wiki/Charles_Krum.html')
       const { cf: cf2 } = await callHandler('https://en-wikipedia--on--ipfs-org.ipns.inbrowser.link/wiki/Tver_Carriage_Works')
       expect(cf1.cacheKey).to.equal(cf2.cacheKey)
-    })
-
-    it('uses different cache key for different subdomains', async () => {
-      const { cf: cfA } = await callHandler('https://aaa.ipfs.inbrowser.dev/page')
-      const { cf: cfB } = await callHandler('https://bbb.ipfs.inbrowser.dev/page')
-      expect(cfA.cacheKey).to.not.equal(cfB.cacheKey)
     })
 
     it('uses 24h edge TTL for 2xx only', async () => {
@@ -268,9 +262,9 @@ describe('02_shared_sw_installer_cache', () => {
       expect(response.headers.get('Cache-Control')).to.equal('no-cache')
     })
 
-    it('uses per-subdomain cache key on .ipns. subdomain', async () => {
+    it('uses base-domain installer cache key on .ipns. subdomain', async () => {
       const { cf } = await callHandler('https://en-wikipedia--on--ipfs-org.ipns.inbrowser.dev/wiki/')
-      expect(cf.cacheKey).to.equal('https://en-wikipedia--on--ipfs-org.ipns.inbrowser.dev/__sw_installer_html')
+      expect(cf.cacheKey).to.equal('https://inbrowser.dev/__sw_installer_html')
       expect(cf.cacheTtlByStatus['200-299']).to.equal(86400)
     })
 
@@ -298,7 +292,7 @@ describe('02_shared_sw_installer_cache', () => {
 
     // The next block covers the cache-poisoning fix: the upstream fetch
     // must be rewritten so a path-specific origin response (e.g. a 308
-    // redirect) cannot be pinned under the per-subdomain cache key.
+    // redirect) cannot be pinned under the base-domain installer cache key.
 
     it('rewrites the upstream URL to "/" regardless of requested path', async () => {
       const { request } = await callHandler('https://bafyxxx.ipfs.inbrowser.dev/wiki/Anything?q=1')
@@ -368,15 +362,21 @@ describe('02_shared_sw_installer_cache', () => {
       expect(cfLink.cacheKey).to.equal('https://inbrowser.link/ipfs-sw-main.js')
     })
 
+    it('shares one installer cache key across different subdomains', async () => {
+      const { cf: a } = await callHandler('https://bafyaaa.ipfs.inbrowser.link/')
+      const { cf: b } = await callHandler('https://bafybbb.ipns.inbrowser.link/robots.txt')
+      expect(a.cacheKey).to.equal(b.cacheKey)
+    })
+
     it('works the same for .dev and .link on non-SW paths', async () => {
       const { cf: cfDev } = await callHandler('https://bafyxxx.ipfs.inbrowser.dev/page')
       const { cf: cfLink } = await callHandler('https://bafyxxx.ipfs.inbrowser.link/page')
       expect(cfDev.cacheTtlByStatus['200-299']).to.equal(cfLink.cacheTtlByStatus['200-299'])
-      expect(cfDev.cacheKey).to.equal('https://bafyxxx.ipfs.inbrowser.dev/__sw_installer_html')
-      expect(cfLink.cacheKey).to.equal('https://bafyxxx.ipfs.inbrowser.link/__sw_installer_html')
+      expect(cfDev.cacheKey).to.equal('https://inbrowser.dev/__sw_installer_html')
+      expect(cfLink.cacheKey).to.equal('https://inbrowser.link/__sw_installer_html')
     })
 
-    it('base domain requests use 24h TTL and per-host installer key', async () => {
+    it('base domain requests use 24h TTL and base-domain installer key', async () => {
       const { cf } = await callHandler('https://inbrowser.dev/')
       expect(cf.cacheTtlByStatus['200-299']).to.equal(86400)
       expect(cf.cacheKey).to.equal('https://inbrowser.dev/__sw_installer_html')
