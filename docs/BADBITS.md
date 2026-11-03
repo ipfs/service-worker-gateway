@@ -98,9 +98,9 @@ browser ─▶ *.ipfs|ipns.inbrowser.link
 - **Service workers already installed** answer navigations locally, so the
   edge only sees a visitor's first request to a host. Rainbow had the same
   limitation.
-- **Content the service worker fetches** is filtered by `trustless-gateway.net`
-  (currently Rainbow). Direct peers aren't filtered. A check inside the
-  service worker (#840) would close both gaps. The Worker could serve these
+- **Content the service worker fetches** isn't filtered by the gateway, as it
+  comes directly from providers found through delegated routing. A check inside
+  the service worker (#840) would close both gaps. The Worker could serve these
   same shards to the service worker.
 
 ## Setup (once, by someone with Cloudflare access)
