@@ -220,7 +220,7 @@ describe('02_shared_sw_installer_cache', () => {
     })
   })
 
-  describe('non-SW paths (base-domain installer cache key, 24h TTL)', () => {
+  describe('non-SW paths (base-domain installer cache key, 1h TTL)', () => {
     it('collapses /wiki/ to base-domain installer cache key', async () => {
       const { cf } = await callHandler('https://bafyxxx.ipfs.inbrowser.dev/wiki/')
       expect(cf.cacheKey).to.equal('https://inbrowser.dev/__sw_installer_html')
@@ -238,9 +238,9 @@ describe('02_shared_sw_installer_cache', () => {
       expect(cf1.cacheKey).to.equal(cf2.cacheKey)
     })
 
-    it('uses 24h edge TTL for 2xx only', async () => {
+    it('uses 1h edge TTL for 2xx only', async () => {
       const { cf } = await callHandler('https://bafyxxx.ipfs.inbrowser.dev/page')
-      expect(cf.cacheTtlByStatus['200-299']).to.equal(86400)
+      expect(cf.cacheTtlByStatus['200-299']).to.equal(3600)
     })
 
     it('does not cache 3xx, 4xx or 5xx responses at edge', async () => {
@@ -265,7 +265,7 @@ describe('02_shared_sw_installer_cache', () => {
     it('uses base-domain installer cache key on .ipns. subdomain', async () => {
       const { cf } = await callHandler('https://en-wikipedia--on--ipfs-org.ipns.inbrowser.dev/wiki/')
       expect(cf.cacheKey).to.equal('https://inbrowser.dev/__sw_installer_html')
-      expect(cf.cacheTtlByStatus['200-299']).to.equal(86400)
+      expect(cf.cacheTtlByStatus['200-299']).to.equal(3600)
     })
 
     it('does not override Cache-Control for 301 responses', async () => {
@@ -344,11 +344,12 @@ describe('02_shared_sw_installer_cache', () => {
       expect(cf.cacheTtlByStatus['300-599']).to.not.equal(undefined, 'expected 300-599 key to be defined')
     })
 
-    it('HTML and versioned SW asset TTLs match (avoid HTML-JS skew)', async () => {
+    it('installer HTML TTL is positive and shorter than the asset TTL (bounds a poisoned shared entry)', async () => {
       const { cf: cfHtml } = await callHandler('https://bafyxxx.ipfs.inbrowser.dev/page')
       stubHeaders = JS
       const { cf: cfAsset } = await callHandler('https://bafyxxx.ipfs.inbrowser.dev/ipfs-sw-main.js')
-      expect(cfHtml.cacheTtlByStatus['200-299']).to.equal(cfAsset.cacheTtlByStatus['200-299'])
+      expect(cfHtml.cacheTtlByStatus['200-299']).to.be.greaterThan(0)
+      expect(cfHtml.cacheTtlByStatus['200-299']).to.be.lessThan(cfAsset.cacheTtlByStatus['200-299'])
     })
   })
 
@@ -376,9 +377,9 @@ describe('02_shared_sw_installer_cache', () => {
       expect(cfLink.cacheKey).to.equal('https://inbrowser.link/__sw_installer_html')
     })
 
-    it('base domain requests use 24h TTL and base-domain installer key', async () => {
+    it('base domain requests use 1h installer TTL and base-domain installer key', async () => {
       const { cf } = await callHandler('https://inbrowser.dev/')
-      expect(cf.cacheTtlByStatus['200-299']).to.equal(86400)
+      expect(cf.cacheTtlByStatus['200-299']).to.equal(3600)
       expect(cf.cacheKey).to.equal('https://inbrowser.dev/__sw_installer_html')
     })
   })

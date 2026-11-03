@@ -14,27 +14,30 @@
 // which checks the badbits denylist first. Cloudflare advises against
 // Snippets and Workers on the same URLs, hence the split.
 //
-// Two cache branches, both with a 24h TTL:
+// Two cache branches:
 //
-//   /ipfs-sw-* (versioned assets)
+//   /ipfs-sw-* (versioned assets), 24h TTL
 //     cache key normalized to the base domain, so all subdomains
 //     share one edge entry.
 //
-//   everything else (the installer page)
+//   everything else (the installer page), 1h TTL
 //     cache key normalized to the base domain, so all subdomains
 //     share one edge entry. The page is identical on every subdomain,
 //     and badbits is enforced before this handler runs, so a per-host
 //     entry only made every new subdomain a cold miss at every colo.
 //
-// HTML and asset TTLs are both 24h, but note that equal TTLs are
-// not synchronized expiry: the two entries are written whenever
-// they are first requested, so they drift apart by however long
-// separates those requests. In #1155 the HTML entry was written
-// two and a half hours after the asset entry. What keeps a stale
-// HTML from naming an asset that is gone is that a missing asset
-// 404s (see below), not that the numbers match. Badbits is
-// enforced by purging the whole subdomain, so a long TTL does not
-// delay takedowns.
+// The HTML TTL is short on purpose. One entry now serves every
+// subdomain of a colo, so a bad entry (a half rolled out build, a
+// stored error page) would be pinned for all of them until the TTL
+// lapses or a purge lands. At 1h that costs about 24 refills per colo
+// per day, against about 265k origin misses a day when every subdomain
+// had its own entry. Assets are content hashed, so a long TTL is safe
+// for them. The two entries are written whenever they are first
+// requested and never expire together: what keeps a stale HTML from
+// naming an asset that is gone is that a missing asset 404s (see
+// below), not that the numbers match. Every deploy purges the zone.
+// Badbits is enforced before this handler runs, so TTLs do not delay
+// takedowns.
 //
 // Why we rewrite the upstream URL for the installer branch
 //
@@ -58,7 +61,7 @@
 // cacheEverything: true overrides the origin Cache-Control header,
 // so this snippet owns the cache decision. We only cache 200-299.
 // 3xx, 4xx and 5xx are not cached so a transient origin response
-// cannot get pinned for the full 24 hour TTL.
+// cannot get pinned for the full TTL.
 //
 // Why the asset branch also checks the content type
 //
@@ -112,7 +115,8 @@
 // rather than HTML masquerading as a script, so the installer shows
 // an error instead of reloading itself into a rate limit.
 
-const EDGE_CACHE_TTL_S = 86400 // 24h
+const EDGE_CACHE_TTL_S = 86400 // 24h, versioned assets
+const INSTALLER_HTML_TTL_S = 3600 // 1h, the installer page
 
 /**
  * Whether a response body is really a versioned asset.
@@ -229,7 +233,7 @@ export default {
         cacheEverything: true,
         cacheKey: `https://${baseDomain}/__sw_installer_html`,
         cacheTtlByStatus: {
-          '200-299': EDGE_CACHE_TTL_S,
+          '200-299': INSTALLER_HTML_TTL_S,
           // Do not cache errors. A transient failure must not be stuck
           // in cache for the full TTL.
           '300-599': 0
