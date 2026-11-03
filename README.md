@@ -63,10 +63,15 @@ The main goals of this project are:
 
 ### Feature Set
 
-- 🔒 [Trustless Retrieval](https://specs.ipfs.tech/http-gateways/trustless-gateway/) client that fetches content directly from providers over HTTPS, Secure WebSockets, and other browser-compatible transports.
 - 🌐 Service Worker running as a [Web Gateway](https://specs.ipfs.tech/http-gateways/) for website hosting (`index.html`, [web pathing](https://github.com/ipfs/specs/issues/432), `_redirects`).
 - 🧭 [HTTP Routing V1](https://specs.ipfs.tech/routing/http-routing-v1/) (`/routing/v1`) client for discovering content providers (via `delegated-ipfs.dev`).
 - 📡 [DNSLink](https://dnslink.dev/) resolution via [DNS-over-HTTPS](https://en.wikipedia.org/wiki/DNS_over_HTTPS) (DoH).
+
+### Content availability
+
+The public trustless gateway that used to be the fallback for fetching content has been retired. The service worker now gets content only from providers a browser can reach directly, and content with no reachable provider fails to load.
+
+[WebTransport](https://developer.mozilla.org/en-US/docs/Web/API/WebTransport_API) is now essential for this, and providers behind NAT need UPnP or port forwarding so that browsers can connect to them.
 
 Compliance with [IPFS HTTP Gateway specifications](https://specs.ipfs.tech/http-gateways/) is tested using the [gateway-conformance](https://github.com/ipfs/gateway-conformance) test suite (the same suite used by [Kubo](https://github.com/ipfs/kubo) and [Rainbow](https://github.com/ipfs/rainbow)).
 
