@@ -95,13 +95,17 @@ browser ─▶ *.ipfs|ipns.inbrowser.link
 
 ### What it does not cover
 
-- **Service workers already installed** answer navigations locally, so the
-  edge only sees a visitor's first request to a host. Rainbow had the same
-  limitation.
-- **Content the service worker fetches** is filtered by `trustless-gateway.net`
-  (currently Rainbow). Direct peers aren't filtered. A check inside the
-  service worker (#840) would close both gaps. The Worker could serve these
-  same shards to the service worker.
+The Worker blocks a listed CID by not serving the installer, so no service
+worker starts on that host and nothing loads. It only checks the URL, and only
+before a service worker is installed, so it misses:
+
+- **Listed files inside an unlisted directory.** The directory passes, and the
+  service worker then fetches the file without checking the list.
+- **Service workers already installed.** They answer requests locally, so the
+  Worker never sees them. Rainbow had the same limitation.
+
+A check inside the service worker (discussed in #840) would close both gaps.
+The Worker could serve these same shards to the service worker.
 
 ## Setup (once, by someone with Cloudflare access)
 

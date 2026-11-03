@@ -10,9 +10,7 @@ export interface Config {
  * Config used in production
  */
 export const config: Config = {
-  gateways: [
-    'https://trustless-gateway.net'
-  ],
+  gateways: [],
   routers: [
     'https://delegated-ipfs.dev'
   ],
