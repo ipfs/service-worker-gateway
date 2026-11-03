@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.5.2](https://github.com/ipfs/service-worker-gateway/compare/v3.5.1...v3.5.2) (2026-11-03)
+
+
+### Bug Fixes
+
+* remove the retired trustless gateway fallback ([#1229](https://github.com/ipfs/service-worker-gateway/issues/1229)) ([ea91f81](https://github.com/ipfs/service-worker-gateway/commit/ea91f81ad899c220bb8b8b5aadd03f719f1b3e38))
+
 ## [3.5.1](https://github.com/ipfs/service-worker-gateway/compare/v3.5.0...v3.5.1) (2026-10-15)
 
 
