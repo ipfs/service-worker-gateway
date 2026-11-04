@@ -12,8 +12,6 @@
 
 name = "gateway-edge"
 main = "index.ts"
-# 2024-11-11 or later is needed for `cache: 'no-store'` on fetch, which the
-# installer cache logic uses to bypass a poisoned asset entry
 compatibility_date = "2026-09-01"
 minify = true
 workers_dev = false

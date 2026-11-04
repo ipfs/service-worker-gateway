@@ -89,9 +89,9 @@ browser ─▶ *.ipfs|ipns.inbrowser.link
   otherwise block nothing, with no error.
 - **Snippet 02's handler moves into the Worker** for the subdomains.
   Cloudflare advises against running Snippets and Workers on the same URLs,
-  so snippet 02's rule now matches only the apex hosts. Inside the Worker,
-  the handler's `cache: 'no-store'` retry works, so a poisoned asset entry
-  heals again. The Snippets runtime rejects that option (#1213).
+  so snippet 02's rule now matches only the apex hosts. In both runtimes, the
+  handler retries past a poisoned asset entry with a cache key of its own, so
+  serving the real asset doesn't need a purge (#1213).
 
 ### What it does not cover
 
