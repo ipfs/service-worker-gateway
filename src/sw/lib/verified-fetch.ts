@@ -137,6 +137,8 @@ export async function updateVerifiedFetch (): Promise<void> {
     ]
   }), {
     delegatedRouters: config.routers,
+    // always pass a list, if this is undefined `withHTTP` uses its default
+    // public gateways - an empty list disables the fallback
     recursiveGateways: config.gateways,
     allowLocal: true,
     allowInsecure: true

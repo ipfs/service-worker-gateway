@@ -1,6 +1,6 @@
 {
   "name": "@helia/service-worker-gateway",
-  "version": "3.4.15",
+  "version": "3.5.2",
   "private": true,
   "type": "module",
   "description": "An IPFS Gateway that uses @helia/verified-fetch in a Service Worker to fetch content",
@@ -48,7 +48,7 @@
     "@helia/http": "^4.0.6",
     "@helia/libp2p": "^2.1.3",
     "@helia/trustless-gateway-client": "^1.0.5",
-    "@helia/verified-fetch": "^8.1.1",
+    "@helia/verified-fetch": "^8.1.2",
     "@ipld/dag-cbor": "^10.0.1",
     "@ipld/dag-json": "^11.0.0",
     "@ipld/dag-pb": "^4.1.7",

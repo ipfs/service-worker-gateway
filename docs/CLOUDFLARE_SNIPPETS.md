@@ -16,3 +16,7 @@ Required secrets per environment:
 
 - `CF_SNIPPETS_TOKEN_STAGING` -- API token with Zone > Snippets > Edit for `inbrowser.dev`
 - `CF_SNIPPETS_TOKEN_PRODUCTION` -- API token with Zone > Snippets > Edit for `inbrowser.link`
+
+## Subdomains run a Worker, not snippet 02
+
+`02_shared_sw_installer_cache` only matches the apex hosts. On `*.ipfs.*` and `*.ipns.*` the same handler runs inside the `gateway-edge` Worker, which checks the badbits denylist first. See [BADBITS.md](./BADBITS.md).
