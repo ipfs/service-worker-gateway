@@ -162,13 +162,43 @@ describe('02_shared_sw_installer_cache', () => {
     })
 
     // cf.cacheTtl: 0 would only expire what it writes; it does not skip the
-    // cache read. On the base domain the request URL *is* the shared cacheKey,
-    // so without no-store the retry would be answered by the poisoned entry.
+    // cache read. A new query string would not either, as these zones set their
+    // cache level to ignore query strings. Only a new cache key misses the
+    // poisoned entry.
     it('skips the cache read on the retry, rather than just the write', async () => {
       stubByCall = [{ headers: HTML }, { headers: JS }]
       await callHandler('https://inbrowser.dev/ipfs-sw-main.js')
-      expect(requests[1].cache).to.equal('no-store')
-      expect(cfOptions[1]).to.equal(null)
+      expect(cfOptions[1].cacheKey).to.be.a('string')
+      expect(cfOptions[1].cacheKey).to.not.equal(cfOptions[0].cacheKey)
+      expect(cfOptions[1].cacheKey.startsWith(`${cfOptions[0].cacheKey}?`)).to.equal(true)
+    })
+
+    it('does not cache the retry under the shared key or force it into cache', async () => {
+      stubByCall = [{ headers: HTML }, { headers: JS }]
+      await callHandler('https://inbrowser.dev/ipfs-sw-main.js')
+      expect(cfOptions[1].cacheEverything).to.equal(undefined)
+      expect(cfOptions[1].cacheTtlByStatus).to.equal(undefined)
+    })
+
+    // The snippet runtime on the apex appears to throw on the `cache` option.
+    // Left uncaught, every missing asset became a "Worker threw exception" 500,
+    // and caught, a poisoned entry on the apex could only ever answer 404.
+    it('heals a poisoned entry in a runtime that rejects the cache option', async () => {
+      const NativeRequest = globalThis.Request
+      sandbox.replace(globalThis, 'Request', class extends NativeRequest {
+        constructor (input: RequestInfo | URL, init?: RequestInit) {
+          if (init?.cache != null) {
+            throw new TypeError("The 'cache' field on 'RequestInitializerDict' is not implemented.")
+          }
+
+          super(input, init)
+        }
+      })
+      stubByCall = [{ headers: HTML }, { headers: JS }]
+      const { response, calls } = await callHandler('https://inbrowser.dev/ipfs-sw-main.js')
+      expect(response.status).to.equal(200)
+      expect(response.headers.get('content-type')).to.equal('application/javascript')
+      expect(calls).to.equal(2)
     })
 
     it('retries the same URL it was asked for', async () => {
@@ -185,14 +215,20 @@ describe('02_shared_sw_installer_cache', () => {
       expect(calls).to.equal(2)
     })
 
-    // Snippets on inbrowser.dev and inbrowser.link throw on the retry, most
-    // likely because the runtime does not implement the `cache` option. Left
-    // uncaught, every missing asset became a "Worker threw exception" 500.
-    it('404s when the retry throws', async () => {
-      stubByCall = [{ headers: HTML }, { throws: new TypeError("The 'cache' field on 'RequestInitializerDict' is not implemented.") }]
-      const { response, calls } = await callHandler('https://bafyxxx.ipfs.inbrowser.dev/ipfs-sw-main.js')
+    it('404s and logs when the retry fails', async () => {
+      const consoleError = sandbox.stub(console, 'error')
+      stubByCall = [{ headers: HTML }, { throws: new TypeError('network connection lost') }]
+      const { response, calls } = await callHandler('https://inbrowser.dev/ipfs-sw-main.js')
       expect(response.status).to.equal(404)
       expect(response.headers.get('cache-control')).to.equal('no-store')
+      expect(calls).to.equal(2)
+      expect(consoleError.calledOnce).to.equal(true)
+    })
+
+    it('passes a 5xx from the retry through rather than calling the file missing', async () => {
+      stubByCall = [{ headers: HTML }, { status: 503 }]
+      const { response, calls } = await callHandler('https://inbrowser.dev/ipfs-sw-main.js')
+      expect(response.status).to.equal(503)
       expect(calls).to.equal(2)
     })
 

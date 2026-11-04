@@ -81,16 +81,14 @@
 // reloaded, and the reload storm rate limited us.
 //
 // This branch keeps that from recurring: whatever the origin says,
-// it refuses to pass HTML off as an asset. The deployment being
-// replaced during a cutover is itself an origin that may still have
-// the old catch-all, so the window is real on the very deploy that
-// removes it.
+// it refuses to pass HTML off as an asset. Every deploy opens this
+// window, because Pages does not reach all of its nodes at the same
+// instant.
 //
 // The build never emits HTML under /ipfs-sw-, so a text/html body
 // on an asset path always means the file is missing. When we see
-// one we go back to origin with `cache: 'no-store'`, the one option
-// that skips the cache read rather than just the write. If the
-// deploy has since settled we serve the real asset, so a poisoned
+// one we go back to origin under a cache key that no entry can have.
+// If the deploy has since settled we serve the real asset, so a poisoned
 // entry costs an extra origin fetch rather than a day of downtime,
 // and it heals without waiting for a purge that may never run: the
 // purge is a step in a workflow, and that workflow gets cancelled.
@@ -105,13 +103,10 @@
 // 2 MB snippet memory limit. So we let the entry exist and refuse
 // to serve it.
 //
-// Worst case, if a runtime ever ignored `cache: 'no-store'`, the
-// retry reads the poisoned entry again and we answer 404 until the
-// TTL lapses or a purge lands. That is a bad day, but it is a 404
-// rather than HTML masquerading as a script, so the installer shows
-// an error instead of reloading itself into a rate limit. A runtime
-// that rejects the option outright gets the same 404: the retry
-// throws, and a thrown retry counts as a miss.
+// Worst case, the retry itself fails. We log that and answer 404,
+// and the next request tries again. That is a bad day, but it is a
+// 404 rather than HTML masquerading as a script, so the installer
+// shows an error instead of reloading itself into a rate limit.
 
 const EDGE_CACHE_TTL_S = 86400 // 24h
 
@@ -141,6 +136,18 @@ function notFound (): Response {
   return new Response(null, {
     status: 404,
     headers: { 'cache-control': 'no-store' }
+  })
+}
+
+/**
+ * Asks origin for an asset again without reading the shared cache entry, by
+ * giving the request a cache key that no entry has.
+ */
+async function fetchPastCache (request: Request, cacheKey: string): Promise<Response> {
+  return fetch(new Request(request, { redirect: 'manual' }), {
+    cf: {
+      cacheKey: `${cacheKey}?retry=${Date.now()}`
+    }
   })
 }
 
@@ -187,28 +194,25 @@ export default {
       // handing back the installer page for a file that does not exist. Ask
       // origin again with the cache out of the way.
       //
-      // `cache: 'no-store'` is the only thing that skips the cache read. It
-      // has to, because on the base domain the request URL is byte-for-byte
-      // the shared cacheKey, so a plain re-fetch would be answered by the
-      // poisoned entry we are trying to get around. `cf.cacheTtl: 0` does not
+      // A plain re-fetch would be answered by the poisoned entry we are trying
+      // to get around, and so would a new query string, because these zones set
+      // their cache level to ignore query strings. `cf.cacheTtl: 0` does not
       // help: it expires the entry it writes, it does not bypass the lookup.
+      // `cache: 'no-store'` does, but this handler also runs as a snippet on the
+      // apex hosts, and that runtime appears to reject the option (#1213).
       //
-      // The retry is best effort. On inbrowser.dev and inbrowser.link it
-      // throws instead of fetching, most likely because the snippet runtime
-      // does not implement the `cache` option. Uncaught, that turns every
-      // missing asset into a Cloudflare "Worker threw exception" 500, so
-      // any failure here falls through to the 404 below.
+      // Uncaught, a failure here would be a Cloudflare "Worker threw exception"
+      // 500, so it is logged and answered with the 404 below.
       try {
-        const fresh = await fetch(new Request(request, {
-          redirect: 'manual',
-          cache: 'no-store'
-        }))
+        const fresh = await fetchPastCache(request, cacheKey)
 
-        if (isAssetResponse(fresh)) {
+        // As above, a real 3xx/4xx/5xx from origin is passed through as-is.
+        if (isAssetResponse(fresh) || !fresh.ok) {
           return fresh
         }
-      } catch {
-        // fall through to the 404
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('asset retry failed', url.pathname, err)
       }
 
       return notFound()
