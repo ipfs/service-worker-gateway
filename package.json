@@ -115,7 +115,7 @@
     "delay": "^7.0.0",
     "esbuild": "^0.28.0",
     "fast-glob": "^3.3.3",
-    "glob": "^13.0.0",
+    "glob": "^14.0.4",
     "http-server": "^14.1.1",
     "ipfs-unixfs": "^13.0.0",
     "ipfs-unixfs-importer": "^17.0.1",
