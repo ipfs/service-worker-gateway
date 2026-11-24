@@ -96,7 +96,7 @@
     "@helia/ipns": "^10.0.3",
     "@helia/json": "^6.0.0",
     "@helia/unixfs": "^8.0.0",
-    "@ipld/car": "^5.4.2",
+    "@ipld/car": "^6.2.0",
     "@libp2p/crypto": "^5.1.13",
     "@libp2p/utils": "^7.0.10",
     "@playwright/test": "^1.53.2",
